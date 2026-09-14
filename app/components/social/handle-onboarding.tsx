@@ -154,9 +154,11 @@ export function HandleOnboarding() {
 
   return (
     <>
+      {/* max-lg:bottom-20 = lifted above the mobile bottom pill (~76px tall,
+          <md only after the wave-4 md:hidden); unchanged at lg+. */}
       <aside
         aria-label="Claim a handle"
-        className="fixed bottom-4 right-4 z-40 w-80 max-w-[calc(100vw-2rem)] rounded-md border border-border bg-card p-4"
+        className="fixed bottom-4 max-lg:bottom-20 right-4 z-40 w-80 max-w-[calc(100vw-2rem)] rounded-xl border border-border bg-card p-4"
       >
         <div className="flex items-start gap-3">
           <SocialAvatar wallet={wallet} className="mt-0.5" />

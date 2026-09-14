@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 import StockChart from "./StockChart";
-import MintCopyButton from "./MintCopyButton";
+import { IconCopyButton } from "@/components/ui/copy-button";
 import { FreshnessBadge } from "@/components/states";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -153,7 +153,7 @@ export default async function StockPage({
           <Card className="h-full">
             <CardHeader className="pb-2">
               <CardAction>
-                {compare.mint ? <MintCopyButton value={compare.mint} /> : null}
+                {compare.mint ? <IconCopyButton value={compare.mint} iconOnly /> : null}
               </CardAction>
               <CardDescription>xStock (Jupiter)</CardDescription>
               <CardTitle className="font-mono text-2xl tabular-nums">

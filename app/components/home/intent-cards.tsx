@@ -1,15 +1,19 @@
 import Link from "next/link";
 
+import { SectionReveal } from "@/components/home/section-reveal";
 import { SectionHeader } from "@/components/ui/section-header";
 
 /**
  * Intent cards — replace the deleted asset-class gateway with a
  * route-by-intent row (route-by-intent research; Jupiter verb taxonomy:
- * browse / follow / read / build). Four full-surface links, hairline-
- * divided like the closing strip they absorb — no card chrome, label +
- * one line + a lifting ↗. Social surfaces (leaderboard, feed) are
- * surfaced beside research and create so every way in is one click from
- * the home page. Owner feedback 2026-09-12.
+ * browse / follow / read / build). Four full-surface links, social
+ * surfaces (leaderboard, feed) surfaced beside research and create so
+ * every way in is one click from the home page. Owner feedback 2026-09-12.
+ *
+ * Wave-2 polish (2026-09-14): each card is a quiet face — hairline border,
+ * faint card wash — that lifts ~2px on hover while its ↗ drifts one notch
+ * diagonally (150–200ms, transform-only, reduced-motion honored). Cards
+ * stagger in with the page's SectionReveal.
  */
 
 const CARDS = [
@@ -33,24 +37,25 @@ export function IntentCards() {
           lead="Four ways in — all of them non-custodial."
         />
 
-        <div className="mt-12 grid grid-cols-1 divide-y divide-border sm:grid-cols-4 sm:divide-x sm:divide-y-0">
-          {CARDS.map((card) => (
-            <Link
-              key={card.href}
-              href={card.href}
-              className="group flex items-center justify-between gap-4 py-6 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 sm:flex-col sm:items-start sm:justify-start sm:gap-3 sm:px-6 sm:first:pl-0 sm:last:pr-0"
-            >
-              <span className="section-label">{card.label}</span>
-              <span className="text-sm leading-5 text-foreground">
-                {card.line}
-              </span>
-              <span
-                aria-hidden="true"
-                className="font-mono text-sm text-muted-foreground transition-all duration-200 group-hover:-translate-y-0.5 group-hover:text-primary-text motion-reduce:transform-none motion-reduce:transition-none"
+        <div className="mt-12 grid grid-cols-1 gap-3 sm:grid-cols-4">
+          {CARDS.map((card, index) => (
+            <SectionReveal key={card.href} delay={index * 60} className="h-full">
+              <Link
+                href={card.href}
+                className="group flex h-full items-center justify-between gap-4 rounded-xl border border-border/50 bg-card/40 px-4 py-5 transition-[background-color,border-color,box-shadow,transform] duration-200 hover:-translate-y-0.5 hover:border-border hover:bg-card hover:shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 motion-reduce:transition-none motion-reduce:hover:translate-y-0 motion-reduce:hover:shadow-none sm:flex-col sm:items-start sm:justify-start sm:gap-5"
               >
-                ↗
-              </span>
-            </Link>
+                <span className="section-label">{card.label}</span>
+                <span className="text-sm leading-5 text-foreground">
+                  {card.line}
+                </span>
+                <span
+                  aria-hidden="true"
+                  className="font-mono text-sm text-muted-foreground transition-transform duration-150 group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:text-primary-text motion-reduce:transform-none motion-reduce:transition-none"
+                >
+                  ↗
+                </span>
+              </Link>
+            </SectionReveal>
           ))}
         </div>
         <div className="pb-8" />

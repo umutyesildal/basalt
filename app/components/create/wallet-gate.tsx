@@ -41,7 +41,7 @@ export function WalletGateBanner({ className }: { className?: string }) {
       role="note"
       aria-label="Wallet not connected"
       className={
-        "flex flex-wrap items-center gap-3 rounded-lg border border-border bg-muted/50 p-3 " +
+        "flex flex-wrap items-center gap-3 rounded-xl border border-border bg-muted/50 p-3 " +
         (className ?? "")
       }
     >

@@ -466,7 +466,7 @@ function CreatorPageReal() {
               estimated from on-chain snapshots · not advice
             </p>
           </div>
-          <div className="rounded-sm bg-card ring-1 ring-border hairline-primary">
+          <div className="rounded-xl bg-card ring-1 ring-border hairline-primary">
             <div className="p-5">
               {curve === null ? (
                 <div role="status" aria-label="Loading equity curve" className="flex h-[280px] items-end gap-2 p-4">
@@ -495,7 +495,7 @@ function CreatorPageReal() {
             <div className="space-y-2" role="status" aria-label="Loading trade history">
               <span className="sr-only">Loading trade history</span>
               {Array.from({ length: 3 }, (_, i) => (
-                <div key={i} className="flex items-center gap-3 rounded-sm border border-border bg-card px-4 py-3">
+                <div key={i} className="flex items-center gap-3 rounded-xl border border-border bg-card px-4 py-3">
                   <Skeleton className="h-4 w-16" />
                   <Skeleton className="h-4 w-40" />
                   <Skeleton className="ml-auto h-4 w-20" />
@@ -514,7 +514,7 @@ function CreatorPageReal() {
             />
           ) : (
             <>
-              <ul className="divide-y divide-border overflow-hidden rounded-sm border border-border bg-card">
+              <ul className="divide-y divide-border overflow-hidden rounded-xl border border-border bg-card">
                 {history.map((item, index) => {
                   const minted = item.type === "Minted";
                   return (
@@ -523,7 +523,7 @@ function CreatorPageReal() {
                       className="flex flex-wrap items-center gap-x-4 gap-y-1 px-4 py-3"
                     >
                       <span
-                        className={`shrink-0 rounded border px-1.5 py-0.5 font-mono text-[10px] uppercase tracking-wide ${
+                        className={`shrink-0 rounded-md border px-1.5 py-0.5 font-mono text-[10px] uppercase tracking-wide ${
                           minted
                             ? "border-[hsl(var(--status-positive)/40)] bg-[hsl(var(--status-positive)/10)] text-[hsl(var(--status-positive))]"
                             : "border-[hsl(var(--destructive)/40)] bg-[hsl(var(--destructive)/10)] text-[hsl(var(--destructive))]"
@@ -569,7 +569,7 @@ function CreatorPageReal() {
           <span className="sr-only">Loading creator profile</span>
           <div className="grid gap-3 sm:grid-cols-3">
             {Array.from({ length: 3 }, (_, i) => (
-              <div key={i} aria-hidden="true" className="rounded-sm border border-border bg-card p-5">
+              <div key={i} aria-hidden="true" className="rounded-xl border border-border bg-card p-5">
                 <Skeleton className="h-3 w-20" />
                 <Skeleton className="mt-2 h-8 w-24" />
               </div>
@@ -577,7 +577,7 @@ function CreatorPageReal() {
           </div>
           <div className="mt-8 grid gap-3 sm:grid-cols-2" aria-hidden="true">
             {Array.from({ length: 2 }, (_, i) => (
-              <div key={i} className="rounded-sm border border-border bg-card p-5">
+              <div key={i} className="rounded-xl border border-border bg-card p-5">
                 <Skeleton className="h-4 w-32" />
                 <Skeleton className="mt-3 h-8 w-24" />
               </div>
@@ -596,7 +596,7 @@ function CreatorPageReal() {
             action={
               <Link
                 href="/create"
-                className="rounded-sm border border-border bg-background px-2.5 py-1.5 text-sm hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+                className="rounded-lg border border-border bg-background px-2.5 py-1.5 text-sm hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
               >
                 Open the create wizard
               </Link>
@@ -682,7 +682,7 @@ function CreatorPageReal() {
                       key={row.pubkey}
                       href={`/basket/${row.pubkey}`}
                       title={`Open basket ${row.pubkey}`}
-                      className="group flex flex-col rounded-sm border border-border bg-card p-5 transition-colors hover:border-foreground/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+                      className="group flex flex-col rounded-xl border border-border bg-card p-5 transition-colors hover:border-foreground/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
                     >
                       <div className="flex items-start justify-between gap-2">
                         <span
@@ -692,7 +692,7 @@ function CreatorPageReal() {
                           {truncateAddress(row.pubkey, 6, 4)}
                         </span>
                         {unavailable ? (
-                          <span className="shrink-0 rounded border border-border px-1.5 py-0.5 font-mono text-[10px] uppercase tracking-wide text-muted-foreground">
+                          <span className="shrink-0 rounded-md border border-border px-1.5 py-0.5 font-mono text-[10px] uppercase tracking-wide text-muted-foreground">
                             not indexed
                           </span>
                         ) : null}

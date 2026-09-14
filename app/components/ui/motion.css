@@ -1,0 +1,96 @@
+/*
+ * Basalt motion primitives — the single home for UI keyframes.
+ *
+ * tailwind.config.js may not be touched (parallel-agent ownership), so the
+ * shimmer + fade-up keyframes live in this plain stylesheet instead of the
+ * Tailwind theme. Import graph:
+ *
+ *   - `motion.ts` side-effect imports this file, so any module that pulls the
+ *     class-name constants gets the keyframes automatically.
+ *   - `skeleton-shimmer.tsx` imports `motion.ts`, same guarantee.
+ *   - A page using ONLY the class strings (e.g. `FADE_UP`) must import
+ *     `@/components/ui/motion.css` once (App Router allows global CSS in any
+ *     layout/page/component).
+ *
+ * Motion rules (ui-plan §0.4): 150–250ms ease-out for transitions; loop
+ * animations (shimmer) are ambient loading affordances and may run longer.
+ * Everything honors prefers-reduced-motion.
+ */
+
+@keyframes basalt-fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* One-shot entrance. `both` keeps the from-state during delays, so staggered
+   children start hidden instead of flashing before their turn. The element
+   carries NO opacity/transform outside the animation, so disabling the
+   animation (reduced motion) leaves it fully visible. */
+.basalt-fade-up {
+  animation: basalt-fade-up 220ms ease-out both;
+}
+
+/* Stagger steps — 60ms apart, enough to read as a cascade without lag. */
+.basalt-fade-up-0 {
+  animation-delay: 0ms;
+}
+.basalt-fade-up-1 {
+  animation-delay: 60ms;
+}
+.basalt-fade-up-2 {
+  animation-delay: 120ms;
+}
+.basalt-fade-up-3 {
+  animation-delay: 180ms;
+}
+.basalt-fade-up-4 {
+  animation-delay: 240ms;
+}
+.basalt-fade-up-5 {
+  animation-delay: 300ms;
+}
+
+@keyframes basalt-shimmer {
+  from {
+    background-position: -200% 0;
+  }
+  to {
+    background-position: 200% 0;
+  }
+}
+
+/* Skeleton shimmer sweep. Base surface stays bg-muted (set by the component);
+   this only paints the moving highlight, token-derived (foreground at 5%). */
+.basalt-shimmer {
+  background-image: linear-gradient(
+    90deg,
+    transparent,
+    hsl(var(--foreground) / 0.05),
+    transparent
+  );
+  background-size: 200% 100%;
+  background-repeat: no-repeat;
+  animation: basalt-shimmer 1.6s ease-in-out infinite;
+}
+
+/* prefers-reduced-motion: kill motion, keep the static surfaces visible. */
+@media (prefers-reduced-motion: reduce) {
+  .basalt-fade-up,
+  .basalt-fade-up-0,
+  .basalt-fade-up-1,
+  .basalt-fade-up-2,
+  .basalt-fade-up-3,
+  .basalt-fade-up-4,
+  .basalt-fade-up-5 {
+    animation: none;
+  }
+  .basalt-shimmer {
+    animation: none;
+  }
+}

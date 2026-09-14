@@ -1,19 +1,16 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import Link from "next/link";
 
-import { Skeleton } from "@/components/states";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { formatUsd } from "@/lib/format";
+import { AssetCard } from "@/components/cards/asset-card";
 import { cn } from "@/lib/utils";
 
 /**
  * One listing row — the whole card is a link to /stock/[ticker] (same pattern
  * as the /stocks cards: native anchor, keyboard accessible, hover ring on the
- * border). All numeric fields are server-computed from live endpoints
- * (Jupiter price, Yahoo daily closes) — this component never fabricates or
- * derives new figures, it only sorts and renders.
+ * border). Price is live (Jupiter / dev catalog); the sparkline and the 24h/7d
+ * changes come from real Yahoo daily closes (lib/price-series.ts) — this
+ * component never fabricates or derives new figures, it only sorts and renders.
  */
 export interface EtfRow {
   ticker: string;
@@ -22,6 +19,10 @@ export interface EtfRow {
   provider?: string;
   price: number | null;
   change24h: number | null;
+  /** 7-session change from the same Yahoo closes — null renders "7d —". */
+  change7d?: number | null;
+  /** Underlying daily closes, oldest → newest (empty = chart slot stays empty). */
+  sparkline?: number[];
 }
 
 const SORTS = [
@@ -46,59 +47,29 @@ function sortRows(rows: EtfRow[], sort: SortKey): EtfRow[] {
   return copy.sort((a, b) => (value(b) ?? -Infinity) - (value(a) ?? -Infinity));
 }
 
+// Owner feedback 2026-09-14: bigger cards — three columns max, airier gaps,
+// same rhythm as the /stocks grid.
+const GRID_CLASS = "grid gap-4 sm:grid-cols-2 lg:grid-cols-3";
+
+/**
+ * One listing row — thin adapter over the shared AssetCard (same anatomy as
+ * /stocks): ticker headline, ETF name as the one-line context, issuer
+ * micro-label top-right, mono token price, and the 7-session sparkline +
+ * 24h/7d cells (the chart slot keeps its fixed empty surface when the series
+ * feed produced nothing — nothing is fabricated).
+ */
 function EtfCard({ row }: { row: EtfRow }) {
-  const change = row.change24h;
   return (
-    <Link
+    <AssetCard
       href={`/stock/${encodeURIComponent(row.ticker)}`}
-      className="group block h-full rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
-    >
-      <Card className="h-full transition-colors group-hover:border-primary/60">
-        <CardHeader className="pb-3">
-          <div className="flex items-start justify-between gap-2">
-            <div className="min-w-0">
-              <CardTitle className="font-mono text-lg font-semibold tabular-nums">
-                {row.ticker}
-              </CardTitle>
-              {row.name ? (
-                <CardDescription className="truncate text-xs">{row.name}</CardDescription>
-              ) : null}
-            </div>
-            {row.provider ? (
-              <span
-                title="Tokenized instrument issuer"
-                className="shrink-0 font-mono text-[10px] uppercase tracking-wide text-muted-foreground"
-              >
-                {PROVIDER_LABEL[row.provider] ?? row.provider}
-              </span>
-            ) : null}
-          </div>
-        </CardHeader>
-        <CardContent className="flex h-full flex-col">
-          <div className="grid grid-cols-2 gap-3 border-t border-border/60 pt-3">
-            <div>
-              <p className="text-[11px] uppercase tracking-wide text-muted-foreground">
-                Token price
-              </p>
-              <p className="font-mono text-sm tabular-nums">
-                {row.price !== null ? formatUsd(row.price) : "—"}
-              </p>
-            </div>
-            <div>
-              <p className="text-[11px] uppercase tracking-wide text-muted-foreground">24h</p>
-              <p
-                className={cn(
-                  "font-mono text-sm tabular-nums",
-                  change !== null && change >= 0 ? "text-foreground" : "text-muted-foreground",
-                )}
-              >
-                {change !== null ? `${change >= 0 ? "+" : ""}${change.toFixed(2)}%` : "—"}
-              </p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-    </Link>
+      ticker={row.ticker}
+      context={row.name ?? null}
+      meta={row.provider ? (PROVIDER_LABEL[row.provider] ?? row.provider) : null}
+      price={row.price}
+      change24h={row.change24h}
+      change7d={row.change7d ?? null}
+      sparkline={row.sparkline ?? []}
+    />
   );
 }
 
@@ -134,34 +105,11 @@ export function EtfGrid({ rows }: { rows: EtfRow[] }) {
         </nav>
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+      <div className={GRID_CLASS}>
         {sorted.map((row) => (
           <EtfCard key={row.ticker} row={row} />
         ))}
       </div>
-    </div>
-  );
-}
-
-/** Suspense fallback — card-shaped bars, aria-hidden, no fake data. */
-export function EtfGridSkeleton() {
-  return (
-    <div
-      role="status"
-      aria-label="Loading tokenized ETF listings"
-      className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
-    >
-      {Array.from({ length: 4 }, (_, i) => (
-        <div key={i} aria-hidden="true" className="rounded-lg border border-border bg-card p-5">
-          <Skeleton className="h-5 w-16" />
-          <Skeleton className="mt-2 h-3 w-28" />
-          <div className="mt-4 grid grid-cols-2 gap-3 border-t border-border/60 pt-3">
-            <Skeleton className="h-8" />
-            <Skeleton className="h-8" />
-          </div>
-          <Skeleton className="mt-4 h-6 w-14" />
-        </div>
-      ))}
     </div>
   );
 }

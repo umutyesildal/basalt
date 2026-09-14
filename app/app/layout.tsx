@@ -4,6 +4,7 @@ import { Chakra_Petch, Geist, Geist_Mono } from "next/font/google";
 import { cn } from "@/lib/utils";
 
 import { SiteHeader } from "@/components/shell/site-header";
+import { MobileNav } from "@/components/shell/mobile-nav";
 import { PendingTxBanner } from "@/components/feedback/pending-tx-banner";
 import { AppProviders } from "./providers";
 
@@ -42,7 +43,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en" className={cn("dark font-sans", geist.variable, geistMono.variable, chakraPetch.variable)}>
       <body className="min-h-screen bg-background text-foreground antialiased">
         <AppProviders>
-          <div className="flex min-h-screen flex-col">
+          <div className="flex min-h-screen flex-col pb-[calc(5rem+env(safe-area-inset-bottom))] lg:pb-0">
             <a
               href="#main"
               className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-50 focus:rounded-md focus:bg-primary focus:px-3 focus:py-2 focus:text-sm focus:text-primary-foreground"
@@ -56,6 +57,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             {/* Sent-while-hidden safety net: confirmation outcomes surface on
                 any page (components/feedback/pending-tx.ts registry). */}
             <PendingTxBanner />
+            {/* Floating mobile pill nav (wave-3): below lg only; the pb above
+                reserves its space so the fixed bar never covers page content. */}
+            <MobileNav />
           </div>
         </AppProviders>
       </body>

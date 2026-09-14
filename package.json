@@ -13,6 +13,7 @@
     "faucet": "tsx --tsconfig app/tsconfig.json scripts/faucet.ts",
     "proof:buyflow": "tsx --tsconfig app/tsconfig.json scripts/verifyBuyFlow.ts",
     "proof:retryflow": "tsx --tsconfig app/tsconfig.json scripts/verifyRetryFlow.ts",
+    "proof:txsize": "tsx --tsconfig app/tsconfig.json scripts/checkTxSize.ts",
     "lint": "cargo clippy"
   },
   "dependencies": {

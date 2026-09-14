@@ -519,6 +519,70 @@ export async function basketPerformance(db: PgLike, pubkey: string): Promise<{ s
   };
 }
 
+/**
+ * Events ledger query — one fully static literal per variant; every dynamic
+ * value is a bound parameter. `data` is JSONB (pg parses it to a JS object)
+ * and `slot` stays a BIGINT decimal string (integer-safe convention).
+ */
+const EVENTS_BY_BASKET_SQL = `SELECT sig, slot, basket, type, data, ts
+ FROM events WHERE basket = $1 ORDER BY ts DESC, slot DESC, sig ASC LIMIT $2`;
+const EVENTS_BY_BASKET_TYPE_SQL = `SELECT sig, slot, basket, type, data, ts
+ FROM events WHERE basket = $1 AND type = $2 ORDER BY ts DESC, slot DESC, sig ASC LIMIT $3`;
+
+const EVENT_TYPES = ["BasketCreated", "Minted", "Redeemed", "FeeAccrued"] as const;
+
+/**
+ * GET /events?basket=&type=&limit= — the indexer `events` ledger for one
+ * basket (spec §8). `basket` is required and canonicalized to base58 by the
+ * handler; `type` is allowlisted against the events-table CHECK constraint;
+ * `limit` is clamped to 1..500. A basket with no `baskets` row answers 404
+ * NOT_INDEXED exactly like the other basket routes; an indexed basket with
+ * zero events answers 200 with an explicit empty list — never fabricated.
+ */
+export async function basketEvents(
+  db: PgLike,
+  pubkey: string,
+  params: { type?: string | null; limit?: number },
+): Promise<{ status: number; payload: unknown }> {
+  assertPubkey(pubkey);
+  if (params.type && !(EVENT_TYPES as readonly string[]).includes(params.type)) {
+    return {
+      status: 400,
+      payload: {
+        error: {
+          code: "INVALID_TYPE",
+          message: `type must be one of ${EVENT_TYPES.join("|")}`,
+          supported: EVENT_TYPES,
+        },
+      },
+    };
+  }
+  if (params.limit !== undefined && (!Number.isFinite(params.limit) || !Number.isInteger(params.limit))) {
+    return { status: 400, payload: { error: { code: "INVALID_LIMIT", message: "limit must be an integer" } } };
+  }
+  const limit = Math.min(Math.max(params.limit ?? 100, 1), 500);
+  const exists = await db.query("SELECT 1 FROM baskets WHERE pubkey = $1", [pubkey]);
+  if (exists.rows.length === 0) {
+    return { status: 404, payload: { error: { code: "NOT_INDEXED", message: `basket ${pubkey} is not indexed by this backend` } } };
+  }
+  const res = params.type
+    ? await db.query(EVENTS_BY_BASKET_TYPE_SQL, [pubkey, params.type, limit])
+    : await db.query(EVENTS_BY_BASKET_SQL, [pubkey, limit]);
+  const rows = res.rows as Array<Record<string, unknown>>;
+  return {
+    status: 200,
+    payload: {
+      data: rows.map((r) => ({ ...r, source: "onchain-indexed", asOf: r.ts })),
+      count: rows.length,
+      basket: pubkey,
+      ...(params.type ? { type: params.type } : {}),
+      limit,
+      source: "onchain-indexed",
+      note: "Rows come from the indexer events ledger (sig-deduped, u64 amounts as decimal strings in data). Empty list means no events indexed for this basket yet — never fabricated.",
+    },
+  };
+}
+
 /** GET /whitelist — whitelisted_mints. */
 export async function listWhitelist(db: PgLike): Promise<{ status: number; payload: unknown }> {
   const res = await db.query(
@@ -933,6 +997,38 @@ export function createHandler(ctx: ApiContext = { db: null }) {
         sendJson(res, out.status, out.payload);
       } catch (err) {
         sendError(res, 503, "DB_UNAVAILABLE", err instanceof Error ? err.message : "basket query failed");
+      }
+      return;
+    }
+
+    // --- Events ledger (spec §8): GET /api/v1/events?basket=&type=&limit= ---
+    if (pathname === "/api/v1/events" && req.method === "GET") {
+      const db = await resolveDb(ctx);
+      if (!isPgLike(db)) { sendError(res, 503, "DB_UNAVAILABLE", "no Postgres configured — indexed event data is unavailable (never fabricated)"); return; }
+      // Canonicalize + guard (400) before dispatch — same trust boundary as
+      // the basket/positions routes: only canonical base58 reaches the DB.
+      const basketRaw = url.searchParams.get("basket");
+      let pubkey: string;
+      try {
+        if (!basketRaw) throw new Error("missing basket");
+        pubkey = new PublicKey(decodeURIComponent(basketRaw)).toBase58();
+      } catch {
+        sendError(res, 400, "INVALID_PUBKEY", `basket query parameter must be a valid Solana pubkey${basketRaw ? `: ${basketRaw.slice(0, 64)}` : " (missing)"}`);
+        return;
+      }
+      if (!isValidPubkey(pubkey)) {
+        sendError(res, 400, "INVALID_PUBKEY", `basket query parameter must be a valid Solana pubkey: ${pubkey}`);
+        return;
+      }
+      try {
+        const limitRaw = url.searchParams.get("limit");
+        const out = await basketEvents(db, pubkey, {
+          type: url.searchParams.get("type"),
+          limit: limitRaw !== null ? Number(limitRaw) : undefined,
+        });
+        sendJson(res, out.status, out.payload);
+      } catch (err) {
+        sendError(res, 503, "DB_UNAVAILABLE", err instanceof Error ? err.message : "events query failed");
       }
       return;
     }

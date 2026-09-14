@@ -5,10 +5,12 @@ import Link from "next/link";
 import { useWallet } from "@solana/wallet-adapter-react";
 
 import { EmptyState, ErrorState, FreshnessBadge, Skeleton } from "@/components/states";
+import { PortfolioEmptyState } from "@/components/empty-state";
 import { WalletButton } from "@/components/shell";
 import { Button } from "@/components/ui/button";
 import { ChangeValue } from "@/components/stocks/change-value";
 import { LegalReviewTag } from "@/components/create";
+import { CARD_LINK_CLASS } from "@/components/cards/card-frame";
 import { formatTokenAmount, formatUsd, prettyTicker, truncateAddress } from "@/lib/format";
 import { apiFetch } from "@/lib/api-client";
 
@@ -141,7 +143,7 @@ function compositionOf(b: BasketRow, mintTickers: Map<string, string>): string |
 /** Card-shaped skeleton — same block as a loaded position card. */
 function PositionCardSkeleton() {
   return (
-    <div aria-hidden="true" className="rounded-lg border border-border bg-card p-5">
+    <div aria-hidden="true" className="rounded-xl border border-border bg-card p-5">
       <Skeleton className="h-4 w-28" />
       <Skeleton className="mt-1.5 h-3 w-40" />
       <Skeleton className="mt-4 h-7 w-24" />
@@ -181,7 +183,9 @@ function PositionCard({ position, meta, mintTickers }: PositionCardProps) {
     <Link
       href={`/basket/${position.basket}`}
       title={`Open basket ${position.basket}`}
-      className="group flex flex-col rounded-lg border border-border bg-card p-5 transition-colors hover:border-foreground/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+      // Same frame as the /explore grid (CARD_LINK_CLASS): lift + border
+      // brighten on hover, 150ms ease-out, reduced-motion safe.
+      className={CARD_LINK_CLASS}
     >
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
@@ -198,7 +202,7 @@ function PositionCard({ position, meta, mintTickers }: PositionCardProps) {
           ) : null}
         </div>
         {!hasValue ? (
-          <span className="shrink-0 rounded border border-border px-1.5 py-0.5 font-mono text-[10px] uppercase tracking-[0.22em] text-muted-foreground">
+          <span className="shrink-0 rounded-md border border-border px-1.5 py-0.5 font-mono text-[10px] uppercase tracking-[0.22em] text-muted-foreground">
             no nav
           </span>
         ) : null}
@@ -479,31 +483,13 @@ export default function PortfolioPage() {
       )}
 
       {status === "ready" && positions.length === 0 && (
-        <EmptyState
-          className="mt-6"
-          chip="EMPTY"
-          title="No positions yet"
-          description="The indexer returned zero positions for this wallet — on-chain balances are the source of truth and nothing is fabricated."
-          action={
-            <Button render={<Link href="/explore" />} size="sm">
-              Explore baskets
-            </Button>
-          }
-          previewLabel="Layout preview — position cards"
-          preview={
-            <CardGrid>
-              {Array.from({ length: 2 }, (_, i) => (
-                <PositionCardSkeleton key={i} />
-              ))}
-            </CardGrid>
-          }
-        />
+        <PortfolioEmptyState className="mt-6" />
       )}
 
       {status === "ready" && positions.length > 0 && (
         <div className="mt-6 space-y-3">
           {/* Summary strip — total is a reference sum, never a quote. */}
-          <div className="flex flex-wrap items-end justify-between gap-x-8 gap-y-3 rounded-lg border border-border bg-card px-5 py-4">
+          <div className="flex flex-wrap items-end justify-between gap-x-8 gap-y-3 rounded-xl border border-border bg-card px-5 py-4">
             <div className="flex flex-col gap-0.5">
               <span className="font-mono text-[11px] uppercase tracking-[0.22em] text-muted-foreground">
                 Total value (reference)

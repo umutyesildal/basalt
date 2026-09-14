@@ -80,7 +80,7 @@ export function BasketAvatar({
     <span
       aria-hidden="true"
       className={cn(
-        "relative inline-flex shrink-0 select-none items-center justify-center overflow-hidden rounded-sm",
+        "relative inline-flex shrink-0 select-none items-center justify-center overflow-hidden rounded-md",
         className,
       )}
       style={{

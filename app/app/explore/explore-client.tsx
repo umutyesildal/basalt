@@ -5,9 +5,15 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { ErrorState, EmptyState, FreshnessBadge, Skeleton } from "@/components/states";
 import { Button } from "@/components/ui/button";
-import { ChangeValue } from "@/components/stocks/change-value";
-import { formatUsd, prettyTicker, truncateAddress } from "@/lib/format";
+// Importing the constant side-effect-loads motion.css (the keyframes' single
+// home), so the fade-up classes below always ship with this module.
+import { fadeUpStagger } from "@/components/ui/motion";
+import { SkeletonShimmer } from "@/components/ui/skeleton-shimmer";
+import { BasketCard, type BasketCardCompare } from "@/components/cards/basket-card";
+import { prettyTicker, truncateAddress } from "@/lib/format";
 import { apiFetch } from "@/lib/api-client";
+import { categoryOf, compareBasketCategories } from "@/lib/categories";
+import { cn } from "@/lib/utils";
 
 /** Numeric field as served by the indexer: Postgres numeric serialized as text. */
 type Numeric = string | number | null | undefined;
@@ -174,120 +180,60 @@ function compositionOf(b: BasketRow, mintTickers: Map<string, string>): string |
     : shown;
 }
 
-/** Basket return minus SPY return over the same window. Gray +/-, sign always shown. */
-function DeltaCell({ value, window: win }: { value: number | null; window: "24h" | "30d" }) {
-  if (value === null) {
-    return (
-      <span
-        className="text-muted-foreground"
-        title={`No ${win} comparison — needs both the basket ${win} return and the SPY ${win} close.`}
-      >
-        —
-      </span>
-    );
-  }
-  const positive = value >= 0;
-  return (
-    <span
-      className={`font-mono text-xs tabular-nums ${
-        positive ? "text-foreground" : "text-muted-foreground"
-      }`}
-    >
-      {positive ? "+" : ""}
-      {value.toFixed(2)}%
-    </span>
-  );
-}
-
-interface BasketCardProps {
-  b: BasketRow;
-  bench: Bench | null;
-  showVs24: boolean;
-  mintTickers: Map<string, string>;
-}
-
 /**
- * One basket in the /explore grid — same card treatment as /stocks:
- * whole card is a link to /basket/[pubkey], name headline with the mono
- * composition as the secondary line, big mono share price, AUM muted,
- * bottom row 24h change + vs SPY delta.
+ * Constituent tickers (list order) with optional weights, fed to the
+ * presentation-layer category classification (see lib/categories.ts).
+ * Same extraction rules as compositionOf — mint pubkeys resolve through the
+ * whitelist ticker map, metadata constituents carry pct weights.
  */
-function BasketCard({ b, bench, showVs24, mintTickers }: BasketCardProps) {
-  const change = num(b.return_24h);
-  const r30 = num(b.return_30d);
-  const d24 = change !== null && bench?.d24 != null ? change - bench.d24 : null;
-  const d30 = r30 !== null && bench?.d30 != null ? r30 - bench.d30 : null;
-  const sharePrice = num(b.share_price);
-  const nav = num(b.nav);
-  /** No NAV/price indexed yet — muted price plus an explicit "not indexed" chip. */
-  const unavailable = sharePrice === null;
-  const name = nameOf(b);
-  const composition = compositionOf(b, mintTickers);
-  const headline = name ?? composition ?? truncateAddress(b.pubkey, 6, 4);
+function tickerWeightsOf(
+  b: BasketRow,
+  mintTickers: Map<string, string>,
+): { tickers: string[]; weights: (number | null)[] } {
+  const tickers: string[] = [];
+  const weights: (number | null)[] = [];
+  const rawList = Array.isArray(b.constituents) ? b.constituents : null;
+  if (rawList && rawList.length > 0) {
+    const bpsList = Array.isArray(b.weights_bps) ? b.weights_bps : null;
+    rawList.forEach((c, i) => {
+      const mint = typeof c === "string" ? c : typeof c.mint === "string" ? c.mint : null;
+      const ticker =
+        (typeof c === "object" && c !== null ? constituentTicker(c) : null) ??
+        (mint ? mintTickers.get(mint) ?? null : null);
+      if (!ticker) return;
+      tickers.push(ticker);
+      const bps = bpsList ? num(bpsList[i]) : null;
+      weights.push(bps);
+    });
+  } else {
+    const metaConstituents = metaObj(b.metadata_json)?.constituents;
+    const list = Array.isArray(metaConstituents)
+      ? (metaConstituents as ConstituentLike[])
+      : [];
+    for (const c of list) {
+      const ticker = constituentTicker(c);
+      if (!ticker) continue;
+      tickers.push(ticker);
+      weights.push(constituentWeightPct(c));
+    }
+  }
+  return { tickers, weights };
+}
 
-  return (
-    <Link
-      href={`/basket/${b.pubkey}`}
-      title={`Open basket ${b.pubkey}`}
-      className="group flex flex-col rounded-lg border border-border bg-card p-5 transition-colors hover:border-primary/60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
-    >
-      <div className="flex items-start justify-between gap-2">
-        <div className="min-w-0">
-          <span
-            className="block break-words text-sm font-medium tracking-tight text-foreground"
-            title={b.pubkey}
-          >
-            {headline}
-          </span>
-          {name && composition ? (
-            <span className="mt-1 block break-words font-mono text-xs text-muted-foreground">
-              {composition}
-            </span>
-          ) : null}
-        </div>
-        {unavailable ? (
-          <span className="shrink-0 rounded border border-border px-1.5 py-0.5 font-mono text-[10px] uppercase tracking-wide text-muted-foreground">
-            not indexed
-          </span>
-        ) : null}
-      </div>
-
-      <span
-        className={`mt-4 font-mono text-2xl tabular-nums ${
-          unavailable ? "text-muted-foreground" : "text-foreground"
-        }`}
-      >
-        {sharePrice !== null ? formatUsd(sharePrice) : "—"}
-      </span>
-      <span className="mt-0.5 text-xs text-muted-foreground">
-        AUM {nav !== null ? formatUsd(nav, { maximumFractionDigits: 0 }) : "—"}
-      </span>
-
-      <div className="mt-auto pt-4">
-        <div className="flex items-center justify-between gap-2 border-t border-border/60 pt-3">
-          <span className="flex flex-col gap-0.5">
-            <span className="text-[11px] uppercase tracking-wide text-muted-foreground">24h</span>
-            <ChangeValue changePct={change} />
-          </span>
-          {showVs24 ? (
-            <span className="flex flex-col items-end gap-0.5">
-              <span className="text-[11px] uppercase tracking-wide text-muted-foreground">
-                vs SPY
-              </span>
-              <DeltaCell value={d24} window="24h" />
-            </span>
-          ) : bench ? (
-            <span className="flex flex-col items-end gap-0.5">
-              <span className="text-[11px] uppercase tracking-wide text-muted-foreground">
-                vs SPY 30d
-              </span>
-              <DeltaCell value={d30} window="30d" />
-            </span>
-          ) : null}
-        </div>
-      </div>
-    </Link>
+/** Category filter pill — rounded-full monochrome token treatment, filled when active. */
+function pillClasses(active: boolean) {
+  return cn(
+    // 36px tall on phones (touch), compact 28px from sm up.
+    "inline-flex h-7 max-md:h-9 items-center rounded-full border px-3 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50",
+    active
+      ? "border-primary/60 bg-accent text-accent-foreground"
+      : "border-border bg-card text-muted-foreground hover:bg-muted hover:text-foreground",
   );
+}
+
+/** Basket return minus SPY return over the same window; null when either leg is missing. */
+function compareOf(basketReturn: number | null, benchValue: number | null): number | null {
+  return basketReturn !== null && benchValue != null ? basketReturn - benchValue : null;
 }
 
 export default function ExploreClient() {
@@ -302,6 +248,7 @@ export default function ExploreClient() {
 
   const [query, setQuery] = useState("");
   const [sortKey, setSortKey] = useState<SortKey>("popular");
+  const [category, setCategory] = useState<string>("All");
 
   useEffect(() => {
     const controller = new AbortController();
@@ -427,9 +374,32 @@ export default function ExploreClient() {
     return base;
   }, [showVs24, showVs30]);
 
+  // Per-basket card inputs, derived presentation-side from constituent tickers
+  // (lib/categories.ts): avatar-chip tickers + the category label. The heaviest
+  // classified constituent wins; unmapped tickers fall back to "Other".
+  const cardInfoByPubkey = useMemo(() => {
+    const map = new Map<string, { tickers: string[]; category: string }>();
+    for (const b of baskets) {
+      const { tickers, weights } = tickerWeightsOf(b, mintTickers);
+      map.set(b.pubkey, { tickers, category: categoryOf(tickers, weights) });
+    }
+    return map;
+  }, [baskets, mintTickers]);
+
+  // Only categories actually present in the indexed list become pills.
+  const categories = useMemo(
+    () =>
+      [...new Set([...cardInfoByPubkey.values()].map((c) => c.category))].sort(
+        compareBasketCategories,
+      ),
+    [cardInfoByPubkey],
+  );
+
   const visible = useMemo(() => {
     const q = query.trim().toLowerCase();
     let rows = baskets.filter((b) => {
+      if (category !== "All" && cardInfoByPubkey.get(b.pubkey)?.category !== category)
+        return false;
       if (!q) return true;
       const name = nameOf(b)?.toLowerCase() ?? "";
       const composition = compositionOf(b, mintTickers)?.toLowerCase() ?? "";
@@ -470,7 +440,7 @@ export default function ExploreClient() {
       }
     });
     return rows;
-  }, [baskets, query, sortKey, bench]);
+  }, [baskets, query, sortKey, bench, category, cardInfoByPubkey]);
 
   const hasBaskets = baskets.length > 0;
 
@@ -493,11 +463,15 @@ export default function ExploreClient() {
           className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
         >
           {Array.from({ length: 8 }, (_, i) => (
-            <div key={i} aria-hidden="true" className="rounded-lg border border-border bg-card p-5">
-              <Skeleton className="h-4 w-28" />
-              <Skeleton className="mt-4 h-7 w-24" />
-              <Skeleton className="mt-1.5 h-3 w-16" />
-              <Skeleton className="mt-6 h-3 w-full" />
+            <div
+              key={i}
+              aria-hidden="true"
+              className="rounded-xl border border-border bg-card p-5"
+            >
+              <SkeletonShimmer width="7rem" height="1rem" />
+              <SkeletonShimmer width="6rem" height="1.75rem" className="mt-4" />
+              <SkeletonShimmer width="4rem" height="0.75rem" className="mt-1.5" />
+              <SkeletonShimmer height="0.75rem" className="mt-6" />
             </div>
           ))}
         </div>
@@ -528,7 +502,7 @@ export default function ExploreClient() {
                 <div
                   key={i}
                   aria-hidden="true"
-                  className="rounded-lg border border-border/60 bg-card p-4"
+                  className="rounded-xl border border-border/60 bg-card p-4"
                 >
                   <div className="flex items-start justify-between gap-2">
                     <Skeleton className="h-4 w-24" />
@@ -582,16 +556,80 @@ export default function ExploreClient() {
             </div>
           </div>
 
+          {/* Category strip — presentation-layer labels over the indexed list (lib/categories.ts). */}
+          <nav aria-label="Filter by category" className="flex flex-wrap items-center gap-2">
+            <span className="text-xs text-muted-foreground">Category</span>
+            <button
+              type="button"
+              aria-pressed={category === "All"}
+              className={pillClasses(category === "All")}
+              onClick={() => setCategory("All")}
+            >
+              All
+            </button>
+            {categories.map((c) => (
+              <button
+                key={c}
+                type="button"
+                aria-pressed={category === c}
+                className={pillClasses(category === c)}
+                onClick={() => setCategory(c)}
+              >
+                {c}
+              </button>
+            ))}
+          </nav>
+
           {/* Grid only — same responsive layout as /stocks (1 / 2 / 3-4 columns). */}
           {visible.length === 0 ? (
             <p className="text-sm text-muted-foreground">
-              No basket matches the current search.
+              {query.trim()
+                ? "No basket matches the current search."
+                : "No baskets in this category yet."}
             </p>
           ) : (
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-              {visible.map((b) => (
-                <BasketCard key={b.pubkey} b={b} bench={bench} showVs24={showVs24} mintTickers={mintTickers} />
-              ))}
+              {visible.map((b, index) => {
+                const change = num(b.return_24h);
+                const r30 = num(b.return_30d);
+                // Same comparison windows as before: 24h when both legs exist,
+                // else the 30d window — never a fabricated delta.
+                const compare: BasketCardCompare | null = showVs24
+                  ? {
+                      label: "vs SPY",
+                      value: compareOf(change, bench?.d24 ?? null),
+                      window: "24h",
+                    }
+                  : bench
+                    ? {
+                        label: "vs SPY 30d",
+                        value: compareOf(r30, bench.d30),
+                        window: "30d",
+                      }
+                    : null;
+                const info = cardInfoByPubkey.get(b.pubkey);
+                return (
+                  // Fade-up stagger wrapper (motion.ts constants; reduced
+                  // motion handled by motion.css). BasketCard keeps its frozen
+                  // prop set — the animation lives on the grid cell around it.
+                  <div key={b.pubkey} className={fadeUpStagger(index)}>
+                    <BasketCard
+                      href={`/basket/${b.pubkey}`}
+                      pubkey={b.pubkey}
+                      headline={
+                        nameOf(b) ?? compositionOf(b, mintTickers) ?? truncateAddress(b.pubkey, 6, 4)
+                      }
+                      context={info?.category ?? null}
+                      tickers={info?.tickers ?? []}
+                      price={num(b.share_price)}
+                      aum={num(b.nav)}
+                      return24h={change}
+                      return30d={r30}
+                      compare={compare}
+                    />
+                  </div>
+                );
+              })}
             </div>
           )}
 

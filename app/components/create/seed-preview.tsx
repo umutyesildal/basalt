@@ -112,7 +112,7 @@ export function SeedPreview({
       </div>
 
       {missingPrices && (
-        <p className="flex items-start gap-2 rounded-md border border-border/60 bg-muted/40 p-2.5 text-xs leading-5 text-muted-foreground">
+        <p className="flex items-start gap-2 rounded-xl border border-border/60 bg-muted/40 p-2.5 text-xs leading-5 text-muted-foreground">
           <AlertCircle className="mt-0.5 size-3.5 shrink-0 text-muted-foreground" aria-hidden="true" />
           {priceStatus === "loading"
             ? "Loading prices…"
@@ -120,7 +120,7 @@ export function SeedPreview({
         </p>
       )}
 
-      <div className="overflow-x-auto rounded-lg border border-border">
+      <div className="overflow-x-auto rounded-xl border border-border">
         <Table>
           <TableHeader>
             <TableRow className="hover:bg-transparent">
@@ -200,7 +200,7 @@ export function SeedPreview({
       </div>
 
       {zeroSeeds && (
-        <p className="flex items-start gap-2 rounded-md border border-border/60 bg-muted/40 p-2.5 text-xs leading-5 text-muted-foreground">
+        <p className="flex items-start gap-2 rounded-xl border border-border/60 bg-muted/40 p-2.5 text-xs leading-5 text-muted-foreground">
           <AlertCircle className="mt-0.5 size-3.5 shrink-0" aria-hidden="true" />
           Every token needs a seed amount greater than zero — an empty basket
           cannot be created.

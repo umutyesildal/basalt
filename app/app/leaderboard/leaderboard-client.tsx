@@ -4,10 +4,15 @@ import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { DEMO_BASKETS } from "@/components/home/home-demo-data";
-import { EmptyState, ErrorState, Skeleton } from "@/components/states";
+import { EmptyState, ErrorState } from "@/components/states";
 import { Button } from "@/components/ui/button";
 import { RangeLinks } from "@/components/ui/range-links";
+import { SectionHeading } from "@/components/ui/section-heading";
+import { SkeletonShimmer } from "@/components/ui/skeleton-shimmer";
 import { SocialAvatar } from "@/components/social/avatar";
+// Single source for direction coloring (wave-2, 2026-09-14): the ROI cell
+// reads the same status tokens as every other change figure on the site.
+import { changeColorClass } from "@/components/stocks/change-value";
 // Demo users dataset (flag-gated) — single source is lib/demo-creator.ts,
 // which also powers the /creator/demo-wallet-1..7 profile pages; this file
 // keeps no local copy of the identities.
@@ -42,6 +47,15 @@ const WINDOWS: { value: LeaderboardWindow; label: string }[] = [
   { value: "30d", label: "30d" },
   { value: "all", label: "All" },
 ];
+
+/**
+ * Page-scale for the SectionHeading slots (wave-2 header rhythm, unchanged):
+ * the mono eyebrow keeps the `.section-label` voice (0.7rem / 0.22em) and the
+ * title keeps the text-3xl page-h1 scale — SectionHeading only supplies the
+ * eyebrow+title structure (MicroLabel-based). Same constants as the feed.
+ */
+const PAGE_EYEBROW_CLASS = "text-[0.7rem] font-medium leading-4 tracking-[0.22em]";
+const PAGE_TITLE_CLASS = "text-3xl font-semibold tracking-tight";
 
 /**
  * Leaderboard over GET /leaderboard (Users tab) and GET /leaderboard/baskets
@@ -125,18 +139,28 @@ export default function LeaderboardClient() {
     <div className="mx-auto w-full max-w-4xl">
       <header className="flex flex-wrap items-baseline justify-between gap-3 pb-6">
         <div>
-          <div className="flex items-center gap-2.5">
-            <h1 className="font-display text-3xl font-semibold tracking-tight">Leaderboard</h1>
-            {/* Same honesty chip as the home live-proof band. */}
-            {isDemoMode() ? (
-              <span
-                title="Synthetic demo data — not live rankings"
-                className="shrink-0 rounded-sm border border-border px-1.5 py-0.5 font-mono text-[10px] uppercase tracking-[0.22em] text-muted-foreground"
-              >
-                demo data
+          {/* Site rhythm (wave 2): the eyebrow + display-title row comes from
+              the SectionHeading primitive; the honesty chip rides in the
+              eyebrow slot and the page-scale constants keep the previous
+              "ESTIMATED ROI" eyebrow and text-3xl h1 look. */}
+          <SectionHeading
+            as="h1"
+            eyebrow={
+              <span className="flex flex-wrap items-center gap-2.5">
+                <span className={PAGE_EYEBROW_CLASS}>ESTIMATED ROI</span>
+                {/* Same honesty chip as the home live-proof band. */}
+                {isDemoMode() ? (
+                  <span
+                    title="Synthetic demo data — not live rankings"
+                    className="shrink-0 rounded-md border border-border px-1.5 py-0.5 font-mono text-[10px] uppercase tracking-[0.22em] text-muted-foreground"
+                  >
+                    demo data
+                  </span>
+                ) : null}
               </span>
-            ) : null}
-          </div>
+            }
+            title={<span className={PAGE_TITLE_CLASS}>Leaderboard</span>}
+          />
           <p className="mt-1 text-sm text-muted-foreground">
             Public traders ranked by estimated portfolio return. Self-custodial wallets only —
             nothing here is managed or advised.
@@ -261,15 +285,16 @@ function BoardSkeleton() {
   return (
     <div className="pt-4" role="status" aria-label="Loading leaderboard">
       <span className="sr-only">Loading leaderboard</span>
+      {/* SkeletonShimmer bars, same footprint as the loaded rank rows. */}
       <div className="divide-y divide-border" aria-hidden="true">
         {Array.from({ length: 6 }, (_, i) => (
           <div key={i} className="flex items-center gap-3 py-4">
-            <Skeleton className="h-5 w-6" />
-            <Skeleton className="h-7 w-7 rounded-full" />
-            <Skeleton className="h-4 w-36" />
+            <SkeletonShimmer width="2rem" height="1.25rem" />
+            <SkeletonShimmer width="1.75rem" height="1.75rem" className="rounded-full" />
+            <SkeletonShimmer width="9rem" height="1rem" />
             <div className="ml-auto flex gap-6">
-              <Skeleton className="h-4 w-16" />
-              <Skeleton className="h-4 w-20" />
+              <SkeletonShimmer width="4rem" height="1rem" />
+              <SkeletonShimmer width="5rem" height="1rem" />
             </div>
           </div>
         ))}
@@ -278,6 +303,9 @@ function BoardSkeleton() {
   );
 }
 
+/** ROI cell — direction classes come from changeColorClass (the site's one
+ *  source of truth for up/down coloring); only the size (text-sm) and the
+ *  honest null tooltip are leaderboard-local. */
 function RoiValue({ roiPct }: { roiPct: number | null }) {
   if (roiPct === null) {
     return (
@@ -288,30 +316,39 @@ function RoiValue({ roiPct }: { roiPct: number | null }) {
   }
   const positive = roiPct >= 0;
   return (
-    <span
-      className={`font-mono text-sm tabular-nums ${
-        positive
-          ? "text-[hsl(var(--status-positive))]"
-          : "text-[hsl(var(--destructive))]"
-      }`}
-    >
+    <span className={`font-mono text-sm tabular-nums ${changeColorClass(roiPct)}`}>
       {positive ? "+" : ""}
       {roiPct.toFixed(2)}%
     </span>
   );
 }
 
+/** Rank cell — zero-padded terminal numeral (house `01` style). #1 keeps
+ *  the page's single yellow glow; #2–3 read full foreground; the tail is
+ *  a quiet whisper (wave-2, 2026-09-14). */
+function RankCell({ rank }: { rank: number }) {
+  return (
+    <span
+      aria-hidden="true"
+      className={`w-8 shrink-0 font-mono text-sm tabular-nums ${
+        rank === 1
+          ? "text-glow text-primary-text"
+          : rank <= 3
+            ? "text-foreground"
+            : "text-muted-foreground/70"
+      }`}
+    >
+      {String(rank).padStart(2, "0")}
+    </span>
+  );
+}
+
 function Row({ rank, entry }: { rank: number; entry: LeaderboardEntry }) {
   return (
-    <li className="flex flex-wrap items-center gap-x-4 gap-y-2 py-4">
-      {/* Rank #1 is the page's single yellow accent spot. */}
-      <span
-        className={`w-7 shrink-0 font-mono text-sm tabular-nums ${
-          rank === 1 ? "text-glow text-primary-text" : "text-muted-foreground"
-        }`}
-      >
-        {rank}
-      </span>
+    // Hover face (wave-2): the row washes muted like table rows elsewhere;
+    // -mx-3/px-3 keeps the columns aligned with the static rows.
+    <li className="-mx-3 flex flex-wrap items-center gap-x-4 gap-y-2 rounded-sm px-3 py-4 transition-colors duration-150 hover:bg-muted/40">
+      <RankCell rank={rank} />
       <Link
         href={`/creator/${entry.wallet}`}
         className="flex min-w-0 flex-1 items-center gap-2.5 rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
@@ -361,26 +398,20 @@ function Row({ rank, entry }: { rank: number; entry: LeaderboardEntry }) {
 function BasketRow({ rank, entry }: { rank: number; entry: BasketLeaderboardEntry }) {
   const navValue = entry.nav.trim() ? Number(entry.nav) : NaN;
   return (
-    <li className="py-4">
+    // Same hover face as the users tab (wave-2, 2026-09-14).
+    <li className="-mx-3 rounded-sm px-3 py-4 transition-colors duration-150 hover:bg-muted/40">
       <Link
         href={`/basket/${entry.basket}`}
         className="flex flex-wrap items-center gap-x-4 gap-y-2 rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
       >
-        {/* Rank #1 is the page's single yellow accent spot. */}
-        <span
-          className={`w-7 shrink-0 font-mono text-sm tabular-nums ${
-            rank === 1 ? "text-glow text-primary-text" : "text-muted-foreground"
-          }`}
-        >
-          {rank}
-        </span>
+        <RankCell rank={rank} />
         <span className="min-w-0 flex-1">
           <span className="flex min-w-0 items-center gap-2">
             <span className="truncate text-sm font-medium text-foreground">
               {entry.basketName?.trim() || truncateAddress(entry.basket, 4, 4)}
             </span>
             {entry.symbol ? (
-              <span className="shrink-0 rounded-sm bg-accent px-1.5 py-0.5 font-mono text-[10px] uppercase text-accent-foreground">
+              <span className="shrink-0 rounded-md bg-accent px-1.5 py-0.5 font-mono text-[10px] uppercase text-accent-foreground">
                 {entry.symbol}
               </span>
             ) : null}

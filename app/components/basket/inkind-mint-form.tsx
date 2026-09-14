@@ -6,6 +6,7 @@ import { useConnection, useWallet } from "@solana/wallet-adapter-react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Spinner } from "@/components/ui/spinner";
 import { EmptyState } from "@/components/states";
 import { TxReviewModal } from "@/components/basket/tx-review-modal";
 import { ThesisShareCta } from "@/components/social/thesis-share-cta";
@@ -27,6 +28,8 @@ import {
   proportionalDeposits,
 } from "@/components/basket/basket-math";
 import type { BasketDetail } from "@/components/basket/basket-api";
+import { HalfMaxButtons, halfOfRaw, type HalfMaxKind } from "@/components/basket/basket-page-half-max";
+import { TradeFeePreview } from "@/components/basket/basket-page-fee-preview";
 import {
   buildCreateAtaInstructions,
   buildMintInKind,
@@ -35,7 +38,7 @@ import {
   type BasketCoreKeys,
   type ExpectedAccount,
 } from "@/lib/transactions";
-import { scaledFromRaw, truncateAddress } from "@/lib/format";
+import { formatBpsAsPercent, scaledFromRaw, truncateAddress } from "@/lib/format";
 import { withRetryOnce } from "@/lib/rpc-retry";
 import { CLUSTER, RPC_ENDPOINT } from "@/lib/wallet";
 
@@ -403,6 +406,28 @@ export function InKindMintForm({
     );
   };
 
+  /**
+   * Half / Max on one leg: that leg takes half (or all) of the wallet balance
+   * just read for its token account, and every other leg is scaled to the
+   * current vault ratios from it — the same anchored fill "Fill proportional"
+   * uses, so the set starts inside the 1% tolerance. Anything a balance cannot
+   * cover surfaces through the per-leg balance errors below (honest, no
+   * silent capping that would bend the ratios).
+   */
+  const pickBalanceFill = (index: number, kind: HalfMaxKind) => {
+    const balance = balances?.[index];
+    if (balance === null || balance === undefined || balance <= 0n) return;
+    const anchor = kind === "max" ? balance : halfOfRaw(balance);
+    if (anchor <= 0n) return;
+    setFillNote(null);
+    const withAnchor = amounts.map((a, j) => (j === index ? anchor : (a ?? 0n)));
+    const fill = proportionalDeposits(withAnchor, vaultsForCheck, index);
+    setInputs(fill.map((a) => a.toString()));
+    setFillNote(
+      `Leg ${index + 1} set to ${kind === "max" ? "the full" : "half of the"} wallet balance; other legs scaled to current vault ratios — per-leg balances and the 1% tolerance are re-checked below.`,
+    );
+  };
+
   if (missingVault || supply === null) {
     return (
       <EmptyState
@@ -442,19 +467,28 @@ export function InKindMintForm({
                   >
                     {truncateAddress(mint, 6, 6)}
                   </label>
-                  <input
-                    id={`inkind-${i}`}
-                    inputMode="numeric"
-                    autoComplete="off"
-                    placeholder="raw amount"
-                    value={inputs[i]}
-                    onChange={(e) => {
-                      setFillNote(null);
-                      setInputs((prev) => prev.map((v, j) => (j === i ? e.target.value : v)));
-                    }}
-                    className="h-9 w-44 rounded-md border border-border bg-background px-3 font-mono text-xs tabular-nums outline-none placeholder:font-sans placeholder:text-muted-foreground focus:border-ring"
-                    aria-invalid={balanceErrors[i] !== null}
-                  />
+                  <div className="flex items-center gap-1.5">
+                    <input
+                      id={`inkind-${i}`}
+                      inputMode="numeric"
+                      autoComplete="off"
+                      placeholder="raw amount"
+                      value={inputs[i]}
+                      onChange={(e) => {
+                        setFillNote(null);
+                        setInputs((prev) => prev.map((v, j) => (j === i ? e.target.value : v)));
+                      }}
+                      className="h-9 w-36 rounded-lg border border-border bg-background px-3 font-mono text-xs tabular-nums outline-none placeholder:font-sans placeholder:text-muted-foreground focus:border-ring sm:w-44"
+                      aria-invalid={balanceErrors[i] !== null}
+                    />
+                    <HalfMaxButtons
+                      connected={connected}
+                      balance={balance === undefined ? null : balance}
+                      balanceLabel={`balance for leg ${i + 1}`}
+                      loading={balances === null}
+                      onPick={(kind) => pickBalanceFill(i, kind)}
+                    />
+                  </div>
                   <span
                     className="ml-auto font-mono text-xs tabular-nums text-muted-foreground"
                     aria-live="polite"
@@ -498,9 +532,9 @@ export function InKindMintForm({
         ) : null}
 
         {showFaucetHint ? (
-          <p className="rounded-md border border-border/60 bg-muted/40 p-2.5 text-xs leading-5 text-muted-foreground">
+          <p className="rounded-xl border border-border/60 bg-muted/40 p-2.5 text-xs leading-5 text-muted-foreground">
             Devnet test tokens: run{" "}
-            <code className="break-all rounded bg-background px-1 py-0.5 font-mono text-[11px]">
+            <code className="break-all rounded-md bg-background px-1 py-0.5 font-mono text-[11px]">
               npx tsx scripts/faucet.ts --to {publicKey?.toBase58() ?? "<YOUR_WALLET>"}
             </code>{" "}
             in the repo, then Refresh balances.
@@ -549,25 +583,48 @@ export function InKindMintForm({
           )}
         </div>
 
+        {/* live fee preview — spec §5.2 entry math on the validated set:
+            gross = min(D_i·S/V_i), fee = floor(gross × bps / 10_000). Hidden
+            unless every leg is filled and the 1% tolerance passes. */}
         {check?.ok ? (
-          <dl className="grid gap-1 rounded-md border border-border p-3 font-mono text-xs tabular-nums">
-            <div className="flex justify-between gap-4">
-              <dt className="text-muted-foreground">gross shares</dt>
-              <dd>{formatRawShares6(check.gross)}</dd>
-            </div>
-            <div className="flex justify-between gap-4">
-              <dt className="text-muted-foreground">entry fee · {detail.entry_fee_bps} bps</dt>
-              <dd>−{formatRawShares6(entryFee ?? 0n)}</dd>
-            </div>
-            <div className="flex justify-between gap-4">
-              <dt className="text-muted-foreground">net shares</dt>
-              <dd className="font-medium text-foreground">{formatRawShares6(net ?? 0n)}</dd>
-            </div>
-          </dl>
+          <TradeFeePreview
+            rows={[
+              {
+                label: "Gross shares",
+                value: grouped(formatRawShares6(check.gross)),
+              },
+              {
+                label: `Entry fee · ${formatBpsAsPercent(detail.entry_fee_bps)}`,
+                value: `−${grouped(formatRawShares6(entryFee ?? 0n))}`,
+              },
+              {
+                label: "Net shares minted to you",
+                value: grouped(formatRawShares6(net ?? 0n)),
+                emphasis: true,
+              },
+            ]}
+          />
         ) : null}
 
         <div className="flex flex-wrap items-center gap-3">
-          <Button onClick={openReview} disabled={!canReview} data-testid="buy-trigger">
+          <Button
+            onClick={openReview}
+            disabled={!canReview}
+            title={
+              !connected
+                ? "Connect a wallet to buy"
+                : balances === null
+                  ? "Wallet balances are still loading"
+                  : !allFilled
+                    ? "Enter an amount for every constituent"
+                    : check?.ok !== true
+                      ? "Fix the weight check first — deposits must track vault ratios within 1%"
+                      : balanceErrors.some((e) => e !== null)
+                        ? "An amount exceeds its wallet balance"
+                        : undefined
+            }
+            data-testid="buy-trigger"
+          >
             Buy shares
           </Button>
           {!connected ? (
@@ -584,10 +641,7 @@ export function InKindMintForm({
           >
             {prewarm.status === "preparing" ? (
               <>
-                <span
-                  aria-hidden="true"
-                  className="inline-block h-3 w-3 shrink-0 animate-spin rounded-full border-2 border-muted-foreground/30 border-t-foreground"
-                />
+                <Spinner sizeClassName="h-3 w-3" label={null} />
                 {prewarm.awaitingWallet
                   ? "Setup — approve in your wallet…"
                   : "Preparing your basket account… one-time setup"}
@@ -645,7 +699,7 @@ export function InKindMintForm({
             flow.state.mintPaused ? (
               <div
                 role="alert"
-                className="mt-4 rounded-md border border-border bg-muted/30 p-3 text-xs leading-relaxed"
+                className="mt-4 rounded-xl border border-border bg-muted/30 p-3 text-xs leading-relaxed"
               >
                 <p className="font-medium">MintPaused — the on-chain whitelist gate stopped this mint</p>
                 <p className="mt-1 text-muted-foreground">

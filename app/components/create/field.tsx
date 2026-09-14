@@ -51,7 +51,7 @@ export function TextField({
         aria-invalid={invalid || undefined}
         onChange={(event) => onChange(event.target.value)}
         className={cn(
-          "h-8 w-full rounded-md border border-input bg-background px-2.5 text-sm text-foreground shadow-none outline-none transition-colors placeholder:text-muted-foreground/60 focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/40 aria-invalid:border-destructive/60",
+          "h-8 w-full rounded-lg border border-input bg-background px-2.5 text-sm text-foreground shadow-none outline-none transition-colors placeholder:text-muted-foreground/60 focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/40 aria-invalid:border-destructive/60",
           mono && "font-mono tabular-nums",
         )}
       />

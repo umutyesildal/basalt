@@ -45,7 +45,9 @@ export function PendingTxBanner() {
   return (
     <div
       data-testid="pending-tx-banner-region"
-      className="pointer-events-none fixed inset-x-0 bottom-4 z-40 flex flex-col items-center gap-2 px-4"
+      // max-lg:bottom-20 = lifted above the mobile bottom pill (~76px tall,
+      // <md only after the wave-4 md:hidden); unchanged at lg+.
+      className="pointer-events-none fixed inset-x-0 bottom-4 max-lg:bottom-20 z-40 flex flex-col items-center gap-2 px-4"
     >
       {visible.map((entry) => (
         <PendingTxCard key={entry.id} entry={entry} />
@@ -74,12 +76,12 @@ function PendingTxCard({ entry }: { entry: PendingTxEntry }) {
     <div
       role="status"
       data-testid="pending-tx-banner"
-      className="pointer-events-auto flex w-full max-w-md items-center gap-3 rounded-lg border border-border bg-card p-3"
+      className="pointer-events-auto flex w-full max-w-md items-center gap-3 rounded-xl border border-border bg-card p-3"
     >
       {entry.status === "pending" ? (
         <span
           aria-hidden="true"
-          className="inline-block h-4 w-4 shrink-0 animate-spin rounded-full border-2 border-muted-foreground/30 border-t-foreground"
+          className="inline-block h-4 w-4 shrink-0 animate-spin motion-reduce:animate-none rounded-full border-2 border-muted-foreground/30 border-t-foreground"
         />
       ) : (
         <span
@@ -118,7 +120,7 @@ function PendingTxCard({ entry }: { entry: PendingTxEntry }) {
         data-testid="pending-tx-banner-dismiss"
         aria-label="Dismiss"
         onClick={() => dismissPendingTx(entry.id)}
-        className="rounded-sm p-1 text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+        className="rounded-lg p-1 text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
       >
         ✕
       </button>

@@ -26,9 +26,9 @@ function CreateSuspenseFallback() {
   return (
     <div className="mx-auto w-full max-w-6xl pb-16" role="status" aria-busy="true">
       <span className="sr-only">Loading the create wizard</span>
-      <div className="h-9 w-72 animate-pulse rounded-sm bg-muted" />
-      <div className="mt-3 h-4 w-64 animate-pulse rounded-sm bg-muted" />
-      <div className="mt-6 h-[420px] animate-pulse rounded-lg border border-border bg-card" />
+      <div className="h-9 w-72 animate-pulse motion-reduce:animate-none rounded-sm bg-muted" />
+      <div className="mt-3 h-4 w-64 animate-pulse motion-reduce:animate-none rounded-sm bg-muted" />
+      <div className="mt-6 h-[420px] animate-pulse motion-reduce:animate-none rounded-lg border border-border bg-card" />
     </div>
   );
 }

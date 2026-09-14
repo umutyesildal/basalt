@@ -42,9 +42,13 @@ module.exports = {
         },
       },
       borderRadius: {
+        // Unified radius scale, all derived from the --radius token in
+        // globals.css (0.25rem): sm 0 · md 2px (chips/badges/tooltips) ·
+        // lg 4px (buttons/inputs) · xl 12px (cards/panels/modals/popovers).
         lg: "var(--radius)",
         md: "calc(var(--radius) - 2px)",
         sm: "calc(var(--radius) - 4px)",
+        xl: "calc(var(--radius) + 8px)",
       },
     },
   },

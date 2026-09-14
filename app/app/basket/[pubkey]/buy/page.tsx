@@ -7,6 +7,7 @@ import { EmptyState, ErrorState, FreshnessBadge, Skeleton } from "@/components/s
 import { Button } from "@/components/ui/button";
 import { InKindMintForm } from "@/components/basket/inkind-mint-form";
 import { ZapInForm } from "@/components/basket/zap-in-form";
+import { FadeUpOnKey } from "@/components/basket/basket-page-fade-up";
 import {
   ApiError,
   fetchBasketDetail,
@@ -14,7 +15,7 @@ import {
   fetchMintTickers,
   type BasketDetail,
 } from "@/components/basket/basket-api";
-import { truncateAddress } from "@/lib/format";
+import { truncateAddress, formatBpsAsPercent } from "@/lib/format";
 
 type Tab = "inkind" | "zap";
 
@@ -224,8 +225,8 @@ export default function BuyPage({ params }: { params: Promise<{ pubkey: string }
               ) : null}
               <p className="text-sm text-muted-foreground">
                 Mint shares against the underlying xStocks or zap in with USDC — net of the{" "}
-                <span className="font-mono tabular-nums">
-                  {(detail.entry_fee_bps / 100).toFixed(2)}%
+                <span className="font-mono tabular-nums" title={`${detail.entry_fee_bps} bps`}>
+                  {formatBpsAsPercent(detail.entry_fee_bps)}
                 </span>{" "}
                 entry fee.
               </p>
@@ -266,7 +267,7 @@ export default function BuyPage({ params }: { params: Promise<{ pubkey: string }
             </TabButton>
           </div>
           {zapUsdcUnavailable ? (
-            <p className="rounded-md border border-border/60 bg-muted/40 p-2.5 text-xs leading-5 text-muted-foreground">
+            <p className="rounded-xl border border-border/60 bg-muted/40 p-2.5 text-xs leading-5 text-muted-foreground">
               Zap needs Jupiter-listed tokens — unavailable on devnet. Use In-Kind.
             </p>
           ) : null}
@@ -279,7 +280,9 @@ export default function BuyPage({ params }: { params: Promise<{ pubkey: string }
             hidden={tab !== "inkind"}
           >
             {tab === "inkind" ? (
-              <InKindMintForm detail={detail} vaultBalances={vaultBalances} tickers={mintTickers} onSuccess={retry} />
+              <FadeUpOnKey activeKey={tab}>
+                <InKindMintForm detail={detail} vaultBalances={vaultBalances} tickers={mintTickers} onSuccess={retry} />
+              </FadeUpOnKey>
             ) : null}
           </div>
           <div
@@ -290,7 +293,9 @@ export default function BuyPage({ params }: { params: Promise<{ pubkey: string }
             hidden={tab !== "zap"}
           >
             {tab === "zap" ? (
-              <ZapInForm detail={detail} vaultBalances={vaultBalances} tickers={mintTickers} onSuccess={retry} />
+              <FadeUpOnKey activeKey={tab}>
+                <ZapInForm detail={detail} vaultBalances={vaultBalances} tickers={mintTickers} onSuccess={retry} />
+              </FadeUpOnKey>
             ) : null}
           </div>
         </>

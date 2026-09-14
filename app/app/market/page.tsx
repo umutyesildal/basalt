@@ -10,7 +10,9 @@ import { SectionHeader } from "@/components/ui/section-header";
 import { apiQuery } from "@/lib/api-client";
 
 export const metadata: Metadata = {
-  title: "Market overview — Basalt",
+  // absolute: the root layout appends "· Basalt" via its title template — a
+  // plain string here would render "Market overview — Basalt · Basalt".
+  title: { absolute: "Basalt | Market overview" },
   description:
     "QQQ, SPY, DIA and the Nasdaq Composite normalized to 100, with a 30-candle benchmark volume view.",
 };
@@ -137,8 +139,12 @@ function buildNormalizedRows(data: OverviewSeries[]): {
 function StatChip({ label, change }: { label: string; change: number }) {
   const positive = change >= 0;
   return (
-    <span className="inline-flex items-baseline gap-1.5 text-xs">
-      <span className="text-muted-foreground">{label}</span>
+    // Terminal chip: mono micro-label brightens on hover, the number never
+    // changes color (direction stays muted/foreground, not red/green).
+    <span className="group inline-flex items-baseline gap-1.5 text-xs">
+      <span className="font-mono text-[11px] uppercase tracking-[0.22em] text-muted-foreground transition-colors duration-150 group-hover:text-foreground">
+        {label}
+      </span>
       <span
         className={`font-mono tabular-nums ${
           positive ? "text-foreground" : "text-muted-foreground"
@@ -208,29 +214,37 @@ export default async function MarketPage({
 
   return (
     <div className="space-y-6">
-      <SectionHeader
-        as="h1"
-        size="title"
-        label="Market overview"
-        lead="The four benchmark indices, normalized to 100 — the base for reading basket drift."
-        right={
-          <FreshnessBadge
-            source={demo ? "fixture" : "Yahoo Finance"}
-            asOf={asOf}
-            demo={demo}
-          />
-        }
-      />
+      <div className="space-y-1.5">
+        <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-muted-foreground">
+          Market // Benchmark indices
+        </p>
+        <SectionHeader
+          as="h1"
+          size="title"
+          label="Market overview"
+          lead="The four benchmark indices, normalized to 100 — the base for reading basket drift."
+          right={
+            <FreshnessBadge
+              source={demo ? "fixture" : "Yahoo Finance"}
+              asOf={asOf}
+              demo={demo}
+            />
+          }
+        />
+      </div>
 
       <RangeLinks options={RANGES} value={range} hrefFor={(r) => `/market?range=${r}`} />
 
       {demo ? (
-        <p className="rounded-md border border-border/60 bg-muted/40 px-3 py-2 text-sm text-muted-foreground">
+        <p className="rounded-xl border border-border/60 bg-muted/40 px-3 py-2 text-sm text-muted-foreground">
           Market API unreachable — rendering a static fixture. Not live index data.
         </p>
       ) : null}
 
-      <div className="flex flex-wrap gap-x-4 gap-y-1">
+      <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1">
+        <span className="font-mono text-[11px] uppercase tracking-[0.22em] text-muted-foreground">
+          Change // {range}
+        </span>
         {changes.map((c) => (
           <StatChip key={c.label} label={c.label} change={c.change} />
         ))}

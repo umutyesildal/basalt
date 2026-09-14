@@ -231,7 +231,7 @@ export function ChartBrushLayout({
           </div>
 
           <div className="flex gap-2 mt-1">
-            <div className="flex-1 flex items-center gap-1.5 rounded border bg-card px-2 py-1">
+            <div className="flex-1 flex items-center gap-1.5 rounded-lg border bg-card px-2 py-1">
               <span className="h-1.5 w-1.5 rounded-full bg-primary shrink-0" aria-hidden="true" />
               <input
                 type="range"
@@ -243,7 +243,7 @@ export function ChartBrushLayout({
                 aria-label="Brush start (visible slider)"
               />
             </div>
-            <div className="flex-1 flex items-center gap-1.5 rounded border bg-card px-2 py-1">
+            <div className="flex-1 flex items-center gap-1.5 rounded-lg border bg-card px-2 py-1">
               <span className="h-1.5 w-1.5 rounded-full bg-primary shrink-0" aria-hidden="true" />
               <input
                 type="range"

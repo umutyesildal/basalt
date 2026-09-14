@@ -260,6 +260,40 @@ export async function fetchSpy24h(signal: AbortSignal): Promise<number | null> {
   return prev ? ((last - prev) / prev) * 100 : null;
 }
 
+/** Yahoo range windows the /market overview endpoint accepts (daily candles). */
+export type BenchmarkRange = "1d" | "5d" | "1mo" | "3mo" | "6mo" | "1y";
+
+/** One benchmark daily close (ms epoch + price). */
+export type BenchmarkCandle = { ts: number; close: number };
+
+/**
+ * GET /market/overview — SPY daily closes for the History chart's "vs SPYx"
+ * benchmark overlay. This is the SAME REST endpoint the /market page renders
+ * (Yahoo Finance via the backend proxy, backend-cached), so the basket
+ * comparison and the market overview can never disagree. Returns [] when the
+ * feed is unavailable or SPY has no usable candles — callers hide the
+ * overlay instead of fabricating a series.
+ */
+export async function fetchSpyBenchmarkCloses(
+  range: BenchmarkRange,
+  signal: AbortSignal,
+): Promise<BenchmarkCandle[]> {
+  const payload = await getJson<{
+    data?: { symbol?: string; candles?: { ts?: number; close?: number }[] }[];
+  }>(`/api/v1/market/overview?range=${range}`, signal);
+  const spy = payload.data?.find((series) => series.symbol === "SPY");
+  return (spy?.candles ?? [])
+    .filter(
+      (candle): candle is BenchmarkCandle =>
+        typeof candle.ts === "number" &&
+        Number.isFinite(candle.ts) &&
+        typeof candle.close === "number" &&
+        Number.isFinite(candle.close) &&
+        candle.close > 0,
+    )
+    .sort((a, b) => a.ts - b.ts);
+}
+
 /**
  * POST /quotes/zap-in — Jupiter quote legs only; the backend never signs
  * (backend/src/api/quotes.ts). Returns the verbatim warning + provenance.

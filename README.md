@@ -19,7 +19,7 @@ npm --prefix app run build                  # 13 routes, no ignored errors
 
 - Deployed at declared IDs: `whitelist` `FRavMcYQb2FVAHbbG6fGieQHdKk1UrQqgKsAAXTPRQeS`, `basket_factory` `3hzoPep9JKgTmzLT6CNW5x3EN7WNYDevM6KHVM7pLgMF`, `basket` `6Q43vFh4aqGxzvtU2vQwJX9PmX3skfYsGWZdA3fwJB9k`.
 - 12 mock xStocks whitelisted (TSLAx…SPYx, Token-2022 ScaledUiAmountConfig); one live basket at 3 constituents — NVDAx/AAPLx/MSFTx 4000/3200/2800 bps, fees 100/50/200 — with mint, redeem, and management-fee flows confirmed on-chain (38 txs, all `err: null`; supply/fee/NAV reconcile exactly).
-- Known limit: `create_basket` at 4+ constituents exceeds the legacy 1232 B transaction wire limit — fix path is versioned (v0) txs + address lookup tables.
+- Transaction-size limit (resolved): `create_basket` / `mint_in_kind` / `redeem_in_kind` compile offline to v0 messages ≤ 1232 B for n = 2..10 constituents; n ≥ 4 routes through one address-lookup table. Proof: `npm run proof:txsize` (`scripts/checkTxSize.ts`).
 
 Run the backend against devnet:
 
@@ -33,7 +33,7 @@ Full evidence pack — signature tables, address tables, reconciliation, reprodu
 
 - **Solana programs (Anchor 0.30, real Token-2022 CPI):** `whitelist` (Token-2022 ownership + decimals verification), `basket_factory` (atomic seed transfers, genesis 1M with temp-mint-authority handoff), `basket` (real `transfer_checked`/`burn`/`mint_to`; `redeem_in_kind` permissionless + oracle-free, structurally tested)
 - **Backend:** Node 20 + TypeScript (strict) + PostgreSQL + optional Redis — real indexer (Anchor event decode), holdings sync with ScaledUiAmount multiplier, exact BigInt fixed-point NAV engine, REST API with `source`/`asOf` provenance on every row; backend never signs
-- **Frontend:** Next.js 15 + Tailwind 3.4 + **bklit UI** (registry provenance verified; Brush = documented local adapter) + wallet-adapter (Phantom/Solflare, full state machine) — brand per `brand.md` (monochrome base + Roman layer, Cinzel display)
+- **Frontend:** Next.js 15 + Tailwind 3.4 + **bklit UI** (registry provenance verified; Brush = documented local adapter) + wallet-adapter (Phantom/Solflare, full state machine) — brand per `brand.md` (monochrome base + BASALT MARK, Chakra Petch display — 2026-09-12 identity update)
 - **Token:** SPL Token-2022 — raw transfers on-chain, `scaled = raw × multiplier` for display/NAV
 
 ## Programs
@@ -92,7 +92,7 @@ For local (non-devnet) development, `demo-seed` seeds the local Postgres so page
 
 ## Milestones
 
-Execution state in `plan.md` §7-8. G0 brand superseded by the owner's **monochrome** decision (2026-09-03); G1 Bklit provenance resolved; protocol/backend truth waves complete; new-IA UI waves complete (owner feedback rounds 1-2 applied). **DEVNET LIVE (2026-09-04)** — evidence in `docs/devnet-live-2026-09-04.md`, status snapshot in `plan.md` §8c; next: versioned (v0) txs + ALTs for >3 constituents, owner review / merge of `roman-empire`.
+Execution state in `plan.md` §7-8. G0 brand superseded by the owner's **monochrome** decision (2026-09-03); G1 Bklit provenance resolved; protocol/backend truth waves complete; new-IA UI waves complete (owner feedback rounds 1-2 applied). **DEVNET LIVE (2026-09-04)** — evidence in `docs/devnet-live-2026-09-04.md`, status snapshot in `plan.md` §8c. UI waves: plan in `docs/ui-plan.md` — waves 1-3 complete (primitives + card anatomy + transaction rail; primitive integration + wizard live preview + per-basket OG images; wave-3 audit in `docs/ui-audit-wave3.md`), wave 4 (audit fixes + smoke script + docs sync) in progress. Next steps: rebalance V1 owner decisions (`docs/basalt-rebalance-v1-draft.md` §6) and live devnet verification of the UI flows against the real indexer.
 
 ## Scripts
 

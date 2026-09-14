@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 
 import { EmptyState, FreshnessBadge } from "@/components/states";
-import { Skeleton } from "@/components/states/skeleton";
+import { SkeletonShimmer } from "@/components/ui/skeleton-shimmer";
 import { cn } from "@/lib/utils";
 import { StockCard } from "@/components/stocks/stock-card";
 import {
@@ -12,11 +12,18 @@ import {
   fetchMockXStockCatalog,
   type MockCatalogEntry,
 } from "@/lib/xstock-catalog";
+import {
+  fetchDailyCloseSeries,
+  mapLimit,
+  underlyingFromPriceSource,
+  type DailyCloseSeries,
+} from "@/lib/price-series";
 
 /**
  * Where the grid's rows came from — shown verbatim in the freshness badge:
  *  - "catalog": the backend dev catalog (/api/v1/xstocks/mock, 12 mock
- *    xStocks with deterministic dev-catalog prices, explicitly not live);
+ *    xStocks with deterministic dev-catalog prices, explicitly not live) —
+ *    plus real Yahoo daily closes for the 7d sparkline / changes;
  *  - "static": the built-in ticker list with no prices, used only when the
  *    API is unreachable.
  */
@@ -29,16 +36,21 @@ interface StockCardData {
   provider: string;
   /** Dev-catalog USD price — null renders an em dash, never a guess. */
   price: number | null;
-  /** 24h change: the dev catalog carries no series, so always null today. */
+  /** 24h change from underlying equity closes (Yahoo) — null hides the cell. */
   changePct: number | null;
-  /** Dev catalog has no history — empty renders the mute baseline. */
+  /** 7-session change from the same closes — null renders the "7d —" surface. */
+  change7d: number | null;
+  /** Underlying daily closes, oldest → newest (empty = no chart slot fill). */
   sparkline: number[];
 }
+
+/** Bounded concurrency for the per-ticker series batch (dev catalog = 12). */
+const SERIES_CONCURRENCY = 4;
 
 const filterButtonClasses = (active: boolean) =>
   cn(
     // 40px tall on phones (touch), back to the compact 32px from sm up.
-    "inline-flex h-8 max-md:h-10 items-center rounded-md border px-3 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50",
+    "inline-flex h-8 max-md:h-10 items-center rounded-lg border px-3 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50",
     active
       ? "border-primary/60 bg-accent text-accent-foreground"
       : "border-border bg-card text-muted-foreground hover:bg-muted hover:text-foreground",
@@ -49,35 +61,45 @@ const SOURCE_BADGE: Record<DataSource, string> = {
   static: "static dev list — API unreachable",
 };
 
+// Owner feedback 2026-09-14: bigger cards — three columns max, airier gaps.
+const GRID_CLASS = "grid gap-4 sm:grid-cols-2 lg:grid-cols-3";
+
 /**
  * /stocks grid — renders N tokenized stocks from the backend dev catalog
- * (GET /api/v1/xstocks/mock — the 12-stock mock xStock universe). When the
- * API is unreachable it degrades to the built-in static ticker list with no
- * prices, labeled "static dev list — API unreachable". The grid wraps at any
- * N (1/2/3/4 responsive columns); nothing assumes a fixed count.
+ * (GET /api/v1/xstocks/mock — the 12-stock mock xStock universe). Prices come
+ * from the catalog; the 7-session sparkline and 24h/7d changes come per
+ * ticker from real Yahoo daily closes (GET /api/v1/prices/chart?range=5d,
+ * fetched with bounded concurrency — lib/price-series.ts). When the API is
+ * unreachable it degrades to the built-in static ticker list with no prices,
+ * labeled "static dev list — API unreachable". The grid wraps at any N;
+ * nothing assumes a fixed count.
  */
 export function StocksGrid() {
   const [status, setStatus] = useState<GridStatus>("loading");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [cards, setCards] = useState<StockCardData[]>([]);
   const [dataSource, setDataSource] = useState<DataSource>("catalog");
+  const [seriesAsOf, setSeriesAsOf] = useState<number | undefined>(undefined);
   const [providerFilter, setProviderFilter] = useState<string>("all");
 
   const load = useCallback(async () => {
     setStatus("loading");
     setErrorMessage(null);
     setProviderFilter("all");
+    setSeriesAsOf(undefined);
     try {
       const catalog = await fetchMockXStockCatalog();
       let entries: MockCatalogEntry[];
+      let source: DataSource;
       if (catalog) {
         entries = catalog;
-        setDataSource("catalog");
+        source = "catalog";
       } else {
         // Backend unreachable (or empty payload) — static ticker list, no prices.
         entries = [...MOCK_XSTOCK_FALLBACK];
-        setDataSource("static");
+        source = "static";
       }
+      setDataSource(source);
 
       if (entries.length === 0) {
         setCards([]);
@@ -85,16 +107,32 @@ export function StocksGrid() {
         return;
       }
 
+      // Real underlying series per ticker; the static fallback skips the
+      // batch — the same unreachable backend would only produce failures.
+      let seriesList: (DailyCloseSeries | null)[] = entries.map(() => null);
+      if (source === "catalog") {
+        seriesList = await mapLimit(entries, SERIES_CONCURRENCY, (entry) =>
+          fetchDailyCloseSeries(entry.ticker, underlyingFromPriceSource(entry.priceSource)),
+        );
+      }
+
+      let asOf = 0;
       setCards(
-        entries.map((entry) => ({
-          ticker: entry.ticker,
-          provider:
-            entry.priceUsd !== null ? "mock xStock · dev catalog" : "static dev list",
-          price: entry.priceUsd,
-          changePct: null,
-          sparkline: [],
-        })),
+        entries.map((entry, i) => {
+          const series = seriesList[i];
+          if (series?.lastTs && series.lastTs > asOf) asOf = series.lastTs;
+          return {
+            ticker: entry.ticker,
+            provider:
+              entry.priceUsd !== null ? "mock xStock · dev catalog" : "static dev list",
+            price: entry.priceUsd,
+            changePct: series?.changePct24h ?? null,
+            change7d: series?.changePct7d ?? null,
+            sparkline: series?.closes ?? [],
+          };
+        }),
       );
+      if (asOf > 0) setSeriesAsOf(asOf);
       setStatus("ready");
     } catch (error) {
       setCards([]);
@@ -118,20 +156,32 @@ export function StocksGrid() {
       providerFilter === "all" ? cards : cards.filter((c) => c.provider === providerFilter),
     [cards, providerFilter],
   );
+  const hasSeries = useMemo(() => cards.some((c) => c.sparkline.length >= 2), [cards]);
 
   if (status === "loading") {
     return (
       <div
         role="status"
         aria-label="Loading tokenized stocks"
-        className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
+        className={GRID_CLASS}
       >
         {Array.from({ length: 6 }, (_, i) => (
-          <div key={i} aria-hidden="true" className="rounded-lg border border-border bg-card p-5">
-            <Skeleton className="h-4 w-16" />
-            <Skeleton className="mt-1.5 h-3 w-24" />
-            <Skeleton className="mt-4 h-7 w-28" />
-            <Skeleton className="mt-3 h-8 w-full" />
+          <div key={i} aria-hidden="true" className="rounded-xl border border-border bg-card p-5">
+            {/* Headline = [28px logo circle] ticker + context column (AssetCard anatomy). */}
+            <div className="flex items-center gap-2.5">
+              <SkeletonShimmer
+                width="1.75rem"
+                height="1.75rem"
+                rounded="none"
+                className="shrink-0 rounded-full"
+              />
+              <div className="min-w-0 space-y-1.5">
+                <SkeletonShimmer width="4.5rem" height="1.25rem" />
+                <SkeletonShimmer width="6rem" height="0.75rem" />
+              </div>
+            </div>
+            <SkeletonShimmer width="7rem" height="1.75rem" className="mt-5" />
+            <SkeletonShimmer height="2.25rem" className="mt-4" />
           </div>
         ))}
       </div>
@@ -195,14 +245,21 @@ export function StocksGrid() {
         ) : (
           <span />
         )}
-        <FreshnessBadge source={SOURCE_BADGE[dataSource]} />
+        <FreshnessBadge
+          source={
+            dataSource === "catalog" && hasSeries
+              ? "dev catalog · mock prices · Yahoo closes"
+              : SOURCE_BADGE[dataSource]
+          }
+          asOf={seriesAsOf}
+        />
       </div>
 
       {/* data-source/data-count make the grid's provenance assertable in DOM checks. */}
       <div
         data-source={dataSource}
         data-count={visible.length}
-        className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
+        className={GRID_CLASS}
       >
         {visible.map((card) => (
           <StockCard
@@ -211,6 +268,7 @@ export function StocksGrid() {
             provider={card.provider}
             price={card.price}
             changePct={card.changePct}
+            change7d={card.change7d}
             sparkline={card.sparkline}
           />
         ))}

@@ -13,11 +13,14 @@ import {
 } from "@/components/states";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Spinner } from "@/components/ui/spinner";
 import { TxReviewModal } from "@/components/basket/tx-review-modal";
 import { ThesisShareCta } from "@/components/social/thesis-share-cta";
 import { useTransactionFlow } from "@/components/basket/use-transaction-flow";
 import { useAltPrewarm } from "@/components/basket/use-alt-prewarm";
 import { AccrueCrankButton } from "@/components/basket/accrue-crank";
+import { HalfMaxButtons, halfOfRaw } from "@/components/basket/basket-page-half-max";
+import { TradeFeePreview } from "@/components/basket/basket-page-fee-preview";
 import {
   bpsToPct,
   grouped,
@@ -39,7 +42,7 @@ import {
   type BasketCoreKeys,
   type ExpectedAccount,
 } from "@/lib/transactions";
-import { formatUsd, scaledFromRaw, truncateAddress } from "@/lib/format";
+import { formatBpsAsPercent, formatUsd, scaledFromRaw, truncateAddress } from "@/lib/format";
 import { withRetryOnce } from "@/lib/rpc-retry";
 import { RPC_ENDPOINT } from "@/lib/wallet";
 
@@ -81,6 +84,7 @@ export default function RedeemPage({ params }: { params: Promise<{ pubkey: strin
   const [reloadKey, setReloadKey] = useState(0);
   const [sharesInput, setSharesInput] = useState("");
   const [shareBalance, setShareBalance] = useState<bigint | null>(null);
+  const [shareBalanceLoading, setShareBalanceLoading] = useState(true);
   const [expectedAccounts, setExpectedAccounts] = useState<ExpectedAccount[] | null>(null);
   const [open, setOpen] = useState(false);
   const [mintTickers, setMintTickers] = useState<Map<string, string>>(new Map());
@@ -121,7 +125,11 @@ export default function RedeemPage({ params }: { params: Promise<{ pubkey: strin
   }, [reloadKey]);
 
   const refreshShareBalance = useCallback(async () => {
-    if (!publicKey || !detail) return;
+    if (!publicKey || !detail) {
+      setShareBalanceLoading(false);
+      return;
+    }
+    setShareBalanceLoading(true);
     try {
       // Background page read: one calm retry through the shared loop before
       // the inline "no share ATA" fallback — never a hard failure surface.
@@ -135,6 +143,8 @@ export default function RedeemPage({ params }: { params: Promise<{ pubkey: strin
       setShareBalance(BigInt(res.value.amount));
     } catch {
       setShareBalance(null); // no share ATA — user holds no position
+    } finally {
+      setShareBalanceLoading(false);
     }
   }, [connection, detail, publicKey]);
 
@@ -173,6 +183,29 @@ export default function RedeemPage({ params }: { params: Promise<{ pubkey: strin
   const usdEstimate =
     preview && supply !== null && nav !== null && supply > 0n
       ? (Number(preview.burn) / Number(supply)) * nav
+      : null;
+
+  // Compact fee preview under the input — needs only the typed amount and the
+  // basket's immutable exit bps, never a fabricated figure: hidden while the
+  // input is empty/invalid or already tripping the balance check.
+  const feePreviewRows =
+    detail !== null && shares !== null && shares > 0n && !sharesExceedBalance
+      ? (() => {
+          // Spec §5.3: exitFee = floor(B × bps / 10_000), burn = B − exitFee.
+          const exitFee = (shares * BigInt(detail.exit_fee_bps)) / 10000n;
+          const burn = shares - exitFee;
+          return [
+            {
+              label: `Exit fee · ${formatBpsAsPercent(detail.exit_fee_bps)}`,
+              value: `−${grouped(formatRawShares6(exitFee))} shares`,
+            },
+            {
+              label: "Net burned (pro-rata basis)",
+              value: `${grouped(formatRawShares6(burn))} shares`,
+              emphasis: true,
+            },
+          ];
+        })()
       : null;
 
   const lastAccrualSeconds = numericToNumber(detail?.last_fee_accrual_ts ?? null);
@@ -355,8 +388,8 @@ export default function RedeemPage({ params }: { params: Promise<{ pubkey: strin
               ) : null}
               <p className="text-sm text-muted-foreground">
                 Burn shares, receive every underlying pro-rata — exit fee{" "}
-                <span className="font-mono tabular-nums">
-                  {(detail.exit_fee_bps / 100).toFixed(2)}%
+                <span className="font-mono tabular-nums" title={`${detail.exit_fee_bps} bps`}>
+                  {formatBpsAsPercent(detail.exit_fee_bps)}
                 </span>
                 .
               </p>
@@ -368,7 +401,7 @@ export default function RedeemPage({ params }: { params: Promise<{ pubkey: strin
           </div>
 
           {accrualStale ? (
-            <div className="flex flex-wrap items-center gap-3 rounded-md border border-border bg-muted/30 p-3 text-xs text-muted-foreground">
+            <div className="flex flex-wrap items-center gap-3 rounded-xl border border-border bg-muted/30 p-3 text-xs text-muted-foreground">
               <span>
                 Management fee last accrued{" "}
                 {secondsSinceAccrual !== null ? Math.floor(secondsSinceAccrual / 3600) : "?"}h ago —
@@ -401,16 +434,30 @@ export default function RedeemPage({ params }: { params: Promise<{ pubkey: strin
                   <label htmlFor="redeem-shares" className="text-xs font-medium text-muted-foreground">
                     Shares (raw)
                   </label>
-                  <input
-                    id="redeem-shares"
-                    inputMode="numeric"
-                    autoComplete="off"
-                    placeholder="e.g. 1000000"
-                    value={sharesInput}
-                    onChange={(e) => setSharesInput(e.target.value)}
-                    aria-invalid={sharesExceedBalance}
-                    className="h-9 w-56 rounded-md border border-border bg-background px-3 font-mono text-sm tabular-nums outline-none placeholder:font-sans placeholder:text-muted-foreground focus:border-ring"
-                  />
+                  <div className="flex items-center gap-1.5">
+                    <input
+                      id="redeem-shares"
+                      inputMode="numeric"
+                      autoComplete="off"
+                      placeholder="e.g. 1000000"
+                      value={sharesInput}
+                      onChange={(e) => setSharesInput(e.target.value)}
+                      aria-invalid={sharesExceedBalance}
+                      className="h-9 w-44 rounded-lg border border-border bg-background px-3 font-mono text-sm tabular-nums outline-none placeholder:font-sans placeholder:text-muted-foreground focus:border-ring sm:w-56"
+                    />
+                    <HalfMaxButtons
+                      connected={connected}
+                      balance={shareBalance}
+                      balanceLabel="share balance"
+                      loading={shareBalanceLoading}
+                      onPick={(kind) => {
+                        if (shareBalance === null || shareBalance <= 0n) return;
+                        const raw = kind === "max" ? shareBalance : halfOfRaw(shareBalance);
+                        if (raw <= 0n) return;
+                        setSharesInput(raw.toString());
+                      }}
+                    />
+                  </div>
                 </div>
                 <div className="flex flex-col gap-1">
                   <span className="text-xs text-muted-foreground">Balance</span>
@@ -420,21 +467,18 @@ export default function RedeemPage({ params }: { params: Promise<{ pubkey: strin
                         ? "no share ATA"
                         : `${formatRawShares6(shareBalance)} · ${shareBalance} raw`
                       : "connect a wallet"}
-                    {connected && shareBalance !== null && shareBalance > 0n ? (
-                      <button
-                        type="button"
-                        disabled={!connected || shareBalance === null || shareBalance === 0n}
-                        onClick={() =>
-                          shareBalance !== null && setSharesInput(shareBalance.toString())
-                        }
-                        className="font-mono text-xs font-medium text-foreground underline-offset-4 hover:underline disabled:pointer-events-none disabled:opacity-50"
-                      >
-                        MAX
-                      </button>
-                    ) : null}
                   </span>
                 </div>
               </div>
+
+              {/* live fee preview — spec §5.3 exit math on the typed amount
+                  (floor(B × bps / 10_000), net = B − fee); hidden entirely when
+                  the input is invalid or exceeds the balance — no estimates on
+                  top of an error. */}
+              <TradeFeePreview
+                rows={feePreviewRows}
+                footer="Exit fee is taken in shares; the remainder is burned pro-rata against the vault."
+              />
 
               {sharesExceedBalance ? (
                 <p role="alert" className="text-xs text-destructive">
@@ -444,7 +488,7 @@ export default function RedeemPage({ params }: { params: Promise<{ pubkey: strin
 
               {preview && holdingsAligned ? (
                 <div className="space-y-3">
-                  <ul className="divide-y divide-border overflow-hidden rounded-md border border-border">
+                  <ul className="divide-y divide-border overflow-hidden rounded-xl border border-border">
                     {detail.constituents.map((mint, i) => {
                       const holding = holdingsAligned[i];
                       const multiplier = Number(holding?.multiplier ?? 1);
@@ -473,12 +517,14 @@ export default function RedeemPage({ params }: { params: Promise<{ pubkey: strin
                   </ul>
                   <dl className="grid gap-1 font-mono text-xs tabular-nums text-muted-foreground">
                     <div className="flex justify-between gap-4">
-                      <dt>exit fee ({detail.exit_fee_bps} bps)</dt>
-                      <dd>{formatRawShares6(preview.exitFee)} shares</dd>
+                      <dt title={`${detail.exit_fee_bps} bps`}>
+                        exit fee · {formatBpsAsPercent(detail.exit_fee_bps)}
+                      </dt>
+                      <dd>{grouped(formatRawShares6(preview.exitFee))} shares</dd>
                     </div>
                     <div className="flex justify-between gap-4">
                       <dt>burned</dt>
-                      <dd>{formatRawShares6(preview.burn)} shares</dd>
+                      <dd>{grouped(formatRawShares6(preview.burn))} shares</dd>
                     </div>
                     {usdEstimate !== null ? (
                       <div className="flex justify-between gap-4">
@@ -516,6 +562,17 @@ export default function RedeemPage({ params }: { params: Promise<{ pubkey: strin
                 sharesExceedBalance ||
                 preview === null
               }
+              title={
+                !connected
+                  ? "Connect a wallet to redeem"
+                  : shares === null || shares <= 0n
+                    ? "Enter the number of shares to burn"
+                    : sharesExceedBalance
+                      ? "Shares exceed your balance"
+                      : preview === null
+                        ? "No complete holdings snapshot — the pro-rata preview cannot be computed"
+                        : undefined
+              }
               data-testid="redeem-trigger"
             >
               Redeem shares
@@ -539,10 +596,7 @@ export default function RedeemPage({ params }: { params: Promise<{ pubkey: strin
             >
               {prewarm.status === "preparing" ? (
                 <>
-                  <span
-                    aria-hidden="true"
-                    className="inline-block h-3 w-3 shrink-0 animate-spin rounded-full border-2 border-muted-foreground/30 border-t-foreground"
-                  />
+                  <Spinner sizeClassName="h-3 w-3" label={null} />
                   {prewarm.awaitingWallet
                     ? "Setup — approve in your wallet…"
                     : "Preparing your basket account… one-time setup"}

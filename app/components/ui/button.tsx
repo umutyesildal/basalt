@@ -28,17 +28,19 @@ const buttonVariants = cva(
       size: {
         default:
           "h-8 gap-1.5 px-2.5 has-data-[icon=inline-end]:pr-2 has-data-[icon=inline-start]:pl-2",
-        // xs/sm/icon-* previously used rounded-[min(var(--radius-md),10px)] —
-        // --radius-md was never defined, so those radii silently no-op'd.
-        // rounded-md is the token-driven sharp equivalent (2px at 0.25rem).
-        xs: "h-6 gap-1 rounded-md px-2 text-xs in-data-[slot=button-group]:rounded-lg has-data-[icon=inline-end]:pr-1.5 has-data-[icon=inline-start]:pl-1.5 [&_svg:not([class*='size-'])]:size-3",
-        sm: "h-7 gap-1 rounded-md px-2.5 text-[0.8rem] in-data-[slot=button-group]:rounded-lg has-data-[icon=inline-end]:pr-1.5 has-data-[icon=inline-start]:pl-1.5 [&_svg:not([class*='size-'])]:size-3.5",
+        // Every size inherits the base rounded-lg (button tier of the unified
+        // radius scale: surfaces xl · buttons/inputs lg · chips md). No
+        // per-size radius overrides — one button, one radius.
+        // max-md tokens = mobile touch scale (audit wave-3 §2.d): every
+        // sub-40px size reaches the 40px house minimum below 768px; desktop
+        // rhythm untouched. Reversible: delete the max-md tokens to revert.
+        xs: "h-6 max-md:h-10 gap-1 px-2 text-xs has-data-[icon=inline-end]:pr-1.5 has-data-[icon=inline-start]:pl-1.5 [&_svg:not([class*='size-'])]:size-3",
+        sm: "h-7 max-md:h-10 gap-1 px-2.5 text-[0.8rem] has-data-[icon=inline-end]:pr-1.5 has-data-[icon=inline-start]:pl-1.5 [&_svg:not([class*='size-'])]:size-3.5",
         lg: "h-9 gap-1.5 px-2.5 has-data-[icon=inline-end]:pr-2 has-data-[icon=inline-start]:pl-2",
-        icon: "size-8",
+        icon: "size-8 max-md:size-10",
         "icon-xs":
-          "size-6 rounded-md in-data-[slot=button-group]:rounded-lg [&_svg:not([class*='size-'])]:size-3",
-        "icon-sm":
-          "size-7 rounded-md in-data-[slot=button-group]:rounded-lg",
+          "size-6 max-md:size-10 [&_svg:not([class*='size-'])]:size-3",
+        "icon-sm": "size-7 max-md:size-10",
         "icon-lg": "size-9",
       },
     },

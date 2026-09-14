@@ -11,6 +11,7 @@ import Link from "next/link";
 
 import { ErrorState } from "@/components/states";
 import { Button } from "@/components/ui/button";
+import { Spinner } from "@/components/ui/spinner";
 import { useWalletFeedback } from "@/app/providers";
 import { truncateAddress } from "@/lib/format";
 import {
@@ -405,7 +406,7 @@ export function DeployPanel({
         <div
           role="status"
           data-testid="deploy-success-card"
-          className="hairline-primary rounded-md border border-border bg-muted/30 p-5"
+          className="hairline-primary rounded-xl border border-border bg-muted/30 p-5"
         >
           <p className="text-base font-semibold text-primary-text">🎉 Basket created!</p>
           <p className="mt-1 text-xs text-muted-foreground">
@@ -485,7 +486,7 @@ export function DeployPanel({
         />
       )}
       {overLimit && !blocked && (
-        <p className="rounded-md border border-border/60 bg-muted/40 p-2.5 text-xs leading-5 text-muted-foreground">
+        <p className="rounded-xl border border-border/60 bg-muted/40 p-2.5 text-xs leading-5 text-muted-foreground">
           One-time setup: this basket is too large for one plain transaction (~
           {estSize.toLocaleString()} B), so the first deploy also creates a lookup table — you may
           approve 1–2 setup transactions, after which every deploy is a single click.
@@ -504,12 +505,9 @@ export function DeployPanel({
       {phase === "pending" && signature && (
         <div
           role="status"
-          className="flex items-center gap-2 rounded-md border border-border bg-muted/30 p-3 text-sm"
+          className="flex items-center gap-2 rounded-xl border border-border bg-muted/30 p-3 text-sm"
         >
-          <span
-            aria-hidden="true"
-            className="inline-block h-4 w-4 shrink-0 animate-spin rounded-full border-2 border-muted-foreground/30 border-t-foreground"
-          />
+          <Spinner label={null} />
           Confirming…
         </div>
       )}
@@ -549,7 +547,7 @@ export function DeployPanel({
             aria-modal="true"
             aria-labelledby="deploy-review-title"
             tabIndex={-1}
-            className="max-h-[85vh] w-full max-w-2xl overflow-y-auto rounded-lg border border-border bg-card p-5 outline-none"
+            className="max-h-[85vh] w-full max-w-2xl overflow-y-auto rounded-xl border border-border bg-card p-5 outline-none"
           >
             <div className="flex items-start justify-between gap-3">
               <div className="flex flex-wrap items-center gap-2">
@@ -559,7 +557,7 @@ export function DeployPanel({
                 {phase === "preparing-alt" && setupProgress ? (
                   <span
                     data-testid="setup-badge"
-                    className="rounded-sm border border-border bg-muted/50 px-2 py-0.5 text-[11px] font-medium tabular-nums text-muted-foreground"
+                    className="rounded-md border border-border bg-muted/50 px-2 py-0.5 text-[11px] font-medium tabular-nums text-muted-foreground"
                   >
                     Setup {setupProgress.step}/{setupProgress.total}
                   </span>
@@ -578,7 +576,7 @@ export function DeployPanel({
             </div>
 
             {/* ---- the human-language card: the whole review ---- */}
-            <div className="mt-4 rounded-md border border-border bg-muted/30 p-3">
+            <div className="mt-4 rounded-xl border border-border bg-muted/30 p-3">
               <TxSummaryCard>
                 <SummaryRow label="New basket" value={weightsLine} />
                 <SummaryRow label="You deposit" value={depositLine} />
@@ -624,7 +622,7 @@ export function DeployPanel({
             {(phase === "failed" || phase === "simulation-failed") && errorMessage ? (
               <p
                 role="alert"
-                className="mt-3 rounded-md border border-destructive/30 bg-destructive/5 p-2.5 text-xs leading-5"
+                className="mt-3 rounded-xl border border-destructive/30 bg-destructive/5 p-2.5 text-xs leading-5"
               >
                 {errorMessage}
               </p>
@@ -632,10 +630,7 @@ export function DeployPanel({
 
             {phase === "simulating" ? (
               <div role="status" className="mt-3 flex items-center gap-2 text-sm">
-                <span
-                  aria-hidden="true"
-                  className="inline-block h-4 w-4 shrink-0 animate-spin rounded-full border-2 border-muted-foreground/30 border-t-foreground"
-                />
+                <Spinner label={null} />
                 Checking on-chain…
               </div>
             ) : null}
@@ -657,10 +652,7 @@ export function DeployPanel({
               >
                 {busy ? (
                   <>
-                    <span
-                      aria-hidden="true"
-                      className="inline-block h-4 w-4 shrink-0 animate-spin rounded-full border-2 border-muted-foreground/30 border-t-foreground"
-                    />
+                    <Spinner label={null} />
                     {busyLabel}
                   </>
                 ) : (
@@ -749,7 +741,7 @@ export function DeployPanel({
                       copy JSON
                     </button>
                   </div>
-                  <pre className="mt-1 max-h-40 overflow-auto rounded-md border border-border/60 bg-background p-2 font-mono text-[11px] leading-4">
+                  <pre className="mt-1 max-h-40 overflow-auto rounded-lg border border-border/60 bg-background p-2 font-mono text-[11px] leading-4">
                     {metadataJson}
                   </pre>
                   <p className="mt-1 font-mono tabular-nums">
@@ -795,7 +787,7 @@ export function DeployPanel({
                 {simulationLogs.length > 0 && (
                   <div>
                     <p className="font-mono font-medium uppercase tracking-[0.22em]">Last simulation log</p>
-                    <pre className="mt-1 max-h-32 overflow-auto rounded-md border border-border/60 bg-background p-2 font-mono text-[11px] leading-4">
+                    <pre className="mt-1 max-h-32 overflow-auto rounded-lg border border-border/60 bg-background p-2 font-mono text-[11px] leading-4">
                       {simulationLogs.slice(-8).join("\n")}
                     </pre>
                   </div>

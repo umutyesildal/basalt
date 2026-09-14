@@ -550,10 +550,20 @@ export const PACKET_LIMIT = 1232;
 
 /**
  * True when a create_basket transaction with this many constituents exceeds
- * the 1232B packet limit without lookup tables (equivalently: n >= 4).
+ * the 1232B packet limit without lookup tables.
+ *
+ * The explicit `n >= 4` clause is load-bearing: the old estimate formula
+ * under-counted the compute-budget pair and measured n = 4 at 1170B — but the
+ * REAL compile (offline-verified in scripts/checkTxSize.ts) is 1283B, so a
+ * 4-constituent basket took the ALT-less path and then failed the size check
+ * inside buildCreateBasketTransaction ("1283B > 1232B"). Mirrors the same
+ * explicit clause in mintRedeemNeedsAlt; the estimate remains as the honest
+ * fallback gate for the ≤3 paths.
  */
 export function createBasketNeedsAlt(numConstituents: number): boolean {
-  return estimateCreateBasketTxSize(numConstituents) > PACKET_LIMIT;
+  return (
+    numConstituents >= 4 || estimateCreateBasketTxSize(numConstituents) > PACKET_LIMIT
+  );
 }
 
 /**

@@ -5,7 +5,7 @@ import { cn } from "@/lib/utils"
 /**
  * Global card system — the ONE canonical card structure for the whole app.
  *
- *   Card        rounded-lg border bg-card (flex column, clips children)
+ *   Card        rounded-xl border bg-card (flex column, clips children)
  *   CardHeader  p-5 pb-3   — CardTitle text-base font-medium on top,
  *                            CardDescription text-sm text-muted-foreground below
  *   CardContent p-5 pt-0   (first:pt-5 when a card renders no header)
@@ -30,7 +30,7 @@ function Card({
       data-slot="card"
       data-size={size}
       className={cn(
-        "group/card flex flex-col overflow-hidden rounded-lg border border-border bg-card text-sm text-card-foreground",
+        "group/card flex flex-col overflow-hidden rounded-xl border border-border bg-card text-sm text-card-foreground",
         className
       )}
       {...props}

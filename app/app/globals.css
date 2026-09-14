@@ -59,8 +59,10 @@
        data badges can quote a series without inventing a new hue. */
     --neon-cyan: 192 92% 30%;
     --neon-magenta: 325 85% 38%;
-    /* Sharp corners ARE the system. lg/md/sm derive from this in
-       tailwind.config.js → 4px / 2px / 0px at the current value. */
+    /* Radius scale base — lg/md/sm/xl all derive from this in
+       tailwind.config.js: 0 / 2px / 4px / 12px at the current value.
+       Tiers: xl cards·panels·modals·popovers / lg buttons·inputs /
+       md chips·badges·tooltips / full pills·avatars. */
     --radius: 0.25rem;
     --chart-background: 60 20% 97%;
     --chart-foreground: 240 6% 8%;

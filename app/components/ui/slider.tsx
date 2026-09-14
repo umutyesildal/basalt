@@ -41,9 +41,10 @@ function Slider<Value extends number | readonly number[]>({
           <SliderPrimitive.Thumb
             data-slot="slider-thumb"
             key={index}
-            // Sharp square thumb (rounded-sm = 0 at --radius 0.25rem) — the
-            // old rounded-full knob fought the sharp-corner system.
-            className="relative block size-3 shrink-0 rounded-sm border border-ring bg-background ring-ring/50 transition-[color,box-shadow] select-none after:absolute after:-inset-2 hover:ring-3 focus-visible:ring-3 focus-visible:outline-hidden active:ring-3 disabled:pointer-events-none disabled:opacity-50"
+            // Button-tier rounding (rounded-lg = 4px at --radius 0.25rem) per
+            // the unified radius scale — the old rounded-full knob read as a
+            // foreign pill.
+            className="relative block size-3 shrink-0 rounded-lg border border-ring bg-background ring-ring/50 transition-[color,box-shadow] select-none after:absolute after:-inset-2 hover:ring-3 focus-visible:ring-3 focus-visible:outline-hidden active:ring-3 disabled:pointer-events-none disabled:opacity-50"
           />
         ))}
       </SliderPrimitive.Control>

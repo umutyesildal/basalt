@@ -75,7 +75,7 @@ export function ChartBlockSkeleton({
       <span className="sr-only">{label}</span>
       <div
         aria-hidden="true"
-        className="flex h-64 w-full items-end gap-2 rounded-sm border border-border/40 bg-muted/40 p-4"
+        className="flex h-64 w-full items-end gap-2 rounded-xl border border-border/40 bg-muted/40 p-4"
       >
         <Skeleton className="h-1/4 flex-1" />
         <Skeleton className="h-2/5 flex-1" />

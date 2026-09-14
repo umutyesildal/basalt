@@ -17,7 +17,7 @@ import { cn } from "@/lib/utils";
 
 // py-2.5 keeps wallet menu entries at a ≥40px touch target on phones.
 const menuButtonClasses =
-  "w-full rounded-sm px-2 py-2.5 text-left text-sm text-popover-foreground hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-50";
+  "w-full rounded-lg px-2 py-2.5 text-left text-sm text-popover-foreground hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-50";
 
 /**
  * Custom wallet control (the wallet-adapter MultiButton is intentionally not
@@ -114,7 +114,7 @@ export function WalletButton({ className }: { className?: string }) {
       {isConnected && health === "unreachable" && !open && (
         <p
           role="alert"
-          className="absolute right-0 top-full z-20 mt-2 w-64 rounded-md border border-destructive/30 bg-popover p-2 text-xs leading-5 text-destructive"
+          className="absolute right-0 top-full z-20 mt-2 w-64 rounded-xl border border-destructive/30 bg-popover p-2 text-xs leading-5 text-destructive"
         >
           RPC unreachable ({cluster}). The wallet may be on a different network.
         </p>
@@ -123,14 +123,14 @@ export function WalletButton({ className }: { className?: string }) {
       {error && (
         <div
           role="alert"
-          className="absolute right-0 top-full z-20 mt-2 w-64 rounded-md border border-destructive/30 bg-popover p-2 text-xs leading-5"
+          className="absolute right-0 top-full z-20 mt-2 w-64 rounded-xl border border-destructive/30 bg-popover p-2 text-xs leading-5"
         >
           <div className="flex items-start justify-between gap-2">
             <p className="text-destructive">{error.message}</p>
             <button
               type="button"
               onClick={clearError}
-              className="shrink-0 rounded-sm text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+              className="shrink-0 rounded-lg text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
             >
               Dismiss
             </button>
@@ -143,7 +143,7 @@ export function WalletButton({ className }: { className?: string }) {
           id={menuId}
           role="menu"
           aria-label="Wallet"
-          className="absolute right-0 top-full z-20 mt-2 w-60 rounded-md border border-border bg-popover p-1 text-popover-foreground"
+          className="absolute right-0 top-full z-20 mt-2 w-60 rounded-xl border border-border bg-popover p-1 text-popover-foreground"
         >
           <p className="flex items-center gap-2 px-2 py-1.5 font-mono text-xs tabular-nums text-muted-foreground">
             {ConnectedGlyph ? <ConnectedGlyph className="size-3.5 shrink-0" /> : null}

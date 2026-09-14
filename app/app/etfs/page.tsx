@@ -2,16 +2,25 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
 
-import { EtfGrid, EtfGridSkeleton, type EtfRow } from "@/components/etfs/etf-grid";
+import { EtfGrid, type EtfRow } from "@/components/etfs/etf-grid";
+import { EtfGridShimmerSkeleton } from "@/app/etfs/grid-skeleton";
 import { EmptyState, FreshnessBadge } from "@/components/states";
 import {
   fetchMockXStockCatalog,
   type MockCatalogEntry,
 } from "@/lib/xstock-catalog";
 import { apiFetch, apiQuery } from "@/lib/api-client";
+import {
+  fetchDailyCloseSeries,
+  mapLimit,
+  underlyingFromPriceSource,
+  type DailyCloseSeries,
+} from "@/lib/price-series";
 
 export const metadata: Metadata = {
-  title: "Tokenized ETFs — Basalt",
+  // absolute: the root layout appends "· Basalt" via its title template — a
+  // plain string here would render "Tokenized ETFs — Basalt · Basalt".
+  title: { absolute: "Basalt | Tokenized ETFs" },
   description: "The tokenized ETF tickers listed on Basalt today.",
 };
 
@@ -41,12 +50,6 @@ interface CompareRow {
 interface ComparePayload {
   data?: CompareRow[];
   ts?: string;
-}
-
-interface ChartPayload {
-  data?: {
-    yahoo?: { symbol?: string; candles?: { ts: number; close: number }[] } | null;
-  } | null;
 }
 
 async function getJson<T>(path: string): Promise<T | null> {
@@ -81,50 +84,92 @@ async function getJsonQuery<T>(
   }
 }
 
+/** Latest Yahoo close across a series batch — feeds FreshnessBadge `asOf`. */
+function maxSeriesTs(seriesList: (DailyCloseSeries | null)[]): number | undefined {
+  const max = seriesList.reduce<number>(
+    (acc, s) => Math.max(acc, s?.lastTs ?? 0),
+    0,
+  );
+  return max > 0 ? max : undefined;
+}
+
 /**
  * Dev-catalog path: build rows from GET /api/v1/xstocks/mock (deterministic
- * dev-catalog prices, labeled mock). Returns null when the catalog route is
- * unreachable — the caller then uses the live Jupiter/Yahoo flow.
+ * dev-catalog prices, labeled mock). Prices are mock; the 7-session sparkline
+ * and 24h/7d changes still come from real Yahoo daily closes for the
+ * underlying (lib/price-series.ts — real data only). Returns null when the
+ * catalog route is unreachable — the caller then uses the live flow.
  */
-async function etfRowsFromCatalog(): Promise<EtfRow[] | null> {
+async function etfRowsFromCatalog(): Promise<{
+  rows: EtfRow[];
+  seriesAsOf?: number;
+} | null> {
   const catalog = await fetchMockXStockCatalog();
   if (!catalog) return null;
-  const rows = catalog
-    .filter((entry) => ETF_META[entry.ticker] !== undefined)
-    .map((entry: MockCatalogEntry) => ({
-      ticker: entry.ticker,
-      name: ETF_META[entry.ticker]?.name,
-      provider: "mock (dev catalog)",
-      price: entry.priceUsd,
-      change24h: null,
-    }));
-  return rows.length > 0 ? rows : null;
+  const catalogEntries = catalog.filter(
+    (entry) => ETF_META[entry.ticker] !== undefined,
+  );
+  if (catalogEntries.length === 0) return null;
+
+  const baseRows = catalogEntries.map((entry: MockCatalogEntry) => ({
+    ticker: entry.ticker,
+    name: ETF_META[entry.ticker]?.name,
+    provider: "mock (dev catalog)",
+    price: entry.priceUsd,
+    change24h: null,
+    /** Real underlying for the series fallback ("mock:msft" → "MSFT"). */
+    underlying: underlyingFromPriceSource(entry.priceSource),
+  }));
+
+  const seriesList = await mapLimit(baseRows, 4, (row) =>
+    fetchDailyCloseSeries(row.ticker, row.underlying),
+  );
+  const rows: EtfRow[] = baseRows.map((row, i) => ({
+    ticker: row.ticker,
+    name: row.name,
+    provider: row.provider,
+    price: row.price,
+    change24h: seriesList[i]?.changePct24h ?? null,
+    change7d: seriesList[i]?.changePct7d ?? null,
+    sparkline: seriesList[i]?.closes ?? [],
+  }));
+  return { rows, seriesAsOf: maxSeriesTs(seriesList) };
 }
 
 /**
  * Listing body: prefer the devnet dev catalog for prices (mock, labeled);
  * otherwise fall back to the live registry flow — instrument registry, ETF-type
- * tickers only, live token price (Jupiter) and the 24h change (Yahoo daily
- * close-to-close — never the simulated xStock series). Renders its own header
- * so the FreshnessBadge only appears once real metadata exists.
+ * tickers only, live token price (Jupiter) and the 24h/7d changes plus the
+ * 7-session sparkline from real Yahoo daily closes (never the simulated
+ * xStock series). Renders its own header so the FreshnessBadge only appears
+ * once real metadata exists.
  */
 async function EtfListing() {
-  const catalogRows = await etfRowsFromCatalog();
+  const catalog = await etfRowsFromCatalog();
 
-  if (catalogRows) {
+  if (catalog) {
+    const hasSeries = catalog.rows.some((row) => (row.sparkline?.length ?? 0) >= 2);
     return (
       <div className="space-y-4">
         <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
           <h2 id="tokenized-etfs" className="font-display text-sm font-medium">
             Tokenized ETFs on Basalt
           </h2>
-          <FreshnessBadge source="dev catalog · mock prices (not live)" />
+          <FreshnessBadge
+            source={
+              hasSeries
+                ? "dev catalog · mock prices · Yahoo closes"
+                : "dev catalog · mock prices (not live)"
+            }
+            asOf={catalog.seriesAsOf}
+          />
         </div>
         <p className="max-w-2xl text-xs leading-5 text-muted-foreground">
           Devnet showcase: prices are deterministic dev-catalog values (mock — not live
-          market data).
+          market data). The mini chart and the 24h/7d changes are Yahoo daily closes
+          for the underlying ETF.
         </p>
-        <EtfGrid rows={catalogRows} />
+        <EtfGrid rows={catalog.rows} />
       </div>
     );
   }
@@ -170,39 +215,30 @@ async function EtfListing() {
   }
 
   const tickers = listed.map((row) => row.ticker).join(",");
-  const [compareRes, ...chartRes] = await Promise.all([
+  const [compareRes, seriesList] = await Promise.all([
     getJsonQuery<ComparePayload>("/api/v1/prices/compare", { tickers }),
-    ...listed.map((row) =>
-      getJsonQuery<ChartPayload>("/api/v1/prices/chart", {
-        ticker: row.ticker,
-        range: "1mo",
-      }),
-    ),
+    mapLimit(listed, 4, (row) => fetchDailyCloseSeries(row.ticker)),
   ]);
 
   const priceByTicker = new Map((compareRes?.data ?? []).map((c) => [c.ticker, c.jupiter]));
 
   const rows: EtfRow[] = listed.map((row, i) => {
-    // Yahoo daily closes only — the xStock series is simulated and never quoted.
-    const candles = chartRes[i]?.data?.yahoo?.candles ?? [];
-    const last = candles[candles.length - 1];
-    const prev = candles[candles.length - 2];
-    const change24h =
-      last && prev && prev.close !== 0 ? ((last.close - prev.close) / prev.close) * 100 : null;
+    const series = seriesList[i];
     return {
       ticker: row.ticker,
       name: ETF_META[row.ticker]?.name,
       provider: row.provider,
       price: priceByTicker.get(row.ticker) ?? null,
-      change24h,
+      // Yahoo daily closes only — the xStock series is simulated and never quoted.
+      change24h: series?.changePct24h ?? null,
+      change7d: series?.changePct7d ?? null,
+      sparkline: series?.closes ?? [],
     };
   });
 
-  const chartAsOf = chartRes
-    .map((res) => res?.data?.yahoo?.candles?.[res.data.yahoo.candles.length - 1]?.ts ?? 0)
-    .reduce((a, b) => Math.max(a, b), 0);
   const compareTs = compareRes?.ts ? Date.parse(compareRes.ts) : 0;
-  const asOf = Math.max(chartAsOf, compareTs) || undefined;
+  const seriesTs = maxSeriesTs(seriesList) ?? 0;
+  const asOf = Math.max(seriesTs, compareTs) || undefined;
 
   return (
     <div className="space-y-4">
@@ -213,8 +249,8 @@ async function EtfListing() {
         <FreshnessBadge source="Jupiter · Yahoo Finance" asOf={asOf} />
       </div>
       <p className="max-w-2xl text-xs leading-5 text-muted-foreground">
-        Token prices are Jupiter quotes for the token; 24h change is the Yahoo daily
-        close-to-close for the underlying ETF.
+        Token prices are Jupiter quotes for the token; the mini chart and the 24h/7d
+        changes are Yahoo daily closes for the underlying ETF (7d = last five sessions).
       </p>
       <EtfGrid rows={rows} />
     </div>
@@ -234,7 +270,7 @@ export default function EtfsPage() {
       {/* Live listing, right under the intro; streams after the fetches resolve.
           The Traditional vs tokenized comparison lives on the home landing now. */}
       <section aria-label="Tokenized ETFs on Basalt" className="border-t border-border py-8">
-        <Suspense fallback={<EtfGridSkeleton />}>
+        <Suspense fallback={<EtfGridShimmerSkeleton />}>
           <EtfListing />
         </Suspense>
       </section>

@@ -153,7 +153,7 @@ export function useMenuDismiss({
 
 // py-2.5 keeps wallet menu entries at a ≥40px touch target on phones.
 const menuEntryClasses =
-  "w-full rounded-sm px-2 py-2.5 text-left text-sm text-popover-foreground hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-50";
+  "w-full rounded-lg px-2 py-2.5 text-left text-sm text-popover-foreground hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 disabled:pointer-events-none disabled:opacity-50";
 
 /**
  * Wallet picker menu used everywhere wallets are listed (header control and
@@ -177,7 +177,7 @@ export function WalletPickerMenu({
       role="menu"
       aria-label="Connect a wallet"
       className={cn(
-        "absolute right-0 top-full z-20 mt-2 w-60 rounded-md border border-border bg-popover p-1 text-popover-foreground",
+        "absolute right-0 top-full z-20 mt-2 w-60 rounded-xl border border-border bg-popover p-1 text-popover-foreground",
         className,
       )}
     >

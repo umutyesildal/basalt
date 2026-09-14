@@ -4,11 +4,15 @@ import Link from "next/link";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { DEMO_THESES, DEMO_TRADES } from "@/components/home/home-demo-data";
-import { ErrorState, EmptyState, Skeleton } from "@/components/states";
+import { ErrorState, EmptyState } from "@/components/states";
 import { Button } from "@/components/ui/button";
 import { RangeLinks } from "@/components/ui/range-links";
+import { SectionHeading } from "@/components/ui/section-heading";
+import { SkeletonShimmer } from "@/components/ui/skeleton-shimmer";
 import { ActorLine, SocialAvatar } from "@/components/social/avatar";
+import { BasketAvatar } from "@/components/social/basket-avatar";
 import { ThesisComposerModal } from "@/components/social/thesis-composer";
+import { CHANGE_UP_CLASS } from "@/components/stocks/change-value";
 import { isDemoMode } from "@/lib/demo-mode";
 import { formatRelativeTime, formatTokenAmount, formatUsd, truncateAddress } from "@/lib/format";
 import {
@@ -40,6 +44,15 @@ function tabQuery(tab: Tab): { scope: "all" | "following"; type: "all" | "trades
   if (tab === "theses") return { scope: "all", type: "theses" };
   return { scope: "all", type: "all" };
 }
+
+/**
+ * Page-scale for the SectionHeading slots (wave-2 header rhythm, unchanged):
+ * the mono eyebrow keeps the `.section-label` voice (0.7rem / 0.22em) and the
+ * title keeps the text-3xl page-h1 scale — SectionHeading only supplies the
+ * eyebrow+title structure (MicroLabel-based).
+ */
+const PAGE_EYEBROW_CLASS = "text-[0.7rem] font-medium leading-4 tracking-[0.22em]";
+const PAGE_TITLE_CLASS = "text-3xl font-semibold tracking-tight";
 
 /**
  * Unified social feed: All / Following / Theses tabs over GET /feed, 30s
@@ -133,7 +146,14 @@ function FeedClientReal() {
     <div className="mx-auto w-full max-w-4xl">
       <header className="flex flex-wrap items-baseline justify-between gap-3 pb-6">
         <div>
-          <h1 className="font-display text-3xl font-semibold tracking-tight">Feed</h1>
+          {/* Site rhythm (wave 2): the eyebrow + display-title row comes from
+              the SectionHeading primitive; the page-scale constants above keep
+              the previous "ON-CHAIN RECORD" eyebrow and text-3xl h1 look. */}
+          <SectionHeading
+            as="h1"
+            eyebrow={<span className={PAGE_EYEBROW_CLASS}>ON-CHAIN RECORD</span>}
+            title={<span className={PAGE_TITLE_CLASS}>Feed</span>}
+          />
           <p className="mt-1 text-sm text-muted-foreground">
             Trades and theses from public Basalt baskets — self-reported, not advice.
           </p>
@@ -222,7 +242,10 @@ function FeedClientReal() {
               )}
             </div>
           ) : (
-            <ul className="divide-y divide-border">
+            // Wave-2 (2026-09-14): posts render as spaced card faces instead
+            // of a hairline-divided list — name/type/amounts/time stack in a
+            // fixed micro-typography order inside each card.
+            <ul className="space-y-3">
               {items.map((item, index) =>
                 item.kind === "trade" ? (
                   <TradeCard key={`${item.sig}-${index}`} item={item} />
@@ -263,7 +286,7 @@ function DemoChip() {
   return (
     <span
       title="Synthetic demo data — not live activity"
-      className="rounded-sm border border-border px-1.5 py-0.5 font-mono text-[10px] uppercase tracking-[0.22em] text-muted-foreground"
+      className="rounded-md border border-border px-1.5 py-0.5 font-mono text-[10px] uppercase tracking-[0.22em] text-muted-foreground"
     >
       demo data
     </span>
@@ -299,10 +322,18 @@ function DemoFeed() {
     <div className="mx-auto w-full max-w-4xl">
       <header className="flex flex-wrap items-baseline justify-between gap-3 pb-6">
         <div>
-          <div className="flex flex-wrap items-center gap-2">
-            <h1 className="font-display text-3xl font-semibold tracking-tight">Feed</h1>
-            <DemoChip />
-          </div>
+          {/* Same SectionHeading rhythm as the real feed; the honesty chip
+              rides in the eyebrow slot. */}
+          <SectionHeading
+            as="h1"
+            eyebrow={
+              <span className="flex flex-wrap items-center gap-2">
+                <span className={PAGE_EYEBROW_CLASS}>ON-CHAIN RECORD</span>
+                <DemoChip />
+              </span>
+            }
+            title={<span className={PAGE_TITLE_CLASS}>Feed</span>}
+          />
           <p className="mt-1 text-sm text-muted-foreground">
             Trades and theses from public Basalt baskets — self-reported, not advice.
           </p>
@@ -325,7 +356,7 @@ function DemoFeed() {
         ) : null}
       </div>
 
-      <ul className="divide-y divide-border">
+      <ul className="space-y-3">
         {items.map((item, index) =>
           item.kind === "trade" ? (
             <TradeCard key={`${item.sig}-${index}`} item={item} />
@@ -342,13 +373,17 @@ function FeedSkeleton() {
   return (
     <div className="pt-2" role="status" aria-label="Loading feed">
       <span className="sr-only">Loading feed</span>
-      <div className="divide-y divide-border" aria-hidden="true">
+      {/* SkeletonShimmer bars, same footprint as the loaded post cards. */}
+      <div className="space-y-3" aria-hidden="true">
         {Array.from({ length: 5 }, (_, i) => (
-          <div key={i} className="flex items-start gap-3 py-4">
-            <Skeleton className="h-7 w-7 rounded-full" />
+          <div
+            key={i}
+            className="flex items-start gap-3 rounded-xl border border-border/50 bg-card/30 px-4 py-3.5"
+          >
+            <SkeletonShimmer width={28} height={28} className="rounded-full" />
             <div className="min-w-0 flex-1 space-y-2">
-              <Skeleton className="h-4 w-40" />
-              <Skeleton className="h-3 w-full max-w-md" />
+              <SkeletonShimmer width="10rem" height="1rem" />
+              <SkeletonShimmer height="0.75rem" className="w-full max-w-md" />
             </div>
           </div>
         ))}
@@ -357,13 +392,27 @@ function FeedSkeleton() {
   );
 }
 
-/** Trade row: actor, side badge (chart tokens), basket link, shares + USD. */
+/**
+ * Trade row: actor, plain direction label (icon + word, no filled block),
+ * basket link, shares + USD.
+ *
+ * Wave-2 (2026-09-14): the row is a card face; hover solidifies the face —
+ * the row highlight — and the basket sentence carries the basket avatar so
+ * the trade's proof link is the visually distinct line of the card.
+ *
+ * Direction label (owner feedback 2026-09-14): the old Minted/Redeemed
+ * bordered+filled chip (green / red block) read as an unexplained status
+ * badge. It is now plain mono text with an arrow glyph: MINTED keeps the
+ * site's one up-color (CHANGE_UP_CLASS — the ChangeValue source), REDEEMED
+ * stays muted — an exit is not a loss, and red is reserved for errors on
+ * chrome (brand.md), matching the home live-proof band's "bought"/"sold"
+ * rule. The word itself carries the meaning, so color is never the only
+ * signal (WCAG); the ↳ proof line below stays neutral.
+ */
 function TradeCard({ item }: { item: Extract<FeedItem, { kind: "trade" }> }) {
   const minted = item.type === "Minted";
   return (
-    // Borderless divider list → the row earns a 2px yellow left accent on
-    // hover only (thesis rows keep a quiet static one) — never full borders.
-    <li className="border-l-2 border-l-primary/0 py-4 pl-4 transition-colors hover:border-l-primary/60">
+    <li className="rounded-xl border border-border/60 bg-card/40 px-4 py-3.5 transition-colors duration-200 hover:border-border hover:bg-card">
       <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
         <div className="flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1">
           <Link
@@ -379,12 +428,11 @@ function TradeCard({ item }: { item: Extract<FeedItem, { kind: "trade" }> }) {
             />
           </Link>
           <span
-            className={`shrink-0 rounded-sm border px-1.5 py-0.5 font-mono text-[10px] uppercase tracking-wide ${
-              minted
-                ? "border-[hsl(var(--status-positive)/40)] bg-[hsl(var(--status-positive)/10)] text-[hsl(var(--status-positive))]"
-                : "border-[hsl(var(--destructive)/40)] bg-[hsl(var(--destructive)/10)] text-[hsl(var(--destructive))]"
+            className={`inline-flex shrink-0 items-center gap-1 font-mono text-[10px] uppercase tracking-wide ${
+              minted ? CHANGE_UP_CLASS : "text-muted-foreground"
             }`}
           >
+            <span aria-hidden="true">{minted ? "↑" : "↓"}</span>
             {item.type}
           </span>
         </div>
@@ -403,18 +451,26 @@ function TradeCard({ item }: { item: Extract<FeedItem, { kind: "trade" }> }) {
           </span>
         </div>
       </div>
-      <p className="mt-2 text-sm leading-6 text-muted-foreground">
-        {minted ? "Bought" : "Sold"}{" "}
-        <span className="font-mono tabular-nums text-foreground">
-          {formatTokenAmount(item.shares, { maximumFractionDigits: 2 })}
-        </span>{" "}
-        shares of{" "}
+      {/* The proof line — who moved which basket, with the basket's glyph
+          inline so the link scans at feed speed. */}
+      <p className="mt-2.5 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-sm leading-6 text-muted-foreground">
+        <span aria-hidden="true" className="font-mono text-xs text-muted-foreground/60">
+          ↳
+        </span>
+        <span>
+          {minted ? "Bought" : "Sold"}{" "}
+          <span className="font-mono tabular-nums text-foreground">
+            {formatTokenAmount(item.shares, { maximumFractionDigits: 2 })}
+          </span>{" "}
+          shares of{" "}
+        </span>
         <Link
           href={`/basket/${item.basket}`}
-          className="font-medium text-foreground underline decoration-foreground/30 underline-offset-4 hover:decoration-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+          className="inline-flex min-w-0 items-center gap-1.5 font-medium text-foreground underline decoration-foreground/30 underline-offset-4 transition-colors hover:decoration-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
           title={item.basket}
         >
-          {item.basketName ?? truncateAddress(item.basket, 6, 4)}
+          <BasketAvatar basket={item.basket} size={20} />
+          <span className="truncate">{item.basketName ?? truncateAddress(item.basket, 6, 4)}</span>
         </Link>
       </p>
     </li>
@@ -496,9 +552,9 @@ function ThesisCard({
   };
 
   return (
-    // Quiet static left accent — thesis rows are content, not hover targets
-    // for the whole row, so the accent never turns yellow here.
-    <li className="border-l-2 border-l-border/60 py-4 pl-4">
+    // Quiet static card face — thesis rows are content, not hover targets
+    // for the whole row, so the face never reacts to hover (wave-2, 2026-09-14).
+    <li className="rounded-xl border border-border/60 bg-card/40 px-4 py-3.5">
       <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
         <Link
           href={`/creator/${item.wallet}`}
@@ -572,7 +628,7 @@ function ThesisCard({
         {item.basket ? (
           <Link
             href={`/basket/${item.basket}`}
-            className="inline-flex items-center gap-1.5 rounded-sm bg-accent px-2 py-0.5 font-mono text-[11px] text-accent-foreground transition-colors hover:bg-accent/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+            className="inline-flex items-center gap-1.5 rounded-md bg-accent px-2 py-0.5 font-mono text-[11px] text-accent-foreground transition-colors hover:bg-accent/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
             title={item.basket}
           >
             <span aria-hidden="true" className="text-accent-foreground/70">
@@ -586,7 +642,7 @@ function ThesisCard({
           // must never fire against the synthetic dataset.
           <span
             title="Demo data"
-            className="inline-flex items-center gap-1.5 rounded-sm px-1.5 py-0.5 font-mono text-xs tabular-nums text-muted-foreground"
+            className="inline-flex items-center gap-1.5 rounded-md px-1.5 py-0.5 font-mono text-xs tabular-nums text-muted-foreground"
           >
             <span aria-hidden="true">♡</span>
             {item.likeCount}
@@ -597,7 +653,7 @@ function ThesisCard({
             onClick={() => void onLike()}
             disabled={liking}
             aria-pressed={liked}
-            className={`inline-flex items-center gap-1.5 rounded-sm px-1.5 py-0.5 font-mono text-xs tabular-nums transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 ${
+            className={`inline-flex items-center gap-1.5 rounded-md px-1.5 py-0.5 font-mono text-xs tabular-nums transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 ${
               liked ? "text-primary-text" : "text-muted-foreground hover:text-foreground"
             }`}
             title={social?.isAuthed ? undefined : "Sign-in with your wallet is requested on like"}
@@ -613,7 +669,7 @@ function ThesisCard({
       </div>
 
       {expanded && full ? (
-        <div className="mt-3 space-y-3 rounded-sm border border-border bg-card p-4">
+        <div className="mt-3 space-y-3 rounded-xl border border-border bg-card p-4">
           {comments === null ? (
             <p role="status" className="text-xs text-muted-foreground">
               Loading comments…

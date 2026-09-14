@@ -9,6 +9,8 @@ import type { Connection, TransactionSignature, VersionedTransaction } from "@so
 import { Button } from "@/components/ui/button";
 import { useWalletFeedback } from "@/app/providers";
 import {
+  CreatePreviewCard,
+  CreatePreviewCollapsible,
   DeployPanel,
   FeesEditor,
   LegalCheckboxes,
@@ -17,9 +19,11 @@ import {
   SeedPreview,
   Stepper,
   SummaryRail,
+  TemplateStrip,
   WalletGateBanner,
   WeightsEditor,
   formatRawAsTokenUnits,
+  type CreateTemplate,
   type StepValidity,
 } from "@/components/create";
 import { ENTRY_FEE_CAP_BPS, EXIT_FEE_CAP_BPS, MANAGEMENT_FEE_CAP_BPS } from "@/lib/create-basket";
@@ -293,6 +297,23 @@ export default function CreateClient() {
     [whitelistRows],
   );
 
+  // Template prefill (Dalga 3 — "Start from template"): fills composition +
+  // fees only, through the same state setters the manual flow uses. Seed
+  // amounts stay at zero (the seed step still requires amounts) and the
+  // name/thesis and legal acknowledgments are never touched. The strip passes
+  // fully-resolved drafts; cards with unavailable tickers are disabled there,
+  // so this length guard is just a belt-and-braces check.
+  const applyTemplate = useCallback(
+    (template: CreateTemplate, drafts: ConstituentDraft[]) => {
+      if (drafts.length < 2) return;
+      setConstituents(drafts);
+      setEntryFeeBps(template.fees.entryFeeBps);
+      setExitFeeBps(template.fees.exitFeeBps);
+      setManagementFeeBps(template.fees.managementFeeBps);
+    },
+    [],
+  );
+
   const recomputeProportional = useCallback(() => {
     const budget = Number(budgetUsd);
     if (!Number.isFinite(budget) || budget <= 0) return;
@@ -388,6 +409,22 @@ export default function CreateClient() {
     [sendTransaction],
   );
 
+  // Live preview panel — fed straight from wizard state (no separate source of
+  // truth): composition from `constituents`, the total from the same
+  // `weightSum` the weights validation checks, fees from the fee sliders, the
+  // estimate from seedRaw × priceRef. Desktop renders it in the sticky right
+  // column; mobile collapses it into the step flow.
+  const previewProps = {
+    name,
+    constituents,
+    entryFeeBps,
+    exitFeeBps,
+    managementFeeBps,
+    weightSum,
+    weightsValid: validity.weights,
+    priceSource,
+  };
+
   return (
     <div className="mx-auto w-full max-w-6xl pb-16">
       <div className="flex flex-wrap items-baseline justify-between gap-2">
@@ -400,7 +437,7 @@ export default function CreateClient() {
         <LegalReviewTag />
       </div>
 
-      <div className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1fr)_260px]">
+      <div className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1fr)_300px]">
         <div className="min-w-0">
           {!connected && <WalletGateBanner className="mb-4" />}
 
@@ -448,25 +485,51 @@ export default function CreateClient() {
             onSelect={setStep}
           />
 
+          {/* Mobile: the live preview rides along inside the step flow as a
+              collapsed summary (desktop equivalent lives in the right rail). */}
+          <CreatePreviewCollapsible {...previewProps} className="mt-3" />
+
+          {count >= 4 && (
+            <p className="mt-3 rounded-lg border border-border/60 bg-muted/40 px-4 py-3 text-xs leading-5 text-muted-foreground">
+              Longer baskets are fully supported: their transaction is packed with an on-chain
+              address lookup table, so the first deploy also creates that table (1–2 one-time
+              wallet approvals). Bigger transactions can cost a little more in fees.
+            </p>
+          )}
+
           <section className="mt-5 rounded-lg border border-border bg-card p-5" aria-label={`Step ${step + 1}: ${STEPS[step]}`}>
             <h2 className="font-display mb-4 text-lg font-medium">
               {step + 1}. {STEPS[step]}
             </h2>
 
             {step === 0 && (
-              <MintPicker
-                status={whitelistStatus}
-                rows={whitelistRows}
-                error={whitelistError ?? undefined}
-                selectedMints={constituents.map((c) => c.mint)}
-                maxSelected={20}
-                basketName={name}
-                description={description}
-                onToggle={toggleMint}
-                onNameChange={setName}
-                onDescriptionChange={setDescription}
-                onRetry={() => void loadWhitelist()}
-              />
+              <div className="flex flex-col gap-4">
+                {/* Template strip sits at the top of the first step; it is
+                    meaningful only once the whitelist is loaded (tickers map
+                    to live Active mints) and hides otherwise — the picker
+                    below owns the loading/error/empty states. */}
+                {whitelistStatus === "ready" && (
+                  <TemplateStrip
+                    rows={whitelistRows}
+                    constituents={constituents}
+                    onApply={applyTemplate}
+                    onBlank={() => setConstituents([])}
+                  />
+                )}
+                <MintPicker
+                  status={whitelistStatus}
+                  rows={whitelistRows}
+                  error={whitelistError ?? undefined}
+                  selectedMints={constituents.map((c) => c.mint)}
+                  maxSelected={20}
+                  basketName={name}
+                  description={description}
+                  onToggle={toggleMint}
+                  onNameChange={setName}
+                  onDescriptionChange={setDescription}
+                  onRetry={() => void loadWhitelist()}
+                />
+              </div>
             )}
 
             {step === 1 && (
@@ -564,41 +627,49 @@ export default function CreateClient() {
           </div>
         </div>
 
-        {/* Shown on mobile too: the grid collapses to one column below lg, so
-            the rail simply stacks under the wizard instead of disappearing. */}
-        <SummaryRail
-          summary={{
-            step,
-            stepCount: STEPS.length,
-            basketName: name,
-            constituentCount: count,
-            weightSum,
-            entryFeeBps,
-            exitFeeBps,
-            managementFeeBps,
-            seedTotalUsd: validity.seed
-              ? Number.isFinite(Number(budgetUsd)) && Number(budgetUsd) > 0
-                ? Number(budgetUsd)
-                : null
-              : null,
-            seedRawTotal:
-              count > 0
-                ? constituents
-                    .map(
-                      (c) =>
-                        `${c.ticker} ${formatRawAsTokenUnits(c.seedRaw, c.decimals)}`,
-                    )
-                    .join(" + ")
+        {/* Right rail: live preview card (desktop only — mobile gets the
+            collapsed block above) above the persistent summary rail. The
+            wrapper is sticky so both follow the scroll on lg+; below lg the
+            grid collapses to one column and the rail stacks under the wizard
+            as before. */}
+        <div className="flex flex-col gap-4 self-start lg:sticky lg:top-20">
+          <div className="hidden lg:block">
+            <CreatePreviewCard {...previewProps} />
+          </div>
+          <SummaryRail
+            summary={{
+              step,
+              stepCount: STEPS.length,
+              basketName: name,
+              constituentCount: count,
+              weightSum,
+              entryFeeBps,
+              exitFeeBps,
+              managementFeeBps,
+              seedTotalUsd: validity.seed
+                ? Number.isFinite(Number(budgetUsd)) && Number(budgetUsd) > 0
+                  ? Number(budgetUsd)
+                  : null
                 : null,
-            legalAccepted: validity.legal,
-            walletAddress: publicKey?.toBase58() ?? null,
-            nonce: String(nonce),
-            metadataHashShort: metadataHashHex
-              ? truncateAddress(metadataHashHex, 8, 6)
-              : null,
-          }}
-          validity={validity}
-        />
+              seedRawTotal:
+                count > 0
+                  ? constituents
+                      .map(
+                        (c) =>
+                          `${c.ticker} ${formatRawAsTokenUnits(c.seedRaw, c.decimals)}`,
+                      )
+                      .join(" + ")
+                  : null,
+              legalAccepted: validity.legal,
+              walletAddress: publicKey?.toBase58() ?? null,
+              nonce: String(nonce),
+              metadataHashShort: metadataHashHex
+                ? truncateAddress(metadataHashHex, 8, 6)
+                : null,
+            }}
+            validity={validity}
+          />
+        </div>
       </div>
       <div className="mt-4 lg:hidden">
         <p className="text-xs text-muted-foreground">

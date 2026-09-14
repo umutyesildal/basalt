@@ -29,14 +29,18 @@ export function LegendProgress({
     <Progress.Root max={item.maxValue} value={item.value}>
       <Progress.Track
         className={cn(
-          "w-full overflow-hidden rounded-sm bg-legend-track",
+          // Chip-tier radius (rounded-md) per the unified radius scale — the
+          // task spec pins legend-progress to the md token.
+          "w-full overflow-hidden rounded-md bg-legend-track",
           height,
           trackClassName
         )}
       >
         <Progress.Indicator
           className={cn(
-            "h-full rounded-sm transition-all duration-500",
+            // Indicator animates its inline width only (Base UI Progress);
+            // 200ms stays within the ui-plan §0.4 motion budget (≤250ms).
+            "h-full rounded-md transition-[width] duration-200 ease-out motion-reduce:transition-none",
             indicatorClassName
           )}
           style={{ backgroundColor: item.color }}

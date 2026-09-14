@@ -126,7 +126,7 @@ function StatusItem({ state, label }: { state: "on" | "off" | "unknown"; label: 
 /** Quiet bordered mono chip — health is unknown until monitoring exists. */
 function UnknownChip() {
   return (
-    <span className="inline-flex h-5 items-center rounded-sm border border-border px-2 font-mono text-xs text-muted-foreground">
+    <span className="inline-flex h-5 items-center rounded-md border border-border px-2 font-mono text-xs text-muted-foreground">
       unknown
     </span>
   );

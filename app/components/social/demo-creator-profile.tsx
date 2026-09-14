@@ -26,7 +26,7 @@ function DemoChip() {
   return (
     <span
       title="Synthetic demo data — not live activity"
-      className="rounded-sm border border-border px-1.5 py-0.5 font-mono text-[10px] uppercase tracking-[0.22em] text-muted-foreground"
+      className="rounded-md border border-border px-1.5 py-0.5 font-mono text-[10px] uppercase tracking-[0.22em] text-muted-foreground"
     >
       demo data
     </span>
@@ -213,7 +213,7 @@ export function DemoCreatorProfile({ creator }: { creator: DemoCreator }) {
             synthetic curve · not advice
           </p>
         </div>
-        <div className="rounded-sm bg-card ring-1 ring-border hairline-primary">
+        <div className="rounded-xl bg-card ring-1 ring-border hairline-primary">
           <div className="p-5">
             <svg
               viewBox="0 0 100 40"
@@ -247,7 +247,7 @@ export function DemoCreatorProfile({ creator }: { creator: DemoCreator }) {
             No positions in the demo dataset.
           </p>
         ) : (
-          <ul className="divide-y divide-border overflow-hidden rounded-sm border border-border bg-card">
+          <ul className="divide-y divide-border overflow-hidden rounded-xl border border-border bg-card">
             {creator.positions.map((position, index) => (
               <li
                 key={`${position.basket}-${index}`}
@@ -282,7 +282,7 @@ export function DemoCreatorProfile({ creator }: { creator: DemoCreator }) {
         {creator.trades.length === 0 ? (
           <p className="font-mono text-[11px] text-muted-foreground">No trades in the demo dataset.</p>
         ) : (
-          <ul className="divide-y divide-border overflow-hidden rounded-sm border border-border bg-card">
+          <ul className="divide-y divide-border overflow-hidden rounded-xl border border-border bg-card">
             {creator.trades.map((trade, index) => {
               const minted = trade.type === "Minted";
               return (
@@ -361,7 +361,7 @@ export function DemoCreatorProfile({ creator }: { creator: DemoCreator }) {
                     <Link
                       href={`/basket/${thesis.basket}`}
                       title={thesis.basket}
-                      className="inline-flex items-center gap-1.5 rounded-sm bg-accent px-2 py-0.5 font-mono text-[11px] text-accent-foreground transition-colors hover:bg-accent/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+                      className="inline-flex items-center gap-1.5 rounded-md bg-accent px-2 py-0.5 font-mono text-[11px] text-accent-foreground transition-colors hover:bg-accent/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
                     >
                       <span aria-hidden="true" className="text-accent-foreground/70">
                         basket
@@ -373,7 +373,7 @@ export function DemoCreatorProfile({ creator }: { creator: DemoCreator }) {
                       on the synthetic dataset. */}
                   <span
                     title="Demo data"
-                    className="inline-flex items-center gap-1.5 rounded-sm px-1.5 py-0.5 font-mono text-xs tabular-nums text-muted-foreground"
+                    className="inline-flex items-center gap-1.5 rounded-md px-1.5 py-0.5 font-mono text-xs tabular-nums text-muted-foreground"
                   >
                     <span aria-hidden="true">♡</span>
                     {thesis.likeCount}

@@ -1,3 +1,5 @@
+import type { Metadata } from "next";
+
 interface Section {
   title: string;
   /** Short label used in the table of contents. */
@@ -88,12 +90,19 @@ const SECTIONS: Section[] = [
   },
 ];
 
+export const metadata: Metadata = {
+  // absolute — the root layout's title template would append a second "· Basalt".
+  title: { absolute: "Basalt | Risks & Disclosures" },
+  description:
+    "Risks and disclosures for Basalt strategy baskets: no advice, jurisdiction limits, xStocks structure, fees, self-custody, and known limitations.",
+};
+
 export default function LegalPage() {
   return (
     <div className="mx-auto w-full max-w-3xl">
       <header className="space-y-1.5">
-        <h1 className="font-display text-3xl font-semibold">Risks &amp; Disclosures</h1>
-        <p className="text-sm leading-6 text-muted-foreground">
+        <h1 className="font-display text-3xl font-semibold tracking-tight">Risks &amp; Disclosures</h1>
+        <p className="max-w-2xl text-sm leading-6 text-muted-foreground">
           Placeholder disclosure copy for Basalt baskets — an engineering draft, not
           counsel-approved legal text.
         </p>
@@ -123,16 +132,16 @@ export default function LegalPage() {
           <section
             key={section.title}
             aria-labelledby={`legal-section-${index}`}
-            className="rounded-lg border bg-card p-5 scroll-mt-20"
+            className="rounded-xl border bg-card p-5 scroll-mt-20"
           >
-            <h2 id={`legal-section-${index}`} className="font-display text-base font-medium">
+            <h2 id={`legal-section-${index}`} className="font-display text-lg font-medium tracking-tight">
               <span className="mr-2 font-mono text-xs tabular-nums text-muted-foreground">
                 {String(index + 1).padStart(2, "0")}
               </span>
               {section.title}
             </h2>
             {section.body.map((paragraph) => (
-              <p key={paragraph.slice(0, 32)} className="mt-3 text-sm leading-6 text-muted-foreground">
+              <p key={paragraph.slice(0, 32)} className="mt-3 max-w-prose text-[15px] leading-7 text-muted-foreground">
                 {paragraph}
               </p>
             ))}

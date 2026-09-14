@@ -162,7 +162,7 @@ function WeightInput({
           if (value !== "") onCommit(Number(value));
         }}
         onBlur={() => setDraft(String(weight))}
-        className="h-6 w-16 rounded-md border border-input bg-background px-1.5 text-right font-mono text-xs tabular-nums outline-none transition-colors focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/40"
+        className="h-6 w-16 rounded-lg border border-input bg-background px-1.5 text-right font-mono text-xs tabular-nums outline-none transition-colors focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/40"
       />
       <span className="text-muted-foreground">bps</span>
     </span>

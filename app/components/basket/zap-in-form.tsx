@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { PublicKey, Transaction, VersionedTransaction } from "@solana/web3.js";
 import { useConnection, useWallet } from "@solana/wallet-adapter-react";
 
@@ -19,6 +19,8 @@ import {
   TxSummaryCard,
 } from "@/components/basket/summary-card";
 import { formatRawShares6 } from "@/components/basket/basket-math";
+import { HalfMaxButtons, halfOfRaw } from "@/components/basket/basket-page-half-max";
+import { TradeFeePreview } from "@/components/basket/basket-page-fee-preview";
 import {
   fetchZapInQuote,
   type BasketDetail,
@@ -32,7 +34,7 @@ import {
   type BasketCoreKeys,
   type ExpectedAccount,
 } from "@/lib/transactions";
-import { scaledFromRaw, truncateAddress } from "@/lib/format";
+import { formatBpsAsPercent, scaledFromRaw, truncateAddress } from "@/lib/format";
 import { withRetry, withRetryOnce } from "@/lib/rpc-retry";
 import { RPC_ENDPOINT, describeRpcError, describeWalletError } from "@/lib/wallet";
 
@@ -123,6 +125,38 @@ export function ZapInForm({
     const n = Number(slippageBps);
     return Number.isInteger(n) && n >= 0 && n <= 10000 ? n : null;
   }, [slippageBps]);
+
+  // USDC balance for the Half / Max quick-fill — one background read, honest
+  // when it fails: the buttons disable with an explanation instead of guessing.
+  const [usdcBalance, setUsdcBalance] = useState<bigint | null>(null);
+  const [usdcBalanceLoading, setUsdcBalanceLoading] = useState(true);
+
+  const refreshUsdcBalance = useCallback(async () => {
+    if (!publicKey) {
+      setUsdcBalance(null);
+      setUsdcBalanceLoading(false);
+      return;
+    }
+    setUsdcBalanceLoading(true);
+    try {
+      const res = await withRetryOnce(
+        () =>
+          connection.getTokenAccountBalance(
+            deriveAta(publicKey, new PublicKey(USDC_MINT)),
+          ),
+        "USDC balance read",
+      );
+      setUsdcBalance(BigInt(res.value.amount));
+    } catch {
+      setUsdcBalance(null); // no USDC ATA / read failed — Half/Max stays disabled
+    } finally {
+      setUsdcBalanceLoading(false);
+    }
+  }, [connection, publicKey]);
+
+  useEffect(() => {
+    void refreshUsdcBalance();
+  }, [refreshUsdcBalance]);
 
   const getQuote = useCallback(async () => {
     if (!amountRaw || slippage === null) return;
@@ -376,15 +410,30 @@ export function ZapInForm({
             <label htmlFor="zap-usdc" className="text-xs font-medium text-muted-foreground">
               USDC amount
             </label>
-            <input
-              id="zap-usdc"
-              inputMode="decimal"
-              autoComplete="off"
-              placeholder="e.g. 250.50"
-              value={amountUsdc}
-              onChange={(e) => setAmountUsdc(e.target.value)}
-              className="h-9 w-40 rounded-md border border-border bg-background px-3 font-mono text-sm tabular-nums outline-none placeholder:font-sans placeholder:text-muted-foreground focus:border-ring"
-            />
+            <div className="flex items-center gap-1.5">
+              <input
+                id="zap-usdc"
+                inputMode="decimal"
+                autoComplete="off"
+                placeholder="e.g. 250.50"
+                value={amountUsdc}
+                onChange={(e) => setAmountUsdc(e.target.value)}
+                className="h-9 w-36 rounded-lg border border-border bg-background px-3 font-mono text-sm tabular-nums outline-none placeholder:font-sans placeholder:text-muted-foreground focus:border-ring sm:w-40"
+              />
+              <HalfMaxButtons
+                connected={connected}
+                balance={usdcBalance}
+                balanceLabel="USDC balance"
+                loading={usdcBalanceLoading}
+                onPick={(kind) => {
+                  if (usdcBalance === null || usdcBalance <= 0n) return;
+                  const raw = kind === "max" ? usdcBalance : halfOfRaw(usdcBalance);
+                  if (raw <= 0n) return;
+                  // 6-dec display string via the shared raw→scaled formatter.
+                  setAmountUsdc(scaledFromRaw(raw, 1, 6));
+                }}
+              />
+            </div>
           </div>
           <div className="flex flex-col gap-1">
             <label htmlFor="zap-slippage" className="text-xs font-medium text-muted-foreground">
@@ -395,7 +444,7 @@ export function ZapInForm({
               inputMode="numeric"
               value={slippageBps}
               onChange={(e) => setSlippageBps(e.target.value)}
-              className="h-9 w-24 rounded-md border border-border bg-background px-3 font-mono text-sm tabular-nums outline-none focus:border-ring"
+              className="h-9 w-24 rounded-lg border border-border bg-background px-3 font-mono text-sm tabular-nums outline-none focus:border-ring"
             />
           </div>
           <Button
@@ -406,6 +455,32 @@ export function ZapInForm({
             {phase === "quoting" ? "Quoting…" : "Get quote"}
           </Button>
         </div>
+
+        {/* Fee preview — share amounts exist only once a real quote is back
+            (the USDC input alone cannot produce shares without prices, so the
+            row stays hidden until then; no invented estimate). */}
+        <TradeFeePreview
+          rows={
+            quote && quote.expectedShares && /^\d+$/.test(quote.expectedShares.trim())
+              ? [
+                  {
+                    label: `Entry fee · ${formatBpsAsPercent(detail.entry_fee_bps)}`,
+                    value: "deducted in shares at the closing mint",
+                  },
+                  {
+                    label: "Net shares (quote estimate)",
+                    value: grouped(formatRawShares6(BigInt(quote.expectedShares.trim()))),
+                    emphasis: true,
+                  },
+                ]
+              : null
+          }
+          footer={
+            quote
+              ? "Quote estimate from the backend's Jupiter legs — the closing mint validates on-chain."
+              : undefined
+          }
+        />
 
         {quoteError ? (
           <ErrorState
@@ -419,7 +494,7 @@ export function ZapInForm({
           <>
             {/* Six data columns — scroll horizontally on phones instead of
                 clipping (the parent border keeps its rounding while scrolled). */}
-            <div className="overflow-x-auto rounded-md border border-border">
+            <div className="overflow-x-auto rounded-xl border border-border">
               <table className="w-full min-w-[36rem] text-xs">
                 <caption className="sr-only">Jupiter quote legs</caption>
                 <thead>
@@ -463,7 +538,7 @@ export function ZapInForm({
             {/* provenance + backend warning — one quiet note, always inline for zap quotes */}
             <div
               role="note"
-              className="space-y-2 rounded-md border border-border bg-muted/30 p-3 text-xs leading-relaxed text-muted-foreground"
+              className="space-y-2 rounded-xl border border-border bg-muted/30 p-3 text-xs leading-relaxed text-muted-foreground"
             >
               <div className="flex flex-wrap items-center gap-2 font-mono tabular-nums">
                 <FreshnessBadge source={quote.provenance.source} asOf={quote.provenance.asOf} />
@@ -481,7 +556,7 @@ export function ZapInForm({
             {swapWarning ? (
               <p
                 role="alert"
-                className="rounded-md border border-destructive/30 bg-destructive/5 p-3 text-xs leading-relaxed text-destructive"
+                className="rounded-xl border border-destructive/30 bg-destructive/5 p-3 text-xs leading-relaxed text-destructive"
               >
                 {swapWarning}
               </p>
@@ -578,7 +653,7 @@ export function ZapInForm({
             flow.state.mintPaused ? (
               <div
                 role="alert"
-                className="mt-4 rounded-md border border-border bg-muted/30 p-3 text-xs leading-relaxed"
+                className="mt-4 rounded-xl border border-border bg-muted/30 p-3 text-xs leading-relaxed"
               >
                 <p className="font-medium">MintPaused — the on-chain whitelist gate stopped this mint</p>
                 <p className="mt-1 text-muted-foreground">

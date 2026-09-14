@@ -5,10 +5,11 @@
  * process" home refresh (NEON FOUNDRY, 2026-09-12): live on-chain evidence
  * placed before any process talk. Two columns plus the merged steps strip:
  *
- *   Left  — "Latest verified trades": first page of GET /api/v1/feed
- *           (?type=trades), rendered as single-sentence rows — "<actor>
- *           bought 12.5 shares of <basket>" — with a basket avatar in the
- *           sentence and a compact usd-value / time block on the right.
+ *   Left  — "Latest Trades" (owner rename, 2026-09-14): first page of
+ *           GET /api/v1/feed (?type=trades), rendered as single-sentence
+ *           rows — "<actor> bought 12.5 shares of <basket>" — with a
+ *           basket avatar in the sentence and a compact usd-value / time
+ *           block on the right.
  *   Right — "Top baskets": GET /api/v1/leaderboard/baskets through an
  *           adaptive window cascade (30d -> 7d -> all-time; the first
  *           window with rows wins) kept entirely internal — the header is
@@ -17,13 +18,34 @@
  *           into this section per owner feedback 2026-09-12 so proof and
  *           process live in one band).
  *
- * ANIMATED FEED (owner feedback, 2026-09-12): the trades column is a
- * rolling window — every 2.5s the next item from the queue surfaces at the
- * top (slides down from -100%, 250ms easeOut) while the oldest row exits
- * downward (+100%); middle rows glide via layout projection. Ticks pause
- * while the tab is hidden and swap without animation under
- * prefers-reduced-motion. Real mode rolls over the 12 fetched feed items;
- * the queue restarts from the newest item on every successful poll.
+ * FIXED FOOTPRINT (owner feedback, 2026-09-14): the trades list used to
+ * change height with every refresh — the loading skeleton, the honest
+ * empty/error copy and the real rows all had different footprints, a poll
+ * returning fewer rows than the window shrank the column, and every
+ * section below the band jumped with it. Both columns now share one
+ * locked geometry: exactly PREVIEW_ROW_COUNT rows of exactly
+ * PREVIEW_ROW_HEIGHT px at PREVIEW_ROW_GAP px, in the ready state, while
+ * loading, when a poll returns fewer rows than the window (missing slots
+ * render as honest blank row surfaces — never fabricated trades), and in
+ * the empty/error states (the copy is centered inside the exact region
+ * the rows would occupy). The rows region is therefore always
+ * PREVIEW_ROWS_HEIGHT px tall and nothing below this section can ever
+ * move when the data refreshes. The two columns are also pixel-equal by
+ * construction: same grid cell, same header link, same card face, same
+ * row heights.
+ *
+ * ROLLING WINDOW (owner feedback, 2026-09-12; swap motion RE-INSTATED
+ * 2026-09-14 after the full de-animation pass read as "the animation is
+ * gone"): every 2.5s the next item from the queue surfaces at the top
+ * while the oldest drops off. The fixed footprint from the same day is
+ * untouched — slots never change height, so nothing below can move — but
+ * a slot whose content changed now enters with a ~200ms ease-out fade-up
+ * INSIDE its slot (Web Animations API, transform/opacity only;
+ * prefers-reduced-motion swaps instantly). Rows are still keyed by slot,
+ * so a tick or a fresh poll swaps row content in place with zero list
+ * remount. Ticks pause while the tab is hidden. Real mode rolls over the
+ * 12 fetched feed items; the queue restarts from the newest item on every
+ * successful poll.
  *
  * DEMO OVERLAY (owner feedback, 2026-09-12): with NEXT_PUBLIC_HOME_DEMO=1
  * the section renders the labeled synthetic datasets from
@@ -46,22 +68,28 @@
  *
  * Real mode polls silently every 60s while the tab is visible and degrades
  * honestly: skeleton rows while loading, one quiet retry line when the
- * backend is unreachable, one muted line when nothing exists yet. A failed
- * silent refresh keeps the last good list on screen; only a resource that
- * has never loaded shows the error. Column headers are links (/feed,
- * /leaderboard); there are no footer links or freshness stamps anymore.
+ * backend is unreachable, one muted line when nothing exists yet — each
+ * inside the same fixed footprint. A failed silent refresh keeps the last
+ * good list on screen; only a resource that has never loaded shows the
+ * error. Column headers are links (/feed, /leaderboard); there are no
+ * footer links or freshness stamps anymore.
+ *
+ * WAVE-2 POLISH (2026-09-14): both columns' rows are card faces —
+ * hairline border + faint card wash, solidifying on hover as the row
+ * highlight (replacing the bare left-accent hover rows) — and the section
+ * fades up once via the page's SectionReveal wrapper. The honest states
+ * and datasets are unchanged.
  */
 
 import Link from "next/link";
-import { AnimatePresence, motion, useReducedMotion } from "motion/react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode, type RefObject } from "react";
 
 import { DEMO_BASKETS, DEMO_TRADES } from "@/components/home/home-demo-data";
 import { StepsStrip } from "@/components/home/steps-strip";
 import { SectionHeader } from "@/components/ui/section-header";
+import { SkeletonShimmer } from "@/components/ui/skeleton-shimmer";
 import { BasketAvatar } from "@/components/social/basket-avatar";
 import { ActorLine } from "@/components/social/avatar";
-import { Skeleton } from "@/components/states";
 import {
   formatRelativeTime,
   formatTokenAmount,
@@ -84,14 +112,23 @@ const DEMO = process.env.NEXT_PUBLIC_HOME_DEMO === "1";
 /** Silent poll cadence — previews stay fresh without a refresh button. */
 const POLL_MS = 60_000;
 
-/** Visible rows in the trades window. */
-const VISIBLE_ROW_COUNT = 3;
-
-/** Queue size behind the rolling window (the trades fetch limit). */
-const FEED_QUEUE_SIZE = 12;
+/**
+ * Fixed preview geometry (owner feedback, 2026-09-14) — the single source
+ * of truth for both columns. 3 rows x 72px + 2 gaps x 6px = a 228px rows
+ * region that every state (loading / ready / short data / empty / error)
+ * occupies identically.
+ */
+const PREVIEW_ROW_COUNT = 3;
+const PREVIEW_ROW_HEIGHT = 72;
+const PREVIEW_ROW_GAP = 6;
+const PREVIEW_ROWS_HEIGHT =
+  PREVIEW_ROW_COUNT * PREVIEW_ROW_HEIGHT + (PREVIEW_ROW_COUNT - 1) * PREVIEW_ROW_GAP;
 
 /** How often the rolling window surfaces the next trade. */
 const ADVANCE_MS = 2500;
+
+/** Queue size behind the rolling window (the trades fetch limit). */
+const FEED_QUEUE_SIZE = 12;
 
 // ---------------------------------------------------------------------------
 // Loaders — module-level so their identity is stable and the polling effect
@@ -191,20 +228,17 @@ function useLiveResource<T>(
 
 // ---------------------------------------------------------------------------
 // Rolling trades queue — shared by demo and real mode. A window of
-// VISIBLE_ROW_COUNT rows over a queue of items; every ADVANCE_MS the next
-// item surfaces at the top and the oldest drops off the bottom.
+// PREVIEW_ROW_COUNT rows over a queue of items; every ADVANCE_MS the next
+// item surfaces at the top and the oldest drops off the bottom. The swap
+// is instant (owner feedback, 2026-09-14): rows are keyed by slot, so a
+// tick replaces each row's content in place — no slide, no remount, and
+// the fixed row heights mean the swap cannot move anything below.
 // ---------------------------------------------------------------------------
-
-interface RollingRow {
-  item: TradeFeedItem;
-  /** sig + cycle counter — unique per appearance so AnimatePresence keys
-   *  never collide when the queue wraps. */
-  key: string;
-}
 
 interface RollState {
   source: TradeFeedItem[];
-  rows: RollingRow[];
+  /** The visible window — up to PREVIEW_ROW_COUNT items. */
+  rows: TradeFeedItem[];
   /** Monotonic index into `source` of the next item to surface. */
   cursor: number;
 }
@@ -212,20 +246,17 @@ interface RollState {
 function initRoll(source: TradeFeedItem[]): RollState {
   return {
     source,
-    rows: source
-      .slice(0, VISIBLE_ROW_COUNT)
-      .map((item, i) => ({ item, key: `${item.sig}-${i}` })),
-    cursor: VISIBLE_ROW_COUNT,
+    rows: source.slice(0, PREVIEW_ROW_COUNT),
+    cursor: PREVIEW_ROW_COUNT,
   };
 }
 
-function useRollingTrades(items: TradeFeedItem[]): RollingRow[] {
+function useRollingTrades(items: TradeFeedItem[]): TradeFeedItem[] {
   const [roll, setRoll] = useState<RollState>(() => initRoll(items));
 
   // New source (first demo import / fresh poll) → restart the window from
   // the newest item. Demo data is a stable module const, so this runs once
-  // there; in real mode identical rows re-key to the same slots and never
-  // re-animate.
+  // there; in real mode the slot-keyed rows just swap their content.
   useEffect(() => {
     setRoll(initRoll(items));
   }, [items]);
@@ -234,7 +265,7 @@ function useRollingTrades(items: TradeFeedItem[]): RollingRow[] {
   // skips ticks — the queue holds its position and resumes on return.
   useEffect(() => {
     const source = roll.source;
-    if (source.length <= VISIBLE_ROW_COUNT) return undefined;
+    if (source.length <= PREVIEW_ROW_COUNT) return undefined;
     const timer = window.setInterval(() => {
       if (document.hidden) return;
       setRoll((prev) => {
@@ -243,10 +274,7 @@ function useRollingTrades(items: TradeFeedItem[]): RollingRow[] {
         return {
           source,
           cursor: prev.cursor + 1,
-          rows: [
-            { item: next, key: `${next.sig}-c${prev.cursor}` },
-            ...prev.rows.slice(0, VISIBLE_ROW_COUNT - 1),
-          ],
+          rows: [next, ...prev.rows.slice(0, PREVIEW_ROW_COUNT - 1)],
         };
       });
     }, ADVANCE_MS);
@@ -257,7 +285,133 @@ function useRollingTrades(items: TradeFeedItem[]): RollingRow[] {
 }
 
 // ---------------------------------------------------------------------------
-// Column furniture — linked header label, skeleton, quiet error.
+// Swap fade-up — the slot content entrance (owner feedback, 2026-09-14:
+// "animasyon gitmiş... geri istiyor"). When a slot's content identity
+// changes (queue tick, fresh poll, leaderboard refresh), the NEW content
+// enters with a ~200ms ease-out fade-up measured INSIDE its fixed-height
+// slot. Deliberately implemented with the Web Animations API instead of
+// state classes: transform/opacity only, so the slot's 72px geometry and
+// the 228px region are untouched and nothing below can ever move; no
+// re-render, no remount, and the slot keys keep doing the structural work.
+// Guards: the first render of a slot never animates (page-load motion
+// belongs to SectionReveal, not to every row), identical content does not
+// re-animate, `prefers-reduced-motion` swaps instantly, and a missing
+// `el.animate` degrades to the instant swap.
+// ---------------------------------------------------------------------------
+
+function useSwapFade(ref: RefObject<HTMLElement | null>, identity: unknown) {
+  const prevRef = useRef<unknown>(identity);
+  useEffect(() => {
+    if (prevRef.current === identity) return;
+    prevRef.current = identity;
+    const el = ref.current;
+    if (!el || typeof el.animate !== "function") return;
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    el.animate(
+      [
+        { opacity: "0", transform: "translateY(4px)" },
+        { opacity: "1", transform: "translateY(0px)" },
+      ],
+      { duration: 200, easing: "ease-out" },
+    );
+  }, [identity, ref]);
+}
+
+// ---------------------------------------------------------------------------
+// Fixed-footprint furniture — the shared rows region, the shape-matched
+// skeleton, the honest blank row surface and the fixed-state copy block.
+// Every state of either column resolves to one of these, so the band's
+// height never depends on the data.
+// ---------------------------------------------------------------------------
+
+/**
+ * The rows region — always exactly PREVIEW_ROWS_HEIGHT px. Both columns
+ * render their rows (data, skeleton or blank surfaces) inside this one
+ * container, guaranteeing identical footprint and identical row rhythm.
+ */
+function PreviewRowsRegion({ children }: { children: ReactNode }) {
+  return (
+    <div
+      className="flex flex-col"
+      style={{ height: PREVIEW_ROWS_HEIGHT, rowGap: PREVIEW_ROW_GAP }}
+    >
+      {children}
+    </div>
+  );
+}
+
+/**
+ * Honest blank row surface — keeps the fixed footprint when the backend
+ * has fewer rows than the preview window. A bordered empty card face: it
+ * states nothing, so it can never be mistaken for a trade or a basket.
+ */
+function BlankPreviewFace() {
+  return (
+    <div
+      aria-hidden="true"
+      className="rounded-xl border border-border/50 bg-card/40"
+      style={{ height: PREVIEW_ROW_HEIGHT }}
+    />
+  );
+}
+
+/**
+ * Loading face — the same card face and the same fixed height as a data
+ * row; shape-matched SkeletonShimmer bars stand in for avatar + sentence +
+ * figures without inventing any of them. Identical for both columns, so
+ * even the loading states are pixel-equal.
+ */
+function PreviewSkeletonFace() {
+  return (
+    <div
+      aria-hidden="true"
+      className="flex items-center gap-3 rounded-xl border border-border/40 bg-card/30 px-3"
+      style={{ height: PREVIEW_ROW_HEIGHT }}
+    >
+      <SkeletonShimmer width={28} height={28} className="rounded-full" />
+      <div className="min-w-0 flex-1 space-y-2">
+        <SkeletonShimmer width={148} height={14} />
+        <SkeletonShimmer width="68%" height={12} />
+      </div>
+    </div>
+  );
+}
+
+/** Loading state — N fixed skeleton faces inside the fixed region. */
+function PreviewSkeletonRegion({ label }: { label: string }) {
+  return (
+    <div
+      role="status"
+      aria-label={label}
+      className="flex flex-col"
+      style={{ height: PREVIEW_ROWS_HEIGHT, rowGap: PREVIEW_ROW_GAP }}
+    >
+      <span className="sr-only">{label}</span>
+      {Array.from({ length: PREVIEW_ROW_COUNT }, (_, i) => (
+        <PreviewSkeletonFace key={i} />
+      ))}
+    </div>
+  );
+}
+
+/**
+ * Fixed-footprint block for the honest empty/error copy — the message is
+ * vertically centered inside the exact region the rows occupy, so these
+ * states change nothing below either.
+ */
+function PreviewStateBlock({ children }: { children: ReactNode }) {
+  return (
+    <div
+      className="flex flex-col justify-center"
+      style={{ height: PREVIEW_ROWS_HEIGHT }}
+    >
+      {children}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Column furniture — linked header label, quiet error.
 // ---------------------------------------------------------------------------
 
 /**
@@ -281,31 +435,12 @@ function ColumnHeaderLink({ label, href }: { label: string; href: string }) {
   );
 }
 
-/** Loading rows in the FeedSkeleton shape (avatar circle + two bars),
- *  compacted to the preview row rhythm. */
-function PreviewSkeleton({ rows, label }: { rows: number; label: string }) {
-  return (
-    <div role="status" aria-label={label}>
-      <span className="sr-only">{label}</span>
-      <div className="divide-y divide-border" aria-hidden="true">
-        {Array.from({ length: rows }, (_, i) => (
-          <div key={i} className="flex items-start gap-3 py-3 pl-4">
-            <Skeleton className="h-7 w-7 rounded-full" />
-            <div className="min-w-0 flex-1 space-y-2">
-              <Skeleton className="h-4 w-36" />
-              <Skeleton className="h-3 w-full max-w-[240px]" />
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-/** One quiet muted line + retry — ErrorState is too heavy for a preview. */
+/** One quiet muted line + retry — ErrorState is too heavy for a preview.
+ *  Rendered inside the fixed PreviewStateBlock, so the error state keeps
+ *  the ready-state footprint exactly. */
 function QuietError({ message, onRetry }: { message: string; onRetry: () => void }) {
   return (
-    <div role="alert" className="py-3 pl-4">
+    <div role="alert">
       <p className="text-xs text-muted-foreground">
         {message}{" "}
         <button
@@ -321,26 +456,28 @@ function QuietError({ message, onRetry }: { message: string; onRetry: () => void
 }
 
 // ---------------------------------------------------------------------------
-// Trade rows — the animated sentence list (demo + real).
+// Trade rows — the rolling sentence list (demo + real), instant swap.
 // ---------------------------------------------------------------------------
 
-/** One trade sentence with its enter/exit motion. Enters sliding down from
- *  above, exits downward; under prefers-reduced-motion everything swaps
- *  without animation (duration 0 / no layout projection). */
+/** One trade sentence on a fixed-height card face (owner feedback,
+ *  2026-09-14): the height never depends on the content, so a poll or a
+ *  queue tick can never move anything below. Content still swaps in place;
+ *  a slot whose trade changed enters with the slot-scoped fade-up
+ *  (useSwapFade) — motion without motion of the layout. */
 function TradeRow({ item }: { item: TradeFeedItem }) {
-  const reducedMotion = useReducedMotion();
+  const rowRef = useRef<HTMLDivElement | null>(null);
+  // `item` as the identity: a queue tick or a poll restart changes which
+  // trade a slot holds, and that is exactly when the entrance plays.
+  useSwapFade(rowRef, item);
   const minted = item.type === "Minted";
   // Skip the shares phrase when the count is absent/zero rather than
   // fabricating "0 shares bought …".
   const hasShares = Number.isFinite(item.shares) && item.shares > 0;
   return (
-    <motion.div
-      layout={reducedMotion ? false : true}
-      initial={reducedMotion ? false : { y: "-100%", opacity: 0 }}
-      animate={{ y: 0, opacity: 1 }}
-      exit={{ y: "100%", opacity: 0 }}
-      transition={{ duration: reducedMotion ? 0 : 0.25, ease: "easeOut" }}
-      className="flex items-center gap-3 border-l-2 border-l-primary/0 py-3 pl-4 transition-colors hover:border-l-primary/60"
+    <div
+      ref={rowRef}
+      className="flex items-center gap-3 rounded-xl border border-border/50 bg-card/40 px-3 transition-colors duration-200 hover:border-border hover:bg-card motion-reduce:transition-none"
+      style={{ height: PREVIEW_ROW_HEIGHT }}
     >
       {/* Actor + label, capped so a long displayName truncates before it
           crowds the sentence; friendlyFallback renders anonymous wallets as
@@ -390,27 +527,29 @@ function TradeRow({ item }: { item: TradeFeedItem }) {
           {formatRelativeTime(item.ts)}
         </span>
       </span>
-    </motion.div>
+    </div>
   );
 }
 
 /**
- * The animated trades list: rolling window over `items`, entering row
- * slides down from above while the oldest row slides out below. popLayout
- * keeps the exiting row out of flow so the list never grows a phantom row;
- * overflow-hidden clips both slides. Rows are separated by hairlines (the
- * divide language of the rest of the section).
+ * The trades list: rolling window over `items`, always PREVIEW_ROW_COUNT
+ * slots. Slot keys swap the row content in place (no remount, no motion);
+ * when the backend has fewer rows than the window the missing slots render
+ * as honest blank surfaces — same face, no fabricated trades.
  */
-function AnimatedTradeRows({ items }: { items: TradeFeedItem[] }) {
+function TradeRows({ items }: { items: TradeFeedItem[] }) {
   const rows = useRollingTrades(items);
   return (
-    <div className="relative divide-y divide-border overflow-hidden">
-      <AnimatePresence initial={false} mode="popLayout">
-        {rows.map(({ item, key }) => (
-          <TradeRow key={key} item={item} />
-        ))}
-      </AnimatePresence>
-    </div>
+    <PreviewRowsRegion>
+      {Array.from({ length: PREVIEW_ROW_COUNT }, (_, slot) => {
+        const item = rows[slot];
+        return item ? (
+          <TradeRow key={slot} item={item} />
+        ) : (
+          <BlankPreviewFace key={slot} />
+        );
+      })}
+    </PreviewRowsRegion>
   );
 }
 
@@ -424,52 +563,80 @@ function formatReturnPct(pct: number): string {
   return `${pct >= 0 ? "+" : ""}${pct.toFixed(2)}%`;
 }
 
+/**
+ * One basket on the exact same fixed-height card face as a trade row
+ * (owner feedback, 2026-09-14: "boyutları da aynı yapalım") — same border,
+ * same horizontal padding, same 72px height; the two-line NAV/holders
+ * content is centered inside it. Hover solidifies the face; a poll that
+ * surfaces a different basket at a rank enters with the same slot-scoped
+ * fade-up as the trades column.
+ */
+function BasketRow({ entry, index }: { entry: BasketLeaderboardEntry; index: number }) {
+  const rowRef = useRef<HTMLDivElement | null>(null);
+  // Identity is the basket pubkey, not the entry object: the leaderboard
+  // re-polls every 60s into fresh objects, and unchanged content must not
+  // re-animate — only an actual reorder at this rank does.
+  useSwapFade(rowRef, entry.basket);
+  const positive = entry.returnPct >= 0;
+  const nav = entry.nav.trim() === "" ? NaN : Number(entry.nav);
+  return (
+    <div
+      ref={rowRef}
+      className="flex flex-col justify-center rounded-xl border border-border/50 bg-card/40 px-3 transition-colors duration-200 hover:border-border hover:bg-card motion-reduce:transition-none"
+      style={{ height: PREVIEW_ROW_HEIGHT }}
+    >
+      <div className="flex items-center justify-between gap-3">
+        <span className="flex min-w-0 items-center gap-3">
+          <span
+            aria-hidden="true"
+            className="shrink-0 font-mono text-xs tabular-nums text-muted-foreground/70"
+          >
+            {String(index + 1).padStart(2, "0")}
+          </span>
+          {/* The glyph IS the basket logo here — the demo datasets
+              deliberately ship no basket images. */}
+          <BasketAvatar basket={entry.basket} />
+          <Link
+            href={`/basket/${entry.basket}`}
+            title={entry.basket}
+            className="min-w-0 truncate text-sm font-medium text-foreground underline decoration-foreground/30 underline-offset-4 hover:decoration-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+          >
+            {entry.basketName ?? truncateAddress(entry.basket, 6, 4)}
+          </Link>
+        </span>
+        <span
+          className={`shrink-0 font-mono text-sm font-semibold tabular-nums ${
+            positive ? "text-[hsl(var(--status-positive))]" : "text-muted-foreground"
+          }`}
+        >
+          {formatReturnPct(entry.returnPct)}
+        </span>
+      </div>
+      <p className="mt-1 truncate font-mono text-[11px] tabular-nums text-muted-foreground">
+        NAV {Number.isFinite(nav) ? formatUsd(nav) : "—"} ·{" "}
+        {entry.holders} {entry.holders === 1 ? "holder" : "holders"}
+      </p>
+    </div>
+  );
+}
+
+/**
+ * The baskets list: always PREVIEW_ROW_COUNT slots in the same fixed
+ * region as the trades column — real entries first, honest blank surfaces
+ * for the rest. Slot keys keep refreshes to an in-place content swap.
+ */
 function BasketsRows({ items }: { items: BasketLeaderboardEntry[] }) {
   return (
-    <ul className="divide-y divide-border">
-      {items.map((entry, index) => {
-        const positive = entry.returnPct >= 0;
-        const nav = entry.nav.trim() === "" ? NaN : Number(entry.nav);
-        return (
-          <li
-            key={`${entry.basket}-${index}`}
-            className="border-l-2 border-l-primary/0 py-3 pl-4 transition-colors hover:border-l-primary/60"
-          >
-            <div className="flex items-center justify-between gap-3">
-              <span className="flex min-w-0 items-center gap-3">
-                <span
-                  aria-hidden="true"
-                  className="shrink-0 font-mono text-xs tabular-nums text-muted-foreground/70"
-                >
-                  {String(index + 1).padStart(2, "0")}
-                </span>
-                {/* The glyph IS the basket logo here — the demo datasets
-                    deliberately ship no basket images. */}
-                <BasketAvatar basket={entry.basket} />
-                <Link
-                  href={`/basket/${entry.basket}`}
-                  title={entry.basket}
-                  className="min-w-0 truncate text-sm font-medium text-foreground underline decoration-foreground/30 underline-offset-4 hover:decoration-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
-                >
-                  {entry.basketName ?? truncateAddress(entry.basket, 6, 4)}
-                </Link>
-              </span>
-              <span
-                className={`shrink-0 font-mono text-sm font-semibold tabular-nums ${
-                  positive ? "text-[hsl(var(--status-positive))]" : "text-muted-foreground"
-                }`}
-              >
-                {formatReturnPct(entry.returnPct)}
-              </span>
-            </div>
-            <p className="mt-1 font-mono text-[11px] tabular-nums text-muted-foreground">
-              NAV {Number.isFinite(nav) ? formatUsd(nav) : "—"} ·{" "}
-              {entry.holders} {entry.holders === 1 ? "holder" : "holders"}
-            </p>
-          </li>
+    <PreviewRowsRegion>
+      {Array.from({ length: PREVIEW_ROW_COUNT }, (_, index) => {
+        const entry = items[index];
+        return entry ? (
+          <BasketRow key={index} entry={entry} index={index} />
+        ) : (
+          <BlankPreviewFace key={index} />
         );
       })}
-    </ul>
+    </PreviewRowsRegion>
   );
 }
 
@@ -480,8 +647,8 @@ function BasketsRows({ items }: { items: BasketLeaderboardEntry[] }) {
 function DemoTradesColumn() {
   return (
     <div>
-      <ColumnHeaderLink label="LATEST VERIFIED TRADES" href="/feed" />
-      <AnimatedTradeRows items={DEMO_TRADES} />
+      <ColumnHeaderLink label="LATEST TRADES" href="/feed" />
+      <TradeRows items={DEMO_TRADES} />
     </div>
   );
 }
@@ -490,10 +657,11 @@ function DemoBasketsColumn() {
   return (
     <div>
       <ColumnHeaderLink label="TOP BASKETS" href="/leaderboard" />
-      {/* Row parity (owner feedback, 2026-09-12): the full 5-basket dataset
-          stays available for the demo, but the preview surfaces only
-          VISIBLE_ROW_COUNT rows so the two columns match. */}
-      <BasketsRows items={DEMO_BASKETS.slice(0, VISIBLE_ROW_COUNT)} />
+      {/* Row parity (owner feedback, 2026-09-12, footprint-locked
+          2026-09-14): the full basket dataset stays available for the demo,
+          but the preview surfaces only PREVIEW_ROW_COUNT rows so the two
+          columns match exactly. */}
+      <BasketsRows items={DEMO_BASKETS.slice(0, PREVIEW_ROW_COUNT)} />
     </div>
   );
 }
@@ -501,26 +669,33 @@ function DemoBasketsColumn() {
 function TradesColumn({ resource }: { resource: LiveResource<TradeFeedItem[]> }) {
   return (
     <div>
-      <ColumnHeaderLink label="LATEST VERIFIED TRADES" href="/feed" />
+      <ColumnHeaderLink label="LATEST TRADES" href="/feed" />
       {resource.status === "loading" ? (
-        <PreviewSkeleton rows={VISIBLE_ROW_COUNT} label="Loading verified trades" />
+        <PreviewSkeletonRegion label="Loading latest trades" />
       ) : null}
       {resource.status === "error" ? (
-        <QuietError message="Couldn't load verified trades just now." onRetry={resource.retry} />
+        <PreviewStateBlock>
+          <QuietError
+            message="Couldn't load the latest trades just now."
+            onRetry={resource.retry}
+          />
+        </PreviewStateBlock>
       ) : null}
       {resource.status === "ready" && resource.data ? (
         resource.data.length === 0 ? (
-          <p className="py-3 pl-4 text-sm leading-6 text-muted-foreground">
-            No verified trades yet — be the first to build one.{" "}
-            <Link
-              href="/create"
-              className="font-medium text-foreground underline decoration-foreground/30 underline-offset-4 hover:decoration-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
-            >
-              Create an index →
-            </Link>
-          </p>
+          <PreviewStateBlock>
+            <p className="text-sm leading-6 text-muted-foreground">
+              No trades yet — be the first to build one.{" "}
+              <Link
+                href="/create"
+                className="font-medium text-foreground underline decoration-foreground/30 underline-offset-4 hover:decoration-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+              >
+                Create an index →
+              </Link>
+            </p>
+          </PreviewStateBlock>
         ) : (
-          <AnimatedTradeRows items={resource.data} />
+          <TradeRows items={resource.data} />
         )
       ) : null}
     </div>
@@ -532,21 +707,29 @@ function BasketsColumn({ resource }: { resource: LiveResource<BasketLeaderboardE
     <div>
       <ColumnHeaderLink label="TOP BASKETS" href="/leaderboard" />
       {resource.status === "loading" ? (
-        <PreviewSkeleton rows={VISIBLE_ROW_COUNT} label="Loading top baskets" />
+        <PreviewSkeletonRegion label="Loading top baskets" />
       ) : null}
       {resource.status === "error" ? (
-        <QuietError message="Couldn't load the leaderboard just now." onRetry={resource.retry} />
+        <PreviewStateBlock>
+          <QuietError
+            message="Couldn't load the leaderboard just now."
+            onRetry={resource.retry}
+          />
+        </PreviewStateBlock>
       ) : null}
       {resource.status === "ready" && resource.data ? (
         resource.data.length === 0 ? (
-          <p className="py-3 pl-4 text-sm leading-6 text-muted-foreground">
-            The board builds as baskets trade.
-          </p>
+          <PreviewStateBlock>
+            <p className="text-sm leading-6 text-muted-foreground">
+              The board builds as baskets trade.
+            </p>
+          </PreviewStateBlock>
         ) : (
           // Row parity (owner feedback, 2026-09-12): cap the preview at
-          // VISIBLE_ROW_COUNT rows so the baskets column matches the trades
-          // column.
-          <BasketsRows items={resource.data.slice(0, VISIBLE_ROW_COUNT)} />
+          // PREVIEW_ROW_COUNT rows so the baskets column matches the trades
+          // column — BasketsRows pads any shortfall with blank surfaces, so
+          // the footprint is identical in every case.
+          <BasketsRows items={resource.data.slice(0, PREVIEW_ROW_COUNT)} />
         )
       ) : null}
     </div>
@@ -576,7 +759,7 @@ function DemoChip() {
   return (
     <span
       title="Synthetic demo data — not live activity"
-      className="self-start rounded-sm border border-border px-1.5 py-0.5 font-mono text-[10px] uppercase tracking-[0.22em] text-muted-foreground sm:self-end"
+      className="self-start rounded-md border border-border px-1.5 py-0.5 font-mono text-[10px] uppercase tracking-[0.22em] text-muted-foreground sm:self-end"
     >
       demo data
     </span>
@@ -600,6 +783,10 @@ export function LiveProofSection() {
           lead="What people are building and trading right now."
           right={DEMO ? <DemoChip /> : undefined}
         />
+        {/* Equal columns (owner feedback, 2026-09-14): same grid cell per
+            column, and both columns render the same fixed-height header +
+            fixed-footprint rows region — side by side they are pixel-equal;
+            stacked on mobile they obey the same rules. */}
         <div className="mt-12 grid gap-10 lg:grid-cols-2">
           {DEMO ? (
             <>

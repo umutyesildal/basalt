@@ -68,7 +68,9 @@ export function RangeLinks<T extends string>({
           <Link
             key={option.value}
             href={hrefFor(option.value)}
-            aria-current={active ? "true" : undefined}
+            // Link mode navigates pages → idiomatic "page"; button mode stays
+            // "true" (audit wave-3 §2.b).
+            aria-current={active ? "page" : undefined}
             className={cls}
           >
             {option.label ?? option.value}

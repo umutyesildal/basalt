@@ -3,7 +3,9 @@ import type { Metadata } from "next";
 import { StocksGrid } from "@/components/stocks/stocks-grid";
 
 export const metadata: Metadata = {
-  title: "Stocks — Basalt",
+  // absolute: the root layout appends "· Basalt" via its title template — a
+  // plain string here would render "Stocks — Basalt · Basalt".
+  title: { absolute: "Basalt | Stocks" },
   description:
     "The mock xStock dev catalog — 12 tokenized stocks with dev-catalog prices, the building blocks for custom baskets.",
 };
@@ -22,8 +24,9 @@ export default function StocksPage() {
 
       <p className="border-t border-border/60 pt-3 text-xs leading-5 text-muted-foreground">
         Devnet showcase: prices come from the backend dev catalog (mock — not live market
-        data). When the API is unreachable the grid falls back to a static ticker list
-        without prices. Cards open the per-token page.
+        data). The mini chart and the 24h/7d changes come from Yahoo daily closes for the
+        underlying equity (7d = last five sessions). When the API is unreachable the grid
+        falls back to a static ticker list without prices. Cards open the per-token page.
       </p>
 
     </div>

@@ -4,6 +4,7 @@ import { useEffect, useRef, type ReactNode } from "react";
 import Link from "next/link";
 
 import { Button } from "@/components/ui/button";
+import { Spinner } from "@/components/ui/spinner";
 import { truncateAddress } from "@/lib/format";
 import type { ExpectedAccount } from "@/lib/transactions";
 import { explorerTxUrl } from "@/lib/transactions";
@@ -152,7 +153,7 @@ export function TxReviewModal({
         aria-modal="true"
         aria-label={title}
         tabIndex={-1}
-        className="max-h-[85vh] w-full max-w-xl overflow-y-auto rounded-lg border border-border bg-card p-5 outline-none"
+        className="max-h-[85vh] w-full max-w-xl overflow-y-auto rounded-xl border border-border bg-card p-5 outline-none"
       >
         <div className="flex items-start justify-between gap-3">
           <div className="flex flex-wrap items-center gap-2">
@@ -160,7 +161,7 @@ export function TxReviewModal({
             {flowState.status === "preparing-alt" && setupProgress ? (
               <span
                 data-testid="setup-badge"
-                className="rounded-sm border border-border bg-muted/50 px-2 py-0.5 text-[11px] font-medium tabular-nums text-muted-foreground"
+                className="rounded-md border border-border bg-muted/50 px-2 py-0.5 text-[11px] font-medium tabular-nums text-muted-foreground"
               >
                 Setup {setupProgress.step}/{setupProgress.total}
               </span>
@@ -182,7 +183,7 @@ export function TxReviewModal({
         ) : null}
 
         {summary ? (
-          <div className="mt-4 rounded-md border border-border bg-muted/30 p-3 text-sm">
+          <div className="mt-4 rounded-xl border border-border bg-muted/30 p-3 text-sm">
             {summary}
           </div>
         ) : null}
@@ -218,7 +219,7 @@ export function TxReviewModal({
           >
             {inFlight ? (
               <>
-                <Spinner />
+                <Spinner label={null} />
                 {statusLabel(flowState.status)}
               </>
             ) : (
@@ -232,7 +233,7 @@ export function TxReviewModal({
             <summary className="cursor-pointer select-none">
               Advanced details — accounts this transaction touches ({accounts.length})
             </summary>
-            <ul className="mt-2 divide-y divide-border overflow-hidden rounded-md border border-border">
+            <ul className="mt-2 divide-y divide-border overflow-hidden rounded-xl border border-border">
               {accounts.map((account) => (
                 <li key={`${account.label}-${account.pubkey.toBase58()}`} className="px-3 py-2">
                   <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-0.5">
@@ -299,16 +300,6 @@ function shortReason(state: TransactionFlowState): string {
   return (lastStop > 40 ? cut.slice(0, lastStop) : cut).trim();
 }
 
-/** Spinner: pure CSS, no icon dependency. */
-function Spinner() {
-  return (
-    <span
-      aria-hidden="true"
-      className="inline-block h-4 w-4 shrink-0 animate-spin rounded-full border-2 border-muted-foreground/30 border-t-foreground"
-    />
-  );
-}
-
 function StatusCard({
   state,
   explorerHref,
@@ -339,7 +330,7 @@ function StatusCard({
       return (
         <div role="status" data-testid="tx-status-card" className="space-y-1">
           <p className="flex items-center gap-2 text-sm font-medium">
-            <Spinner />
+            <Spinner label={null} />
             {state.status === "preparing-alt"
               ? "Preparing your basket account… one-time setup"
               : "Sending your transaction…"}
@@ -361,7 +352,7 @@ function StatusCard({
         <div
           role="status"
           data-testid="tx-status-card"
-          className="hairline-primary rounded-md border border-border bg-muted/30 p-3"
+          className="hairline-primary rounded-xl border border-border bg-muted/30 p-3"
         >
           <p className="text-sm font-semibold text-primary-text">{successLine ?? "🎉 Done"}</p>
           <div className="mt-3 flex flex-wrap gap-2">
@@ -392,7 +383,7 @@ function StatusCard({
         <div
           role="status"
           data-testid="tx-status-card"
-          className="rounded-md border border-border bg-muted/30 p-3"
+          className="rounded-xl border border-border bg-muted/30 p-3"
         >
           <p className="flex items-center gap-2 text-sm font-semibold">
             <span aria-hidden="true" className="text-lg leading-none">✓</span>
@@ -416,7 +407,7 @@ function StatusCard({
 
     case "rejected":
       return (
-        <div role="alert" data-testid="tx-status-card" className="rounded-md border border-border bg-muted/40 p-3">
+        <div role="alert" data-testid="tx-status-card" className="rounded-xl border border-border bg-muted/40 p-3">
           <p className="text-sm">Not signed — nothing moved. You cancelled in your wallet.</p>
         </div>
       );
@@ -427,7 +418,7 @@ function StatusCard({
         <div
           role="alert"
           data-testid="tx-status-card"
-          className="space-y-2 rounded-md border border-destructive/30 bg-destructive/5 p-3"
+          className="space-y-2 rounded-xl border border-destructive/30 bg-destructive/5 p-3"
         >
           <p className="text-sm">
             The network rejected the trade: {shortReason(state)}. Nothing was lost — try again.
