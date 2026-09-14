@@ -3,9 +3,22 @@ import { cn } from "@/lib/utils";
 import { CHANGE_DOWN_CLASS, CHANGE_UP_CLASS } from "@/components/stocks/change-value";
 
 /**
- * MicroLabel — the secondary micro-typography primitive: mono uppercase
- * tracked 10px, for `24h`/`30d`/`APY`-style captions, eyebrow lines and
- * table column heads (ui-plan §1 "mikro-tipografi").
+ * The ONE micro scale — the `.section-label` terminal voice from globals.css
+ * (0.7rem / weight 500 / 0.22em tracking, 1rem line-height). The home/cards
+ * eyebrow scale won as the house standard, so the old 10px MicroLabel variant
+ * is gone: MicroLabel compiles to this constant and card-frame's
+ * MICRO_LABEL_CLASS reuses it, so every micro-label on the site renders at
+ * identical pixels. Change the scale here (or in `.section-label`) — never
+ * inline.
+ */
+export const MICRO_LABEL_SCALE =
+  "text-[0.7rem] font-medium leading-4 tracking-[0.22em]";
+
+/**
+ * MicroLabel — the secondary micro-typography primitive: mono uppercase at
+ * the `.section-label` scale (see MICRO_LABEL_SCALE), for `24h`/`30d`/`APY`-
+ * style captions, eyebrow lines and table column heads (ui-plan §1
+ * "mikro-tipografi").
  *
  * House rule (brand.md): uppercase + tracked labels ALWAYS use Geist Mono —
  * the font-mono here is mandatory, not decorative.
@@ -42,7 +55,8 @@ export function MicroLabel({
   return (
     <Tag
       className={cn(
-        "font-mono text-[10px] uppercase tracking-wide",
+        "font-mono uppercase",
+        MICRO_LABEL_SCALE,
         VARIANT[variant],
         className,
       )}

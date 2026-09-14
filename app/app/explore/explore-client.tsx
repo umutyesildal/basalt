@@ -223,8 +223,8 @@ function tickerWeightsOf(
 /** Category filter pill — rounded-full monochrome token treatment, filled when active. */
 function pillClasses(active: boolean) {
   return cn(
-    // 36px tall on phones (touch), compact 28px from sm up.
-    "inline-flex h-7 max-md:h-9 items-center rounded-full border px-3 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50",
+    // 40px tall on phones (touch), compact 28px from sm up.
+    "inline-flex h-7 max-md:h-10 items-center rounded-full border px-3 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50",
     active
       ? "border-primary/60 bg-accent text-accent-foreground"
       : "border-border bg-card text-muted-foreground hover:bg-muted hover:text-foreground",
