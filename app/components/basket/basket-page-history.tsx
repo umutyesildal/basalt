@@ -332,7 +332,7 @@ export function BasketPageHistory({
                   ? "Hide the SPYx benchmark overlay"
                   : "Overlay S&P 500 (SPY) daily closes — both series indexed to 100 at the window start"
               }
-              className={`rounded-full border px-2.5 py-1 font-mono text-[10px] font-medium uppercase tracking-[0.14em] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 motion-reduce:transition-none ${
+              className={`max-md:min-h-10 rounded-full border px-2.5 py-1 font-mono text-[10px] font-medium uppercase tracking-[0.14em] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 motion-reduce:transition-none ${
                 benchOn
                   ? "border-transparent bg-foreground text-background"
                   : "border-border text-muted-foreground hover:border-muted-foreground/50 hover:text-foreground"
@@ -346,7 +346,7 @@ export function BasketPageHistory({
             aria-pressed={expanded}
             onClick={() => setExpanded((v) => !v)}
             title={expanded ? "Collapse the chart" : "Expand the chart to ~1.6x height"}
-            className="rounded-full border border-border px-2.5 py-1 font-mono text-[10px] font-medium uppercase tracking-[0.14em] text-muted-foreground transition-colors hover:border-muted-foreground/50 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 motion-reduce:transition-none"
+            className="max-md:min-h-10 rounded-full border border-border px-2.5 py-1 font-mono text-[10px] font-medium uppercase tracking-[0.14em] text-muted-foreground transition-colors hover:border-muted-foreground/50 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 motion-reduce:transition-none"
           >
             {expanded ? "Collapse" : "Expand"}
           </button>

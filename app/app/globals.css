@@ -151,7 +151,10 @@
   }
   /* Terminal eyebrow — mono uppercase micro-label pinned to 0.7rem/muted
      (quiet chips, data captions, tiny nav labels). House rule: uppercase +
-     tracked labels ALWAYS use mono. Size/color remain overridable per-use. */
+     tracked labels ALWAYS use mono. Size/color remain overridable per-use.
+     This is THE one micro scale: MicroLabel (components/ui/micro-label.tsx,
+     MICRO_LABEL_SCALE) and card-frame's MICRO_LABEL_CLASS compile to these
+     exact values — never introduce a second micro size. */
   .section-label {
     font-family: var(--font-mono);
     font-weight: 500;

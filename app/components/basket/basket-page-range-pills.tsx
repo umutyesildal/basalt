@@ -5,6 +5,8 @@
  * Filled-active per the ui-plan Dalga-2 spec: the active pill is a solid
  * foreground fill with background text — one chrome accent, no chart hues.
  * Buttons carry `aria-pressed`; keyboard focus uses the shared ring.
+ * Touch floor: pills rise to 40px tall on phones (`max-md:min-h-10`; button
+ * content centers itself); the compact ~22px pill stands from md up.
  */
 
 export interface RangePillOption<T extends string> {
@@ -35,7 +37,7 @@ export function RangePills<T extends string>({
             type="button"
             aria-pressed={active}
             onClick={() => onChange(option.value)}
-            className={`rounded-full border px-2.5 py-1 font-mono text-[10px] font-medium uppercase tracking-[0.14em] tabular-nums transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 motion-reduce:transition-none ${
+            className={`max-md:min-h-10 rounded-full border px-2.5 py-1 font-mono text-[10px] font-medium uppercase tracking-[0.14em] tabular-nums transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 motion-reduce:transition-none ${
               active
                 ? "border-transparent bg-foreground text-background"
                 : "border-border text-muted-foreground hover:border-muted-foreground/50 hover:text-foreground"

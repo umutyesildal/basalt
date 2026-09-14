@@ -628,7 +628,7 @@ function ThesisCard({
         {item.basket ? (
           <Link
             href={`/basket/${item.basket}`}
-            className="inline-flex items-center gap-1.5 rounded-md bg-accent px-2 py-0.5 font-mono text-[11px] text-accent-foreground transition-colors hover:bg-accent/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+            className="inline-flex max-md:min-h-10 items-center gap-1.5 rounded-md bg-accent px-2 py-0.5 font-mono text-[11px] text-accent-foreground transition-colors hover:bg-accent/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
             title={item.basket}
           >
             <span aria-hidden="true" className="text-accent-foreground/70">
@@ -653,7 +653,7 @@ function ThesisCard({
             onClick={() => void onLike()}
             disabled={liking}
             aria-pressed={liked}
-            className={`inline-flex items-center gap-1.5 rounded-md px-1.5 py-0.5 font-mono text-xs tabular-nums transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 ${
+            className={`inline-flex max-md:min-h-10 items-center gap-1.5 rounded-md px-1.5 py-0.5 font-mono text-xs tabular-nums transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 ${
               liked ? "text-primary-text" : "text-muted-foreground hover:text-foreground"
             }`}
             title={social?.isAuthed ? undefined : "Sign-in with your wallet is requested on like"}

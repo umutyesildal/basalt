@@ -1,5 +1,5 @@
 import { ChangeValue } from "@/components/stocks/change-value";
-import { MicroLabel } from "@/components/ui/micro-label";
+import { MicroLabel, MICRO_LABEL_SCALE } from "@/components/ui/micro-label";
 import { cn } from "@/lib/utils";
 
 /**
@@ -22,18 +22,16 @@ export const CARD_LINK_CLASS = cn(
 );
 
 /**
- * Micro-label (ui-plan §1 mikro-tipografi) — bound to the MicroLabel primitive
- * (components/ui/micro-label.tsx) as the single source. The card grid keeps
- * the page-scale eyebrow voice the `.section-label` utility rendered
- * (0.7rem, weight 500, 0.22em tracking) on top of MicroLabel's mono
- * uppercase muted base, so user-visible output is byte-identical.
+ * Micro-label (ui-plan §1 mikro-tipografi) — the ONE micro scale lives in
+ * MICRO_LABEL_SCALE (components/ui/micro-label.tsx, the `.section-label`
+ * terminal voice: 0.7rem / weight 500 / 0.22em tracking); this string adds
+ * only the chrome on top of it, so AssetCard/BasketCard spans and StatCell's
+ * MicroLabel render at identical pixels.
  *
- * StatCell renders the MicroLabel component directly; AssetCard/BasketCard
- * keep consuming this string (their props are frozen). Both resolve to the
- * one recipe below.
+ * StatCell renders the MicroLabel component directly (the scale ships in its
+ * base); AssetCard/BasketCard keep consuming this string (their props are
+ * frozen). Both resolve to the one recipe below.
  */
-const MICRO_LABEL_SCALE = "text-[0.7rem] font-medium leading-4 tracking-[0.22em]";
-
 export const MICRO_LABEL_CLASS = cn(
   "font-mono uppercase text-muted-foreground",
   MICRO_LABEL_SCALE,
@@ -54,7 +52,7 @@ export function StatCell({
 }) {
   return (
     <span className="flex flex-col gap-0.5">
-      <MicroLabel className={MICRO_LABEL_SCALE}>{label}</MicroLabel>
+      <MicroLabel>{label}</MicroLabel>
       <ChangeValue changePct={changePct} />
     </span>
   );
