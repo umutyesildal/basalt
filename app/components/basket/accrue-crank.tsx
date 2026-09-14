@@ -74,7 +74,21 @@ export function AccrueCrankButton({
 
   const close = () => {
     setOpen(false);
-    flow.reset();
+    // Once a signature exists the tx is sent — closing only hides the UI; the
+    // confirmation keeps running and the page-level banner reports the outcome.
+    if (!flow.state.signature) flow.reset();
+  };
+
+  /** Start (or Retry) the crank — re-invocable after a transient failure. */
+  const startCrank = () => {
+    if (!keys) return;
+    void flow.run(() => buildAccrueManagementFee(keys).instructions, undefined, {
+      describe: {
+        kind: "crank",
+        label: "fee accrual",
+        successLine: "🎉 Done — fee accrued",
+      },
+    });
   };
 
   const elapsedLabel =
@@ -112,15 +126,15 @@ export function AccrueCrankButton({
         open={open}
         onClose={close}
         title="Accrue management fee"
-        description="Permissionless crank: streams the management fee since the last checkpoint (share dilution, minted 90/10 to creator/treasury). The caller only pays possible ATA rent."
+        description="Streams the management fee since the last checkpoint — you only pay possible ATA rent."
         accounts={expectedAccounts ?? []}
         flowState={flow.state}
-        onConfirm={() => {
-          if (!keys) return;
-          void flow.run(() => buildAccrueManagementFee(keys).instructions);
-        }}
-        confirmLabel="Simulate & sign"
+        onConfirm={startCrank}
+        onRetry={startCrank}
+        confirmLabel="Confirm"
         endpoint={RPC_ENDPOINT}
+        pendingTxId={flow.state.pendingTxId}
+        successLine="🎉 Done — fee accrued"
       />
     </>
   );

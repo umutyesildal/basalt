@@ -33,12 +33,12 @@ export function EmptyState({
   return (
     <div
       className={cn(
-        "flex flex-col rounded-lg border border-border bg-card p-5",
+        "flex flex-col rounded-xl border border-border bg-card p-5",
         className,
       )}
     >
       <div className="flex flex-wrap items-center gap-2">
-        <span className="inline-flex items-center rounded-[4px] border border-border bg-background px-1.5 py-0.5 font-mono text-[11px] uppercase tracking-wide text-muted-foreground">
+        <span className="inline-flex items-center rounded-md border border-border bg-background px-1.5 py-0.5 font-mono text-[11px] uppercase tracking-wide text-muted-foreground">
           {chip}
         </span>
         <p className="text-sm font-medium text-foreground">{title}</p>

@@ -1,5 +1,5 @@
 /**
- * indexer/listener.ts — read-only event indexer for the three FolioX programs.
+ * indexer/listener.ts — read-only event indexer for the three Basalt programs.
  *
  * Polls `getSignaturesForAddress` per program ID (env: PROGRAM_WHITELIST,
  * PROGRAM_FACTORY, PROGRAM_BASKET), fetches each transaction, decodes the four
@@ -19,6 +19,7 @@
  */
 import { Connection, PublicKey, type AccountInfo, type ParsedTransactionWithMeta } from "@solana/web3.js";
 import { connectFromEnv, isPgLike, type PgLike } from "../db/client.js";
+import { syncIndexedBaskets } from "./holdingsSync.js";
 import {
   decodeAnchorEvent,
   decodeCreateBasketIx,
@@ -30,6 +31,9 @@ import {
   type FolioxEventType,
 } from "./events.js";
 import { applyPositionEvent } from "./positions.js";
+import { syncPositionsFromChain, type JsonRpcInvoker, type PositionsSyncRpc } from "./positionsSync.js";
+import { syncWhitelistedMints, type WhitelistRpc } from "./whitelistSync.js";
+import { withRpcBackoff } from "../rpc/backoff.js";
 
 /** Minimal structural slice of @solana/web3.js Connection used here. */
 export interface SolanaRpc {
@@ -44,18 +48,91 @@ export interface SolanaRpc {
   getAccountInfo(address: PublicKey): Promise<AccountInfo<Buffer> | null>;
 }
 
+/**
+ * Structural slice for the periodic on-chain state syncs (whitelisted_mints +
+ * vault_holdings). A real web3 Connection satisfies it; hand-rolled test RPCs
+ * may omit these methods — the syncs no-op when they are missing.
+ */
+export interface ChainStateRpc extends SolanaRpc {
+  getProgramAccounts: WhitelistRpc["getProgramAccounts"];
+  getMultipleAccountsInfo(
+    keys: PublicKey[],
+    commitment?: unknown,
+  ): Promise<Array<AccountInfo<Buffer> | null>>;
+}
+
 export interface IndexerConfig {
   programIds: string[];
   pollIntervalMs: number;
   signaturesPerPoll: number;
   maxSeenCache: number;
+  /**
+   * PROGRAM_WHITELIST — enables the periodic on-chain WhitelistedMint →
+   * whitelisted_mints sync (price_source labels for the NAV engine).
+   */
+  whitelistProgramId?: string;
+  /** PROGRAM_BASKET — enables the periodic vault_holdings refresh pass. */
+  basketProgramId?: string;
+  /**
+   * vault_holdings refresh cadence override (env HOLDINGS_SYNC_INTERVAL_MS on
+   * the devnet profile; schema §7 default stays 30s). Lower request pressure
+   * against the shared public RPC without changing the default profile.
+   */
+  holdingsSyncIntervalMs?: number;
+  /**
+   * Chain-truth user_positions reconciliation cadence (env POSITIONS_SYNC_MS,
+   * default 120s). Reads each indexed basket's share-mint token accounts via
+   * getProgramAccounts and upserts user_positions from ACTUAL balances — the
+   * durable fix for Minted/Redeemed events lost to log truncation on
+   * N-constituent baskets.
+   */
+  positionsSyncIntervalMs?: number;
+  /**
+   * Raw JSON-RPC invoker used ONLY as the positions-sync provider fallback
+   * (enhanced getTokenAccounts when the provider blocks token-program gPA).
+   * Wired from RPC_URL by createIndexerFromEnv; tests may inject their own.
+   */
+  jsonRpcInvoke?: JsonRpcInvoker;
+  /**
+   * Minimum spacing between sequential RPC reads inside the periodic state
+   * syncs — spreads a mint-facts batch over time instead of bursting it
+   * (bursty sequential reads were the main 429 trigger on public devnet).
+   */
+  stateSyncSpacingMs?: number;
+  /**
+   * Injectable sleep for the shared 429 backoff (tests: instant). Defaults to
+   * the real timer — production waits exponential-with-jitter, 60s cap.
+   */
+  backoffSleep?: (ms: number) => Promise<void>;
 }
+
+/** WhitelistedMint account sync cadence (schema §7: whitelist is slow-moving). */
+const WHITELIST_SYNC_INTERVAL_MS = 60_000;
+/** vault_holdings refresh cadence (schema §7: "updated every 30s or on event"). */
+const HOLDINGS_SYNC_INTERVAL_MS = 30_000;
+/**
+ * Chain-truth user_positions reconciliation cadence (env POSITIONS_SYNC_MS).
+ * 120s: positions drift rarely, each pass costs one getProgramAccounts per
+ * indexed basket, and devnet RPC headroom is scarce.
+ */
+const POSITIONS_SYNC_INTERVAL_MS = 120_000;
+/**
+ * Spacing between sequential RPC reads in the periodic state syncs (the
+ * holdings pass reads mint facts one getAccountInfo at a time — spacing turns
+ * that burst into a gentle stream, which is what public devnet 429s on).
+ */
+const STATE_SYNC_SPACING_MS = 100;
+/** Failed signatures are retried this many polls before being dropped. */
+const MAX_PROCESS_ATTEMPTS = 5;
 
 export const DEFAULT_INDEXER_CONFIG: IndexerConfig = {
   programIds: [],
   pollIntervalMs: 15_000,
   signaturesPerPoll: 50,
   maxSeenCache: 10_000,
+  holdingsSyncIntervalMs: HOLDINGS_SYNC_INTERVAL_MS,
+  positionsSyncIntervalMs: POSITIONS_SYNC_INTERVAL_MS,
+  stateSyncSpacingMs: STATE_SYNC_SPACING_MS,
 };
 
 export interface EventRow {
@@ -199,6 +276,18 @@ function buildBasketUpsert(
 
 export class EventIndexer {
   private readonly seen = new Set<string>();
+  /** Per-signature processing attempts (failed sigs are retried, not dropped). */
+  private readonly attempts = new Map<string, number>();
+  private lastWhitelistSyncMs = 0;
+  private lastHoldingsSyncMs = 0;
+  private lastPositionsSyncMs = 0;
+  /**
+   * Events NOT indexed because their transaction failed on-chain — either at
+   * the signature level (getSignaturesForAddress err) or in the fetched meta
+   * (tx.meta.err, the partial-CPI-logs case). A reverted tx must never mint
+   * Minted/Redeemed/FeeAccrued/BasketCreated rows out of its leftover logs.
+   */
+  private failedTxSkips = 0;
   private timer: ReturnType<typeof setTimeout> | null = null;
   private running = false;
   private stopped = false;
@@ -224,14 +313,78 @@ export class EventIndexer {
 
   /**
    * One poll pass across all configured programs. Decoded events are returned
-   * so callers can inspect them even in DB-less mode (db === null).
+   * so callers can inspect them even in DB-less mode (db === null). After the
+   * signature sweep, the periodic on-chain state syncs run (whitelisted_mints
+   * from WhitelistedMint accounts, vault_holdings for indexed baskets).
    */
   async pollOnce(): Promise<PollResult[]> {
     const results: PollResult[] = [];
     for (const programId of this.cfg.programIds) {
       results.push(await this.pollProgram(programId));
     }
+    await this.syncChainState();
     return results;
+  }
+
+  /**
+   * Periodic (throttled) sync of account state that events alone cannot carry:
+   *   1. whitelisted_mints ← on-chain WhitelistedMint accounts (price_source).
+   *   2. vault_holdings ← basket PDA vault ATAs for every indexed basket.
+   *   3. user_positions ← share-mint token accounts for every indexed basket
+   *      (chain-truth reconciliation; heals balances whose Minted/Redeemed
+   *      events were lost to log truncation).
+   * Whitelist rows land BEFORE holdings rows because vault_holdings.mint carries
+   * a FK to whitelisted_mints. Every failure is contained — a broken sync never
+   * breaks the event poll loop.
+   */
+  private async syncChainState(): Promise<void> {
+    if (!isPgLike(this.db)) return;
+    const full = this.rpc as ChainStateRpc;
+    if (typeof full.getProgramAccounts !== "function") return; // hand-rolled test rpc
+    const now = Date.now();
+    const spacing = this.cfg.stateSyncSpacingMs ?? STATE_SYNC_SPACING_MS;
+    if (this.cfg.whitelistProgramId && now - this.lastWhitelistSyncMs >= WHITELIST_SYNC_INTERVAL_MS) {
+      this.lastWhitelistSyncMs = now;
+      try {
+        const n = await syncWhitelistedMints(full, this.cfg.whitelistProgramId, this.db);
+        if (n > 0) console.log(`[indexer] whitelist sync: ${n} mints upserted`);
+      } catch (err) {
+        console.warn("[indexer] whitelist sync failed:", err instanceof Error ? err.message : err);
+      }
+    }
+    const holdingsIntervalMs = this.cfg.holdingsSyncIntervalMs ?? HOLDINGS_SYNC_INTERVAL_MS;
+    if (now - this.lastHoldingsSyncMs >= holdingsIntervalMs) {
+      this.lastHoldingsSyncMs = now;
+      try {
+        const n = await syncIndexedBaskets(full, this.db, { spacingMs: spacing });
+        if (n > 0) console.log(`[indexer] holdings sync: ${n} baskets refreshed`);
+      } catch (err) {
+        console.warn("[indexer] holdings sync failed:", err instanceof Error ? err.message : err);
+      }
+    }
+    const positionsIntervalMs = this.cfg.positionsSyncIntervalMs ?? POSITIONS_SYNC_INTERVAL_MS;
+    if (now - this.lastPositionsSyncMs >= positionsIntervalMs) {
+      this.lastPositionsSyncMs = now;
+      try {
+        // Structural cast: the real Connection (and the test doubles that opt
+        // in) carries getProgramAccounts; hand-rolled test RPCs without it are
+        // filtered out above.
+        const stats = await syncPositionsFromChain(
+          full as unknown as PositionsSyncRpc,
+          this.db,
+          { spacingMs: spacing, backoffSleep: this.cfg.backoffSleep, jsonRpcInvoke: this.cfg.jsonRpcInvoke },
+        );
+        if (stats.basketsScanned > 0) {
+          console.log(
+            `[indexer] positions sync: ${stats.holders} holders across ${stats.basketsScanned} baskets ` +
+              `(${stats.eventKept} event-derived, ${stats.balanceSynced} balance-sync, ${stats.zeroed} zeroed` +
+              `${stats.basketsFailed > 0 ? `, ${stats.basketsFailed} baskets failed (retry next tick)` : ""})`,
+          );
+        }
+      } catch (err) {
+        console.warn("[indexer] positions sync failed:", err instanceof Error ? err.message : err);
+      }
+    }
   }
 
   private async pollProgram(programId: string): Promise<PollResult> {
@@ -239,23 +392,57 @@ export class EventIndexer {
     let signaturesSeen = 0;
     let sigInfos;
     try {
-      sigInfos = await this.rpc.getSignaturesForAddress(new PublicKey(programId), {
-        limit: this.cfg.signaturesPerPoll,
-      });
+      // The shared backoff is the ONLY retry layer: when this batch already
+      // went through 429 backoff and still failed, the catch below logs and
+      // returns — it never re-fires the batch (no double-fire).
+      sigInfos = await withRpcBackoff(
+        () =>
+          this.rpc.getSignaturesForAddress(new PublicKey(programId), {
+            limit: this.cfg.signaturesPerPoll,
+          }),
+        { logKey: "indexer:getSignaturesForAddress", sleep: this.cfg.backoffSleep },
+      );
     } catch (err) {
       console.warn(`[indexer] getSignaturesForAddress failed for ${programId}:`, err instanceof Error ? err.message : err);
       return { programId, signaturesSeen, events };
     }
 
-    for (const sigInfo of sigInfos) {
-      if (sigInfo.err) continue; // failed txs emit nothing we care about
+    // getSignaturesForAddress returns NEWEST-first; process OLDEST-first so a
+    // fresh sync lands the BasketCreated tx (which upserts the baskets row)
+    // before the Minted/Redeemed/FeeAccrued txs whose rows FK-reference it.
+    for (const sigInfo of [...sigInfos].reverse()) {
+      if (sigInfo.err) {
+        // ERR GUARD (layer 1): a transaction that failed on-chain must never
+        // contribute events — count and skip; the chain-truth positions sync
+        // is what keeps user_positions aligned regardless.
+        this.failedTxSkips++;
+        continue;
+      }
       if (this.seen.has(sigInfo.signature)) continue;
       signaturesSeen++;
       try {
-        const tx = await this.rpc.getParsedTransaction(sigInfo.signature, {
-          maxSupportedTransactionVersion: 0,
-        });
+        const tx = await withRpcBackoff(
+          () =>
+            this.rpc.getParsedTransaction(sigInfo.signature, {
+              maxSupportedTransactionVersion: 0,
+            }),
+          { logKey: "indexer:getParsedTransaction", sleep: this.cfg.backoffSleep },
+        );
         if (!tx?.meta?.logMessages) {
+          this.markSeen(sigInfo.signature);
+          continue;
+        }
+        if (tx.meta.err) {
+          // ERR GUARD (layer 2): the fetched transaction itself reports a
+          // on-chain failure (meta.err). Its logs may still contain partial
+          // CPI output (fees accrued before the revert), but NONE of it may
+          // become Minted/Redeemed/FeeAccrued/BasketCreated rows. Log + count
+          // + skip; the positions sync reconciles balances from chain truth.
+          this.failedTxSkips++;
+          console.warn(
+            `[indexer] skipping failed tx ${sigInfo.signature} (meta.err set) — ` +
+              `no events indexed from failed transactions (skipped so far: ${this.failedTxSkips})`,
+          );
           this.markSeen(sigInfo.signature);
           continue;
         }
@@ -292,12 +479,14 @@ export class EventIndexer {
         }
 
         if (rows.length > 0) {
-          // Only persist downstream rows when the event insert is fresh, so
-          // re-processing a signature can never double-count creator_stats.
-          let fresh = false;
-          for (const row of rows) fresh = (await insertEvent(this.db, row)) || fresh;
+          // BasketCreated must upsert the baskets row BEFORE the event rows:
+          // events.basket carries a FK to baskets(pubkey), so on a fresh sync
+          // the create tx would otherwise fail its own event insert. The
+          // upsert is idempotent (ON CONFLICT DO NOTHING); creator_stats below
+          // stays gated on the event insert being fresh AND the basket row
+          // being newly created, so replays never double-count.
+          let basketUpserted = false;
           if (
-            fresh &&
             basketCreated &&
             createArgs &&
             createArgs.constituents.length === basketCreated.numConstituents
@@ -307,13 +496,18 @@ export class EventIndexer {
               const treasury = await this.fetchTreasury(factory);
               if (treasury) {
                 const upsert = buildBasketUpsert(basketCreated, factory, createArgs, treasury);
-                if (await upsertBasketFromCreation(this.db, upsert)) {
-                  await incrementCreatorStats(this.db, basketCreated.creator);
-                }
+                basketUpserted = await upsertBasketFromCreation(this.db, upsert);
               } else {
                 console.warn(`[indexer] could not decode FactoryConfig treasury for basket ${basketCreated.basket}`);
               }
             }
+          }
+          // Only persist downstream rows when the event insert is fresh, so
+          // re-processing a signature can never double-count creator_stats.
+          let fresh = false;
+          for (const row of rows) fresh = (await insertEvent(this.db, row)) || fresh;
+          if (fresh && basketCreated && basketUpserted) {
+            await incrementCreatorStats(this.db, basketCreated.creator);
           }
         }
 
@@ -333,10 +527,28 @@ export class EventIndexer {
           }
         }
       } catch (err) {
-        console.warn(`[indexer] failed to process ${sigInfo.signature}:`, err instanceof Error ? err.message : err);
-      } finally {
-        this.markSeen(sigInfo.signature);
+        // Do NOT drop the signature on failure: devnet RPC 429s and FK waits
+        // on a basket row an older signature will establish both heal on
+        // retry. Track attempts and give up only after MAX_PROCESS_ATTEMPTS.
+        const attempt = (this.attempts.get(sigInfo.signature) ?? 0) + 1;
+        this.attempts.set(sigInfo.signature, attempt);
+        if (attempt >= MAX_PROCESS_ATTEMPTS) {
+          console.warn(
+            `[indexer] giving up on ${sigInfo.signature} after ${attempt} attempts:`,
+            err instanceof Error ? err.message : err,
+          );
+          this.markSeen(sigInfo.signature);
+          this.attempts.delete(sigInfo.signature);
+        } else {
+          console.warn(
+            `[indexer] failed to process ${sigInfo.signature} (attempt ${attempt}/${MAX_PROCESS_ATTEMPTS}, will retry):`,
+            err instanceof Error ? err.message : err,
+          );
+        }
+        continue; // leave unseen so the next poll retries it
       }
+      this.markSeen(sigInfo.signature);
+      this.attempts.delete(sigInfo.signature);
     }
     return { programId, signaturesSeen, events };
   }
@@ -380,7 +592,10 @@ export class EventIndexer {
 
   private async fetchTreasury(factory: string): Promise<string | null> {
     try {
-      const info = await this.rpc.getAccountInfo(new PublicKey(factory));
+      const info = await withRpcBackoff(
+        () => this.rpc.getAccountInfo(new PublicKey(factory)),
+        { logKey: "indexer:getAccountInfo", sleep: this.cfg.backoffSleep },
+      );
       return decodeFactoryTreasury(info?.data ?? null);
     } catch {
       return null;
@@ -424,6 +639,11 @@ export class EventIndexer {
   get isRunning(): boolean {
     return this.running;
   }
+
+  /** Events skipped because their transaction failed on-chain (err guard). */
+  get failedTxSkipCount(): number {
+    return this.failedTxSkips;
+  }
 }
 
 // --- env wiring -------------------------------------------------------------
@@ -437,9 +657,14 @@ export function indexerConfigFromEnv(env: NodeJS.ProcessEnv = process.env): (Ind
   return {
     rpcUrl,
     programIds,
+    whitelistProgramId: env.PROGRAM_WHITELIST,
+    basketProgramId: env.PROGRAM_BASKET,
     pollIntervalMs: Number(env.INDEXER_POLL_MS || DEFAULT_INDEXER_CONFIG.pollIntervalMs),
     signaturesPerPoll: Number(env.INDEXER_POLL_LIMIT || DEFAULT_INDEXER_CONFIG.signaturesPerPoll),
     maxSeenCache: DEFAULT_INDEXER_CONFIG.maxSeenCache,
+    holdingsSyncIntervalMs: Number(env.HOLDINGS_SYNC_INTERVAL_MS || HOLDINGS_SYNC_INTERVAL_MS),
+    positionsSyncIntervalMs: Number(env.POSITIONS_SYNC_MS || POSITIONS_SYNC_INTERVAL_MS),
+    stateSyncSpacingMs: DEFAULT_INDEXER_CONFIG.stateSyncSpacingMs,
   };
 }
 
@@ -454,5 +679,20 @@ export async function createIndexerFromEnv(env: NodeJS.ProcessEnv = process.env)
     return null;
   }
   const db = await connectFromEnv();
-  return new EventIndexer(new Connection(cfg.rpcUrl), cfg, db);
+  // Raw JSON-RPC invoker (read-only POST) for the positions-sync provider
+  // fallback: web3.js Connection has no custom-method surface, and some
+  // providers block token-program getProgramAccounts while offering an
+  // enhanced getTokenAccounts instead.
+  const jsonRpcInvoke: JsonRpcInvoker = async (method, params) => {
+    const res = await fetch(cfg.rpcUrl, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ jsonrpc: "2.0", id: 1, method, params }),
+    });
+    if (!res.ok) throw new Error(`jsonrpc ${method}: HTTP ${res.status}`);
+    const body = (await res.json()) as { result?: unknown; error?: { message?: string } };
+    if (body.error) throw new Error(`jsonrpc ${method} failed: ${body.error.message}`);
+    return body.result;
+  };
+  return new EventIndexer(new Connection(cfg.rpcUrl), { ...cfg, jsonRpcInvoke }, db);
 }

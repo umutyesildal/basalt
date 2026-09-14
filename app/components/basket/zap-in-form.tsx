@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { PublicKey, Transaction, VersionedTransaction } from "@solana/web3.js";
 import { useConnection, useWallet } from "@solana/wallet-adapter-react";
 
@@ -8,8 +8,19 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { EmptyState, ErrorState, FreshnessBadge } from "@/components/states";
 import { TxReviewModal } from "@/components/basket/tx-review-modal";
+import { ThesisShareCta } from "@/components/social/thesis-share-cta";
 import { useTransactionFlow } from "@/components/basket/use-transaction-flow";
+import { useAltPrewarm } from "@/components/basket/use-alt-prewarm";
+import {
+  bpsToPct,
+  feesLine,
+  grouped,
+  SummaryRow,
+  TxSummaryCard,
+} from "@/components/basket/summary-card";
 import { formatRawShares6 } from "@/components/basket/basket-math";
+import { HalfMaxButtons, halfOfRaw } from "@/components/basket/basket-page-half-max";
+import { TradeFeePreview } from "@/components/basket/basket-page-fee-preview";
 import {
   fetchZapInQuote,
   type BasketDetail,
@@ -18,14 +29,32 @@ import {
 import {
   buildCreateAtaInstructions,
   buildMintInKind,
+  buildMintInKindTransaction,
   deriveAta,
+  type BasketCoreKeys,
   type ExpectedAccount,
 } from "@/lib/transactions";
-import { truncateAddress } from "@/lib/format";
-import { RPC_ENDPOINT } from "@/lib/wallet";
+import { formatBpsAsPercent, scaledFromRaw, truncateAddress } from "@/lib/format";
+import { withRetry, withRetryOnce } from "@/lib/rpc-retry";
+import { RPC_ENDPOINT, describeRpcError, describeWalletError } from "@/lib/wallet";
 
 const JUPITER_SWAP_URL = "https://quote-api.jup.ag/v6/swap";
 const USDC_MINT = "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v"; // backend default (quotes.ts)
+
+/** Basket display name out of the metadata JSON (null when unparseable). */
+function basketName(detail: BasketDetail): string | null {
+  const mj = detail.metadata_json;
+  let obj: unknown = mj;
+  if (typeof mj === "string") {
+    try {
+      obj = JSON.parse(mj);
+    } catch {
+      return null;
+    }
+  }
+  const n = obj && typeof obj === "object" ? (obj as Record<string, unknown>).name : null;
+  return typeof n === "string" && n.trim() ? n.trim() : null;
+}
 
 type LegStatus = "idle" | "sending" | "confirmed" | "failed";
 type Phase = "idle" | "quoting" | "quoted" | "swapping" | "ready-to-mint" | "done";
@@ -39,13 +68,39 @@ type Phase = "idle" | "quoting" | "quoted" | "swapping" | "ready-to-mint" | "don
 export function ZapInForm({
   detail,
   vaultBalances,
+  tickers,
+  onSuccess,
 }: {
   detail: BasketDetail;
   vaultBalances: (bigint | null)[];
+  /** Mint → ticker map (page API data) for the human-language review card. */
+  tickers?: Map<string, string>;
+  /** Called after a confirmed closing mint so the page can refetch detail. */
+  onSuccess?: () => void;
 }) {
   const { publicKey, connected, signTransaction } = useWallet();
   const { connection } = useConnection();
   const flow = useTransactionFlow();
+
+  // n ≥ 4 baskets: the closing mint compiles through a wallet-signed lookup
+  // table — prepared in the background (shared with the in-kind form's table).
+  const coreKeys: BasketCoreKeys | null = useMemo(
+    () =>
+      publicKey
+        ? {
+            basket: new PublicKey(detail.pubkey),
+            factory: new PublicKey(detail.factory),
+            creator: new PublicKey(detail.creator),
+            treasury: new PublicKey(detail.treasury),
+            shareMint: new PublicKey(detail.share_mint),
+            constituents: detail.constituents,
+            user: publicKey,
+          }
+        : null,
+    [detail, publicKey],
+  );
+  const prewarm = useAltPrewarm(coreKeys);
+  const needsAlt = prewarm.needsAlt;
 
   const [amountUsdc, setAmountUsdc] = useState("");
   const [slippageBps, setSlippageBps] = useState("50");
@@ -70,6 +125,38 @@ export function ZapInForm({
     const n = Number(slippageBps);
     return Number.isInteger(n) && n >= 0 && n <= 10000 ? n : null;
   }, [slippageBps]);
+
+  // USDC balance for the Half / Max quick-fill — one background read, honest
+  // when it fails: the buttons disable with an explanation instead of guessing.
+  const [usdcBalance, setUsdcBalance] = useState<bigint | null>(null);
+  const [usdcBalanceLoading, setUsdcBalanceLoading] = useState(true);
+
+  const refreshUsdcBalance = useCallback(async () => {
+    if (!publicKey) {
+      setUsdcBalance(null);
+      setUsdcBalanceLoading(false);
+      return;
+    }
+    setUsdcBalanceLoading(true);
+    try {
+      const res = await withRetryOnce(
+        () =>
+          connection.getTokenAccountBalance(
+            deriveAta(publicKey, new PublicKey(USDC_MINT)),
+          ),
+        "USDC balance read",
+      );
+      setUsdcBalance(BigInt(res.value.amount));
+    } catch {
+      setUsdcBalance(null); // no USDC ATA / read failed — Half/Max stays disabled
+    } finally {
+      setUsdcBalanceLoading(false);
+    }
+  }, [connection, publicKey]);
+
+  useEffect(() => {
+    void refreshUsdcBalance();
+  }, [refreshUsdcBalance]);
 
   const getQuote = useCallback(async () => {
     if (!amountRaw || slippage === null) return;
@@ -106,7 +193,10 @@ export function ZapInForm({
     await Promise.all(
       detail.constituents.map(async (mint, i) => {
         try {
-          await connection.getTokenAccountBalance(deriveAta(publicKey, new PublicKey(mint)));
+          await withRetryOnce(
+            () => connection.getTokenAccountBalance(deriveAta(publicKey, new PublicKey(mint))),
+            "token balance read",
+          );
         } catch {
           missing.push(i);
         }
@@ -114,7 +204,10 @@ export function ZapInForm({
     );
     if (missing.length > 0) {
       try {
-        const blockhash = await connection.getLatestBlockhash("confirmed");
+        const blockhash = await withRetry(
+          () => connection.getLatestBlockhash("confirmed"),
+          { label: "blockhash read" },
+        );
         const tx = new Transaction({
           feePayer: publicKey,
           blockhash: blockhash.blockhash,
@@ -128,16 +221,25 @@ export function ZapInForm({
           ),
         );
         const signed = await signTransaction(tx);
-        const signature = await connection.sendRawTransaction(signed.serialize());
-        await connection.confirmTransaction(
-          { signature, blockhash: blockhash.blockhash, lastValidBlockHeight: blockhash.lastValidBlockHeight },
-          "confirmed",
+        // Re-sending is safe: an identical signed transaction dedups on-cluster.
+        const signature = await withRetry(
+          () => connection.sendRawTransaction(signed.serialize()),
+          { label: "ATA prepare send" },
+        );
+        await withRetry(
+          () =>
+            connection.confirmTransaction(
+              { signature, blockhash: blockhash.blockhash, lastValidBlockHeight: blockhash.lastValidBlockHeight },
+              "confirmed",
+            ),
+          { label: "ATA prepare confirm" },
         );
       } catch (err) {
+        const reason = describeWalletError(
+          err as { name?: string; message?: string } | null,
+        );
         setSwapWarning(
-          `Prepare step failed: ${
-            err instanceof Error ? err.message : "unknown error"
-          }. Nothing was swapped.`,
+          `Prepare step failed: ${reason} Nothing was swapped, your funds are safe. Press "Execute ${quote.legs.length} swap legs" to retry.`,
         );
         setPhase("quoted");
         return;
@@ -170,16 +272,24 @@ export function ZapInForm({
           Uint8Array.from(atob(payload.swapTransaction), (c) => c.charCodeAt(0)),
         );
         const signed = await signTransaction(swapTx);
-        const signature = await connection.sendRawTransaction(signed.serialize());
-        const confirmed = await connection.confirmTransaction(signature, "confirmed");
+        // Re-sending is safe: an identical signed transaction dedups on-cluster.
+        const signature = await withRetry(
+          () => connection.sendRawTransaction(signed.serialize()),
+          { label: `swap leg ${i + 1} send` },
+        );
+        const confirmed = await withRetry(
+          () => connection.confirmTransaction(signature, "confirmed"),
+          { label: `swap leg ${i + 1} confirm` },
+        );
         if (confirmed.value.err) throw new Error(`leg ${i + 1} failed on-chain`);
         setLegStates((prev) => prev.map((s, j) => (j === i ? "confirmed" : s)));
       } catch (err) {
         setLegStates((prev) => prev.map((s, j) => (j === i ? "failed" : s)));
+        const reason = describeWalletError(
+          err as { name?: string; message?: string } | null,
+        );
         setSwapWarning(
-          `Leg ${i + 1} did not complete: ${
-            err instanceof Error ? err.message : "unknown error"
-          }. The zap is sequential and non-atomic — you may be holding intermediate tokens. No funds are lost, but continuing requires extra transactions.`,
+          `Leg ${i + 1} did not complete: ${reason} The zap is sequential and non-atomic — you may be holding intermediate tokens. No funds are lost, but continuing requires extra transactions.`,
         );
         setPhase("quoted");
         return;
@@ -194,8 +304,9 @@ export function ZapInForm({
     const received = await Promise.all(
       detail.constituents.map(async (mint) => {
         try {
-          const res = await connection.getTokenAccountBalance(
-            deriveAta(publicKey, new PublicKey(mint)),
+          const res = await withRetryOnce(
+            () => connection.getTokenAccountBalance(deriveAta(publicKey, new PublicKey(mint))),
+            "token balance read",
           );
           return BigInt(res.value.amount);
         } catch {
@@ -211,25 +322,63 @@ export function ZapInForm({
     }
     setMintAmounts(received);
     const built = buildMintInKind({
-      keys: {
-        basket: new PublicKey(detail.pubkey),
-        factory: new PublicKey(detail.factory),
-        creator: new PublicKey(detail.creator),
-        treasury: new PublicKey(detail.treasury),
-        shareMint: new PublicKey(detail.share_mint),
-        constituents: detail.constituents,
-        user: publicKey,
-      },
+      keys: coreKeys!,
       amounts: received,
       vaultBalances: vaultBalances.map((v) => v ?? 0n),
     });
     setExpectedAccounts(built.expectedAccounts);
     setOpen(true);
-  }, [connection, detail, publicKey, vaultBalances]);
+  }, [connection, detail, publicKey, coreKeys, vaultBalances]);
 
   const close = () => {
     setOpen(false);
-    flow.reset();
+    // Once a signature exists the tx is sent — closing only hides the UI; the
+    // confirmation keeps running and the page-level banner reports the outcome.
+    if (!flow.state.signature) flow.reset();
+  };
+
+  /**
+   * Start (or Retry) the closing mint. Re-invocable after a failure: the
+   * lookup table is cached and re-verified on-chain, so a retry never re-asks
+   * approvals for an existing table. Shares the background pre-warm's
+   * preparation — no duplicate approvals.
+   */
+  const startMint = () => {
+    if (!publicKey || !coreKeys || !mintAmounts) return;
+    const parsed = mintAmounts;
+    void flow.run(
+      async () => {
+        if (!needsAlt) {
+          return buildMintInKind({
+            keys: coreKeys,
+            amounts: parsed,
+            vaultBalances: vaultBalances.map((v) => v ?? 0n),
+          }).instructions;
+        }
+        const table = await prewarm.ensureAlt();
+        return buildMintInKindTransaction({
+          connection,
+          keys: coreKeys,
+          amounts: parsed,
+          vaultBalances: vaultBalances.map((v) => v ?? 0n),
+          lookupTableAddresses: [table],
+        });
+      },
+      needsAlt ? () => prewarm.ensureAlt() : undefined,
+      {
+        onComplete: () => onSuccess?.(),
+        describe: {
+          kind: "buy",
+          label: "buy",
+          successLine:
+            quote && /^\d+$/.test(quote.expectedShares?.trim() ?? "")
+              ? `🎉 Done — +${grouped(formatRawShares6(BigInt(quote.expectedShares!.trim())))} shares`
+              : "🎉 Done",
+          actionHref: "/portfolio",
+          actionLabel: "View Portfolio",
+        },
+      },
+    );
   };
 
   const supply = detail.nav?.supply;
@@ -261,15 +410,30 @@ export function ZapInForm({
             <label htmlFor="zap-usdc" className="text-xs font-medium text-muted-foreground">
               USDC amount
             </label>
-            <input
-              id="zap-usdc"
-              inputMode="decimal"
-              autoComplete="off"
-              placeholder="e.g. 250.50"
-              value={amountUsdc}
-              onChange={(e) => setAmountUsdc(e.target.value)}
-              className="h-9 w-40 rounded-md border border-border bg-background px-3 font-mono text-sm tabular-nums outline-none placeholder:font-sans placeholder:text-muted-foreground focus:border-ring"
-            />
+            <div className="flex items-center gap-1.5">
+              <input
+                id="zap-usdc"
+                inputMode="decimal"
+                autoComplete="off"
+                placeholder="e.g. 250.50"
+                value={amountUsdc}
+                onChange={(e) => setAmountUsdc(e.target.value)}
+                className="h-9 w-36 rounded-lg border border-border bg-background px-3 font-mono text-sm tabular-nums outline-none placeholder:font-sans placeholder:text-muted-foreground focus:border-ring sm:w-40"
+              />
+              <HalfMaxButtons
+                connected={connected}
+                balance={usdcBalance}
+                balanceLabel="USDC balance"
+                loading={usdcBalanceLoading}
+                onPick={(kind) => {
+                  if (usdcBalance === null || usdcBalance <= 0n) return;
+                  const raw = kind === "max" ? usdcBalance : halfOfRaw(usdcBalance);
+                  if (raw <= 0n) return;
+                  // 6-dec display string via the shared raw→scaled formatter.
+                  setAmountUsdc(scaledFromRaw(raw, 1, 6));
+                }}
+              />
+            </div>
           </div>
           <div className="flex flex-col gap-1">
             <label htmlFor="zap-slippage" className="text-xs font-medium text-muted-foreground">
@@ -280,7 +444,7 @@ export function ZapInForm({
               inputMode="numeric"
               value={slippageBps}
               onChange={(e) => setSlippageBps(e.target.value)}
-              className="h-9 w-24 rounded-md border border-border bg-background px-3 font-mono text-sm tabular-nums outline-none focus:border-ring"
+              className="h-9 w-24 rounded-lg border border-border bg-background px-3 font-mono text-sm tabular-nums outline-none focus:border-ring"
             />
           </div>
           <Button
@@ -291,6 +455,32 @@ export function ZapInForm({
             {phase === "quoting" ? "Quoting…" : "Get quote"}
           </Button>
         </div>
+
+        {/* Fee preview — share amounts exist only once a real quote is back
+            (the USDC input alone cannot produce shares without prices, so the
+            row stays hidden until then; no invented estimate). */}
+        <TradeFeePreview
+          rows={
+            quote && quote.expectedShares && /^\d+$/.test(quote.expectedShares.trim())
+              ? [
+                  {
+                    label: `Entry fee · ${formatBpsAsPercent(detail.entry_fee_bps)}`,
+                    value: "deducted in shares at the closing mint",
+                  },
+                  {
+                    label: "Net shares (quote estimate)",
+                    value: grouped(formatRawShares6(BigInt(quote.expectedShares.trim()))),
+                    emphasis: true,
+                  },
+                ]
+              : null
+          }
+          footer={
+            quote
+              ? "Quote estimate from the backend's Jupiter legs — the closing mint validates on-chain."
+              : undefined
+          }
+        />
 
         {quoteError ? (
           <ErrorState
@@ -304,7 +494,7 @@ export function ZapInForm({
           <>
             {/* Six data columns — scroll horizontally on phones instead of
                 clipping (the parent border keeps its rounding while scrolled). */}
-            <div className="overflow-x-auto rounded-md border border-border">
+            <div className="overflow-x-auto rounded-xl border border-border">
               <table className="w-full min-w-[36rem] text-xs">
                 <caption className="sr-only">Jupiter quote legs</caption>
                 <thead>
@@ -348,7 +538,7 @@ export function ZapInForm({
             {/* provenance + backend warning — one quiet note, always inline for zap quotes */}
             <div
               role="note"
-              className="space-y-2 rounded-md border border-border bg-muted/30 p-3 text-xs leading-relaxed text-muted-foreground"
+              className="space-y-2 rounded-xl border border-border bg-muted/30 p-3 text-xs leading-relaxed text-muted-foreground"
             >
               <div className="flex flex-wrap items-center gap-2 font-mono tabular-nums">
                 <FreshnessBadge source={quote.provenance.source} asOf={quote.provenance.asOf} />
@@ -366,7 +556,7 @@ export function ZapInForm({
             {swapWarning ? (
               <p
                 role="alert"
-                className="rounded-md border border-destructive/30 bg-destructive/5 p-3 text-xs leading-relaxed text-destructive"
+                className="rounded-xl border border-destructive/30 bg-destructive/5 p-3 text-xs leading-relaxed text-destructive"
               >
                 {swapWarning}
               </p>
@@ -384,7 +574,7 @@ export function ZapInForm({
                 disabled={phase !== "ready-to-mint" || !legsDone}
                 variant="outline"
               >
-                Mint with received tokens
+                Buy with received tokens
               </Button>
             </div>
             {connected && !signTransaction ? (
@@ -398,47 +588,72 @@ export function ZapInForm({
         <TxReviewModal
           open={open}
           onClose={close}
-          title="Review mint after zap"
-          description="mint_in_kind with the amounts that actually arrived — not the quoted amounts. The entry fee splits 90/10 to creator/treasury."
+          title={`Buy ${basketName(detail) ?? "basket"} with USDC`}
+          description="One press: we check the mint on-chain first, then your wallet opens for a single approval."
           accounts={expectedAccounts ?? []}
           summary={
-            <dl className="grid gap-1 font-mono text-xs tabular-nums">
-              {detail.constituents.map((mint, i) => (
-                <div key={mint} className="flex justify-between gap-4">
-                  <dt className="text-muted-foreground">
-                    deposit[{i}] {truncateAddress(mint, 4, 4)}
-                  </dt>
-                  <dd>{mintAmounts ? `${mintAmounts[i]} raw` : "—"}</dd>
-                </div>
-              ))}
-            </dl>
+            <TxSummaryCard>
+              <SummaryRow
+                label="You deposit"
+                value={
+                  mintAmounts
+                    ? detail.constituents
+                        .map((mint, i) => {
+                          const holding = detail.holdings.find((h) => h.mint === mint);
+                          const scaled = scaledFromRaw(
+                            mintAmounts[i] ?? 0n,
+                            Number(holding?.multiplier ?? 1),
+                            holding?.decimals ?? 6,
+                          );
+                          return `${tickers?.get(mint) ?? truncateAddress(mint, 4, 4)} ${grouped(scaled)}`;
+                        })
+                        .join(" · ")
+                    : "—"
+                }
+              />
+              {quote?.expectedShares && /^\d+$/.test(quote.expectedShares.trim()) ? (
+                <SummaryRow
+                  label="You receive"
+                  emphasis
+                  value={`≈${grouped(formatRawShares6(BigInt(quote.expectedShares.trim())))} shares (after ${bpsToPct(detail.entry_fee_bps)} entry fee)`}
+                />
+              ) : null}
+              <SummaryRow
+                label="Fees"
+                muted
+                value={`${feesLine(detail.entry_fee_bps, detail.exit_fee_bps, detail.management_fee_bps)} (90% supports the creator)`}
+              />
+            </TxSummaryCard>
           }
           flowState={flow.state}
-          onConfirm={() => {
-            if (!publicKey || !mintAmounts) return;
-            void flow.run(() =>
-              buildMintInKind({
-                keys: {
-                  basket: new PublicKey(detail.pubkey),
-                  factory: new PublicKey(detail.factory),
-                  creator: new PublicKey(detail.creator),
-                  treasury: new PublicKey(detail.treasury),
-                  shareMint: new PublicKey(detail.share_mint),
-                  constituents: detail.constituents,
-                  user: publicKey,
-                },
-                amounts: mintAmounts,
-                vaultBalances: vaultBalances.map((v) => v ?? 0n),
-              }).instructions,
-            );
-          }}
-          confirmLabel="Simulate & sign"
+          onConfirm={startMint}
+          onRetry={startMint}
+          confirmLabel="Buy shares"
           endpoint={RPC_ENDPOINT}
+          pendingTxId={flow.state.pendingTxId}
+          successLine={
+            quote && /^\d+$/.test(quote.expectedShares?.trim() ?? "") ? (
+              <>
+                🎉 Done —{" "}
+                <span className="text-[hsl(var(--status-positive))]">
+                  +{grouped(formatRawShares6(BigInt(quote.expectedShares!.trim())))} shares
+                </span>
+              </>
+            ) : (
+              "🎉 Done"
+            )
+          }
+          successExtra={
+            flow.state.status === "confirmed" ? (
+              <ThesisShareCta basket={detail.pubkey} basketName={basketName(detail)} />
+            ) : undefined
+          }
+          setupProgress={prewarm.setupProgress}
           errorSlot={
             flow.state.mintPaused ? (
               <div
                 role="alert"
-                className="mt-4 rounded-md border border-border bg-muted/30 p-3 text-xs leading-relaxed"
+                className="mt-4 rounded-xl border border-border bg-muted/30 p-3 text-xs leading-relaxed"
               >
                 <p className="font-medium">MintPaused — the on-chain whitelist gate stopped this mint</p>
                 <p className="mt-1 text-muted-foreground">

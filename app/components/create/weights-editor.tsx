@@ -82,13 +82,15 @@ export function WeightsEditor({
           aria-live="polite"
           className={cn(
             "ml-auto flex items-center gap-1.5 font-mono text-xs tabular-nums",
-            valid ? "text-foreground" : "text-destructive",
+            valid ? "text-primary-text" : "text-destructive",
           )}
         >
-          {sum.toLocaleString()} / 10,000 bps
+          {/* Raw bps, locale-independent (no thousands grouping): grouped
+              rendering made the integer 1666 read as "1.666" in de/tr locales. */}
+          {String(sum)} / 10,000 bps
           {!valid && (
             <span className="font-sans">
-              — {diff > 0 ? "over" : "under"} by {Math.abs(diff).toLocaleString()}, adjust the
+              — {diff > 0 ? "over" : "under"} by {String(Math.abs(diff))}, adjust the
               sliders or Normalize
             </span>
           )}
@@ -160,7 +162,7 @@ function WeightInput({
           if (value !== "") onCommit(Number(value));
         }}
         onBlur={() => setDraft(String(weight))}
-        className="h-6 w-16 rounded-md border border-input bg-background px-1.5 text-right font-mono text-xs tabular-nums outline-none transition-colors focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/40"
+        className="h-6 w-16 rounded-lg border border-input bg-background px-1.5 text-right font-mono text-xs tabular-nums outline-none transition-colors focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/40"
       />
       <span className="text-muted-foreground">bps</span>
     </span>

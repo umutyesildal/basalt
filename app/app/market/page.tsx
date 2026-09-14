@@ -5,14 +5,17 @@ import MarketChart, { type MarketSeriesMeta } from "./market-chart";
 import { FreshnessBadge } from "@/components/states";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { RangeLinks } from "@/components/ui/range-links";
+import { SectionHeader } from "@/components/ui/section-header";
+import { apiQuery } from "@/lib/api-client";
 
 export const metadata: Metadata = {
-  title: "Market overview — FolioX",
+  // absolute: the root layout appends "· Basalt" via its title template — a
+  // plain string here would render "Market overview — Basalt · Basalt".
+  title: { absolute: "Basalt | Market overview" },
   description:
     "QQQ, SPY, DIA and the Nasdaq Composite normalized to 100, with a 30-candle benchmark volume view.",
 };
-
-const API_BASE = process.env.NEXT_PUBLIC_API || "http://localhost:3001";
 
 const RANGES = ["1mo", "3mo", "6mo", "1y"] as const;
 
@@ -54,11 +57,15 @@ const SERIES_LABELS: Record<string, string> = {
 
 async function getOverview(range: string): Promise<OverviewPayload | null> {
   try {
-    const res = await fetch(`${API_BASE}/api/v1/market/overview?range=${encodeURIComponent(range)}`, {
-      cache: "no-store",
-      signal: AbortSignal.timeout(8000),
-      headers: { accept: "application/json" },
-    });
+    const res = await apiQuery(
+      "/api/v1/market/overview",
+      { range },
+      {
+        cache: "no-store",
+        signal: AbortSignal.timeout(8000),
+        headers: { accept: "application/json" },
+      },
+    );
     if (!res.ok) return null;
     return (await res.json()) as OverviewPayload;
   } catch {
@@ -132,8 +139,12 @@ function buildNormalizedRows(data: OverviewSeries[]): {
 function StatChip({ label, change }: { label: string; change: number }) {
   const positive = change >= 0;
   return (
-    <span className="inline-flex items-baseline gap-1.5 text-xs">
-      <span className="text-muted-foreground">{label}</span>
+    // Terminal chip: mono micro-label brightens on hover, the number never
+    // changes color (direction stays muted/foreground, not red/green).
+    <span className="group inline-flex items-baseline gap-1.5 text-xs">
+      <span className="font-mono text-[11px] uppercase tracking-[0.22em] text-muted-foreground transition-colors duration-150 group-hover:text-foreground">
+        {label}
+      </span>
       <span
         className={`font-mono tabular-nums ${
           positive ? "text-foreground" : "text-muted-foreground"
@@ -152,7 +163,9 @@ export default async function MarketPage({
   searchParams?: Promise<{ range?: string }>;
 }) {
   const sp = (await searchParams) ?? {};
-  const range = RANGES.includes(sp.range as (typeof RANGES)[number]) ? (sp.range as string) : "1mo";
+  const range = RANGES.includes(sp.range as (typeof RANGES)[number])
+    ? (sp.range as (typeof RANGES)[number])
+    : "1mo";
   const payload = await getOverview(range);
 
   const liveSeries = payload?.data ?? [];
@@ -201,47 +214,37 @@ export default async function MarketPage({
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-        <div className="space-y-1.5">
-          <h1 className="text-3xl font-semibold tracking-tight">Market overview</h1>
-          <p className="max-w-2xl text-sm leading-6 text-foreground/80">
-            Nasdaq benchmarks normalized to 100 — the base for comparing xStocks-backed strategy
-            baskets against the underlying equity indices.
-          </p>
-        </div>
-        <FreshnessBadge
-          source={demo ? "fixture" : "Yahoo Finance"}
-          asOf={asOf}
-          demo={demo}
+      <div className="space-y-1.5">
+        <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-muted-foreground">
+          Market // Benchmark indices
+        </p>
+        <SectionHeader
+          as="h1"
+          size="title"
+          label="Market overview"
+          lead="The four benchmark indices, normalized to 100 — the base for reading basket drift."
+          right={
+            <FreshnessBadge
+              source={demo ? "fixture" : "Yahoo Finance"}
+              asOf={asOf}
+              demo={demo}
+            />
+          }
         />
       </div>
 
-      <nav aria-label="Chart range" className="flex flex-wrap items-center gap-3">
-        <span className="text-xs text-muted-foreground">Range</span>
-        {RANGES.map((r) => (
-          <Link
-            key={r}
-            href={`/market?range=${r}`}
-            aria-current={r === range ? "true" : undefined}
-            className={`inline-flex min-h-9 items-center rounded-md px-2.5 text-xs transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 ${
-              r === range
-                ? "font-medium text-foreground underline decoration-foreground/40 underline-offset-4"
-                : "text-muted-foreground"
-            }`}
-          >
-            {r}
-          </Link>
-        ))}
-      </nav>
+      <RangeLinks options={RANGES} value={range} hrefFor={(r) => `/market?range=${r}`} />
 
       {demo ? (
-        <p className="rounded-md border border-border/60 bg-muted/40 px-3 py-2 text-sm text-muted-foreground">
-          The market API is unreachable, so this view renders a static fixture. It is labeled demo
-          and must not be read as live index data.
+        <p className="rounded-xl border border-border/60 bg-muted/40 px-3 py-2 text-sm text-muted-foreground">
+          Market API unreachable — rendering a static fixture. Not live index data.
         </p>
       ) : null}
 
-      <div className="flex flex-wrap gap-x-4 gap-y-1">
+      <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1">
+        <span className="font-mono text-[11px] uppercase tracking-[0.22em] text-muted-foreground">
+          Change // {range}
+        </span>
         {changes.map((c) => (
           <StatChip key={c.label} label={c.label} change={c.change} />
         ))}
@@ -249,26 +252,22 @@ export default async function MarketPage({
 
       <Card>
         <CardHeader className="pb-2">
-          <CardTitle className="text-base font-medium">Normalized comparison — 100 base</CardTitle>
+          <CardTitle className="font-display text-base font-medium">Index comparison — {range} (normalized 100)</CardTitle>
         </CardHeader>
         <CardContent>
           <MarketChart rows={rows} series={series} volume={volume} volumeLabel={volumeLabel} />
-          <p className="mt-4 border-t border-border/60 pt-3 text-xs leading-5 text-muted-foreground">
-            Four index series over {range}; the benchmark is dashed, shown at full range.
-          </p>
         </CardContent>
       </Card>
 
-      <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
+      <div className="flex flex-wrap items-center justify-between gap-2 border-t border-border/60 pt-3 text-xs leading-5 text-muted-foreground">
         <span>
-          Source: Yahoo Finance (30-minute cache on the backend). xStock token prices come from
-          Jupiter; the difference to the real equity is the depeg.
+          Source: Yahoo Finance (30-minute cache). xStock token prices: Jupiter — the gap to the
+          real equity is the depeg.
         </span>
         <Button render={<Link href="/providers" />} variant="outline" size="xs">
           Data providers
         </Button>
       </div>
-
     </div>
   );
 }

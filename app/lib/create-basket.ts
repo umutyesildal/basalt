@@ -155,13 +155,24 @@ function concat(parts: Uint8Array[]): Uint8Array {
   return out;
 }
 
-/** ATA of (owner, mint) under the Token-2022 program. */
+/**
+ * ATA of (owner, mint) under the Token-2022 program — the CANONICAL
+ * associated-token derivation, identical to
+ * `getAssociatedTokenAddressSync(owner, mint, true, TOKEN_2022_PROGRAM_ID,
+ * ASSOCIATED_TOKEN_PROGRAM_ID)`: the PDA seeds are [owner, token_program,
+ * mint] under the ATA program (token program BEFORE mint). The basket program
+ * requires the creator/vault ATAs to be exactly this address under the MINT's
+ * own token program (Token-2022 for every whitelisted mock), so this must
+ * never drift — the previous (wrong) seeds [owner, mint, ataProgram] produced
+ * a different address and the factory rejected the tx with
+ * InvalidCreatorAta/6016.
+ */
 export function associatedTokenAddress(
   owner: PublicKey,
   mint: PublicKey,
 ): PublicKey {
   return PublicKey.findProgramAddressSync(
-    [owner.toBytes(), mint.toBytes(), ASSOCIATED_TOKEN_PROGRAM_ID.toBytes()],
+    [owner.toBytes(), TOKEN_2022_PROGRAM_ID.toBytes(), mint.toBytes()],
     ASSOCIATED_TOKEN_PROGRAM_ID,
   )[0];
 }
@@ -368,22 +379,22 @@ export function buildCreateBasketInstruction(
 }
 
 /**
- * Estimated serialized size of a v0 transaction carrying only this
- * instruction, with no address lookup tables. Solana's packet limit is 1232
- * bytes; constituent-heavy baskets exceed it without ALT compression.
+ * Estimated serialized size of the v0 transaction the send path actually
+ * builds — compute-budget pair (setComputeUnitLimit + setComputeUnitPrice)
+ * FIRST, then create_basket — with NO address lookup table. Solana's packet
+ * limit is 1232 bytes; constituent-heavy baskets exceed it without ALT
+ * compression.
+ *
+ * Structural form: `BASE + PER_CONSTITUENT * n`, calibrated offline against
+ * real compileToV0Message serializations (scripts/checkTxSize.ts):
+ *   n=2 → 935B, n=3 → 1109B, n=4 → 1283B (exact at all three points).
+ * Each constituent adds exactly 4 static keys (128B), 4 instruction account
+ * indexes (4B) and 42B of borsh payload (mint 32 + weight 2 + seed 8) = 174B.
+ * Above the packet limit the shortvec length prefixes can grow by a byte or
+ * two, so treat values over 1232 as "over the limit", not as exact bytes.
  */
 export function estimateCreateBasketTxSize(numConstituents: number): number {
-  const accountKeys = 10 + 4 * numConstituents;
-  const instructionData =
-    8 +
-    8 +
-    (4 + 32 * numConstituents) +
-    (4 + 2 * numConstituents) +
-    6 +
-    32 +
-    (4 + 8 * numConstituents);
-  // signatures (1 x 64) + message header (3) + blockhash (32) + keys + ix tags + data
-  return 64 + 3 + 32 + accountKeys * 32 + 2 + 1 + 2 + instructionData;
+  return 587 + 174 * numConstituents;
 }
 
 /** Serialized v0 transaction size in bytes (exact, for the review modal). */

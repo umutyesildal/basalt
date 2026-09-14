@@ -8,7 +8,10 @@
  * to FreshnessBadge.
  */
 
-export const API_BASE = process.env.NEXT_PUBLIC_API || "http://localhost:3001";
+import { prettyTicker } from "@/lib/format";
+import { API_BASE, apiFetch } from "@/lib/api-client";
+
+export { API_BASE };
 
 /** Postgres numeric serialized as text by the indexer. */
 export type Numeric = string | number | null | undefined;
@@ -68,7 +71,9 @@ export interface NavHistoryRow {
   ts: string;
   nav: string;
   supply?: string;
-  share_price?: string;
+  share_price?: string | null;
+  /** Bucketed rows only — first share_price in the bucket (close is `share_price`). */
+  share_price_open?: string | null;
   price_source?: unknown;
   source?: string | null;
 }
@@ -91,7 +96,7 @@ export class ApiError extends Error {
 async function getJson<T>(path: string, signal: AbortSignal): Promise<T> {
   let res: Response;
   try {
-    res = await fetch(`${API_BASE}${path}`, {
+    res = await apiFetch(path, {
       signal,
       cache: "no-store",
       headers: { accept: "application/json" },
@@ -163,6 +168,8 @@ export async function fetchNavHistory(
       bucket?: string;
       close?: string;
       supply?: string;
+      share_price?: string | null;
+      share_price_open?: string | null;
       source?: string | null;
     }>;
     source?: string | null;
@@ -174,6 +181,8 @@ export async function fetchNavHistory(
     ts: row.ts ?? row.bucket ?? "",
     nav: row.nav ?? row.close ?? "",
     supply: row.supply,
+    share_price: row.share_price ?? null,
+    share_price_open: row.share_price_open ?? null,
     source: row.source ?? null,
   }));
   return { rows, source: payload.source ?? null };
@@ -207,8 +216,29 @@ export async function fetchMintTickers(
     const fromField = typeof row.ticker === "string" ? row.ticker.trim() : "";
     const fromSource =
       typeof row.price_source === "string" ? row.price_source.split(":").pop() ?? "" : "";
-    const ticker = fromField || fromSource;
+    const ticker = prettyTicker(fromField || fromSource);
     if (ticker) map.set(row.mint, ticker);
+  }
+  return map;
+}
+
+/**
+ * GET /whitelist — mint → raw price_source map ("mock:tsla", "jupiter:TSLAx",
+ * …). This is the honest signal for Jupiter-path availability: `mock:*` mints
+ * are repo-issued devnet tokens that Jupiter can NEVER quote, so the Zap USDC
+ * tab is disabled instead of letting every leg fail.
+ */
+export async function fetchMintPriceSources(
+  signal: AbortSignal,
+): Promise<Map<string, string>> {
+  const payload = await getJson<{
+    data?: { mint?: string; price_source?: string | null }[];
+  }>("/api/v1/whitelist", signal);
+  const map = new Map<string, string>();
+  for (const row of payload.data ?? []) {
+    if (typeof row.mint === "string" && typeof row.price_source === "string") {
+      map.set(row.mint, row.price_source);
+    }
   }
   return map;
 }
@@ -228,6 +258,40 @@ export async function fetchSpy24h(signal: AbortSignal): Promise<number | null> {
   const last = closes[closes.length - 1];
   const prev = closes[closes.length - 2];
   return prev ? ((last - prev) / prev) * 100 : null;
+}
+
+/** Yahoo range windows the /market overview endpoint accepts (daily candles). */
+export type BenchmarkRange = "1d" | "5d" | "1mo" | "3mo" | "6mo" | "1y";
+
+/** One benchmark daily close (ms epoch + price). */
+export type BenchmarkCandle = { ts: number; close: number };
+
+/**
+ * GET /market/overview — SPY daily closes for the History chart's "vs SPYx"
+ * benchmark overlay. This is the SAME REST endpoint the /market page renders
+ * (Yahoo Finance via the backend proxy, backend-cached), so the basket
+ * comparison and the market overview can never disagree. Returns [] when the
+ * feed is unavailable or SPY has no usable candles — callers hide the
+ * overlay instead of fabricating a series.
+ */
+export async function fetchSpyBenchmarkCloses(
+  range: BenchmarkRange,
+  signal: AbortSignal,
+): Promise<BenchmarkCandle[]> {
+  const payload = await getJson<{
+    data?: { symbol?: string; candles?: { ts?: number; close?: number }[] }[];
+  }>(`/api/v1/market/overview?range=${range}`, signal);
+  const spy = payload.data?.find((series) => series.symbol === "SPY");
+  return (spy?.candles ?? [])
+    .filter(
+      (candle): candle is BenchmarkCandle =>
+        typeof candle.ts === "number" &&
+        Number.isFinite(candle.ts) &&
+        typeof candle.close === "number" &&
+        Number.isFinite(candle.close) &&
+        candle.close > 0,
+    )
+    .sort((a, b) => a.ts - b.ts);
 }
 
 /**
@@ -265,7 +329,7 @@ export async function fetchZapInQuote(
 ): Promise<ZapInQuote> {
   let res: Response;
   try {
-    res = await fetch(`${API_BASE}/api/v1/quotes/zap-in`, {
+    res = await apiFetch("/api/v1/quotes/zap-in", {
       method: "POST",
       signal,
       cache: "no-store",

@@ -51,7 +51,7 @@ export function TextField({
         aria-invalid={invalid || undefined}
         onChange={(event) => onChange(event.target.value)}
         className={cn(
-          "h-8 w-full rounded-md border border-input bg-background px-2.5 text-sm text-foreground shadow-none outline-none transition-colors placeholder:text-muted-foreground/60 focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/40 aria-invalid:border-destructive/60",
+          "h-8 w-full rounded-lg border border-input bg-background px-2.5 text-sm text-foreground shadow-none outline-none transition-colors placeholder:text-muted-foreground/60 focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/40 aria-invalid:border-destructive/60",
           mono && "font-mono tabular-nums",
         )}
       />
@@ -63,11 +63,11 @@ export function TextField({
 /**
  * Labeled single-value range slider. Native range pseudo-elements (track /
  * thumb) render inconsistently across engines and zoom levels here, so the
- * visuals are plain divs — a 4px muted track with a filled portion and an
- * absolutely-positioned 14px thumb — while the real <input type="range"> is
- * overlaid at opacity-0 to keep native keyboard support and drag semantics.
- * `children` fills the value slot on the label row (mono readout or editable
- * number input).
+ * visuals are plain divs — a 4px muted track with a primary-filled portion and
+ * an absolutely-positioned 14px primary thumb — while the real
+ * <input type="range"> is overlaid at opacity-0 to keep native keyboard
+ * support and drag semantics. `children` fills the value slot on the label row
+ * (mono readout or editable number input).
  */
 export function RangeField({
   label,
@@ -108,7 +108,7 @@ export function RangeField({
         {/* Filled portion up to the thumb */}
         <span
           aria-hidden="true"
-          className="absolute left-0 top-1/2 h-1 -translate-y-1/2 rounded-full bg-foreground/25"
+          className="absolute left-0 top-1/2 h-1 -translate-y-1/2 rounded-full bg-primary"
           style={{ width: `${pct}%` }}
         />
         {/* Thumb (after the input in DOM so `peer` focus ring applies) */}
@@ -125,7 +125,7 @@ export function RangeField({
         />
         <span
           aria-hidden="true"
-          className="pointer-events-none absolute top-1/2 size-3.5 -translate-x-1/2 -translate-y-1/2 rounded-full border border-background bg-foreground shadow-sm transition-shadow peer-focus-visible:ring-2 peer-focus-visible:ring-ring/50"
+          className="pointer-events-none absolute top-1/2 size-3.5 -translate-x-1/2 -translate-y-1/2 rounded-full border border-background bg-primary transition-shadow peer-focus-visible:ring-2 peer-focus-visible:ring-ring/50"
           style={{ left: `${pct}%` }}
         />
       </div>

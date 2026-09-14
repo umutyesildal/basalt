@@ -1,224 +1,145 @@
-import Image from "next/image";
 import Link from "next/link";
 
-import { TraditionalVsTokenized } from "@/components/etfs/traditional-vs-tokenized";
+import { IntentCards } from "@/components/home/intent-cards";
+import { LedgerSection } from "@/components/home/ledger-section";
+import { LiveProofSection } from "@/components/home/live-proof-section";
+import { SectionReveal } from "@/components/home/section-reveal";
 
 /**
- * Hero product visual — a real product screenshot. To swap it later, replace
- * the file at app/public/brand/market-hero.png (keep the path) or edit this
- * single constant: src / alt / width / height. Recommended export: 1600×900
- * (16:9) PNG, monochrome UI screenshot. Update the alt text to describe the
- * new image honestly.
- */
-const HERO_IMAGE = {
-  src: "/brand/market-hero.png",
-  alt: "FolioX Market page — live Nasdaq benchmarks normalized to 100",
-  width: 1600,
-  height: 900,
-} as const;
-
-/** Which monochrome visual anchor a gateway card carries (see SectionAnchor). */
-type SectionAnchorKind = "stocks" | "etfs" | "baskets";
-
-/**
- * Section gateway — the three main areas of the product, as a bento grid of
- * cards. Each card: mono index, a small pure-CSS anchor (ticker rows or a
- * weight bar — typography only, no icons, no color), name, one short line,
- * and a ↗ that lifts on hover. Details live on the pages themselves.
- */
-const SECTIONS: {
-  index: string;
-  name: string;
-  line: string;
-  href: string;
-  anchor: SectionAnchorKind;
-}[] = [
-  {
-    index: "01",
-    name: "Stocks",
-    line: "Tokenized stocks across providers.",
-    href: "/stocks",
-    anchor: "stocks",
-  },
-  {
-    index: "02",
-    name: "Tokenized ETFs",
-    line: "The tokenized ETF tickers FolioX lists today.",
-    href: "/etfs",
-    anchor: "etfs",
-  },
-  {
-    index: "03",
-    name: "Baskets",
-    line: "Community-made baskets, benchmarked on-chain.",
-    href: "/explore",
-    anchor: "baskets",
-  },
-];
-
-/** Decorative per-card anchor — ticker hairline rows for Stocks/ETFs, a mini
- *  weight-bar stack for Baskets. Monochrome, aria-hidden, no meaning. */
-function SectionAnchor({ kind }: { kind: SectionAnchorKind }) {
-  if (kind === "baskets") {
-    return (
-      <div aria-hidden="true" className="space-y-1.5">
-        <div className="h-1 w-full rounded-full bg-foreground/70" />
-        <div className="h-1 w-3/5 rounded-full bg-foreground/40" />
-        <div className="h-1 w-1/3 rounded-full bg-foreground/25" />
-      </div>
-    );
-  }
-  const rows =
-    kind === "stocks"
-      ? ([
-          ["NVDA", "30%"],
-          ["AAPL", "24%"],
-          ["TSLA", "16%"],
-        ] as const)
-      : ([
-          ["TECH", "60%"],
-          ["CORE", "40%"],
-        ] as const);
-  return (
-    <div aria-hidden="true" className="space-y-1.5">
-      {rows.map(([ticker, weight]) => (
-        <div
-          key={ticker}
-          className="flex items-center gap-2 font-mono text-[10px] leading-none"
-        >
-          <span className="w-10 text-foreground/70">{ticker}</span>
-          <span className="h-px flex-1 bg-border" />
-          <span className="text-muted-foreground">{weight}</span>
-        </div>
-      ))}
-    </div>
-  );
-}
-
-/**
- * Landing — classic shadcn-style hero (monochrome simplification, 2026-09-02,
- * elevated 2026-09-03): a badge line, big h1, one subline, two CTAs, then the
- * real product visual on an elevated card that overlaps a barely-there radial
- * vignette, the interactive Traditional vs tokenized comparison (moved here
- * from /etfs), and a three-card bento gateway (Stocks / Tokenized ETFs /
- * Baskets). No footer, texture, stats, devices, or data fetch.
+ * Landing — NEON FOUNDRY hero (cyberpunk-yellow restyle, 2026-09-12; was the
+ * roman-empire redesign of 2026-09-03): yellow mono chip flanked by mono
+ * `//` terminal decorations, Chakra Petch headline with a soft primary
+ * glow, one subline, two CTAs — over a faint engineering grid, with an
+ * inline-SVG "circuit blueprint" (concentric hexagons, node squares,
+ * straight connector traces) ghosted BEHIND the hero copy as a
+ * barely-visible watermark.
+ *
+ * "Proof beats process" reorder (NEON FOUNDRY, 2026-09-12): the hero's
+ * subline now points at the traders, and the very next thing on the page
+ * is LIVE PROOF — the LiveProofSection's two polled columns (latest
+ * trades + all-time top baskets, straight from the social API)
+ * — before any process talk. The three-step flow merged INTO the
+ * live-proof section (2026-09-12): its StepsStrip — now PICK · OWN ·
+ * SHARE, user-outcome verbs instead of program operations (owner: the
+ * product being sold isn't mint itself) — renders below the proof grid.
+ * Then the Ledger rails comparison (traditional vs tokenized), and
+ * the IntentCards gateway (which absorbs the deleted closing navigation
+ * strip). No footer, no photography. `.bg-grid` appears on the hero
+ * section only — one grid per page.
+ *
+ * Wave-2 polish (2026-09-14): hero type scale kept (6xl→7xl display, the
+ * README "full 6xl rhythm") with the subline lifted one step (md:text-lg)
+ * and one extra beat of space before the CTA row; below-fold sections fade
+ * up once via SectionReveal (~180ms, reduced-motion + no-JS safe — the
+ * hero itself gains no motion).
  */
 export default function LandingPage() {
   return (
     <div className="mx-auto w-full">
-      <section className="mx-auto flex max-w-3xl flex-col items-center px-4 pb-24 pt-24 text-center sm:px-6 md:pt-32">
-        <p className="rounded-full border border-border/60 bg-muted/40 px-3.5 py-1 font-mono text-xs tracking-wide text-muted-foreground">
-          Onchain strategy baskets · xStocks
-        </p>
-        <h1 className="mt-6 text-balance text-6xl font-semibold leading-[1.04] tracking-tight md:text-7xl">
-          Create an index. Own your thesis.
-        </h1>
-        <p className="mt-4 max-w-xl text-base leading-7 text-muted-foreground">
-          Tokenized baskets of xStocks — immutable weights, capped fees,
-          permissionless redemption.
-        </p>
-        <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
-          <Link
-            href="/create"
-            className="inline-flex h-10 items-center rounded-lg bg-primary px-5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+      <section className="bg-grid relative w-full overflow-hidden">
+        {/* Watermark — inline-SVG "causeway blueprint" (BASALT,
+            2026-09-12). A honeycomb tessellation of seven hexagon outlines
+            — basalt columns seen top-down (design-basalt-v1 §4) — with
+            square node dots seated on the cell centers and straight
+            connector traces between them, all stroked white at 7% opacity
+            over the near-black canvas. Pushed low (top 62%) so the lower
+            cells emerge below the CTA cluster, and a heavy top fade keeps
+            the headline zone pure background — the causeway is revealed
+            progressively downward. A soft radial scrim behind the text
+            block guarantees contrast. */}
+        <div aria-hidden="true" className="pointer-events-none absolute inset-0">
+          <svg
+            aria-hidden="true"
+            viewBox="0 0 600 600"
+            fill="none"
+            stroke="white"
+            strokeWidth={2}
+            preserveAspectRatio="xMidYMid slice"
+            className="absolute left-1/2 top-[62%] w-[94%] max-w-[1100px] -translate-x-1/2 -translate-y-1/2 select-none opacity-[0.07]"
           >
-            Create an index
-          </Link>
-          <Link
-            href="/explore"
-            className="inline-flex h-10 items-center rounded-lg border border-border bg-transparent px-5 text-sm font-medium transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
-          >
-            Explore baskets
-          </Link>
+            {/* causeway tessellation — seven pointy-top hexagon cells,
+                edge-adjacent (columns seen top-down) */}
+            <path d="M300 232 L241.1 266 L241.1 334 L300 368 L358.9 334 L358.9 266 Z" />
+            <path d="M417.8 232 L358.9 266 L358.9 334 L417.8 368 L476.7 334 L476.7 266 Z" />
+            <path d="M358.9 130 L300 164 L300 232 L358.9 266 L417.8 232 L417.8 164 Z" />
+            <path d="M241.1 130 L182.2 164 L182.2 232 L241.1 266 L300 232 L300 164 Z" />
+            <path d="M182.2 232 L123.3 266 L123.3 334 L182.2 368 L241.1 334 L241.1 266 Z" />
+            <path d="M241.1 334 L182.2 368 L182.2 436 L241.1 470 L300 436 L300 368 Z" />
+            <path d="M358.9 334 L300 368 L300 436 L358.9 470 L417.8 436 L417.8 368 Z" />
+            {/* straight connector traces between cell centers */}
+            <line x1="300" y1="300" x2="417.8" y2="300" />
+            <line x1="300" y1="300" x2="241.1" y2="402" />
+            <line x1="241.1" y1="198" x2="358.9" y2="402" />
+            <line x1="358.9" y1="198" x2="241.1" y2="402" />
+            {/* square node dots seated on the cell centers */}
+            <rect x="294" y="294" width="12" height="12" />
+            <rect x="411.8" y="294" width="12" height="12" />
+            <rect x="352.9" y="192" width="12" height="12" />
+            <rect x="235.1" y="192" width="12" height="12" />
+            <rect x="176.2" y="294" width="12" height="12" />
+            <rect x="235.1" y="396" width="12" height="12" />
+            <rect x="352.9" y="396" width="12" height="12" />
+          </svg>
+          <div className="absolute inset-0 bg-[linear-gradient(to_bottom,hsl(var(--background))_0%,hsl(var(--background))_36%,transparent_64%,transparent_74%,hsl(var(--background))_100%)]" />
+          <div className="absolute inset-0 bg-[linear-gradient(to_right,hsl(var(--background))_0%,transparent_18%,transparent_82%,hsl(var(--background))_100%)]" />
+          {/* Text-zone scrim — blurred-edge radial behind eyebrow + headline
+              + CTAs only; invisible at the edges, /55 at the core. */}
+          <div className="absolute inset-0 bg-[radial-gradient(ellipse_62%_48%_at_50%_34%,hsl(var(--background)/0.55)_0%,hsl(var(--background)/0.3)_55%,transparent_78%)]" />
         </div>
-      </section>
-
-      {/* Real product visual — elevated screenshot card sitting on a subtle
-          monochrome radial vignette (pure CSS, foreground at 4%). */}
-      <section
-        aria-label="Product preview"
-        className="relative mx-auto w-full max-w-5xl px-4 pb-16 sm:px-6"
-      >
-        <div
-          aria-hidden="true"
-          className="pointer-events-none absolute left-1/2 top-[-2rem] h-[26rem] w-[min(92%,44rem)] -translate-x-1/2 bg-[radial-gradient(closest-side,hsl(var(--foreground)/0.04),transparent)]"
-        />
-        <div className="relative -mt-8 rounded-xl bg-card p-2 shadow-sm ring-1 ring-border dark:shadow-xl dark:shadow-black/20">
-          <Image
-            src={HERO_IMAGE.src}
-            alt={HERO_IMAGE.alt}
-            width={HERO_IMAGE.width}
-            height={HERO_IMAGE.height}
-            priority
-            className="h-auto w-full rounded-lg"
-          />
-        </div>
-        <p className="mt-3 text-center font-mono text-[11px] text-muted-foreground">
-          Live market view · Yahoo Finance · as-of labeled
-        </p>
-      </section>
-
-      {/* Traditional vs tokenized — interactive comparison (moved from /etfs),
-          its own quiet section between the hero visual and the gateway. */}
-      <section
-        aria-label="Traditional vs tokenized ETFs"
-        className="border-t border-border py-16 dark:border-border/60"
-      >
-        <div className="mx-auto max-w-3xl px-4 sm:px-6">
-          <p className="font-mono text-xs uppercase tracking-wide text-muted-foreground">
-            Traditional vs tokenized
+        <div className="relative z-10 mx-auto flex max-w-3xl flex-col items-center px-4 pb-20 pt-24 text-center sm:px-6 md:pt-32">
+          <p className="inline-flex items-center gap-2.5 rounded-md border border-primary/40 bg-accent/30 px-3.5 py-1 font-mono text-xs tracking-wide text-primary-text">
+            <span aria-hidden="true" className="leading-none text-primary">
+              //
+            </span>
+            Onchain strategy baskets · xStocks
+            <span aria-hidden="true" className="leading-none text-primary">
+              //
+            </span>
           </p>
-          <p className="mt-3 max-w-2xl text-balance text-base leading-7 text-muted-foreground">
-            The same underlying ETF, wrapped differently.
+          <h1 className="text-display text-glow mt-6 text-balance text-6xl leading-[1.08] md:text-7xl">
+            Create an index. Own your thesis.
+          </h1>
+          <p className="mt-5 max-w-xl text-base leading-7 text-muted-foreground md:text-lg md:leading-8">
+            Tokenized baskets of xStocks — immutable weights, capped fees,
+            permissionless redemption. Follow the traders behind them.
           </p>
-          <div className="mt-8">
-            <TraditionalVsTokenized />
+          <div className="mt-10 flex flex-wrap items-center justify-center gap-3">
+            <Link
+              href="/create"
+              className="glow-primary inline-flex h-10 items-center rounded-xl bg-primary px-5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+            >
+              Create an index
+            </Link>
+            <Link
+              href="/explore"
+              className="inline-flex h-10 items-center rounded-xl border border-border bg-transparent px-5 text-sm font-medium transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+            >
+              Explore baskets
+            </Link>
           </div>
         </div>
       </section>
 
-      {/* Section gateway — three bento cards, full-width of the container. */}
-      <section
-        aria-label="Explore FolioX"
-        className="border-t border-border py-16 dark:border-border/60"
-      >
-        <nav aria-label="Sections" className="mx-auto max-w-5xl px-4 sm:px-6">
-          <ul className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-            {SECTIONS.map((section) => (
-              <li key={section.href}>
-                <Link
-                  href={section.href}
-                  className="group flex min-h-36 flex-col justify-between gap-6 rounded-xl border border-border bg-card p-5 transition-colors hover:border-foreground/25 hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
-                >
-                  <div className="flex items-center justify-between">
-                    <span
-                      aria-hidden="true"
-                      className="font-mono text-xs text-muted-foreground"
-                    >
-                      {section.index}
-                    </span>
-                    <span
-                      aria-hidden="true"
-                      className="font-mono text-sm text-muted-foreground transition-all duration-200 group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:text-foreground"
-                    >
-                      ↗
-                    </span>
-                  </div>
-                  <SectionAnchor kind={section.anchor} />
-                  <div>
-                    <p className="text-lg font-medium leading-tight text-foreground">
-                      {section.name}
-                    </p>
-                    <p className="mt-1 text-sm leading-5 text-muted-foreground">
-                      {section.line}
-                    </p>
-                  </div>
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </nav>
-      </section>
+      {/* Live proof + steps — real trades and real returns from the social
+          API, before any process talk ("proof beats process", NEON FOUNDRY
+          2026-09-12). The PICK · OWN · SHARE steps strip lives inside this
+          section, below its grid (merged 2026-09-12; replaces the old
+          standalone Flow section). Each section fades up once on first
+          scroll into view (SectionReveal, wave-2). */}
+      <SectionReveal>
+        <LiveProofSection />
+      </SectionReveal>
+
+      {/* Ledger — same exposure, different rails. No card, no cell borders. */}
+      <SectionReveal>
+        <LedgerSection />
+      </SectionReveal>
+
+      {/* Intent cards — the closing gateway; the old asset-class strip became
+          intent routing (browse / follow / feed / build), NEON FOUNDRY 2026-09-12. */}
+      <SectionReveal>
+        <IntentCards />
+      </SectionReveal>
     </div>
   );
 }

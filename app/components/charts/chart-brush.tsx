@@ -195,19 +195,19 @@ export function ChartBrushLayout({
         <div className="mt-1 px-1">
           <div className="relative h-4 flex items-center">
             {/* track background */}
-            <div className="absolute left-0 right-0 h-1.5 rounded-full bg-muted" />
+            <div className="absolute left-0 right-0 h-1.5 rounded-sm bg-muted" />
             {/* selected range highlight */}
             <div
-              className="absolute h-1.5 rounded-full bg-primary/30 border border-primary/40"
+              className="absolute h-1.5 rounded-sm bg-primary/30 border border-primary/40"
               style={{ left: `${progressLeft}%`, right: `${100 - progressRight}%` }}
             />
             {/* thumb indicators */}
             <div
-              className="absolute h-3 w-1.5 -ml-0.5 rounded-full bg-primary shadow-sm border border-primary-foreground"
+              className="absolute h-3 w-1.5 -ml-0.5 rounded-sm bg-primary border border-primary-foreground"
               style={{ left: `${progressLeft}%` }}
             />
             <div
-              className="absolute h-3 w-1.5 -ml-0.5 rounded-full bg-primary shadow-sm border border-primary-foreground"
+              className="absolute h-3 w-1.5 -ml-0.5 rounded-sm bg-primary border border-primary-foreground"
               style={{ left: `${progressRight}%` }}
             />
             <input
@@ -231,7 +231,7 @@ export function ChartBrushLayout({
           </div>
 
           <div className="flex gap-2 mt-1">
-            <div className="flex-1 flex items-center gap-1.5 rounded border bg-card px-2 py-1">
+            <div className="flex-1 flex items-center gap-1.5 rounded-lg border bg-card px-2 py-1">
               <span className="h-1.5 w-1.5 rounded-full bg-primary shrink-0" aria-hidden="true" />
               <input
                 type="range"
@@ -243,7 +243,7 @@ export function ChartBrushLayout({
                 aria-label="Brush start (visible slider)"
               />
             </div>
-            <div className="flex-1 flex items-center gap-1.5 rounded border bg-card px-2 py-1">
+            <div className="flex-1 flex items-center gap-1.5 rounded-lg border bg-card px-2 py-1">
               <span className="h-1.5 w-1.5 rounded-full bg-primary shrink-0" aria-hidden="true" />
               <input
                 type="range"

@@ -32,6 +32,7 @@ import {
   unpackMint,
 } from "@solana/spl-token";
 import { isPgLike } from "../db/client.js";
+import { withRpcBackoff, createPacer } from "../rpc/backoff.js";
 
 /** Minimal structural slice of @solana/web3.js Connection used here. */
 export interface SolanaRpc {
@@ -84,7 +85,9 @@ export function parseMintDecimalsFromMintData(data: Buffer): number | null {
  */
 export async function fetchMintFacts(rpc: SolanaRpc, mint: PublicKey): Promise<MintFacts> {
   try {
-    const info = await rpc.getAccountInfo(mint);
+    const info = await withRpcBackoff(() => rpc.getAccountInfo(mint), {
+      logKey: "holdings:getAccountInfo",
+    });
     if (!info) {
       console.warn(`[holdings] mint ${mint.toBase58()} not found — multiplier 1.0, decimals 6 (fallback)`);
       return { multiplier: 1.0, decimals: 6 };
@@ -135,7 +138,9 @@ export function parseScaledUiMultiplierFromMintData(data: Buffer): number | null
  */
 export async function fetchMultiplier(rpc: SolanaRpc, mint: PublicKey): Promise<number> {
   try {
-    const info = await rpc.getAccountInfo(mint);
+    const info = await withRpcBackoff(() => rpc.getAccountInfo(mint), {
+      logKey: "holdings:getAccountInfo",
+    });
     if (!info) return 1.0;
     if (!info.owner.equals(TOKEN_2022_PROGRAM_ID)) return 1.0; // legacy SPL token
     return parseScaledUiMultiplierFromMintData(info.data) ?? 1.0;
@@ -186,15 +191,27 @@ export async function syncHoldings(
   basket: PublicKey,
   vaultAtas: PublicKey[],
   mints: PublicKey[],
-  opts: { db?: unknown } = {},
+  opts: { db?: unknown; spacingMs?: number } = {},
 ): Promise<HoldingsRow[]> {
   const db = isPgLike(opts?.db) ? opts.db : null;
+  // Optional pacing: minimum spacing between sequential RPC reads so a
+  // holdings pass cannot burst 10+ reads at a public RPC (default 0 = the
+  // unspaced legacy behavior; the devnet listener wires a small gap).
+  const pacer = createPacer(opts.spacingMs ?? 0);
   const facts = new Map<string, MintFacts>();
-  for (const mint of mints) facts.set(mint.toBase58(), await fetchMintFacts(rpc, mint));
+  for (const mint of mints) {
+    await pacer.wait();
+    facts.set(mint.toBase58(), await fetchMintFacts(rpc, mint));
+  }
 
   const infos: Array<AccountInfo<Buffer> | null> = [];
   for (const batch of chunk(vaultAtas, 100)) {
-    infos.push(...(await rpc.getMultipleAccountsInfo(batch)));
+    await pacer.wait();
+    infos.push(
+      ...(await withRpcBackoff(() => rpc.getMultipleAccountsInfo(batch), {
+        logKey: "holdings:getMultipleAccountsInfo",
+      })),
+    );
   }
 
   const rows: HoldingsRow[] = [];
@@ -289,19 +306,79 @@ export function u64LeBytes(value: string | bigint): Buffer {
 }
 
 /**
- * Basket PDA: seeds = ["basket", factory, creator, nonce_le]
- * (programs/basket_factory/src/lib.rs CreateBasket seeds).
+ * Basket PDA: seeds = ["basket", factory, creator, nonce_le] derived under
+ * the BASKET_FACTORY program id — the factory PDA-signs its own creation and
+ * the account is created with owner = basket program
+ * (programs/basket_factory/src/lib.rs create_basket: `basket_signer_seeds`
+ * + `create_account(..., &basket::ID)`). NOTE: the basket account's OWNER is
+ * the basket program, but its PDA derives under the factory program.
  */
 export function deriveBasketPda(factory: PublicKey, creator: PublicKey, nonce: string | bigint): PublicKey {
   return PublicKey.findProgramAddressSync(
     [Buffer.from("basket"), factory.toBuffer(), creator.toBuffer(), u64LeBytes(nonce)],
-    new PublicKey("6Q43vFh4aqGxzvtU2vQwJX9PmX3skfYsGWZdA3fwJB9k"), // basket program (Anchor.toml)
+    new PublicKey("3hzoPep9JKgTmzLT6CNW5x3EN7WNYDevM6KHVM7pLgMF"), // basket_factory program
   )[0];
 }
 
-/** Vault ATAs: basket PDA owns one ATA per constituent mint (Token-2022). */
+/**
+ * Vault authority PDA (the basket program's vault/share-mint authority):
+ * seeds = ["basket", basket_key] under the BASKET program id
+ * (programs/basket_factory/src/lib.rs vault_authority_pda).
+ */
+export function deriveVaultAuthority(basketPda: PublicKey): PublicKey {
+  return PublicKey.findProgramAddressSync(
+    [Buffer.from("basket"), basketPda.toBuffer()],
+    new PublicKey("6Q43vFh4aqGxzvtU2vQwJX9PmX3skfYsGWZdA3fwJB9k"), // basket program
+  )[0];
+}
+
+/** Vault ATAs: the vault authority owns one ATA per constituent (Token-2022). */
 export function getVaultAtas(basketPda: PublicKey, mints: PublicKey[]): PublicKey[] {
+  const vaultAuthority = deriveVaultAuthority(basketPda);
   return mints.map((mint) =>
-    getAssociatedTokenAddressSync(mint, basketPda, true, TOKEN_2022_PROGRAM_ID),
+    getAssociatedTokenAddressSync(mint, vaultAuthority, true, TOKEN_2022_PROGRAM_ID),
   );
+}
+
+/**
+ * Refresh vault_holdings for EVERY indexed basket: derive each basket PDA from
+ * its indexed (factory, creator, nonce), derive the constituent vault ATAs,
+ * re-read balances + mint facts from RPC and persist via syncHoldings (which
+ * also ensures the whitelisted_mints FK rows for constituents). This is the
+ * missing write path that turns indexed baskets into NAV-engine-ready
+ * holdings rows. Returns the number of baskets refreshed.
+ */
+export async function syncIndexedBaskets(
+  rpc: SolanaRpc,
+  db: unknown,
+  opts: { spacingMs?: number } = {},
+): Promise<number> {
+  if (!isPgLike(db)) {
+    console.warn("[holdings] syncIndexedBaskets skipped (no DB)");
+    return 0;
+  }
+  const res = await db.query(
+    `SELECT pubkey, factory, creator, nonce::text AS nonce, constituents FROM baskets`,
+  );
+  const baskets = res.rows as Array<{
+    pubkey: string;
+    factory: string;
+    creator: string;
+    nonce: string;
+    constituents: string[];
+  }>;
+  let refreshed = 0;
+  for (const b of baskets) {
+    try {
+      const basketPda = deriveBasketPda(new PublicKey(b.factory), new PublicKey(b.creator), b.nonce);
+      const mints = b.constituents.map((m) => new PublicKey(m));
+      const atas = getVaultAtas(basketPda, mints);
+      await syncHoldings(rpc, basketPda, atas, mints, { db, spacingMs: opts.spacingMs });
+      refreshed++;
+    } catch (err) {
+      console.warn(`[holdings] refresh failed for basket ${b.pubkey}:`,
+        err instanceof Error ? err.message : err);
+    }
+  }
+  return refreshed;
 }

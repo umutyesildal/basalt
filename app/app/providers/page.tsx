@@ -12,15 +12,14 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { truncateAddress } from "@/lib/format";
+import { apiFetch } from "@/lib/api-client";
 import { cn } from "@/lib/utils";
 
 export const metadata: Metadata = {
-  title: "Data providers — FolioX",
+  title: "Data providers — Basalt",
   description:
     "Source registry: Backed Finance (xStocks issuer), Jupiter, Yahoo Finance, and the Nasdaq benchmark, with status and freshness.",
 };
-
-const API_BASE = process.env.NEXT_PUBLIC_API || "http://localhost:3001";
 
 interface ProviderMint {
   ticker: string;
@@ -89,7 +88,7 @@ const ROLE_LABEL: Record<string, string> = {
 
 async function getJson<T>(path: string): Promise<T | null> {
   try {
-    const res = await fetch(`${API_BASE}${path}`, {
+    const res = await apiFetch(path, {
       cache: "no-store",
       signal: AbortSignal.timeout(8000),
       headers: { accept: "application/json" },
@@ -127,7 +126,7 @@ function StatusItem({ state, label }: { state: "on" | "off" | "unknown"; label: 
 /** Quiet bordered mono chip — health is unknown until monitoring exists. */
 function UnknownChip() {
   return (
-    <span className="inline-flex h-5 items-center rounded-4xl border border-border px-2 font-mono text-xs text-muted-foreground">
+    <span className="inline-flex h-5 items-center rounded-md border border-border px-2 font-mono text-xs text-muted-foreground">
       unknown
     </span>
   );
@@ -169,7 +168,7 @@ export default async function ProvidersPage() {
   return (
     <div>
       <header className="pb-10">
-        <h1 className="text-3xl font-semibold tracking-tight">Providers</h1>
+        <h1 className="font-display text-3xl font-semibold">Providers</h1>
         <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
           Every quoted figure names its source — issuer, token price, equity price, benchmark.
         </p>
@@ -177,7 +176,7 @@ export default async function ProvidersPage() {
 
       {/* Backend status — observed live from /api/v1/health. */}
       <section aria-labelledby="backend-status" className="border-t border-border py-10">
-        <h2 id="backend-status" className="text-sm font-medium tracking-tight">
+        <h2 id="backend-status" className="font-display text-sm font-medium">
           Backend status
         </h2>
         <div className="mt-4 flex flex-wrap items-center gap-x-6 gap-y-2">
@@ -202,7 +201,7 @@ export default async function ProvidersPage() {
       {/* Source registry */}
       <section aria-labelledby="source-registry" className="border-t border-border py-10">
         <div className="flex flex-col gap-2 sm:flex-row sm:items-baseline sm:justify-between">
-          <h2 id="source-registry" className="text-sm font-medium tracking-tight">
+          <h2 id="source-registry" className="font-display text-sm font-medium">
             Source registry
           </h2>
           <FreshnessBadge
@@ -289,7 +288,7 @@ export default async function ProvidersPage() {
 
       {/* xStock instruments */}
       <section aria-labelledby="xstock-instruments" className="border-t border-border py-10">
-        <h2 id="xstock-instruments" className="text-sm font-medium tracking-tight">
+        <h2 id="xstock-instruments" className="font-display text-sm font-medium">
           xStock instruments
         </h2>
         <p className="mt-2 text-xs text-muted-foreground">

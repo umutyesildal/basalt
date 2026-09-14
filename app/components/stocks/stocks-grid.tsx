@@ -3,157 +3,142 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 
-import { EmptyState, ErrorState, FreshnessBadge } from "@/components/states";
-import { Skeleton } from "@/components/states/skeleton";
-import { tickerFromRow, type WhitelistRow } from "@/components/create/types";
+import { EmptyState, FreshnessBadge } from "@/components/states";
+import { SkeletonShimmer } from "@/components/ui/skeleton-shimmer";
 import { cn } from "@/lib/utils";
 import { StockCard } from "@/components/stocks/stock-card";
+import {
+  MOCK_XSTOCK_FALLBACK,
+  fetchMockXStockCatalog,
+  type MockCatalogEntry,
+} from "@/lib/xstock-catalog";
+import {
+  fetchDailyCloseSeries,
+  mapLimit,
+  underlyingFromPriceSource,
+  type DailyCloseSeries,
+} from "@/lib/price-series";
 
-const API_BASE = process.env.NEXT_PUBLIC_API || "http://localhost:3001";
-const CHART_RANGE = "1mo";
+/**
+ * Where the grid's rows came from — shown verbatim in the freshness badge:
+ *  - "catalog": the backend dev catalog (/api/v1/xstocks/mock, 12 mock
+ *    xStocks with deterministic dev-catalog prices, explicitly not live) —
+ *    plus real Yahoo daily closes for the 7d sparkline / changes;
+ *  - "static": the built-in ticker list with no prices, used only when the
+ *    API is unreachable.
+ */
+type DataSource = "catalog" | "static";
 
 type GridStatus = "loading" | "error" | "empty" | "ready";
 
 interface StockCardData {
   ticker: string;
   provider: string;
-  /** Last token price (Jupiter reference) — null when the quote is unavailable. */
+  /** Dev-catalog USD price — null renders an em dash, never a guess. */
   price: number | null;
-  /** 24h change in percent, from underlying equity daily closes. */
+  /** 24h change from underlying equity closes (Yahoo) — null hides the cell. */
   changePct: number | null;
-  /** Underlying equity daily closes for the mute sparkline (may be empty). */
+  /** 7-session change from the same closes — null renders the "7d —" surface. */
+  change7d: number | null;
+  /** Underlying daily closes, oldest → newest (empty = no chart slot fill). */
   sparkline: number[];
 }
 
-interface ChartResult {
-  closes: number[];
-  lastTs?: number;
-}
-
-interface ComparePayload {
-  data?: { ticker: string; jupiter: number | null }[];
-}
-
-interface ChartPayload {
-  data?: {
-    yahoo?: { candles?: { ts: number; close: number }[] | null } | null;
-  } | null;
-}
+/** Bounded concurrency for the per-ticker series batch (dev catalog = 12). */
+const SERIES_CONCURRENCY = 4;
 
 const filterButtonClasses = (active: boolean) =>
   cn(
     // 40px tall on phones (touch), back to the compact 32px from sm up.
-    "inline-flex h-8 max-md:h-10 items-center rounded-md border px-3 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50",
+    "inline-flex h-8 max-md:h-10 items-center rounded-lg border px-3 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50",
     active
-      ? "border-primary bg-primary text-primary-foreground"
+      ? "border-primary/60 bg-accent text-accent-foreground"
       : "border-border bg-card text-muted-foreground hover:bg-muted hover:text-foreground",
   );
 
+const SOURCE_BADGE: Record<DataSource, string> = {
+  catalog: "dev catalog · mock prices (not live)",
+  static: "static dev list — API unreachable",
+};
+
+// Owner feedback 2026-09-14: bigger cards — three columns max, airier gaps.
+const GRID_CLASS = "grid gap-4 sm:grid-cols-2 lg:grid-cols-3";
+
 /**
- * /stocks grid — fetches the instrument list (/api/v1/whitelist), the
- * ticker→provider mapping (/api/v1/providers registry), last token prices
- * (/api/v1/prices/compare) and underlying equity closes
- * (/api/v1/prices/chart) with the same endpoints the stock detail and
- * providers pages use. Provider filter is client-side over the fetched list.
+ * /stocks grid — renders N tokenized stocks from the backend dev catalog
+ * (GET /api/v1/xstocks/mock — the 12-stock mock xStock universe). Prices come
+ * from the catalog; the 7-session sparkline and 24h/7d changes come per
+ * ticker from real Yahoo daily closes (GET /api/v1/prices/chart?range=5d,
+ * fetched with bounded concurrency — lib/price-series.ts). When the API is
+ * unreachable it degrades to the built-in static ticker list with no prices,
+ * labeled "static dev list — API unreachable". The grid wraps at any N;
+ * nothing assumes a fixed count.
  */
 export function StocksGrid() {
   const [status, setStatus] = useState<GridStatus>("loading");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [cards, setCards] = useState<StockCardData[]>([]);
-  const [whitelistSource, setWhitelistSource] = useState<string | null>(null);
+  const [dataSource, setDataSource] = useState<DataSource>("catalog");
+  const [seriesAsOf, setSeriesAsOf] = useState<number | undefined>(undefined);
   const [providerFilter, setProviderFilter] = useState<string>("all");
-  const [meta, setMeta] = useState<{ hasPrice: boolean; hasChart: boolean; asOf?: number }>({
-    hasPrice: false,
-    hasChart: false,
-  });
 
   const load = useCallback(async () => {
     setStatus("loading");
     setErrorMessage(null);
     setProviderFilter("all");
+    setSeriesAsOf(undefined);
     try {
-      const wlRes = await fetch(`${API_BASE}/api/v1/whitelist`, { cache: "no-store" });
-      if (!wlRes.ok) {
-        throw new Error(`GET /api/v1/whitelist responded ${wlRes.status}.`);
+      const catalog = await fetchMockXStockCatalog();
+      let entries: MockCatalogEntry[];
+      let source: DataSource;
+      if (catalog) {
+        entries = catalog;
+        source = "catalog";
+      } else {
+        // Backend unreachable (or empty payload) — static ticker list, no prices.
+        entries = [...MOCK_XSTOCK_FALLBACK];
+        source = "static";
       }
-      const wlPayload = (await wlRes.json()) as { data?: WhitelistRow[]; source?: string | null };
-      const rows = Array.isArray(wlPayload.data) ? wlPayload.data : [];
-      setWhitelistSource(wlPayload.source ?? "whitelist-api");
+      setDataSource(source);
 
-      const tickers = Array.from(
-        new Set(rows.map(tickerFromRow).filter((t) => !t.includes("…"))),
-      );
-      if (tickers.length === 0) {
+      if (entries.length === 0) {
         setCards([]);
         setStatus("empty");
         return;
       }
 
-      // Ticker → provider name from the source registry. Best effort: an
-      // unreachable registry leaves the group as "Unmapped" rather than a guess.
-      const providerByTicker = new Map<string, string>();
-      try {
-        const regRes = await fetch(`${API_BASE}/api/v1/providers`, { cache: "no-store" });
-        if (regRes.ok) {
-          const reg = (await regRes.json()) as {
-            data?: { name: string; mints?: { ticker?: string }[] | null }[];
-          };
-          for (const p of reg.data ?? []) {
-            for (const m of p.mints ?? []) {
-              if (m.ticker) providerByTicker.set(m.ticker, p.name);
-            }
-          }
-        }
-      } catch {
-        // Registry is optional metadata — never blocks the grid.
+      // Real underlying series per ticker; the static fallback skips the
+      // batch — the same unreachable backend would only produce failures.
+      let seriesList: (DailyCloseSeries | null)[] = entries.map(() => null);
+      if (source === "catalog") {
+        seriesList = await mapLimit(entries, SERIES_CONCURRENCY, (entry) =>
+          fetchDailyCloseSeries(entry.ticker, underlyingFromPriceSource(entry.priceSource)),
+        );
       }
 
-      const [compareRows, charts] = await Promise.all([
-        fetchCompare(tickers),
-        Promise.all(tickers.map((t) => fetchChart(t))),
-      ]);
-
-      const priceByTicker = new Map(compareRows.map((r) => [r.ticker, r.jupiter]));
-      let hasPrice = false;
-      let hasChart = false;
-      let asOf: number | undefined;
-
-      const built: StockCardData[] = tickers.map((ticker, i) => {
-        const chart = charts[i];
-        const closes = chart.closes;
-        if (chart.lastTs !== undefined && (asOf === undefined || chart.lastTs > asOf)) {
-          asOf = chart.lastTs;
-        }
-        if (closes.length >= 2) hasChart = true;
-        const price = priceByTicker.get(ticker) ?? null;
-        if (price !== null) hasPrice = true;
-        let changePct: number | null = null;
-        if (closes.length >= 2 && closes[closes.length - 2] !== 0) {
-          changePct =
-            ((closes[closes.length - 1] - closes[closes.length - 2]) /
-              closes[closes.length - 2]) *
-            100;
-        }
-        return {
-          ticker,
-          provider: providerByTicker.get(ticker) ?? "Unmapped",
-          price,
-          changePct,
-          sparkline: closes.slice(-30),
-        };
-      });
-
-      built.sort(
-        (a, b) => a.provider.localeCompare(b.provider) || a.ticker.localeCompare(b.ticker),
+      let asOf = 0;
+      setCards(
+        entries.map((entry, i) => {
+          const series = seriesList[i];
+          if (series?.lastTs && series.lastTs > asOf) asOf = series.lastTs;
+          return {
+            ticker: entry.ticker,
+            provider:
+              entry.priceUsd !== null ? "mock xStock · dev catalog" : "static dev list",
+            price: entry.priceUsd,
+            changePct: series?.changePct24h ?? null,
+            change7d: series?.changePct7d ?? null,
+            sparkline: series?.closes ?? [],
+          };
+        }),
       );
-      setCards(built);
+      if (asOf > 0) setSeriesAsOf(asOf);
       setStatus("ready");
-      setMeta({ hasPrice, hasChart, asOf });
     } catch (error) {
       setCards([]);
       setStatus("error");
       setErrorMessage(
-        error instanceof Error ? error.message : "The tokenized-stock endpoints did not respond.",
+        error instanceof Error ? error.message : "The stock catalog did not respond.",
       );
     }
   }, []);
@@ -171,20 +156,32 @@ export function StocksGrid() {
       providerFilter === "all" ? cards : cards.filter((c) => c.provider === providerFilter),
     [cards, providerFilter],
   );
+  const hasSeries = useMemo(() => cards.some((c) => c.sparkline.length >= 2), [cards]);
 
   if (status === "loading") {
     return (
       <div
         role="status"
         aria-label="Loading tokenized stocks"
-        className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
+        className={GRID_CLASS}
       >
         {Array.from({ length: 6 }, (_, i) => (
-          <div key={i} aria-hidden="true" className="rounded-lg border border-border bg-card p-5">
-            <Skeleton className="h-4 w-16" />
-            <Skeleton className="mt-1.5 h-3 w-24" />
-            <Skeleton className="mt-4 h-7 w-28" />
-            <Skeleton className="mt-3 h-8 w-full" />
+          <div key={i} aria-hidden="true" className="rounded-xl border border-border bg-card p-5">
+            {/* Headline = [28px logo circle] ticker + context column (AssetCard anatomy). */}
+            <div className="flex items-center gap-2.5">
+              <SkeletonShimmer
+                width="1.75rem"
+                height="1.75rem"
+                rounded="none"
+                className="shrink-0 rounded-full"
+              />
+              <div className="min-w-0 space-y-1.5">
+                <SkeletonShimmer width="4.5rem" height="1.25rem" />
+                <SkeletonShimmer width="6rem" height="0.75rem" />
+              </div>
+            </div>
+            <SkeletonShimmer width="7rem" height="1.75rem" className="mt-5" />
+            <SkeletonShimmer height="2.25rem" className="mt-4" />
           </div>
         ))}
       </div>
@@ -193,10 +190,10 @@ export function StocksGrid() {
 
   if (status === "error") {
     return (
-      <ErrorState
+      <EmptyState
+        chip="UNAVAILABLE"
         title="Tokenized stocks unavailable"
-        message={errorMessage ?? undefined}
-        onRetry={() => void load()}
+        description={errorMessage ?? "The dev catalog did not respond."}
       />
     );
   }
@@ -206,7 +203,7 @@ export function StocksGrid() {
       <EmptyState
         chip="EMPTY"
         title="No tokenized stocks listed"
-        description="The whitelist is reachable but lists no priced instruments yet."
+        description="The dev catalog responded but lists no instruments yet."
         action={
           <Link
             href="/providers"
@@ -218,11 +215,6 @@ export function StocksGrid() {
       />
     );
   }
-
-  const badgeSource =
-    [meta.hasPrice ? "Jupiter" : null, meta.hasChart ? "Yahoo Finance" : null]
-      .filter(Boolean)
-      .join(" · ") || whitelistSource || "whitelist";
 
   return (
     <div className="space-y-4">
@@ -253,10 +245,22 @@ export function StocksGrid() {
         ) : (
           <span />
         )}
-        <FreshnessBadge source={badgeSource} asOf={meta.hasChart ? meta.asOf : undefined} />
+        <FreshnessBadge
+          source={
+            dataSource === "catalog" && hasSeries
+              ? "dev catalog · mock prices · Yahoo closes"
+              : SOURCE_BADGE[dataSource]
+          }
+          asOf={seriesAsOf}
+        />
       </div>
 
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+      {/* data-source/data-count make the grid's provenance assertable in DOM checks. */}
+      <div
+        data-source={dataSource}
+        data-count={visible.length}
+        className={GRID_CLASS}
+      >
         {visible.map((card) => (
           <StockCard
             key={card.ticker}
@@ -264,42 +268,11 @@ export function StocksGrid() {
             provider={card.provider}
             price={card.price}
             changePct={card.changePct}
+            change7d={card.change7d}
             sparkline={card.sparkline}
           />
         ))}
       </div>
     </div>
   );
-}
-
-async function fetchCompare(tickers: string[]): Promise<{ ticker: string; jupiter: number | null }[]> {
-  try {
-    const res = await fetch(
-      `${API_BASE}/api/v1/prices/compare?tickers=${encodeURIComponent(tickers.join(","))}`,
-      { cache: "no-store", signal: AbortSignal.timeout(8000), headers: { accept: "application/json" } },
-    );
-    if (!res.ok) return [];
-    const payload = (await res.json()) as ComparePayload;
-    return payload.data ?? [];
-  } catch {
-    return [];
-  }
-}
-
-async function fetchChart(ticker: string): Promise<ChartResult> {
-  try {
-    const res = await fetch(
-      `${API_BASE}/api/v1/prices/chart?ticker=${encodeURIComponent(ticker)}&range=${CHART_RANGE}`,
-      { cache: "no-store", signal: AbortSignal.timeout(8000), headers: { accept: "application/json" } },
-    );
-    if (!res.ok) return { closes: [] };
-    const payload = (await res.json()) as ChartPayload;
-    const candles = payload.data?.yahoo?.candles ?? [];
-    return {
-      closes: candles.map((c) => c.close),
-      lastTs: candles.length ? candles[candles.length - 1].ts : undefined,
-    };
-  } catch {
-    return { closes: [] };
-  }
 }

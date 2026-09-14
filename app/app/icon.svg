@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 32 32">
+  <!-- Basalt favicon (design-basalt-v1 §3): the BASALT MARK — three
+       hexagonal columns of descending height on a shared baseline — filled
+       electric-yellow #FCEE0A on a near-black #0A0A0B rounded square (rx 4).
+       Same 24x24 relative geometry as LogoMark in
+       components/shell/site-header.tsx, centered (mark bbox center 12,12)
+       and scaled 1.2x so the columns fill the 32px frame; solid fills read
+       cleanly down to the 16px tab size. Same mark also in apple-icon.tsx
+       and opengraph-image.tsx (those add the hexagonal cap-facet seam). -->
+  <rect width="32" height="32" rx="4" fill="#0A0A0B"/>
+  <g transform="translate(16 16) scale(1.2) translate(-12 -12)" fill="#FCEE0A">
+    <path d="M4.3 3.7 L6.5 2.5 L8.7 3.7 L8.7 21.5 L4.3 21.5 Z"/>
+    <path d="M9.8 10.7 L12 9.5 L14.2 10.7 L14.2 21.5 L9.8 21.5 Z"/>
+    <path d="M15.3 15.7 L17.5 14.5 L19.7 15.7 L19.7 21.5 L15.3 21.5 Z"/>
+  </g>
+</svg>

@@ -2,14 +2,15 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 import StockChart from "./StockChart";
-import MintCopyButton from "./MintCopyButton";
+import { IconCopyButton } from "@/components/ui/copy-button";
 import { FreshnessBadge } from "@/components/states";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardAction, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { RangeLinks } from "@/components/ui/range-links";
 import { formatUsd } from "@/lib/format";
-
-const API_BASE = process.env.NEXT_PUBLIC_API || "http://localhost:3001";
+import { fetchMockXStockCatalog, type MockCatalogEntry } from "@/lib/xstock-catalog";
+import { apiQuery } from "@/lib/api-client";
 
 const RANGES = ["1mo", "3mo", "6mo", "1y"] as const;
 
@@ -44,8 +45,9 @@ interface ComparePayload {
 
 async function getChart(ticker: string, range: string): Promise<ChartPayload["data"]> {
   try {
-    const res = await fetch(
-      `${API_BASE}/api/v1/prices/chart?ticker=${encodeURIComponent(ticker)}&range=${encodeURIComponent(range)}`,
+    const res = await apiQuery(
+      "/api/v1/prices/chart",
+      { ticker, range },
       { cache: "no-store", signal: AbortSignal.timeout(8000), headers: { accept: "application/json" } },
     );
     if (!res.ok) return null;
@@ -58,8 +60,9 @@ async function getChart(ticker: string, range: string): Promise<ChartPayload["da
 
 async function getCompare(ticker: string) {
   try {
-    const res = await fetch(
-      `${API_BASE}/api/v1/prices/compare?tickers=${encodeURIComponent(ticker)}`,
+    const res = await apiQuery(
+      "/api/v1/prices/compare",
+      { tickers: ticker },
       { cache: "no-store", signal: AbortSignal.timeout(8000), headers: { accept: "application/json" } },
     );
     if (!res.ok) return null;
@@ -70,6 +73,12 @@ async function getCompare(ticker: string) {
   }
 }
 
+/** Dev-catalog entry for a mock ticker (null when absent or API unreachable). */
+async function getMockEntry(ticker: string): Promise<MockCatalogEntry | null> {
+  const catalog = await fetchMockXStockCatalog();
+  return catalog?.find((entry) => entry.ticker === ticker) ?? null;
+}
+
 export async function generateMetadata({
   params,
 }: {
@@ -78,7 +87,7 @@ export async function generateMetadata({
   const { ticker: rawTicker } = await params;
   const ticker = decodeURIComponent(rawTicker);
   return {
-    title: `${ticker} — xStock vs real equity — FolioX`,
+    title: `${ticker} — xStock vs real equity — Basalt`,
     description: `Normalized price comparison for ${ticker}: xStock token vs the real equity vs the Nasdaq benchmark, plus volume.`,
   };
 }
@@ -93,9 +102,15 @@ export default async function StockPage({
   const { ticker: rawTicker } = await params;
   const sp = (await searchParams) ?? {};
   const ticker = decodeURIComponent(rawTicker);
-  const range = RANGES.includes(sp.range as (typeof RANGES)[number]) ? (sp.range as string) : "1mo";
+  const range = RANGES.includes(sp.range as (typeof RANGES)[number])
+    ? (sp.range as (typeof RANGES)[number])
+    : "1mo";
 
-  const [chart, compare] = await Promise.all([getChart(ticker, range), getCompare(ticker)]);
+  const [chart, compare, mockEntry] = await Promise.all([
+    getChart(ticker, range),
+    getCompare(ticker),
+    getMockEntry(ticker),
+  ]);
 
   const yahooSymbol = chart?.yahoo?.symbol ?? ticker.replace(/^x/i, "");
   const yahooCandles = chart?.yahoo?.candles ?? [];
@@ -123,33 +138,22 @@ export default async function StockPage({
         <FreshnessBadge source="Yahoo Finance" asOf={asOf} />
       </div>
 
-      <nav aria-label="Chart range" className="flex flex-wrap items-center gap-3">
-        <span className="text-xs text-muted-foreground">Range</span>
-        {RANGES.map((r) => (
-          <Link
-            key={r}
-            href={`/stock/${ticker}?range=${r}`}
-            aria-current={r === range ? "true" : undefined}
-            className={`text-xs transition-colors ${
-              r === range
-                ? "font-medium text-foreground"
-                : "text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            {r}
-          </Link>
-        ))}
+      <RangeLinks
+        options={RANGES}
+        value={range}
+        hrefFor={(r) => `/stock/${ticker}?range=${r}`}
+      >
         <Button render={<Link href="/market" />} variant="outline" size="xs" className="ml-2">
           Market overview
         </Button>
-      </nav>
+      </RangeLinks>
 
       {compare ? (
         <div className="grid gap-3 md:grid-cols-3">
           <Card className="h-full">
             <CardHeader className="pb-2">
               <CardAction>
-                {compare.mint ? <MintCopyButton value={compare.mint} /> : null}
+                {compare.mint ? <IconCopyButton value={compare.mint} iconOnly /> : null}
               </CardAction>
               <CardDescription>xStock (Jupiter)</CardDescription>
               <CardTitle className="font-mono text-2xl tabular-nums">
@@ -203,11 +207,27 @@ export default async function StockPage({
             </CardHeader>
           </Card>
         </div>
+      ) : mockEntry ? (
+        // Mock tickers are not on Jupiter — the dev catalog price is the only
+        // honest figure, rendered alone and labeled mock.
+        <div className="grid gap-3 md:grid-cols-2">
+          <Card className="h-full">
+            <CardHeader className="pb-2">
+              <CardDescription>Dev catalog (mock — not live)</CardDescription>
+              <CardTitle className="font-mono text-2xl tabular-nums">
+                {mockEntry.priceUsd !== null ? formatUsd(mockEntry.priceUsd) : "—"}
+              </CardTitle>
+              <CardDescription className="font-mono text-[11px]">
+                {mockEntry.priceSource || "mock"} · deterministic dev-catalog price
+              </CardDescription>
+            </CardHeader>
+          </Card>
+        </div>
       ) : null}
 
       <Card>
         <CardHeader className="pb-2">
-          <CardTitle className="text-base font-medium">Price comparison — {range} (normalized 100)</CardTitle>
+          <CardTitle className="font-display text-base font-medium">Price comparison — {range} (normalized 100)</CardTitle>
           <CardDescription className="text-xs leading-relaxed">
             xStock token (simulated in V0) · real equity · Nasdaq QQQ (dashed).
           </CardDescription>

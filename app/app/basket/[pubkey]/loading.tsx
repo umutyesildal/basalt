@@ -2,8 +2,8 @@ import { ChartBlockSkeleton, Skeleton, TableRowSkeleton } from "@/components/sta
 
 /**
  * Route-level loading for /basket/[pubkey] — mirrors the detail page shape:
- * name-first header, 4-metric strip, then hairline-divided sections (NAV
- * history hero card, compact holdings table). Child routes (buy/redeem)
+ * name-first header, 4-metric strip, then hairline-divided sections (share
+ * price history hero card, compact holdings table). Child routes (buy/redeem)
  * render their own in-page loading states.
  */
 export default function BasketLoading() {
@@ -15,7 +15,7 @@ export default function BasketLoading() {
       </div>
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         {["Share price", "AUM", "24h", "Supply"].map((label) => (
-          <div key={label} className="rounded-lg border border-border bg-card p-5">
+          <div key={label} className="rounded-xl border border-border bg-card p-5">
             <Skeleton className="h-3 w-16" />
             <Skeleton className="mt-2 h-7 w-24" />
           </div>
@@ -27,8 +27,8 @@ export default function BasketLoading() {
             <Skeleton className="h-4 w-24" />
             <Skeleton className="h-4 w-36" />
           </div>
-          <div className="rounded-xl bg-card p-5 shadow-sm ring-1 ring-border dark:shadow-xl dark:shadow-black/20">
-            <ChartBlockSkeleton label="Loading NAV history" />
+          <div className="hairline-primary rounded-xl bg-card p-5 ring-1 ring-border">
+            <ChartBlockSkeleton label="Loading share price history" />
           </div>
         </section>
         <section className="py-10">
@@ -36,7 +36,7 @@ export default function BasketLoading() {
             <Skeleton className="h-4 w-20" />
             <Skeleton className="h-3 w-48" />
           </div>
-          <div className="rounded-lg border border-border bg-card p-5">
+          <div className="rounded-xl border border-border bg-card p-5">
             <TableRowSkeleton rows={4} columns={5} label="Loading holdings" />
           </div>
         </section>

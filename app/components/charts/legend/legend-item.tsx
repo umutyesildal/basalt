@@ -20,7 +20,9 @@ export function LegendItem({ className = "", children }: LegendItemProps) {
     // biome-ignore lint/a11y/noStaticElementInteractions: Legend item hover interaction
     <div
       className={cn(
-        "cursor-pointer rounded-lg px-2 py-1.5 transition-all duration-150 ease-out",
+        // Hover only shifts background color — colors-only transition,
+        // no `transition-all` (brand ban).
+        "cursor-pointer rounded-lg px-2 py-1.5 transition-colors duration-150 ease-out motion-reduce:transition-none",
         isHovered && "bg-legend-muted",
         className
       )}

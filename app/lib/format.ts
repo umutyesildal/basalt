@@ -1,5 +1,5 @@
 /**
- * FolioX display formatting helpers.
+ * Basalt display formatting helpers.
  *
  * Pure functions only (no DOM, no React, no process) so they can be unit-tested
  * with vitest as-is. Crypto display conventions:
@@ -20,6 +20,17 @@ const ABBREVIATIONS = [
 
 /** Non-finite values render as an em dash instead of "NaN"/"Infinity". */
 export const NOT_A_NUMBER_LABEL = "—";
+
+/**
+ * Display casing for a ticker derived from a whitelist price_source slug
+ * ("mock:nvda" → "NVDA"). All-lowercase slugs are uppercased; anything that
+ * already has shape (mixed case like "TSLAx", or a mint fragment) passes
+ * through unchanged. Display-only — never sent on-chain.
+ */
+export function prettyTicker(ticker: string): string {
+  const t = ticker.trim();
+  return /^[a-z0-9_-]+$/.test(t) ? t.toUpperCase() : t;
+}
 
 /**
  * Format a token amount for display. Locale-aware grouping below 1M,
@@ -77,6 +88,18 @@ export function bpsToPercent(bps: number): number {
 /** Inverse of bpsToPercent. 1% -> 100 bps. */
 export function percentToBps(percent: number): number {
   return percent * 100;
+}
+
+/**
+ * Percent string from bps, LOCALE-INDEPENDENT: 1666 bps -> "16.67%"
+ * (always "." as the decimal separator). `toLocaleString` variants rendered
+ * "1.666 bps" for 1666 bps in dot-grouping locales (de/tr/es) — an integer
+ * weight misread as a fraction. Show this as the primary figure; put the raw
+ * bps value (String(bps), no grouping) in a title/tooltip.
+ */
+export function formatBpsAsPercent(bps: number, fractionDigits = 2): string {
+  if (!Number.isFinite(bps)) return NOT_A_NUMBER_LABEL;
+  return `${(bps / 100).toFixed(fractionDigits)}%`;
 }
 
 /**
@@ -160,4 +183,26 @@ export function formatAsOf(input: Date | number | string): string {
   if (Number.isNaN(date.getTime())) return "unknown";
   const iso = date.toISOString();
   return `${iso.slice(0, 10)} ${iso.slice(11, 16)} UTC`;
+}
+
+/**
+ * Coarse relative time for social timestamps ("just now", "5m ago", "3h ago",
+ * "12d ago"); older than 30 days falls back to the UTC date. Client-side only
+ * (social feeds are client components), `now` injectable for tests.
+ */
+export function formatRelativeTime(
+  input: Date | number | string,
+  now: Date = new Date(),
+): string {
+  const date = input instanceof Date ? input : new Date(input);
+  if (Number.isNaN(date.getTime())) return NOT_A_NUMBER_LABEL;
+  const seconds = Math.max(0, Math.floor((now.getTime() - date.getTime()) / 1000));
+  if (seconds < 45) return "just now";
+  const minutes = Math.floor(seconds / 60);
+  if (minutes < 60) return `${minutes}m ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  if (days < 30) return `${days}d ago`;
+  return date.toISOString().slice(0, 10);
 }

@@ -16,12 +16,13 @@ import type { WalletError } from "@solana/wallet-adapter-base";
 import { PhantomWalletAdapter } from "@solana/wallet-adapter-phantom";
 import { SolflareWalletAdapter } from "@solana/wallet-adapter-solflare";
 
+import { HandleOnboarding } from "@/components/social/handle-onboarding";
 import { RPC_ENDPOINT, describeWalletError } from "@/lib/wallet";
 
 /**
- * RPC endpoint: override with NEXT_PUBLIC_RPC_URL (e.g.
- * https://api.devnet.solana.com for devnet). Default is the localnet test
- * validator at http://127.0.0.1:8899 — see lib/wallet.ts.
+ * RPC endpoint + cluster: NEXT_PUBLIC_RPC_URL overrides the endpoint;
+ * NEXT_PUBLIC_CLUSTER (default "devnet") names the cluster used by the network
+ * indicator and every explorer link — see lib/wallet.ts.
  *
  * Wallets: Phantom + Solflare, auto-connect explicitly OFF. Connecting is
  * always an explicit user action from the header WalletButton. Wallet errors
@@ -50,10 +51,12 @@ export function AppProviders({ children }: { children: ReactNode }) {
         wallets={wallets}
         autoConnect={false}
         onError={handleWalletError}
-        localStorageKey="foliox:wallet"
+        localStorageKey="basalt:wallet"
       >
         <WalletFeedbackProvider sinkRef={feedbackSinkRef}>
           {children}
+          {/* Non-modal handle-claim nudge — needs the wallet context above. */}
+          <HandleOnboarding />
         </WalletFeedbackProvider>
       </WalletProvider>
     </ConnectionProvider>

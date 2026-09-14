@@ -1,16 +1,21 @@
 /**
- * Wallet / RPC helpers for FolioX.
+ * Wallet / RPC helpers for Basalt.
  *
- * `RPC_ENDPOINT` reads the NEXT_PUBLIC_RPC_URL env var (inlined by Next at
- * build time, safe in client and server bundles):
- *  - default: localnet test validator at http://127.0.0.1:8899
- *  - devnet:  set NEXT_PUBLIC_RPC_URL=https://api.devnet.solana.com
+ * Cluster wiring (both env vars are inlined by Next at build time, safe in
+ * client and server bundles):
+ *  - NEXT_PUBLIC_CLUSTER — explicit cluster: "localnet" | "devnet" |
+ *    "testnet" | "mainnet-beta". Default when unset: "devnet" (this is the
+ *    devnet-showcase repo state; explorer links and the network indicator
+ *    read CLUSTER, so every address/tx link carries ?cluster=devnet).
+ *  - NEXT_PUBLIC_RPC_URL — RPC endpoint override. When unset, the well-known
+ *    public endpoint for the resolved cluster is used (devnet →
+ *    https://api.devnet.solana.com). When set without NEXT_PUBLIC_CLUSTER,
+ *    the cluster label is derived from the endpoint host.
  *
  * The pure functions here are unit-testable with vitest as-is.
  */
 
-export const RPC_ENDPOINT =
-  process.env.NEXT_PUBLIC_RPC_URL ?? "http://127.0.0.1:8899";
+import { RpcRetriesExhaustedError } from "@/lib/rpc-retry";
 
 export type ClusterLabel =
   | "localnet"
@@ -19,11 +24,33 @@ export type ClusterLabel =
   | "mainnet-beta"
   | "custom";
 
+/** Well-known public RPC endpoint per cluster (localnet = test validator). */
+const DEFAULT_ENDPOINTS: Record<Exclude<ClusterLabel, "custom">, string> = {
+  localnet: "http://127.0.0.1:8899",
+  devnet: "https://api.devnet.solana.com",
+  testnet: "https://api.testnet.solana.com",
+  "mainnet-beta": "https://api.mainnet-beta.solana.com",
+};
+
+const KNOWN_CLUSTERS: readonly ClusterLabel[] = [
+  "localnet",
+  "devnet",
+  "testnet",
+  "mainnet-beta",
+];
+
+function normalizeCluster(value: string | undefined): ClusterLabel | null {
+  const v = value?.trim().toLowerCase();
+  return v && (KNOWN_CLUSTERS as readonly string[]).includes(v)
+    ? (v as ClusterLabel)
+    : null;
+}
+
 const LOCAL_HOST_PATTERN = /^(localhost|127\.0\.0\.1|0\.0\.0\.0|\[::1\]|::1)(:\d+)?$/;
 
 /**
- * Cluster label derived from the RPC endpoint host. Used by the header network
- * indicator so the label always reflects the endpoint actually in use.
+ * Cluster label derived from the RPC endpoint host. Used as the fallback when
+ * NEXT_PUBLIC_CLUSTER is unset but a custom RPC URL is configured.
  */
 export function clusterFromEndpoint(endpoint: string): ClusterLabel {
   if (!endpoint) return "custom";
@@ -41,17 +68,67 @@ export function clusterFromEndpoint(endpoint: string): ClusterLabel {
 }
 
 /**
+ * Resolved cluster for this build:
+ *  1. NEXT_PUBLIC_CLUSTER when it names a known cluster;
+ *  2. else the host of NEXT_PUBLIC_RPC_URL when that env var is set;
+ *  3. else "devnet" (the default for this repo state).
+ */
+export const CLUSTER: ClusterLabel =
+  normalizeCluster(process.env.NEXT_PUBLIC_CLUSTER) ??
+  (process.env.NEXT_PUBLIC_RPC_URL
+    ? clusterFromEndpoint(process.env.NEXT_PUBLIC_RPC_URL)
+    : "devnet");
+
+/** RPC endpoint actually used everywhere (providers, tx flows, health). */
+export const RPC_ENDPOINT: string =
+  process.env.NEXT_PUBLIC_RPC_URL ??
+  (CLUSTER === "custom" ? DEFAULT_ENDPOINTS.localnet : DEFAULT_ENDPOINTS[CLUSTER]);
+
+/**
+ * Explorer query fragment for the given cluster (?cluster=… — mainnet-beta
+ * needs none, localnet maps to ?cluster=custom&customUrl=<endpoint>).
+ * Single source of truth for every explorer link in the app.
+ */
+export function explorerClusterQuery(
+  cluster: ClusterLabel,
+  endpoint: string,
+): string {
+  switch (cluster) {
+    case "devnet":
+      return "?cluster=devnet";
+    case "testnet":
+      return "?cluster=testnet";
+    case "mainnet-beta":
+      return "";
+    case "localnet":
+      return `?cluster=custom&customUrl=${encodeURIComponent(endpoint)}`;
+    case "custom":
+    default:
+      // Unrecognized endpoint — fall back to host sniffing so a devnet URL
+      // passed via NEXT_PUBLIC_RPC_URL still lands on the right cluster.
+      return explorerClusterQuery(clusterFromEndpoint(endpoint), endpoint);
+  }
+}
+
+/**
  * Human-readable message for a wallet-adapter error. Covers the
- * rejected-signature/rejected-connection case explicitly; unknown errors fall
- * through to the wallet's own message.
+ * rejected-signature/rejected-connection case explicitly; rate-limited public
+ * RPC errors get calm honest copy (web3.js already retries internally with
+ * backoff — "Server responded with 429. Retrying after 4000ms delay…" is the
+ * shared api.devnet.solana.com limit, not a broken wallet); unknown errors
+ * fall through to the wallet's own message.
  */
 export function describeWalletError(
   error: { name?: string; message?: string } | null | undefined,
 ): string {
   if (!error) return "The wallet request failed.";
   const name = error.name ?? "";
-  const message = (error.message ?? "").toLowerCase();
-  if (message.includes("reject")) return "The request was rejected in the wallet.";
+  const message = error.message ?? "";
+  const lowered = message.toLowerCase();
+  if (isRateLimitErrorText(`${name} ${message}`)) {
+    return describeRpcRateLimit();
+  }
+  if (lowered.includes("reject")) return "The request was rejected in the wallet.";
   if (name === "WalletWindowClosedError") {
     return "The wallet window was closed before the request finished.";
   }
@@ -70,6 +147,49 @@ export function describeWalletError(
   if (name === "WalletDisconnectedError") {
     return "The wallet was disconnected.";
   }
-  const raw = error.message?.trim();
+  const raw = message.trim();
   return raw ? raw : "The wallet request failed.";
+}
+
+/** Matches HTTP 429 / rate-limit wording out of raw RPC or wallet errors. */
+function isRateLimitErrorText(text: string): boolean {
+  return /\b429\b|too many requests|rate.?limit/i.test(text);
+}
+
+/** True when an error is the public devnet RPC rate limit (429). */
+export function isRateLimitError(error: unknown): boolean {
+  if (!error) return false;
+  const text =
+    error instanceof Error
+      ? `${error.name} ${error.message}`
+      : typeof error === "string"
+        ? error
+        : String(error);
+  return isRateLimitErrorText(text);
+}
+
+/**
+ * Calm inline copy for rate-limit errors — the honest state: the public
+ * cluster is throttling shared traffic, and every transaction-flow RPC call is
+ * wrapped in the shared backoff loop (lib/rpc-retry withRetry: 6 attempts,
+ * 2s→4s→8s→16s→30s) before an error like this can surface at all.
+ */
+export function describeRpcRateLimit(endpoint: string = RPC_ENDPOINT): string {
+  return `The public RPC (${endpoint}) is rate-limiting shared traffic (429). The app retries with backoff automatically; this usually clears within a minute — no action needed.`;
+}
+
+/**
+ * Map a thrown error to display text: typed exhausted-retry copy first (its
+ * message already carries the real next action — never rewrite it back to
+ * "retrying automatically"), then calm copy for 429s, raw otherwise.
+ */
+export function describeRpcError(err: unknown): string {
+  if (
+    err instanceof Error &&
+    (err.name === "RpcRetriesExhaustedError" || err instanceof RpcRetriesExhaustedError)
+  ) {
+    return err.message;
+  }
+  if (isRateLimitError(err)) return describeRpcRateLimit();
+  return err instanceof Error ? err.message : String(err);
 }

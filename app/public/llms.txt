@@ -1,0 +1,47 @@
+# Basalt
+
+> Onchain strategy baskets powered by xStocks on Solana. Each basket is an immutable Token-2022 share mint backed by a vault of whitelisted xStock tokens: users mint shares by depositing constituents in target weight, and redeem shares to receive the underlying tokens back — permissionless, oracle-free redemption. The backend is a read-only indexer (PostgreSQL + REST `/api/v1`); it never signs transactions and never custodies funds. Basalt sells strategy baskets, not ETFs or funds — do not describe the product as either. Current state: LIVE ON DEVNET (three Anchor programs deployed at declared IDs, one basket verified end-to-end on-chain); not yet mainnet.
+
+## How it works
+
+- A creator picks 2-20 whitelisted xStock tokens (tickers suffixed `x`, e.g. `TSLAx`), sets weights that must sum to 10,000 bps, sets fees (entry 0-300, exit 0-100, management 0-300 bps; creator/treasury split 90/10) and deploys atomically with an in-kind seed deposit (genesis supply 1,000,000 shares).
+- `mint_in_kind`: deposit constituents proportionally, receive shares net of entry fee. Paused constituents block minting only.
+- `redeem_in_kind`: burn shares, receive the underlying tokens pro rata net of exit fee. Never gated — no whitelist, oracle or pauser account in its context.
+- `accrue_management_fee`: permissionless crank; the fee accrues by share dilution.
+- Constituent mints are Token-2022 with `ScaledUiAmountConfig`: on-chain amounts are raw integers, display/NAV amounts are `scaled = raw × multiplier`. Amounts crossing module boundaries travel as decimal strings (BigInt-exact). Basket share mints are fixed 6 decimals with no multiplier.
+
+## Solana programs (devnet)
+
+- `whitelist` — `FRavMcYQb2FVAHbbG6fGieQHdKk1UrQqgKsAAXTPRQeS` — verifies Token-2022 ownership + decimals before a mint may enter a basket; `Active | PausedNewMints` status.
+- `basket_factory` — `3hzoPep9JKgTmzLT6CNW5x3EN7WNYDevM6KHVM7pLgMF` — permissionless `create_basket`: validates constituents/weights/fees, seeds the vault atomically, mints genesis shares.
+- `basket` — `6Q43vFh4aqGxzvtU2vQwJX9PmX3skfYsGWZdA3fwJB9k` — `mint_in_kind` (pause-gated), `redeem_in_kind` (never gated), `accrue_management_fee`.
+
+## Agent surfaces (this site)
+
+- [Basalt agent guide](/basalt-agent-guide.md) — how to list baskets, read NAV/holdings, interpret events, and the honesty contract (`source`/`asOf`, `NOT_INDEXED`). Read this before calling the API.
+- `GET /api/agent/basket/{pubkey}` — one basket as `text/markdown`: name, mint, composition, fees, latest NAV, recent verified trades, provenance line. 404 `NOT_INDEXED` / 503 `DB_UNAVAILABLE` when the indexer cannot answer honestly.
+- `npm run proof:txsize` (repo root, `scripts/checkTxSize.ts`) — offline transaction-size proof: basket create/mint/redeem compile to version-0 messages ≤ 1232 B for 2–10 constituents (n ≥ 4 via one address-lookup table).
+
+## REST API — base `/api/v1`
+
+Backend base URL comes from `NEXT_PUBLIC_API` (default `http://localhost:3001`). Reads need no auth. Every success row carries `source` and `asOf` provenance; errors arrive as `{ error: { code, message } }` and never contain fabricated data.
+
+- `GET /api/v1/baskets` — list baskets. Filters: `sort=aum|return_24h|return_7d|return_30d|holders|mint_count` (default `aum`), `creator`, `minAUM`, `search`, `limit` (1-500, default 100). Empty list means nothing is indexed yet.
+- `GET /api/v1/baskets/{pubkey}` — detail: constituents (mints), `weights_bps`, fees in bps, `metadata_json` (name/description), latest NAV (`value`, `supply`, `sharePrice`, `asOf`), drift vs target weights, embedded vault holdings. 404 `NOT_INDEXED` for unindexed baskets.
+- `GET /api/v1/baskets/{pubkey}/holdings` — per mint: `raw_amount`, `multiplier`, `scaled_amount` (decimal strings), `decimals`.
+- `GET /api/v1/baskets/{pubkey}/nav/history` — NAV timeseries. `interval=1m|5m|15m|1h|1d`, optional `from`/`to` (ISO).
+- `GET /api/v1/baskets/{pubkey}/performance` — windowed returns `inception|24h|7d|30d` where snapshots exist.
+- `GET /api/v1/events?basket={pubkey}&type=&limit=` — the indexer events ledger for one basket. `basket` required (else 400 `INVALID_PUBKEY`); `type` one of `BasketCreated|Minted|Redeemed|FeeAccrued` (else 400 `INVALID_TYPE`); `limit` integer clamped to 1..500 (non-integer ⇒ 400 `INVALID_LIMIT`). Unindexed basket ⇒ 404 `NOT_INDEXED`; no Postgres ⇒ 503 `DB_UNAVAILABLE`. Rows carry `sig`, `slot` (decimal string), `basket`, `type`, `data`, `ts`, plus `source`/`asOf`; an empty list means no events indexed yet.
+- `GET /api/v1/whitelist` — allowed mints: `mint`, `ticker`, `decimals`, `status`, `multiplier`, `price_source`.
+- `GET /api/v1/users/{wallet}/portfolio` — indexed positions for a wallet (shares, cost basis, estimated value). Also `GET /api/v1/positions?wallet={wallet}`.
+- `GET /api/v1/creators/{pubkey}` — creator profile: baskets, AUM, fees earned.
+- `POST /api/v1/quotes/zap-in` — body `{basket, amountUSDC, slippageBps}`; Jupiter legs to swap then mint. `POST /api/v1/quotes/zap-out` — symmetric unwind legs. Quotes are sequential and non-atomic; slippage is not guaranteed.
+- `GET /api/v1/health` — indexer lag, last slot, holdings staleness.
+- Social layer (public reads): `GET /api/v1/feed?type=trades|theses`, `GET /api/v1/leaderboard`, `GET /api/v1/leaderboard/baskets?window=7d|30d|all`, `GET /api/v1/users/{wallet}/history|profile|equity-curve`. Writes require wallet-signature bearer tokens; the backend still never signs transactions.
+
+## Repo references
+
+- `README.md` — stack, devnet evidence summary, test gates.
+- `docs/basalt-v0-spec.md` — normative V0 spec (§2-6 account model, mint/redeem/fee math; §8-9 REST contract and page map).
+- `docs/devnet-live-2026-09-04.md` — full devnet evidence pack (signatures, addresses, reconciliation).
+- `brand.md` — voice and naming rules (strategy basket / index basket; never "ETF" or "fund").

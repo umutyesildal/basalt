@@ -54,12 +54,12 @@ export function SummaryRail({
     <aside
       aria-label="Basket summary"
       className={cn(
-        "flex h-fit flex-col gap-4 rounded-lg border border-border bg-card p-5 text-sm",
+        "flex h-fit flex-col gap-4 rounded-xl border border-border bg-card p-5 text-sm",
         className,
       )}
     >
       <div>
-        <p className="text-xs uppercase tracking-wide text-muted-foreground">Basket</p>
+        <p className="section-label">Basket</p>
         <p className="mt-1 truncate font-medium">{summary.basketName || "Untitled basket"}</p>
       </div>
 
@@ -78,7 +78,8 @@ export function SummaryRail({
               : "text-muted-foreground",
           )}
         >
-          {summary.weightSum.toLocaleString()} / 10,000 bps
+          {/* raw bps without locale grouping — grouping made 1666 read as "1.666" */}
+          {String(summary.weightSum)} / 10,000 bps
         </dd>
         {feeRows.map(([label, value, cap]) => (
           <div key={label} className="col-span-2 grid grid-cols-[subgrid]">
@@ -137,7 +138,7 @@ export function SummaryRail({
             "text-right font-mono tabular-nums",
             txSize > 1232 && "text-muted-foreground",
           )}
-          title="v0 transaction, no address lookup tables; the 1232-byte packet limit applies"
+          title="Legacy-shaped size estimate; above the 1232-byte packet limit the deploy step compiles through an address lookup table automatically"
         >
           ~{txSize.toLocaleString()} B
         </dd>
@@ -151,7 +152,7 @@ export function SummaryRail({
             <li key={label} className="flex items-center justify-between gap-2">
               <span
                 className={cn(
-                  state === "current" && "font-medium text-foreground",
+                  state === "current" && "font-medium text-primary-text",
                   state === "done" && "text-muted-foreground",
                   state === "upcoming" && "text-muted-foreground/70",
                 )}
@@ -163,7 +164,7 @@ export function SummaryRail({
                   className={cn(
                     "font-mono tabular-nums",
                     valid
-                      ? "text-foreground"
+                      ? "text-primary-text"
                       : "text-muted-foreground/60",
                   )}
                 >
