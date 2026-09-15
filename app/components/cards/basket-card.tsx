@@ -173,7 +173,12 @@ export function BasketCard({
             </div>
           ) : null}
           {!unavailable ? (
-            <span className={cn("mt-2 block", MICRO_LABEL_CLASS)}>
+            <span
+              className={cn(
+                "mt-2 block text-[0.6rem] leading-3 text-muted-foreground/60",
+                MICRO_LABEL_CLASS,
+              )}
+            >
               NAV priced from live market data
             </span>
           ) : null}

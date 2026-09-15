@@ -3,6 +3,7 @@
 import { useState } from "react";
 
 import { logoUrl } from "@/lib/logos";
+import { tickerColor } from "@/lib/ticker-color";
 import { cn } from "@/lib/utils";
 
 /**
@@ -11,10 +12,11 @@ import { cn } from "@/lib/utils";
  * weights (`flex-grow: weight`), each block filled with the constituent's
  * color, carrying its logo + mono symbol.
  *
- * Color contract (brand rules — colors are DATA colors, never chrome): a
- * constituent without an explicit color draws from the card chart palette
- * `--chart-1..5` in list order, the same five tokens composition-chips'
- * fallback avatars use. Logos come from the Parqet CDN (app/lib/logos.ts);
+ * Color contract (owner feedback 2026-09-15 — calm + stable): a constituent
+ * without an explicit color takes `tickerColor(symbol)` — a deterministic
+ * muted hue, so the same ticker is the same color in every basket, every
+ * view (lib/ticker-color.ts). The logo-derived variant is documented there;
+ * the Parqet CDN's missing CORS header rules it out client-side. Logos come from the Parqet CDN (app/lib/logos.ts);
  * on load failure the block drops to the same letter-chip fallback pattern
  * (deterministic initials on neutral chrome — "logo chips sit on neutral
  * chrome so brand marks float clean").
@@ -49,14 +51,6 @@ export interface WeightBarProps {
   className?: string;
 }
 
-/** Chart palette slots in order — same five tokens as composition-chips. */
-const CHART_SLOTS = [
-  "hsl(var(--chart-1))",
-  "hsl(var(--chart-2))",
-  "hsl(var(--chart-3))",
-  "hsl(var(--chart-4))",
-  "hsl(var(--chart-5))",
-] as const;
 
 /** Below this weight the symbol label hides (block too narrow to read). */
 const SYMBOL_MIN_WEIGHT = 8;
@@ -179,7 +173,7 @@ export function WeightBar({ constituents, legend = false, className }: WeightBar
           <WeightBlock
             key={`${c.symbol}-${i}`}
             constituent={c}
-            color={c.color ?? CHART_SLOTS[i % CHART_SLOTS.length]}
+            color={c.color ?? tickerColor(c.symbol)}
           />
         ))}
       </div>
@@ -189,7 +183,7 @@ export function WeightBar({ constituents, legend = false, className }: WeightBar
             <LegendItem
               key={`${c.symbol}-${i}`}
               constituent={c}
-              color={c.color ?? CHART_SLOTS[i % CHART_SLOTS.length]}
+              color={c.color ?? tickerColor(c.symbol)}
             />
           ))}
         </div>
