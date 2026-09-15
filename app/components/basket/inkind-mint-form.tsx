@@ -585,9 +585,14 @@ export function InKindMintForm({
 
         {/* live fee preview — spec §5.2 entry math on the validated set:
             gross = min(D_i·S/V_i), fee = floor(gross × bps / 10_000). Hidden
-            unless every leg is filled and the 1% tolerance passes. */}
+            unless every leg is filled and the 1% tolerance passes. The "1
+            transaction" micro label is this form's honest privilege over the
+            zap flow: the mint is a single transaction (missing ATAs are
+            created idempotently inside that same tx; the one-time lookup-table
+            setup, when it applies, is disclosed separately below). */}
         {check?.ok ? (
           <TradeFeePreview
+            label="Fee preview · 1 transaction"
             rows={[
               {
                 label: "Gross shares",

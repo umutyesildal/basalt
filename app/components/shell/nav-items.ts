@@ -13,6 +13,7 @@ export const PRIMARY_NAV: NavItem[] = [
   { href: "/explore", label: "Baskets" },
   { href: "/feed", label: "Feed" },
   { href: "/leaderboard", label: "Leaderboard" },
+  { href: "/activity", label: "Activity" },
 ];
 
 export const CONTEXT_ACTIONS: NavItem[] = [

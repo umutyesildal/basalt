@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 
 import BasketDetailClient from "./basket-detail-client";
+import BasketPageVerify from "@/components/basket/basket-page-verify";
 import { API_BASE } from "@/lib/api-client";
 import { formatBpsAsPercent, prettyTicker, truncateAddress } from "@/lib/format";
 import type { BasketDetail } from "@/components/basket/basket-api";
@@ -142,5 +143,17 @@ export default async function BasketPage({
 }) {
   const { pubkey: rawPubkey } = await params;
   const pubkey = decodeURIComponent(rawPubkey);
-  return <BasketDetailClient pubkey={pubkey} />;
+  // Best-effort gate for the "verify it yourself" block: it names real
+  // on-chain addresses, so it only mounts for baskets the indexer actually
+  // knows (same fetch + timeout policy as the metadata above — a failed fetch
+  // hides the block, never a fabricated address for a non-indexed mint).
+  const detail = await fetchBasketForMeta(pubkey);
+  return (
+    <div className="space-y-8">
+      <BasketDetailClient pubkey={pubkey} />
+      {detail ? (
+        <BasketPageVerify basket={detail.pubkey} shareMint={detail.share_mint} />
+      ) : null}
+    </div>
+  );
 }
