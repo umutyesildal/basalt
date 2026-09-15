@@ -1,7 +1,7 @@
 /**
  * workers/mockPriceFill.ts — mock-catalog price fill for the NAV engine.
  *
- * On devnet the xStock universe is 12 mock Token-2022 mints whose whitelist
+ * On devnet the xStock universe is 36 mock Token-2022 mints whose whitelist
  * rows carry price_source "mock:<slug>" (catalog/mockStocks.ts). Jupiter has
  * no prices for devnet mints, so without this fill the NAV engine would
  * honestly degrade to "no-prices" forever and the demo would never produce a

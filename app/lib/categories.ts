@@ -26,12 +26,14 @@ const CATEGORY_ORDER = [
   "Consumer",
   "Finance",
   "Crypto",
+  "Health",
+  "Energy",
   BASKET_CATEGORY_OTHER,
 ];
 
 /**
  * Ticker -> category. Keys are uppercase WITHOUT the xStocks "x" suffix
- * ("TSLAx" -> "TSLA"). Covers the 12-stock dev catalog plus the common
+ * ("TSLAx" -> "TSLA"). Covers the 36-stock dev catalog plus the common
  * xStocks names; everything else resolves to "Other".
  */
 const TICKER_CATEGORY: Record<string, string> = {
@@ -52,6 +54,9 @@ const TICKER_CATEGORY: Record<string, string> = {
   CRM: "Tech",
   ADBE: "Tech",
   PLTR: "Tech",
+  INTC: "Tech",
+  QCOM: "Tech",
+  TSM: "Tech",
   // Consumer
   TSLA: "Consumer",
   AMZN: "Consumer",
@@ -62,6 +67,11 @@ const TICKER_CATEGORY: Record<string, string> = {
   SBUX: "Consumer",
   COST: "Consumer",
   WMT: "Consumer",
+  UBER: "Consumer",
+  ABNB: "Consumer",
+  BA: "Consumer",
+  KO: "Consumer",
+  GME: "Consumer",
   // Finance
   JPM: "Finance",
   BAC: "Finance",
@@ -76,6 +86,12 @@ const TICKER_CATEGORY: Record<string, string> = {
   // Crypto-linked operating companies (exchange / treasury)
   COIN: "Crypto",
   MSTR: "Crypto",
+  // Health (added with the 24-stock expansion, 2026-09-15)
+  PFE: "Health",
+  JNJ: "Health",
+  // Energy
+  XOM: "Energy",
+  CVX: "Energy",
 };
 
 /** Uppercase ticker without the xStocks "x" suffix ("TSLAx" -> "TSLA"). */

@@ -1,7 +1,7 @@
 /**
  * Mock xStock catalog client (devnet demo universe).
  *
- * Reads GET /api/v1/xstocks/mock — the backend's 12-stock dev catalog
+ * Reads GET /api/v1/xstocks/mock — the backend's 36-stock dev catalog
  * (backend/src/catalog/mockStocks.ts): display ticker, whitelist price_source
  * ("mock:<slug>") and a deterministic dev-catalog USD price explicitly labeled
  * `source: "dev-catalog"` — NOT live market data.
@@ -26,7 +26,7 @@ export interface MockCatalogEntry {
 }
 
 /**
- * Static fallback for when the backend is unreachable: the 12 display tickers
+ * Static fallback for when the backend is unreachable: the 36 display tickers
  * of the dev catalog, no prices. Rendered honestly as "static dev list" —
  * symbols only, nothing fabricated.
  */
@@ -43,6 +43,30 @@ export const MOCK_XSTOCK_FALLBACK: readonly MockCatalogEntry[] = [
   { ticker: "MSTRx", priceSource: "mock:mstr", priceUsd: null },
   { ticker: "HOODx", priceSource: "mock:hood", priceUsd: null },
   { ticker: "SPYx", priceSource: "mock:spy", priceUsd: null },
+  { ticker: "ADBEx", priceSource: "mock:adbe", priceUsd: null },
+  { ticker: "NFLXx", priceSource: "mock:nflx", priceUsd: null },
+  { ticker: "ORCLx", priceSource: "mock:orcl", priceUsd: null },
+  { ticker: "CRMx", priceSource: "mock:crm", priceUsd: null },
+  { ticker: "INTCx", priceSource: "mock:intc", priceUsd: null },
+  { ticker: "QCOMx", priceSource: "mock:qcom", priceUsd: null },
+  { ticker: "AVGOx", priceSource: "mock:avgo", priceUsd: null },
+  { ticker: "TSMx", priceSource: "mock:tsm", priceUsd: null },
+  { ticker: "UBERx", priceSource: "mock:uber", priceUsd: null },
+  { ticker: "ABNBx", priceSource: "mock:abnb", priceUsd: null },
+  { ticker: "DISx", priceSource: "mock:dis", priceUsd: null },
+  { ticker: "BAx", priceSource: "mock:ba", priceUsd: null },
+  { ticker: "JPMx", priceSource: "mock:jpm", priceUsd: null },
+  { ticker: "Vx", priceSource: "mock:v", priceUsd: null },
+  { ticker: "WMTx", priceSource: "mock:wmt", priceUsd: null },
+  { ticker: "KOx", priceSource: "mock:ko", priceUsd: null },
+  { ticker: "MCDx", priceSource: "mock:mcd", priceUsd: null },
+  { ticker: "NKEx", priceSource: "mock:nke", priceUsd: null },
+  { ticker: "PFEx", priceSource: "mock:pfe", priceUsd: null },
+  { ticker: "JNJx", priceSource: "mock:jnj", priceUsd: null },
+  { ticker: "XOMx", priceSource: "mock:xom", priceUsd: null },
+  { ticker: "CVXx", priceSource: "mock:cvx", priceUsd: null },
+  { ticker: "PLTRx", priceSource: "mock:pltr", priceUsd: null },
+  { ticker: "GMEx", priceSource: "mock:gme", priceUsd: null },
 ] as const;
 
 interface MockCatalogPayload {

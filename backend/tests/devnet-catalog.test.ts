@@ -1,5 +1,5 @@
 /**
- * devnet-catalog.test.ts — devnet readiness for the 12-stock mock xStock
+ * devnet-catalog.test.ts — devnet readiness for the 36-stock mock xStock
  * universe. Pure / offline only (NO listening, NO RPC, NO real Postgres):
  *   1. catalog/mockStocks.ts — exactly 12 stocks, exact symbol → price_source
  *      mapping, deterministic prices, lookup helpers.
@@ -100,10 +100,10 @@ function baseReturning(quotes: PriceQuoteMap) {
 }
 
 // ============================================================================
-// 1. Catalog — the 12-stock mock xStock universe
+// 1. Catalog — the 36-stock mock xStock universe
 // ============================================================================
 
-describe("catalog/mockStocks — the 12-stock mock universe", () => {
+describe("catalog/mockStocks — the 36-stock mock universe", () => {
   const EXPECTED: Array<[string, string, number]> = [
     ["TSLAx", "mock:tsla", 250],
     ["NVDAx", "mock:nvda", 180],
@@ -117,11 +117,36 @@ describe("catalog/mockStocks — the 12-stock mock universe", () => {
     ["MSTRx", "mock:mstr", 130],
     ["HOODx", "mock:hood", 38],
     ["SPYx", "mock:spy", 560],
+    ["ADBEx", "mock:adbe", 380],
+    ["NFLXx", "mock:nflx", 750],
+    ["ORCLx", "mock:orcl", 170],
+    ["CRMx", "mock:crm", 280],
+    ["INTCx", "mock:intc", 22],
+    ["QCOMx", "mock:qcom", 165],
+    ["AVGOx", "mock:avgo", 1700],
+    ["TSMx", "mock:tsm", 180],
+    ["UBERx", "mock:uber", 70],
+    ["ABNBx", "mock:abnb", 130],
+    ["DISx", "mock:dis", 95],
+    ["BAx", "mock:ba", 155],
+    ["JPMx", "mock:jpm", 230],
+    ["Vx", "mock:v", 275],
+    ["WMTx", "mock:wmt", 90],
+    ["KOx", "mock:ko", 62],
+    ["MCDx", "mock:mcd", 290],
+    ["NKEx", "mock:nke", 60],
+    ["PFEx", "mock:pfe", 25],
+    ["JNJx", "mock:jnj", 155],
+    ["XOMx", "mock:xom", 110],
+    ["CVXx", "mock:cvx", 150],
+    ["PLTRx", "mock:pltr", 65],
+    ["GMEx", "mock:gme", 22],
   ];
 
+
   it("has EXACTLY 12 stocks with the exact symbol → price_source mapping", () => {
-    expect(MOCK_STOCK_COUNT).toBe(12);
-    expect(MOCK_XSTOCKS.length).toBe(12);
+    expect(MOCK_STOCK_COUNT).toBe(36);
+    expect(MOCK_XSTOCKS.length).toBe(36);
     expect(MOCK_XSTOCKS.map((s) => [s.symbol, s.priceSource] as [string, string]))
       .toEqual(EXPECTED.map(([sym, ps]) => [sym, ps]));
   });
@@ -132,7 +157,7 @@ describe("catalog/mockStocks — the 12-stock mock universe", () => {
     for (const neu of ["MSFTx", "AMZNx", "GOOGLx", "METAx", "AMDx", "COINx", "MSTRx", "HOODx"]) {
       expect(symbols).toContain(neu);
     }
-    expect(symbols.length).toBe(12);
+    expect(symbols.length).toBe(MOCK_STOCK_COUNT);
   });
 
   it("carries deterministic positive USD prices (stable dev-catalog values)", () => {
@@ -147,8 +172,8 @@ describe("catalog/mockStocks — the 12-stock mock universe", () => {
 
   it("every price_source matches the on-chain mock:<slug> format and is unique", () => {
     const sources = mockPriceSources();
-    expect(new Set(sources).size).toBe(12);
-    expect(new Set(mockSymbols()).size).toBe(12);
+    expect(new Set(sources).size).toBe(36);
+    expect(new Set(mockSymbols()).size).toBe(36);
     for (const ps of sources) expect(MOCK_PRICE_SOURCE_RE.test(ps)).toBe(true);
     expect(isMockPriceSource("mock:tsla")).toBe(true);
     // Mainnet-style sources never look like mocks.
@@ -322,10 +347,16 @@ describe("catalog — MOCK_SLUG_TO_TICKER (realistic price path)", () => {
     tsla: "TSLA", nvda: "NVDA", aapl: "AAPL", msft: "MSFT", amzn: "AMZN",
     googl: "GOOGL", meta: "META", amd: "AMD", coin: "COIN", mstr: "MSTR",
     hood: "HOOD", spy: "SPY",
+    adbe: "ADBE", nflx: "NFLX", orcl: "ORCL", crm: "CRM", intc: "INTC",
+    qcom: "QCOM", avgo: "AVGO", tsm: "TSM", uber: "UBER", abnb: "ABNB",
+    dis: "DIS", ba: "BA", jpm: "JPM", v: "V", wmt: "WMT", ko: "KO",
+    mcd: "MCD", nke: "NKE", pfe: "PFE", jnj: "JNJ", xom: "XOM", cvx: "CVX",
+    pltr: "PLTR", gme: "GME",
   };
 
+
   it("maps exactly the 12 catalog slugs to the exact real tickers", () => {
-    expect(Object.keys(MOCK_SLUG_TO_TICKER).length).toBe(12);
+    expect(Object.keys(MOCK_SLUG_TO_TICKER).length).toBe(36);
     expect({ ...MOCK_SLUG_TO_TICKER }).toEqual(EXPECTED_TICKERS);
   });
 
@@ -334,7 +365,7 @@ describe("catalog — MOCK_SLUG_TO_TICKER (realistic price path)", () => {
       expect(tickerForSlug(slug)).toBe(ticker);
       expect(EXPECTED_TICKERS[slug]).toBe(ticker);
     }
-    expect(mockSlugTickerPairs().length).toBe(12);
+    expect(mockSlugTickerPairs().length).toBe(36);
   });
 
   it("unknown / malformed slugs never resolve (catalog fallback stays honest)", () => {

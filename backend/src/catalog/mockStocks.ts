@@ -1,7 +1,9 @@
 /**
  * catalog/mockStocks.ts — the Basalt mock xStock universe (devnet demo).
  *
- * Single source of truth for the 12 mock xStocks the backend knows about.
+ * Single source of truth for the mock xStock universe the backend knows about
+ * (36 stocks: the original 12 + 24 added 2026-09-15 — owner request to widen
+ * the devnet demo universe).
  * Each entry carries:
  *   * `symbol`      — display ticker ("TSLAx")
  *   * `priceSource` — the exact string written on-chain by the deploy scripts
@@ -57,10 +59,35 @@ export const MOCK_XSTOCKS: readonly MockXStock[] = [
   { symbol: "MSTRx",  priceSource: "mock:mstr",  priceUsd: 130 },
   { symbol: "HOODx",  priceSource: "mock:hood",  priceUsd: 38 },
   { symbol: "SPYx",   priceSource: "mock:spy",   priceUsd: 560 },
+  // 24 additions (owner request 2026-09-15): mega caps + retail favorites.
+  { symbol: "ADBEx",  priceSource: "mock:adbe",  priceUsd: 380 },
+  { symbol: "NFLXx",  priceSource: "mock:nflx",  priceUsd: 750 },
+  { symbol: "ORCLx",  priceSource: "mock:orcl",  priceUsd: 170 },
+  { symbol: "CRMx",   priceSource: "mock:crm",   priceUsd: 280 },
+  { symbol: "INTCx",  priceSource: "mock:intc",  priceUsd: 22 },
+  { symbol: "QCOMx",  priceSource: "mock:qcom",  priceUsd: 165 },
+  { symbol: "AVGOx",  priceSource: "mock:avgo",  priceUsd: 1700 },
+  { symbol: "TSMx",   priceSource: "mock:tsm",   priceUsd: 180 },
+  { symbol: "UBERx",  priceSource: "mock:uber",  priceUsd: 70 },
+  { symbol: "ABNBx",  priceSource: "mock:abnb",  priceUsd: 130 },
+  { symbol: "DISx",   priceSource: "mock:dis",   priceUsd: 95 },
+  { symbol: "BAx",    priceSource: "mock:ba",    priceUsd: 155 },
+  { symbol: "JPMx",   priceSource: "mock:jpm",   priceUsd: 230 },
+  { symbol: "Vx",     priceSource: "mock:v",     priceUsd: 275 },
+  { symbol: "WMTx",   priceSource: "mock:wmt",   priceUsd: 90 },
+  { symbol: "KOx",    priceSource: "mock:ko",    priceUsd: 62 },
+  { symbol: "MCDx",   priceSource: "mock:mcd",   priceUsd: 290 },
+  { symbol: "NKEx",   priceSource: "mock:nke",   priceUsd: 60 },
+  { symbol: "PFEx",   priceSource: "mock:pfe",   priceUsd: 25 },
+  { symbol: "JNJx",   priceSource: "mock:jnj",   priceUsd: 155 },
+  { symbol: "XOMx",   priceSource: "mock:xom",   priceUsd: 110 },
+  { symbol: "CVXx",   priceSource: "mock:cvx",   priceUsd: 150 },
+  { symbol: "PLTRx",  priceSource: "mock:pltr",  priceUsd: 65 },
+  { symbol: "GMEx",   priceSource: "mock:gme",   priceUsd: 22 },
 ] as const;
 
-/** Catalog size guard: the devnet demo universe is exactly 12 stocks. */
-export const MOCK_STOCK_COUNT = MOCK_XSTOCKS.length; // === 12
+/** Catalog size guard: the devnet demo universe is 36 stocks (12 + 24). */
+export const MOCK_STOCK_COUNT = MOCK_XSTOCKS.length; // === 36
 
 /** Whitelist price_source format for mocks: "mock:" + lowercase slug. */
 export const MOCK_PRICE_SOURCE_RE = /^mock:[a-z0-9_-]+$/;
@@ -136,6 +163,32 @@ export const MOCK_SLUG_TO_TICKER: Readonly<Record<string, string>> = {
   mstr: "MSTR",
   hood: "HOOD",
   spy: "SPY",
+  // 24 additions (owner request 2026-09-15) — same Yahoo tickers the
+  // realistic price path quotes.
+  adbe: "ADBE",
+  nflx: "NFLX",
+  orcl: "ORCL",
+  crm: "CRM",
+  intc: "INTC",
+  qcom: "QCOM",
+  avgo: "AVGO",
+  tsm: "TSM",
+  uber: "UBER",
+  abnb: "ABNB",
+  dis: "DIS",
+  ba: "BA",
+  jpm: "JPM",
+  v: "V",
+  wmt: "WMT",
+  ko: "KO",
+  mcd: "MCD",
+  nke: "NKE",
+  pfe: "PFE",
+  jnj: "JNJ",
+  xom: "XOM",
+  cvx: "CVX",
+  pltr: "PLTR",
+  gme: "GME",
 } as const;
 
 /** Real equity ticker for a mock slug ("nvda" → "NVDA"), or null when unknown. */

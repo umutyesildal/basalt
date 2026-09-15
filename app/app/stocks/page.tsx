@@ -7,7 +7,7 @@ export const metadata: Metadata = {
   // plain string here would render "Stocks — Basalt · Basalt".
   title: { absolute: "Basalt | Stocks" },
   description:
-    "The mock xStock dev catalog — 12 tokenized stocks with dev-catalog prices, the building blocks for custom baskets.",
+    "The mock xStock dev catalog — 36 tokenized stocks with dev-catalog prices, the building blocks for custom baskets.",
 };
 
 export default function StocksPage() {
