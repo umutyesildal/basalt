@@ -93,6 +93,7 @@ export function LedgerSection() {
         <SectionHeader
           id="ledger-heading"
           size="display"
+          index={2}
           label="SAME EXPOSURE. DIFFERENT RAILS."
           lead="What changes is how you hold it."
         />

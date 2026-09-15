@@ -57,7 +57,11 @@ function TableRow({ className, ...props }: React.ComponentProps<"tr">) {
     <tr
       data-slot="table-row"
       className={cn(
-        "border-b transition-colors hover:bg-muted/50 has-aria-expanded:bg-muted/50 data-[state=selected]:bg-muted",
+        // Hairline row separators (Stax wave-1 micro-detail): same border
+        // token at 40% so rows read as quiet rules, not grid lines. The
+        // last-row trim is declared here too so any standalone row list
+        // (tbody already trims via [&_tr:last-child]:border-0) stays clean.
+        "border-b border-border/40 last:border-b-0 transition-colors hover:bg-muted/50 has-aria-expanded:bg-muted/50 data-[state=selected]:bg-muted",
         className
       )}
       {...props}

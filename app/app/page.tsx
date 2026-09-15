@@ -3,6 +3,7 @@ import Link from "next/link";
 import { IntentCards } from "@/components/home/intent-cards";
 import { LedgerSection } from "@/components/home/ledger-section";
 import { LiveProofSection } from "@/components/home/live-proof-section";
+import { MintFlow } from "@/components/home/mint-flow";
 import { SectionReveal } from "@/components/home/section-reveal";
 
 /**
@@ -32,6 +33,15 @@ import { SectionReveal } from "@/components/home/section-reveal";
  * and one extra beat of space before the CTA row; below-fold sections fade
  * up once via SectionReveal (~180ms, reduced-motion + no-JS safe — the
  * hero itself gains no motion).
+ *
+ * Wave UI-1 (2026-09-15): a mono fee badge joins the hero chip on a
+ * wrap-safe row — honest wording only ("fees creator-set · capped
+ * on-chain"); per-basket fees are creator-set and validated against the
+ * on-chain caps in lib/create-basket.ts (entry 300 / exit 100 / management
+ * 300 bps), so NO fixed "0.25%"-style rate is claimed. Directly below the
+ * hero, a quiet MintFlow strip sketches the mint path with an in-kind-only
+ * settlement caption (see components/home/mint-flow.tsx for the honesty
+ * rule). Composition, grid, watermark and glow untouched.
  */
 export default function LandingPage() {
   return (
@@ -87,15 +97,27 @@ export default function LandingPage() {
           <div className="absolute inset-0 bg-[radial-gradient(ellipse_62%_48%_at_50%_34%,hsl(var(--background)/0.55)_0%,hsl(var(--background)/0.3)_55%,transparent_78%)]" />
         </div>
         <div className="relative z-10 mx-auto flex max-w-3xl flex-col items-center px-4 pb-20 pt-24 text-center sm:px-6 md:pt-32">
-          <p className="inline-flex items-center gap-2.5 rounded-md border border-primary/40 bg-accent/30 px-3.5 py-1 font-mono text-xs tracking-wide text-primary-text">
-            <span aria-hidden="true" className="leading-none text-primary">
-              //
-            </span>
-            Onchain strategy baskets · xStocks
-            <span aria-hidden="true" className="leading-none text-primary">
-              //
-            </span>
-          </p>
+          {/* Chip + fee badge (wave UI-1, 2026-09-15) share one wrap-safe
+              row so they stack cleanly under <sm. The badge claims no fixed
+              rate — caps live on-chain per lib/create-basket.ts. */}
+          <div className="flex flex-wrap items-center justify-center gap-2.5">
+            <p className="inline-flex items-center gap-2.5 rounded-md border border-primary/40 bg-accent/30 px-3.5 py-1 font-mono text-xs tracking-wide text-primary-text">
+              <span aria-hidden="true" className="leading-none text-primary">
+                //
+              </span>
+              Onchain strategy baskets · xStocks
+              <span aria-hidden="true" className="leading-none text-primary">
+                //
+              </span>
+            </p>
+            <p className="rounded-md border border-border/40 bg-card/50 px-3 py-1 font-mono text-xs tracking-wide text-muted-foreground">
+              fees creator-set{" "}
+              <span aria-hidden="true" className="text-primary">
+                ·
+              </span>{" "}
+              capped on-chain
+            </p>
+          </div>
           <h1 className="text-display text-glow mt-6 text-balance text-6xl leading-[1.08] md:text-7xl">
             Create an index. Own your thesis.
           </h1>
@@ -120,12 +142,21 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* Mint flow strip (wave UI-1, 2026-09-15) — the quiet blueprint
+          bridge between hero and proof. Its caption credits the in-kind
+          path ONLY (zap-USDC is sequential in V0); see mint-flow.tsx. */}
+      <SectionReveal>
+        <MintFlow />
+      </SectionReveal>
+
       {/* Live proof + steps — real trades and real returns from the social
           API, before any process talk ("proof beats process", NEON FOUNDRY
           2026-09-12). The PICK · OWN · SHARE steps strip lives inside this
           section, below its grid (merged 2026-09-12; replaces the old
           standalone Flow section). Each section fades up once on first
-          scroll into view (SectionReveal, wave-2). */}
+          scroll into view (SectionReveal, wave-2). Section eyebrows carry
+          the Stax-style editorial index ("> 01 —", SectionHeader index
+          prop, stax-inspired wave 1): 01 proof · 02 ledger · 03 intents. */}
       <SectionReveal>
         <LiveProofSection />
       </SectionReveal>

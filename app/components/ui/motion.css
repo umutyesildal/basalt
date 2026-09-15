@@ -94,3 +94,43 @@
     animation: none;
   }
 }
+
+/* ---------------------------------------------------------------------------
+ * Nav marquee (components/ui/nav-marquee.tsx) — infinite page-top ticker.
+ *
+ * The cell list is rendered TWICE inside one flex track; translating the
+ * track by exactly -50% (one copy's width) loops seamlessly. The per-render
+ * duration is set inline via animationDuration (scaled to the cell count);
+ * the declaration below is the no-inline-style fallback. Hover or keyboard
+ * focus within the strip pauses the scroll; prefers-reduced-motion freezes
+ * the track at 0 and hides the duplicate copy so exactly one static copy
+ * remains visible.
+ * ------------------------------------------------------------------------- */
+
+@keyframes marquee {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+.basalt-marquee-track {
+  animation: marquee 40s linear infinite;
+  will-change: transform;
+}
+
+.basalt-marquee:hover .basalt-marquee-track,
+.basalt-marquee:focus-within .basalt-marquee-track {
+  animation-play-state: paused;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .basalt-marquee-track {
+    animation: none;
+  }
+  .basalt-marquee-copy-alt {
+    display: none;
+  }
+}

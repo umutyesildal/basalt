@@ -43,12 +43,14 @@ module.exports = {
       },
       borderRadius: {
         // Unified radius scale, all derived from the --radius token in
-        // globals.css (0.25rem): sm 0 · md 2px (chips/badges/tooltips) ·
-        // lg 4px (buttons/inputs) · xl 12px (cards/panels/modals/popovers).
+        // globals.css (0.125rem): sm 0 (clamped) · md 0 (chips/badges/
+        // tooltips) · lg 2px (buttons/inputs) · xl 4px (cards/panels/
+        // modals/popovers) — sharpened per Stax wave-1 (05 §5.1); full
+        // (pills/avatars) is untouched and stays fully round.
         lg: "var(--radius)",
         md: "calc(var(--radius) - 2px)",
         sm: "calc(var(--radius) - 4px)",
-        xl: "calc(var(--radius) + 8px)",
+        xl: "calc(var(--radius) + 2px)",
       },
     },
   },

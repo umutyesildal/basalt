@@ -41,6 +41,9 @@ import { RPC_ENDPOINT, describeRpcError, describeWalletError } from "@/lib/walle
 const JUPITER_SWAP_URL = "https://quote-api.jup.ag/v6/swap";
 const USDC_MINT = "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v"; // backend default (quotes.ts)
 
+/** Preset quick-fill amounts under the USDC input (Stax §5.10 amount chips). */
+const PRESET_USDC_AMOUNTS = ["100", "500", "1000", "5000"] as const;
+
 /** Basket display name out of the metadata JSON (null when unparseable). */
 function basketName(detail: BasketDetail): string | null {
   const mj = detail.metadata_json;
@@ -125,6 +128,36 @@ export function ZapInForm({
     const n = Number(slippageBps);
     return Number.isInteger(n) && n >= 0 && n <= 10000 ? n : null;
   }, [slippageBps]);
+
+  // Stax §5.10 "Est. round-trip cost": entry + exit fees from the basket's own
+  // bps config, plus blended price impact ONLY when the fetched Jupiter quote
+  // carries it (priceImpactPct is a decimal fraction of 1, verbatim backend
+  // passthrough; the legs partition the USDC input, so each leg's fraction is
+  // weighted by its share of the total input). No quote / no impact data →
+  // impact counts as zero and the UI labels the line "fees only" — never an
+  // invented figure.
+  const roundTripCost = useMemo(() => {
+    const feesPct = detail.entry_fee_bps / 100 + detail.exit_fee_bps / 100;
+    if (!quote) return { pct: feesPct, impactKnown: false };
+    let totalIn = 0;
+    for (const leg of quote.legs) {
+      const n = Number(leg.inAmount);
+      if (Number.isFinite(n)) totalIn += n;
+    }
+    let blended = 0; // fraction of 1
+    let sawImpact = false;
+    for (const leg of quote.legs) {
+      if (!leg.priceImpactPct) continue;
+      const frac = Number(leg.priceImpactPct);
+      if (!Number.isFinite(frac) || frac < 0) continue;
+      sawImpact = true;
+      const share = totalIn > 0 ? Number(leg.inAmount) / totalIn : 0;
+      blended += frac * share;
+    }
+    return sawImpact
+      ? { pct: feesPct + blended * 100, impactKnown: true }
+      : { pct: feesPct, impactKnown: false };
+  }, [quote, detail.entry_fee_bps, detail.exit_fee_bps]);
 
   // USDC balance for the Half / Max quick-fill — one background read, honest
   // when it fails: the buttons disable with an explanation instead of guessing.
@@ -456,6 +489,38 @@ export function ZapInForm({
           </Button>
         </div>
 
+        {/* Preset amount chips (Stax §5.10) — presentation-only quick fill:
+            a press enters the value into the input and nothing else; quoting
+            still goes through the existing button. The chip matching the
+            current input lights up (yellow accent per brand rules). */}
+        <div
+          role="group"
+          aria-label="Preset USDC amounts"
+          className="flex flex-wrap items-center gap-1.5"
+        >
+          {PRESET_USDC_AMOUNTS.map((preset) => {
+            const active = amountUsdc.trim() === preset;
+            return (
+              <button
+                key={preset}
+                type="button"
+                aria-pressed={active}
+                onClick={() => setAmountUsdc(preset)}
+                className={`max-md:min-h-10 rounded-full border px-3 py-1 font-mono text-[11px] font-medium tabular-nums transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 motion-reduce:transition-none ${
+                  active
+                    ? "border-primary/60 bg-accent text-accent-foreground"
+                    : "border-border text-muted-foreground hover:border-muted-foreground/50 hover:text-foreground"
+                }`}
+              >
+                {preset}
+              </button>
+            );
+          })}
+          <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
+            USDC
+          </span>
+        </div>
+
         {/* Fee preview — share amounts exist only once a real quote is back
             (the USDC input alone cannot produce shares without prices, so the
             row stays hidden until then; no invented estimate). */}
@@ -481,6 +546,28 @@ export function ZapInForm({
               : undefined
           }
         />
+
+        {/* Stax §5.10 honesty line — the cost of entering AND leaving, shown
+            before any signature. Fees are the basket's own bps config; price
+            impact comes only from the fetched Jupiter legs (blended by each
+            leg's share of the input). With no impact data the line says so
+            instead of inventing a figure. */}
+        {Number.isFinite(detail.entry_fee_bps) && Number.isFinite(detail.exit_fee_bps) ? (
+          <div>
+            <p className="flex flex-wrap items-baseline gap-x-2 font-mono text-xs tabular-nums">
+              <span className="text-muted-foreground">Est. round-trip cost</span>
+              <span className="font-medium">≈ {roundTripCost.pct.toFixed(2)}%</span>
+              {!roundTripCost.impactKnown ? (
+                <span className="text-muted-foreground">
+                  · fees only — market impact at execution
+                </span>
+              ) : null}
+            </p>
+            <p className="pt-0.5 text-[11px] leading-4 text-muted-foreground">
+              shown upfront — nothing to discover later
+            </p>
+          </div>
+        ) : null}
 
         {quoteError ? (
           <ErrorState

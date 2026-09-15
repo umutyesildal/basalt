@@ -779,6 +779,7 @@ export function LiveProofSection() {
         <SectionHeader
           id="proof-heading"
           size="eyebrow"
+          index={1}
           label="VERIFIED ACTIVITY"
           lead="What people are building and trading right now."
           right={DEMO ? <DemoChip /> : undefined}

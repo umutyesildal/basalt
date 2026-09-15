@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { fadeUpStagger } from "@/components/ui/motion";
 import { SkeletonShimmer } from "@/components/ui/skeleton-shimmer";
 import { BasketCard, type BasketCardCompare } from "@/components/cards/basket-card";
+import type { WeightBarConstituent } from "@/components/basket/weight-bar";
 import { prettyTicker, truncateAddress } from "@/lib/format";
 import { apiFetch } from "@/lib/api-client";
 import { categoryOf, compareBasketCategories } from "@/lib/categories";
@@ -181,9 +182,11 @@ function compositionOf(b: BasketRow, mintTickers: Map<string, string>): string |
 }
 
 /**
- * Constituent tickers (list order) with optional weights, fed to the
- * presentation-layer category classification (see lib/categories.ts).
- * Same extraction rules as compositionOf — mint pubkeys resolve through the
+ * Constituent tickers (list order) with optional weights in plain percent,
+ * fed to the presentation-layer category classification (see lib/categories.ts)
+ * and the card weight strip (WeightBarConstituent.weight is a percent — the
+ * weights_bps leg divides by 100 here so both legs share one unit). Same
+ * extraction rules as compositionOf — mint pubkeys resolve through the
  * whitelist ticker map, metadata constituents carry pct weights.
  */
 function tickerWeightsOf(
@@ -203,7 +206,7 @@ function tickerWeightsOf(
       if (!ticker) return;
       tickers.push(ticker);
       const bps = bpsList ? num(bpsList[i]) : null;
-      weights.push(bps);
+      weights.push(bps !== null ? bps / 100 : null);
     });
   } else {
     const metaConstituents = metaObj(b.metadata_json)?.constituents;
@@ -377,11 +380,15 @@ export default function ExploreClient() {
   // Per-basket card inputs, derived presentation-side from constituent tickers
   // (lib/categories.ts): avatar-chip tickers + the category label. The heaviest
   // classified constituent wins; unmapped tickers fall back to "Other".
+  // Weight pairs ride along (percent, same order) to feed the card weight strip.
   const cardInfoByPubkey = useMemo(() => {
-    const map = new Map<string, { tickers: string[]; category: string }>();
+    const map = new Map<
+      string,
+      { tickers: string[]; weights: (number | null)[]; category: string }
+    >();
     for (const b of baskets) {
       const { tickers, weights } = tickerWeightsOf(b, mintTickers);
-      map.set(b.pubkey, { tickers, category: categoryOf(tickers, weights) });
+      map.set(b.pubkey, { tickers, weights, category: categoryOf(tickers, weights) });
     }
     return map;
   }, [baskets, mintTickers]);
@@ -608,6 +615,16 @@ export default function ExploreClient() {
                       }
                     : null;
                 const info = cardInfoByPubkey.get(b.pubkey);
+                // Weight strip slices (percent); null weights drop out — the
+                // bar needs a positive weight per block to be honest.
+                const weightSlices: WeightBarConstituent[] | undefined = info
+                  ? info.tickers
+                      .map((symbol, i) => ({
+                        symbol,
+                        weight: info.weights[i] ?? 0,
+                      }))
+                      .filter((s) => s.weight > 0)
+                  : undefined;
                 return (
                   // Fade-up stagger wrapper (motion.ts constants; reduced
                   // motion handled by motion.css). BasketCard keeps its frozen
@@ -621,6 +638,7 @@ export default function ExploreClient() {
                       }
                       context={info?.category ?? null}
                       tickers={info?.tickers ?? []}
+                      weights={weightSlices && weightSlices.length > 0 ? weightSlices : undefined}
                       price={num(b.share_price)}
                       aum={num(b.nav)}
                       return24h={change}

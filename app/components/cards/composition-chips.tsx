@@ -17,6 +17,12 @@ import { cn } from "@/lib/utils";
  * border) so brand marks float clean; the brand colors themselves are the
  * color variety. Chips live inside data territory, so chart hues stay
  * sanctioned for the fallback.
+ *
+ * Since the Stax WeightBar landed (components/basket/weight-bar.tsx), these
+ * chips are the WEIGHTS-LESS composition render: BasketCard shows the weight
+ * strip when weight data exists and these chips only when it does not — the
+ * two never stack (one card, one composition representation). This module's
+ * API is frozen: AssetCard imports tickerAvatarIndex/tickerInitials from here.
  */
 const AVATAR_TOKENS = [
   {

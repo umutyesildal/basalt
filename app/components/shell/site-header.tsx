@@ -10,6 +10,7 @@ import { WalletButton } from "@/components/shell/wallet-button";
 import { CONTEXT_ACTIONS, PRIMARY_NAV, isRouteActive } from "@/components/shell/nav-items";
 import { useHandleFlags, writeHandleClaimed } from "@/components/social/handle-onboarding";
 import { ProfileEditorModal } from "@/components/social/profile-editor";
+import { NavMarquee } from "@/components/ui/nav-marquee";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -124,7 +125,9 @@ function ClaimHandleChip() {
  * (Create/Portfolio), network indicator, wallet button, and a
  * no-dependency mobile disclosure nav. On scroll the bar settles from
  * fully transparent into a blurred, hairline-bordered surface (wave-2
- * polish, 2026-09-14).
+ * polish, 2026-09-14). Below the bar sits the NAV MARQUEE (2026-09-15):
+ * the live top-baskets ticker, rendered as the header's last child so it
+ * travels with the sticky chrome on every page.
  */
 export function SiteHeader() {
   const pathname = usePathname();
@@ -275,6 +278,11 @@ export function SiteHeader() {
           </div>
         </nav>
       )}
+
+      {/* NAV MARQUEE: last child of the sticky header, so the ticker band
+          travels with the chrome on every page and stays flush with the
+          header's bottom border. */}
+      <NavMarquee />
     </header>
   );
 }
