@@ -60,10 +60,13 @@
     --neon-cyan: 192 92% 30%;
     --neon-magenta: 325 85% 38%;
     /* Radius scale base — lg/md/sm/xl all derive from this in
-       tailwind.config.js: 0 / 2px / 4px / 12px at the current value.
+       tailwind.config.js: 2px / 0 / 0 / 4px at the current value (sm clamps
+       its negative calc to 0). Sharpened from 0.25rem per the Stax wave-1
+       decision (docs/stax-analiz/05 §5.1): the spec's "sharp corners" promise
+       now reads as nearly-square panels with a single visible step.
        Tiers: xl cards·panels·modals·popovers / lg buttons·inputs /
        md chips·badges·tooltips / full pills·avatars. */
-    --radius: 0.25rem;
+    --radius: 0.125rem;
     --chart-background: 60 20% 97%;
     --chart-foreground: 240 6% 8%;
     --chart-grid: 60 8% 86%;
@@ -111,7 +114,9 @@
     --chart-5: 262 85% 68%;
     --neon-cyan: 187 95% 55%;
     --neon-magenta: 325 90% 62%;
-    --radius: 0.25rem;
+    /* Same sharpened radius base as the light block above — tiers derive in
+       tailwind.config.js and stay identical across themes. */
+    --radius: 0.125rem;
     --chart-background: 240 6% 4%;
     --chart-foreground: 60 8% 96%;
     --chart-grid: 240 4% 14%;

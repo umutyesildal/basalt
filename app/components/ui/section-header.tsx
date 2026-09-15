@@ -37,6 +37,7 @@ export function SectionHeader({
   label,
   lead,
   right,
+  index,
   size = "eyebrow",
   as: Tag = "h2",
   className,
@@ -44,6 +45,17 @@ export function SectionHeader({
   /** Heading id — pair with a section's aria-labelledby. */
   id?: string;
   label: string;
+  /**
+   * Optional section number for the editorial "> 01 — LABEL" pattern
+   * (Stax-inspired, docs/stax-analiz/05 §5.2). Zero-padded (`index={1}`
+   * renders "> 01 —"), and the `>` is plain text in the label, not an
+   * icon. When set on the eyebrow size, the label switches from the
+   * display face to the mono micro-label (.section-label) — house rule:
+   * uppercase tracked micro-labels are ALWAYS mono. Other sizes keep
+   * their face and only take the text prefix, so existing callers that
+   * omit the prop are pixel-identical to before.
+   */
+  index?: number;
   lead?: string;
   right?: ReactNode;
   size?: SectionHeaderSize;
@@ -51,6 +63,11 @@ export function SectionHeader({
   /** Overrides the <header> classes when `right` is set. */
   className?: string;
 }) {
+  const indexedLabel =
+    index != null ? `> ${String(index).padStart(2, "0")} — ${label}` : label;
+  const labelClass =
+    index != null && size === "eyebrow" ? "section-label" : LABEL[size];
+
   return (
     <header
       className={
@@ -60,8 +77,8 @@ export function SectionHeader({
       }
     >
       <div className={right ? "space-y-1.5" : undefined}>
-        <Tag id={id} className={LABEL[size]}>
-          {label}
+        <Tag id={id} className={labelClass}>
+          {indexedLabel}
         </Tag>
         {lead ? (
           <p

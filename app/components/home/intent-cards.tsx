@@ -33,6 +33,7 @@ export function IntentCards() {
         {/* Section header — tracked mono eyebrow + the one line. */}
         <SectionHeader
           size="eyebrow"
+          index={3}
           label="START WHERE YOU LIKE"
           lead="Four ways in — all of them non-custodial."
         />
