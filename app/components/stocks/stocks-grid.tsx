@@ -21,7 +21,7 @@ import {
 
 /**
  * Where the grid's rows came from — shown verbatim in the freshness badge:
- *  - "catalog": the backend dev catalog (/api/v1/xstocks/mock, 12 mock
+ *  - "catalog": the backend dev catalog (/api/v1/xstocks/mock, 36 mock
  *    xStocks with deterministic dev-catalog prices, explicitly not live) —
  *    plus real Yahoo daily closes for the 7d sparkline / changes;
  *  - "static": the built-in ticker list with no prices, used only when the
@@ -66,7 +66,7 @@ const GRID_CLASS = "grid gap-4 sm:grid-cols-2 lg:grid-cols-3";
 
 /**
  * /stocks grid — renders N tokenized stocks from the backend dev catalog
- * (GET /api/v1/xstocks/mock — the 12-stock mock xStock universe). Prices come
+ * (GET /api/v1/xstocks/mock — the 36-stock mock xStock universe). Prices come
  * from the catalog; the 7-session sparkline and 24h/7d changes come per
  * ticker from real Yahoo daily closes (GET /api/v1/prices/chart?range=5d,
  * fetched with bounded concurrency — lib/price-series.ts). When the API is
