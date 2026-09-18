@@ -305,9 +305,24 @@ export interface ZapLeg {
   inAmount: string;
   allocationBps: number | null;
   expectedOutAmount: string | null;
+  /** Raw minimum output enforced by Jupiter slippage for this leg. */
+  minimumOutAmount: string | null;
   priceImpactPct: string | null;
   routeLabels: string[];
-  jupiterQuote: unknown | null;
+  /**
+   * Verbatim Jupiter v6 quote. `otherAmountThreshold` is the raw minimum-out
+   * floor for the swap and is intentionally kept alongside the quote so the
+   * client can validate the post-swap ATA delta before minting.
+   */
+  jupiterQuote: {
+    inAmount?: string;
+    outAmount?: string;
+    otherAmountThreshold?: string;
+    priceImpactPct?: string;
+    slippageBps?: number;
+    routePlan?: Array<{ swapInfo?: { label?: string | null } }>;
+    [key: string]: unknown;
+  } | null;
   note?: string;
 }
 

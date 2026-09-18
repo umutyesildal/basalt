@@ -77,6 +77,7 @@ function jupiterQuoteLeg(outAmount: string) {
   return {
     inAmount: "0",
     outAmount,
+    otherAmountThreshold: ((BigInt(outAmount) * 9_950n) / 10_000n).toString(),
     priceImpactPct: "0.01",
     slippageBps: 50,
     routePlan: [{ swapInfo: { label: "Orca" } }, { swapInfo: { label: "Phoenix" } }],
@@ -380,11 +381,12 @@ describe("quotes — POST /quotes/zap-in (mocked Jupiter)", () => {
     expect(out.status).toBe(200);
     const payload = out.payload as Record<string, unknown>;
     expect(payload.side).toBe("zap-in");
-    const legs = payload.legs as Array<{ inputMint: string; outputMint: string; inAmount: string; allocationBps: number; expectedOutAmount: string; routeLabels: string[] }>;
+    const legs = payload.legs as Array<{ inputMint: string; outputMint: string; inAmount: string; allocationBps: number; expectedOutAmount: string; minimumOutAmount: string; routeLabels: string[] }>;
     expect(legs.map((l) => l.inAmount)).toEqual(["50000000", "30000000", "20000000"]);
     expect(legs.map((l) => l.outputMint)).toEqual([MINT_A, MINT_B, MINT_C]);
     expect(legs[0].inputMint).toBe("EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v"); // USDC
     expect(legs[0].expectedOutAmount).toBe("49000000");
+    expect(legs[0].minimumOutAmount).toBe("48755000");
     expect(legs[0].routeLabels).toEqual(["Orca", "Phoenix"]);
     expect(payload.provenance).toEqual({ source: "jupiter-quote", asOf: NOW.toISOString(), slippageBps: 50 });
     expect(payload.warning).toBe(ZAP_WARNING);
@@ -426,6 +428,7 @@ describe("quotes — POST /quotes/zap-in (mocked Jupiter)", () => {
     const missingDb = fakeDb([{ match: "FROM baskets WHERE pubkey", rows: [] }]);
     expect((await handleZapIn({ db: missingDb }, { basket: BASKET, amountUSDC: 10 })).status).toBe(404);
     expect((await handleZapIn({ db: fakeDb() }, { basket: BASKET, amountUSDC: 0 }).then((o) => o.status))).toBe(400);
+    expect((await handleZapIn({ db: fakeDb() }, { basket: BASKET, amountUSDC: 10, slippageBps: 10000 })).status).toBe(400);
     expect((await handleZapIn({ db: fakeDb() }, { basket: BASKET, amountUSDC: 10, slippageBps: 20000 })).status).toBe(400);
     expect((await handleZapIn({ db: null }, { basket: BASKET, amountUSDC: 10 })).status).toBe(503);
     expect((await handleZapIn({ db: fakeDb() }, {})).status).toBe(400);

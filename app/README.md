@@ -28,5 +28,5 @@ Current status: **working devnet frontend** — 21 generated route entries, wall
 ## Known gaps
 
 - The BAS-001 management-fee fix is locally verified but still needs a basket-program upgrade and existing-account devnet smoke test.
-- Zap remains disabled on mock devnet until received-token accounting uses `post - pre` balance deltas.
+- Zap-in received-token accounting now uses wallet/quote-bound raw `post - pre` deltas, validates Jupiter minimum output, and blocks unsafe partial retries. Mock devnet still has no Jupiter routes for the local constituent mints.
 - Playwright/wallet E2E coverage, consistent mock/demo labeling, and final legal review remain release blockers.

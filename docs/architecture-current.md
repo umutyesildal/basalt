@@ -47,13 +47,13 @@ Basalt creates immutable strategy baskets with 2–20 constituents. Each basket 
 
 ### Zap-in
 
-1. The backend returns Jupiter quote/swap transactions for each constituent and never signs.
-2. The user signs sequential swap legs.
-3. The current client reads post-swap balances and incorrectly treats the full balance as the Zap deposit amount.
-4. The intended design snapshots pre-swap balances and mints only `post - pre` deltas.
-5. The client sends a separate `mint_in_kind` transaction.
+1. The backend returns Jupiter quote legs with expected and minimum raw outputs and never signs.
+2. After constituent ATAs exist, the client freezes one raw pre-swap balance snapshot bound to the wallet and quote fingerprint.
+3. The user signs sequential swap legs; each confirmed leg must produce a `post - pre` raw delta at or above its minimum output.
+4. Confirmed legs are not repeated. Ambiguous sends retain and resend identical signed bytes, while positive below-minimum deltas block automatic recovery.
+5. The client freezes only the verified deltas and sends a separate `mint_in_kind` transaction.
 
-The V0 Zap is not atomic. If a leg fails, intermediate tokens remain in the user's wallet. Existing constituent balances can currently be swept into the mint review, so Zap must remain disabled until BAS-003 implements pre/post deltas and regression coverage.
+The V0 Zap is not atomic. If a leg fails, intermediate tokens remain in the user's wallet. A new quote takes a new snapshot, so those existing tokens are excluded from the next Zap deposit. Zap remains unavailable for the extension-bearing official xStocks until the BAS-002 dependency and hook-aware transfer work is complete.
 
 ## Trust boundaries
 
@@ -79,7 +79,7 @@ The V0 Zap is not atomic. If a leg fails, intermediate tokens remain in the user
 ## Known architecture debt
 
 - The working tree carries management-fee numerator remainder in an append-only five-byte field; the deployed devnet program still requires an upgrade and existing-account smoke test.
-- Whitelist state does not encode a Token-2022 extension compatibility policy.
+- Whitelist state does not encode a Token-2022 policy version; V0 enforces an extension-free, fail-closed boundary in instructions.
 - Factory-configured fee split may diverge from the basket program's 90/10 constant.
 - `events.sig` as a sole primary key can drop multiple events from one transaction.
 - BullMQ is listed as a dependency, while runtime orchestration uses direct interval loops.

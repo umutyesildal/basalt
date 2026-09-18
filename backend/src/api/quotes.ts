@@ -52,17 +52,23 @@ export class QuoteUnavailableError extends Error {
 export interface JupiterQuote {
   inAmount?: string;
   outAmount?: string;
+  /** Exact-in minimum output enforced by Jupiter's generated swap transaction. */
+  otherAmountThreshold?: string;
   priceImpactPct?: string;
   slippageBps?: number;
   routePlan?: Array<{ swapInfo?: { label?: string | null } }>;
 }
 
 function isJupiterQuote(value: unknown): value is JupiterQuote {
+  const outAmount = (value as { outAmount?: unknown } | null)?.outAmount;
+  const inAmount = (value as { inAmount?: unknown } | null)?.inAmount;
   return (
     typeof value === "object" &&
     value !== null &&
-    typeof (value as { outAmount?: unknown }).outAmount === "string" &&
-    typeof (value as { inAmount?: unknown }).inAmount === "string"
+    typeof outAmount === "string" &&
+    /^[0-9]+$/.test(outAmount) &&
+    typeof inAmount === "string" &&
+    /^[0-9]+$/.test(inAmount)
   );
 }
 
@@ -187,6 +193,8 @@ export interface QuoteLeg {
   allocationBps: number | null;
   /** Jupiter-expected output, raw base units (decimal string) — null when the leg was skipped (zero amount). */
   expectedOutAmount: string | null;
+  /** Minimum raw output accepted for this leg. The client must verify the observed ATA delta meets it. */
+  minimumOutAmount: string | null;
   priceImpactPct: string | null;
   routeLabels: string[];
   /** Raw Jupiter quote passthrough for the leg (null when the leg was skipped). */
@@ -250,8 +258,16 @@ async function loadLatestNav(db: PgLike, basket: string): Promise<NavLite | null
 function parseSlippage(body: { slippageBps?: unknown }): number | null {
   const raw = body.slippageBps ?? DEFAULT_SLIPPAGE_BPS;
   const n = typeof raw === "number" ? raw : Number(raw);
-  if (!Number.isInteger(n) || n < 0 || n > 10_000) return null;
+  if (!Number.isInteger(n) || n < 0 || n >= 10_000) return null;
   return n;
+}
+
+function minimumOutAmount(q: JupiterQuote, slippageBps: number): string {
+  if (/^[0-9]+$/.test(q.otherAmountThreshold ?? "")) {
+    return q.otherAmountThreshold!;
+  }
+  const out = BigInt(q.outAmount!);
+  return ((out * BigInt(10_000 - slippageBps)) / 10_000n).toString();
 }
 
 // --- zap-in -------------------------------------------------------------------
@@ -274,7 +290,7 @@ export async function handleZapIn(ctx: QuoteContext, body: Record<string, unknow
   }
   const slippageBps = parseSlippage(body);
   if (slippageBps === null) {
-    return { status: 400, payload: { error: { code: "INVALID_SLIPPAGE", message: "slippageBps must be an integer in [0, 10000]" } } };
+    return { status: 400, payload: { error: { code: "INVALID_SLIPPAGE", message: "slippageBps must be an integer in [0, 9999]" } } };
   }
   if (!isPgLike(ctx.db)) {
     return { status: 503, payload: { error: { code: "DB_UNAVAILABLE", message: "quotes need the indexed baskets table (no Postgres)" } } };
@@ -331,6 +347,7 @@ export async function handleZapIn(ctx: QuoteContext, body: Record<string, unknow
         inAmount: "0",
         allocationBps: weights[i] ?? null,
         expectedOutAmount: null,
+        minimumOutAmount: null,
         priceImpactPct: null,
         routeLabels: [],
         jupiterQuote: null,
@@ -359,6 +376,7 @@ export async function handleZapIn(ctx: QuoteContext, body: Record<string, unknow
         inAmount: splits[i].toString(),
         allocationBps: weights[i] ?? null,
         expectedOutAmount: null,
+        minimumOutAmount: null,
         priceImpactPct: null,
         routeLabels: [],
         jupiterQuote: null,
@@ -373,6 +391,7 @@ export async function handleZapIn(ctx: QuoteContext, body: Record<string, unknow
       inAmount: splits[i].toString(),
       allocationBps: weights[i] ?? null,
       expectedOutAmount: q.outAmount ?? null,
+      minimumOutAmount: minimumOutAmount(q, slippageBps),
       priceImpactPct: q.priceImpactPct ?? null,
       routeLabels: routeLabels(q),
       jupiterQuote: q,
@@ -440,7 +459,7 @@ export async function handleZapOut(ctx: QuoteContext, body: Record<string, unkno
   }
   const slippageBps = parseSlippage(body);
   if (slippageBps === null) {
-    return { status: 400, payload: { error: { code: "INVALID_SLIPPAGE", message: "slippageBps must be an integer in [0, 10000]" } } };
+    return { status: 400, payload: { error: { code: "INVALID_SLIPPAGE", message: "slippageBps must be an integer in [0, 9999]" } } };
   }
   const targetMint = typeof body.targetMint === "string" && body.targetMint ? body.targetMint : (process.env.USDC_MINT || USDC_MINT_DEFAULT);
   if (!isPgLike(ctx.db)) {
@@ -536,6 +555,7 @@ export async function handleZapOut(ctx: QuoteContext, body: Record<string, unkno
         inAmount: "0",
         allocationBps: null,
         expectedOutAmount: null,
+        minimumOutAmount: null,
         priceImpactPct: null,
         routeLabels: [],
         jupiterQuote: null,
@@ -564,6 +584,7 @@ export async function handleZapOut(ctx: QuoteContext, body: Record<string, unkno
         inAmount: outs[i].toString(),
         allocationBps: null,
         expectedOutAmount: null,
+        minimumOutAmount: null,
         priceImpactPct: null,
         routeLabels: [],
         jupiterQuote: null,
@@ -578,6 +599,7 @@ export async function handleZapOut(ctx: QuoteContext, body: Record<string, unkno
       inAmount: outs[i].toString(),
       allocationBps: null,
       expectedOutAmount: q.outAmount ?? null,
+      minimumOutAmount: minimumOutAmount(q, slippageBps),
       priceImpactPct: q.priceImpactPct ?? null,
       routeLabels: routeLabels(q),
       jupiterQuote: q,

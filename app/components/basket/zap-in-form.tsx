@@ -37,9 +37,19 @@ import {
 import { formatBpsAsPercent, scaledFromRaw, truncateAddress } from "@/lib/format";
 import { withRetry, withRetryOnce } from "@/lib/rpc-retry";
 import { RPC_ENDPOINT, describeRpcError, describeWalletError } from "@/lib/wallet";
+import {
+  classifyLegRecovery,
+  createZapBalanceSnapshot,
+  minimumRawOutput,
+  parseRawAmount,
+  validateLegOrdering,
+  ZapBalanceDeltaError,
+  type ZapBalanceSnapshot,
+} from "@/lib/zap-balance-delta";
 
 const JUPITER_SWAP_URL = "https://quote-api.jup.ag/v6/swap";
 const USDC_MINT = "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v"; // backend default (quotes.ts)
+const ZAP_QUOTE_TTL_MS = 30_000;
 
 /** Preset quick-fill amounts under the USDC input (Stax §5.10 amount chips). */
 const PRESET_USDC_AMOUNTS = ["100", "500", "1000", "5000"] as const;
@@ -61,6 +71,67 @@ function basketName(detail: BasketDetail): string | null {
 
 type LegStatus = "idle" | "sending" | "confirmed" | "failed";
 type Phase = "idle" | "quoting" | "quoted" | "swapping" | "ready-to-mint" | "done";
+
+type ZapAttempt = {
+  wallet: string;
+  contextKey: string;
+  quoteFingerprint: string;
+  /** Raw ATA balances captured once, immediately before the first swap leg. */
+  snapshot: ZapBalanceSnapshot;
+  /** A leg is complete only after its raw post-pre delta passed min-out. */
+  completed: boolean[];
+  /** Signatures are retained even when confirmation/balance reconciliation is ambiguous. */
+  signatures: (string | null)[];
+  signatureHistory: string[][];
+  /** Signed transaction bytes survive an ambiguous send and are retried byte-for-byte. */
+  serializedTransactions: (Uint8Array | null)[];
+  /** Only a definitively failed on-chain signature can be retried with the same quote. */
+  retryable: boolean[];
+  /** Frozen raw deltas used by the closing mint; never replaced with full balances. */
+  frozenAmounts: bigint[] | null;
+};
+
+type LegReconciliation = {
+  kind: "settled" | "empty" | "partial" | "invalid";
+  delta: bigint;
+  minimumOut: bigint | null;
+};
+
+function quoteFingerprint(quote: ZapInQuote): string {
+  // Include the full leg quote payload: changing a route, amount, output mint,
+  // or slippage creates a new attempt and therefore a new pre-balance baseline.
+  return JSON.stringify({
+    side: quote.side,
+    basket: quote.basket,
+    slippageBps: quote.slippageBps,
+    asOf: quote.provenance.asOf,
+    legs: quote.legs.map((leg) => ({
+      index: leg.index,
+      inputMint: leg.inputMint,
+      outputMint: leg.outputMint,
+      inAmount: leg.inAmount,
+      expectedOutAmount: leg.expectedOutAmount,
+      jupiterQuote: leg.jupiterQuote,
+    })),
+  });
+}
+
+function minimumOutputForLeg(leg: ZapInQuote["legs"][number], slippageBps: number): bigint {
+  if (leg.minimumOutAmount !== null && leg.minimumOutAmount !== undefined) {
+    const explicit = parseRawAmount(leg.minimumOutAmount, "minimum output amount");
+    if (explicit <= 0n) throw new Error("minimum output amount must be greater than zero.");
+    return explicit;
+  }
+  return minimumRawOutput(
+    { ...leg, expectedOutAmount: leg.expectedOutAmount ?? undefined },
+    slippageBps,
+  );
+}
+
+function isZapQuoteStale(quote: ZapInQuote): boolean {
+  const asOf = Date.parse(quote.provenance.asOf);
+  return !Number.isFinite(asOf) || Date.now() - asOf > ZAP_QUOTE_TTL_MS;
+}
 
 /**
  * Zap USDC: POST /quotes/zap-in returns Jupiter QUOTE legs only (the backend
@@ -115,6 +186,11 @@ export function ZapInForm({
   const [expectedAccounts, setExpectedAccounts] = useState<ExpectedAccount[] | null>(null);
   const [mintAmounts, setMintAmounts] = useState<bigint[] | null>(null);
   const [open, setOpen] = useState(false);
+  const attemptRef = useRef<ZapAttempt | null>(null);
+  const [legSignatures, setLegSignatures] = useState<(string | null)[]>([]);
+  const [legActualAmounts, setLegActualAmounts] = useState<(string | null)[]>([]);
+
+  const walletAddress = publicKey?.toBase58() ?? null;
 
   const amountRaw = useMemo(() => {
     const s = amountUsdc.trim();
@@ -126,8 +202,40 @@ export function ZapInForm({
 
   const slippage = useMemo(() => {
     const n = Number(slippageBps);
-    return Number.isInteger(n) && n >= 0 && n <= 10000 ? n : null;
+    return Number.isInteger(n) && n >= 0 && n < 10_000 ? n : null;
   }, [slippageBps]);
+
+  const zapContextKey = `${walletAddress ?? "disconnected"}:${detail.pubkey}:${amountRaw ?? "invalid"}:${slippage ?? "invalid"}`;
+  const activeZapContextKeyRef = useRef(zapContextKey);
+  activeZapContextKeyRef.current = zapContextKey;
+  const quoteRequestRef = useRef<AbortController | null>(null);
+
+  // A wallet change, basket change, or quote input change invalidates the
+  // balance baseline. Keeping the old baseline would let a later mint sweep
+  // tokens that were already in the wallet before this zap attempt.
+  useEffect(() => {
+    quoteRequestRef.current?.abort();
+    quoteRequestRef.current = null;
+    attemptRef.current = null;
+    setMintAmounts(null);
+    setExpectedAccounts(null);
+    setLegSignatures([]);
+    setLegActualAmounts([]);
+    setLegStates([]);
+    setOpen(false);
+    setSwapWarning(null);
+    setPhase("idle");
+    setQuote(null);
+  }, [walletAddress, detail.pubkey, amountUsdc, slippageBps]);
+
+  useEffect(
+    () => () => {
+      activeZapContextKeyRef.current = "unmounted";
+      quoteRequestRef.current?.abort();
+      attemptRef.current = null;
+    },
+    [],
+  );
 
   // Stax §5.10 "Est. round-trip cost": entry + exit fees from the basket's own
   // bps config, plus blended price impact ONLY when the fetched Jupiter quote
@@ -191,33 +299,193 @@ export function ZapInForm({
     void refreshUsdcBalance();
   }, [refreshUsdcBalance]);
 
+  const readConstituentBalances = useCallback(async (): Promise<bigint[]> => {
+    if (!publicKey) throw new Error("Connect a wallet before starting a zap.");
+    return Promise.all(
+      detail.constituents.map(async (mint) => {
+        const res = await withRetryOnce(
+          () => connection.getTokenAccountBalance(deriveAta(publicKey, new PublicKey(mint))),
+          "token balance read",
+        );
+        return parseRawAmount(res.value.amount, `raw balance for ${mint}`);
+      }),
+    );
+  }, [connection, detail.constituents, publicKey]);
+
+  const ensureZapAttempt = useCallback(async (nextQuote: ZapInQuote): Promise<ZapAttempt> => {
+    if (!publicKey) throw new Error("Connect a wallet before starting a zap.");
+    const wallet = publicKey.toBase58();
+    const contextKey = activeZapContextKeyRef.current;
+    const fingerprint = quoteFingerprint(nextQuote);
+    const existing = attemptRef.current;
+    if (existing) {
+      if (
+        existing.wallet !== wallet ||
+        existing.contextKey !== contextKey ||
+        existing.quoteFingerprint !== fingerprint
+      ) {
+        throw new Error("The wallet or quote changed. Start a new quote before retrying.");
+      }
+      return existing;
+    }
+
+    // This is deliberately after ATA creation in executeSwaps and immediately
+    // before the first leg. It is never overwritten by a retry.
+    validateLegOrdering(
+      nextQuote.legs.map(({ index, outputMint }) => ({ index, outputMint })),
+      detail.constituents,
+    );
+    const preBalances = await readConstituentBalances();
+    const attempt: ZapAttempt = {
+      wallet,
+      contextKey,
+      quoteFingerprint: fingerprint,
+      snapshot: createZapBalanceSnapshot(detail.constituents, preBalances),
+      completed: nextQuote.legs.map(() => false),
+      signatures: nextQuote.legs.map(() => null),
+      signatureHistory: nextQuote.legs.map(() => []),
+      serializedTransactions: nextQuote.legs.map(() => null),
+      retryable: nextQuote.legs.map(() => false),
+      frozenAmounts: null,
+    };
+    attemptRef.current = attempt;
+    setLegSignatures(attempt.signatures.slice());
+    return attempt;
+  }, [detail.constituents, publicKey, readConstituentBalances]);
+
+  const reconcileLeg = useCallback(
+    async (attempt: ZapAttempt, nextQuote: ZapInQuote, index: number): Promise<LegReconciliation> => {
+      const leg = nextQuote.legs[index];
+      const expectedMint = detail.constituents[index];
+      if (!leg || leg.index !== index || leg.outputMint !== expectedMint) {
+        return { kind: "invalid", delta: 0n, minimumOut: null };
+      }
+      const current = await readConstituentBalances();
+      const post = current[index];
+      const pre = attempt.snapshot.entries[index]?.raw;
+      if (pre === undefined) return { kind: "invalid", delta: 0n, minimumOut: null };
+      let minimumOut: bigint;
+      try {
+        minimumOut = minimumOutputForLeg(leg, nextQuote.slippageBps);
+      } catch {
+        return { kind: "invalid", delta: post - pre, minimumOut: null };
+      }
+      try {
+        const recovery = classifyLegRecovery(pre, post, minimumOut);
+        return {
+          kind:
+            recovery.action === "already-settled"
+              ? "settled"
+              : recovery.action === "execute"
+                ? "empty"
+                : "partial",
+          delta: recovery.delta,
+          minimumOut: recovery.minimumOut,
+        };
+      } catch (err) {
+        if (err instanceof ZapBalanceDeltaError && err.code === "negative-delta") {
+          return { kind: "invalid", delta: post - pre, minimumOut };
+        }
+        return { kind: "invalid", delta: 0n, minimumOut };
+      }
+    },
+    [detail.constituents, readConstituentBalances],
+  );
+
+  const freezeMintAmounts = useCallback(
+    async (attempt: ZapAttempt, nextQuote: ZapInQuote): Promise<bigint[]> => {
+      if (attempt.frozenAmounts) return attempt.frozenAmounts;
+      const reconciled: bigint[] = [];
+      for (let i = 0; i < nextQuote.legs.length; i++) {
+        if (!attempt.completed[i]) {
+          throw new Error(`Swap leg ${i + 1} is not settled yet.`);
+        }
+        const result = await reconcileLeg(attempt, nextQuote, i);
+        if (result.kind !== "settled") {
+          throw new Error(
+            `Swap leg ${i + 1} balance delta is not safely settled. Wait for the signature to land, then retry.`,
+          );
+        }
+        reconciled.push(result.delta);
+      }
+      const frozen = reconciled.slice();
+      attempt.frozenAmounts = frozen;
+      return frozen;
+    },
+    [reconcileLeg],
+  );
+
+  const isZapContextActive = useCallback(
+    (contextKey: string, attempt?: ZapAttempt): boolean =>
+      activeZapContextKeyRef.current === contextKey &&
+      (attempt === undefined || attemptRef.current === attempt),
+    [],
+  );
+
   const getQuote = useCallback(async () => {
     if (!amountRaw || slippage === null) return;
+    const requestContextKey = zapContextKey;
+    quoteRequestRef.current?.abort();
+    const controller = new AbortController();
+    quoteRequestRef.current = controller;
     setPhase("quoting");
     setQuoteError(null);
     setSwapWarning(null);
+    attemptRef.current = null;
+    setMintAmounts(null);
+    setExpectedAccounts(null);
+    setLegSignatures([]);
+    setLegActualAmounts([]);
+    setLegStates([]);
+    setOpen(false);
     setQuote(null);
     try {
       const q = await fetchZapInQuote(
         { basket: detail.pubkey, amountUSDC: amountRaw, slippageBps: slippage },
-        new AbortController().signal,
+        controller.signal,
       );
+      if (
+        controller.signal.aborted ||
+        quoteRequestRef.current !== controller ||
+        !isZapContextActive(requestContextKey)
+      ) {
+        return;
+      }
       setQuote(q);
       setLegStates(q.legs.map(() => "idle"));
+      setLegActualAmounts(q.legs.map(() => null));
       setPhase("quoted");
     } catch (err) {
+      if (
+        controller.signal.aborted ||
+        quoteRequestRef.current !== controller ||
+        !isZapContextActive(requestContextKey)
+      ) {
+        return;
+      }
       setQuoteError(err instanceof Error ? err.message : "Quote failed.");
       setPhase("idle");
+    } finally {
+      if (quoteRequestRef.current === controller) quoteRequestRef.current = null;
     }
-  }, [amountRaw, slippage, detail.pubkey]);
+  }, [amountRaw, slippage, detail.pubkey, isZapContextActive, zapContextKey]);
 
   /**
-   * Execute per the backend-documented flow: (1) prepare missing user ATAs,
-   * (2) run every Jupiter leg sequentially, (3) open the mint review with the
-   * actually received balances.
+   * Execute sequential Jupiter legs with a single immutable pre-balance
+   * snapshot. A retry first reconciles post-pre deltas; it never blindly sends
+   * a second swap for a signature whose confirmation is ambiguous.
    */
   const executeSwaps = useCallback(async () => {
     if (!publicKey || !quote || !signTransaction) return;
+    const executionContextKey = zapContextKey;
+    if (!isZapContextActive(executionContextKey)) return;
+    if (!attemptRef.current && isZapQuoteStale(quote)) {
+      setSwapWarning(
+        "This Jupiter quote is older than 30 seconds. Get a fresh quote before preparing accounts or signing a swap.",
+      );
+      setPhase("quoted");
+      return;
+    }
     setPhase("swapping");
     setSwapWarning(null);
 
@@ -235,12 +503,14 @@ export function ZapInForm({
         }
       }),
     );
+    if (!isZapContextActive(executionContextKey)) return;
     if (missing.length > 0) {
       try {
         const blockhash = await withRetry(
           () => connection.getLatestBlockhash("confirmed"),
           { label: "blockhash read" },
         );
+        if (!isZapContextActive(executionContextKey)) return;
         const tx = new Transaction({
           feePayer: publicKey,
           blockhash: blockhash.blockhash,
@@ -254,11 +524,13 @@ export function ZapInForm({
           ),
         );
         const signed = await signTransaction(tx);
+        if (!isZapContextActive(executionContextKey)) return;
         // Re-sending is safe: an identical signed transaction dedups on-cluster.
         const signature = await withRetry(
           () => connection.sendRawTransaction(signed.serialize()),
           { label: "ATA prepare send" },
         );
+        if (!isZapContextActive(executionContextKey)) return;
         await withRetry(
           () =>
             connection.confirmTransaction(
@@ -267,7 +539,9 @@ export function ZapInForm({
             ),
           { label: "ATA prepare confirm" },
         );
+        if (!isZapContextActive(executionContextKey)) return;
       } catch (err) {
+        if (!isZapContextActive(executionContextKey)) return;
         const reason = describeWalletError(
           err as { name?: string; message?: string } | null,
         );
@@ -279,74 +553,254 @@ export function ZapInForm({
       }
     }
 
+    let attempt: ZapAttempt;
+    try {
+      // Snapshot only after all missing ATAs are confirmed and immediately
+      // before the first leg. Existing attempts reuse this exact baseline.
+      attempt = await ensureZapAttempt(quote);
+      if (!isZapContextActive(executionContextKey, attempt)) return;
+    } catch (err) {
+      if (!isZapContextActive(executionContextKey)) return;
+      setSwapWarning(err instanceof Error ? err.message : "Could not establish a zap balance snapshot.");
+      setPhase("quoted");
+      return;
+    }
+
     // (2) sequential, non-atomic legs.
     for (let i = 0; i < quote.legs.length; i++) {
+      if (!isZapContextActive(executionContextKey, attempt)) return;
       const leg = quote.legs[i];
-      if (!leg.jupiterQuote) {
-        setLegStates((prev) => prev.map((s, j) => (j === i ? "confirmed" : s)));
-        continue; // zero-amount leg skipped by the backend
+      if (attempt.completed[i]) {
+        // Confirmed legs are settled by a validated raw delta and are never
+        // re-executed during a retry.
+        continue;
       }
-      setLegStates((prev) => prev.map((s, j) => (j === i ? "sending" : s)));
-      try {
-        const res = await fetch(JUPITER_SWAP_URL, {
-          method: "POST",
-          headers: { "content-type": "application/json" },
-          body: JSON.stringify({
-            quoteResponse: leg.jupiterQuote,
-            userPublicKey: publicKey.toBase58(),
-            wrapAndUnwrapSol: true,
-          }),
-        });
-        if (!res.ok) throw new Error(`Jupiter swap API responded ${res.status}`);
-        const payload = (await res.json()) as { swapTransaction?: string };
-        if (!payload.swapTransaction) throw new Error("Jupiter returned no swap transaction");
-        // Base64 → bytes without relying on a Buffer global in the client bundle.
-        const swapTx = VersionedTransaction.deserialize(
-          Uint8Array.from(atob(payload.swapTransaction), (c) => c.charCodeAt(0)),
+      if (!leg.jupiterQuote) {
+        setLegStates((prev) => prev.map((s, j) => (j === i ? "failed" : s)));
+        setSwapWarning(
+          `Leg ${i + 1} has no executable Jupiter route (the quote allocated zero raw units). ` +
+            "Minting is blocked because every constituent requires a positive, verified delta. Get a larger or new quote.",
         );
-        const signed = await signTransaction(swapTx);
-        // Re-sending is safe: an identical signed transaction dedups on-cluster.
-        const signature = await withRetry(
-          () => connection.sendRawTransaction(signed.serialize()),
+        setPhase("quoted");
+        return;
+      }
+
+      // Reconcile before every send. Empty means safe to execute only when no
+      // prior signature exists; positive-but-under-minimum is an unsafe partial
+      // fill and must never be topped up by blindly repeating the swap.
+      let beforeSend: LegReconciliation;
+      try {
+        beforeSend = await reconcileLeg(attempt, quote, i);
+        if (!isZapContextActive(executionContextKey, attempt)) return;
+      } catch (err) {
+        if (!isZapContextActive(executionContextKey, attempt)) return;
+        setLegStates((prev) => prev.map((s, j) => (j === i ? "failed" : s)));
+        setSwapWarning(
+          `Leg ${i + 1} balance reconciliation failed: ${describeWalletError(
+            err as { name?: string; message?: string } | null,
+          )} Do not resend until the wallet balance can be checked.`,
+        );
+        setPhase("quoted");
+        return;
+      }
+      if (beforeSend.kind === "settled") {
+        attempt.completed[i] = true;
+        setLegActualAmounts((prev) =>
+          prev.map((amount, j) => (j === i ? beforeSend.delta.toString() : amount)),
+        );
+        setLegStates((prev) => prev.map((s, j) => (j === i ? "confirmed" : s)));
+        continue;
+      }
+      if (beforeSend.kind === "partial" || beforeSend.kind === "invalid") {
+        setLegStates((prev) => prev.map((s, j) => (j === i ? "failed" : s)));
+        setSwapWarning(
+          `Leg ${i + 1} has an unsafe raw balance delta (${beforeSend.delta.toString()} received; ` +
+            `${beforeSend.minimumOut?.toString() ?? "unknown"} minimum). The leg is blocked to prevent duplicate spending. ` +
+            "Keep the partial tokens, inspect the signature, and start a new quote only after recovery.",
+        );
+        setPhase("quoted");
+        return;
+      }
+      if (attempt.signatures[i] && !attempt.retryable[i] && !attempt.serializedTransactions[i]) {
+        setLegStates((prev) => prev.map((s, j) => (j === i ? "failed" : s)));
+        setSwapWarning(
+          `Leg ${i + 1} already has signature ${attempt.signatures[i]!.slice(0, 10)}… but its ` +
+            "raw output is not visible yet. Wait for RPC balance propagation and retry reconciliation; it will not be resent automatically.",
+        );
+        setPhase("quoted");
+        return;
+      }
+
+      if (attempt.retryable[i]) {
+        // The previous signature was definitively rejected on-chain. A new
+        // signed transaction is allowed for that case; ambiguous sends keep
+        // their serialized bytes and never take this branch.
+        attempt.serializedTransactions[i] = null;
+        attempt.retryable[i] = false;
+      }
+
+      if (isZapQuoteStale(quote) && !attempt.serializedTransactions[i]) {
+        setLegStates((prev) => prev.map((s, j) => (j === i ? "failed" : s)));
+        setSwapWarning(
+          `Quote leg ${i + 1} is older than 30 seconds and has no retained signed transaction. ` +
+            "Get a new quote before creating a fresh swap; already-signed legs may still be reconciled safely.",
+        );
+        setPhase("quoted");
+        return;
+      }
+
+      setLegStates((prev) => prev.map((s, j) => (j === i ? "sending" : s)));
+      let signature: string | null = null;
+      let serialized = attempt.serializedTransactions[i];
+      try {
+        if (!serialized) {
+          const res = await fetch(JUPITER_SWAP_URL, {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({
+              quoteResponse: leg.jupiterQuote,
+              userPublicKey: publicKey.toBase58(),
+              wrapAndUnwrapSol: true,
+            }),
+          });
+          if (!isZapContextActive(executionContextKey, attempt)) return;
+          if (!res.ok) throw new Error(`Jupiter swap API responded ${res.status}`);
+          const payload = (await res.json()) as { swapTransaction?: string };
+          if (!isZapContextActive(executionContextKey, attempt)) return;
+          if (!payload.swapTransaction) throw new Error("Jupiter returned no swap transaction");
+          // Base64 → bytes without relying on a Buffer global in the client bundle.
+          const swapTx = VersionedTransaction.deserialize(
+            Uint8Array.from(atob(payload.swapTransaction), (c) => c.charCodeAt(0)),
+          );
+          const signed = await signTransaction(swapTx);
+          if (!isZapContextActive(executionContextKey, attempt)) return;
+          serialized = signed.serialize();
+          // Persist before send: if sendRawTransaction accepts the tx but
+          // loses the response, retrying sends these exact bytes and dedups.
+          attempt.serializedTransactions[i] = serialized;
+        }
+        signature = await withRetry(
+          () => connection.sendRawTransaction(serialized!),
           { label: `swap leg ${i + 1} send` },
         );
+        attempt.signatures[i] = signature;
+        attempt.signatureHistory[i].push(signature);
+        if (!isZapContextActive(executionContextKey, attempt)) return;
+        setLegSignatures(attempt.signatures.slice());
+        if (!signature) throw new Error(`swap leg ${i + 1} returned no signature`);
+        const sentSignature: string = signature;
         const confirmed = await withRetry(
-          () => connection.confirmTransaction(signature, "confirmed"),
+          () => connection.confirmTransaction(sentSignature, "confirmed"),
           { label: `swap leg ${i + 1} confirm` },
         );
-        if (confirmed.value.err) throw new Error(`leg ${i + 1} failed on-chain`);
+        if (!isZapContextActive(executionContextKey, attempt)) return;
+        if (confirmed.value.err) {
+          // A definitive on-chain failure is the only state in which the same
+          // quote may be retried after a zero delta.
+          attempt.retryable[i] = true;
+          throw new Error(`leg ${i + 1} failed on-chain`);
+        }
+        const afterConfirmation = await reconcileLeg(attempt, quote, i);
+        if (!isZapContextActive(executionContextKey, attempt)) return;
+        if (afterConfirmation.kind !== "settled") {
+          throw new Error(
+            afterConfirmation.kind === "partial"
+              ? `leg ${i + 1} produced only a partial raw output`
+              : `leg ${i + 1} confirmed but its raw output is not visible yet`,
+          );
+        }
+        attempt.completed[i] = true;
+        setLegActualAmounts((prev) =>
+          prev.map((amount, j) =>
+            j === i ? afterConfirmation.delta.toString() : amount,
+          ),
+        );
         setLegStates((prev) => prev.map((s, j) => (j === i ? "confirmed" : s)));
       } catch (err) {
+        if (!isZapContextActive(executionContextKey, attempt)) return;
+        // If the confirmation request itself was ambiguous, reconcile once
+        // before deciding. A settled delta marks the leg complete; otherwise a
+        // recorded signature blocks resubmission until the user retries later.
+        if (signature && !attempt.retryable[i]) {
+          try {
+            const reconciled = await reconcileLeg(attempt, quote, i);
+            if (!isZapContextActive(executionContextKey, attempt)) return;
+            if (reconciled.kind === "settled") {
+              attempt.completed[i] = true;
+              setLegActualAmounts((prev) =>
+                prev.map((amount, j) => (j === i ? reconciled.delta.toString() : amount)),
+              );
+              setLegStates((prev) => prev.map((s, j) => (j === i ? "confirmed" : s)));
+              continue;
+            }
+          } catch {
+            // Preserve the original failure copy below; the next retry will
+            // reconcile again before any possible send.
+          }
+        }
         setLegStates((prev) => prev.map((s, j) => (j === i ? "failed" : s)));
         const reason = describeWalletError(
           err as { name?: string; message?: string } | null,
         );
         setSwapWarning(
-          `Leg ${i + 1} did not complete: ${reason} The zap is sequential and non-atomic — you may be holding intermediate tokens. No funds are lost, but continuing requires extra transactions.`,
+          signature && !attempt.retryable[i]
+            ? `Leg ${i + 1} has signature ${signature.slice(0, 10)}… but no verified raw output yet: ${reason} ` +
+                "The leg is paused to prevent a duplicate swap. Retry later to reconcile the balance; the retained signed bytes will be resent identically if still needed."
+            : attempt.serializedTransactions[i]
+              ? `Leg ${i + 1} send confirmation was ambiguous: ${reason} The signed transaction is retained and the next retry will resend identical bytes after balance reconciliation.`
+            : `Leg ${i + 1} did not complete: ${reason} The zap is sequential and non-atomic — any confirmed earlier legs remain in your wallet. Retry only after reconciliation.`,
         );
         setPhase("quoted");
         return;
       }
     }
+
+    try {
+      const frozen = await freezeMintAmounts(attempt, quote);
+      if (!isZapContextActive(executionContextKey, attempt)) return;
+      setLegActualAmounts(frozen.map((amount) => amount.toString()));
+    } catch (err) {
+      if (!isZapContextActive(executionContextKey, attempt)) return;
+      setSwapWarning(err instanceof Error ? err.message : "Closing mint amounts could not be frozen safely.");
+      setPhase("quoted");
+      return;
+    }
     setPhase("ready-to-mint");
-  }, [connection, detail.constituents, publicKey, quote, signTransaction]);
+  }, [
+    connection,
+    detail.constituents,
+    ensureZapAttempt,
+    freezeMintAmounts,
+    isZapContextActive,
+    publicKey,
+    quote,
+    reconcileLeg,
+    signTransaction,
+    zapContextKey,
+  ]);
 
   const openMintReview = useCallback(async () => {
-    if (!publicKey) return;
-    // Amounts = what actually arrived (balance deltas), never the quote.
-    const received = await Promise.all(
-      detail.constituents.map(async (mint) => {
-        try {
-          const res = await withRetryOnce(
-            () => connection.getTokenAccountBalance(deriveAta(publicKey, new PublicKey(mint))),
-            "token balance read",
-          );
-          return BigInt(res.value.amount);
-        } catch {
-          return 0n;
-        }
-      }),
-    );
+    if (!publicKey || !coreKeys || !quote) return;
+    const attempt = attemptRef.current;
+    if (
+      !attempt ||
+      attempt.wallet !== publicKey.toBase58() ||
+      attempt.contextKey !== zapContextKey ||
+      attempt.quoteFingerprint !== quoteFingerprint(quote)
+    ) {
+      setSwapWarning("The wallet or quote changed. Get a new quote before opening the mint review.");
+      return;
+    }
+    let received: bigint[];
+    try {
+      // Use only the immutable post-pre deltas. Never pass a wallet's full ATA
+      // balance to mint_in_kind, because it may contain older holdings.
+      received = (await freezeMintAmounts(attempt, quote)).slice();
+      if (!isZapContextActive(zapContextKey, attempt)) return;
+    } catch (err) {
+      setSwapWarning(err instanceof Error ? err.message : "Closing mint amounts could not be verified safely.");
+      return;
+    }
     if (received.some((amount) => amount <= 0n)) {
       setSwapWarning(
         "A constituent leg delivered zero raw units — mint_in_kind requires every amount > 0. No mint was prepared.",
@@ -361,7 +815,7 @@ export function ZapInForm({
     });
     setExpectedAccounts(built.expectedAccounts);
     setOpen(true);
-  }, [connection, detail, publicKey, coreKeys, vaultBalances]);
+  }, [coreKeys, freezeMintAmounts, isZapContextActive, publicKey, quote, vaultBalances, zapContextKey]);
 
   const close = () => {
     setOpen(false);
@@ -451,7 +905,8 @@ export function ZapInForm({
                 placeholder="e.g. 250.50"
                 value={amountUsdc}
                 onChange={(e) => setAmountUsdc(e.target.value)}
-                className="h-9 w-36 rounded-lg border border-border bg-background px-3 font-mono text-sm tabular-nums outline-none placeholder:font-sans placeholder:text-muted-foreground focus:border-ring sm:w-40"
+                disabled={phase === "swapping"}
+                className="h-10 w-36 rounded-lg border border-border bg-background px-3 font-mono text-sm tabular-nums outline-none placeholder:font-sans placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background sm:w-40"
               />
               <HalfMaxButtons
                 connected={connected}
@@ -459,6 +914,7 @@ export function ZapInForm({
                 balanceLabel="USDC balance"
                 loading={usdcBalanceLoading}
                 onPick={(kind) => {
+                  if (phase === "swapping") return;
                   if (usdcBalance === null || usdcBalance <= 0n) return;
                   const raw = kind === "max" ? usdcBalance : halfOfRaw(usdcBalance);
                   if (raw <= 0n) return;
@@ -477,12 +933,13 @@ export function ZapInForm({
               inputMode="numeric"
               value={slippageBps}
               onChange={(e) => setSlippageBps(e.target.value)}
-              className="h-9 w-24 rounded-lg border border-border bg-background px-3 font-mono text-sm tabular-nums outline-none focus:border-ring"
+              disabled={phase === "swapping"}
+              className="h-10 w-24 rounded-lg border border-border bg-background px-3 font-mono text-sm tabular-nums outline-none focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
             />
           </div>
           <Button
             onClick={() => void getQuote()}
-            disabled={!amountRaw || slippage === null || phase === "quoting"}
+            disabled={!amountRaw || slippage === null || phase === "quoting" || phase === "swapping"}
             className="mt-5"
           >
             {phase === "quoting" ? "Quoting…" : "Get quote"}
@@ -505,6 +962,7 @@ export function ZapInForm({
                 key={preset}
                 type="button"
                 aria-pressed={active}
+                disabled={phase === "swapping"}
                 onClick={() => setAmountUsdc(preset)}
                 className={`max-md:min-h-10 rounded-full border px-3 py-1 font-mono text-[11px] font-medium tabular-nums transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 motion-reduce:transition-none ${
                   active
@@ -579,17 +1037,19 @@ export function ZapInForm({
 
         {quote ? (
           <>
-            {/* Six data columns — scroll horizontally on phones instead of
+            {/* Eight data columns — scroll horizontally on phones instead of
                 clipping (the parent border keeps its rounding while scrolled). */}
             <div className="overflow-x-auto rounded-xl border border-border">
-              <table className="w-full min-w-[36rem] text-xs">
+              <table className="w-full min-w-[52rem] text-xs">
                 <caption className="sr-only">Jupiter quote legs</caption>
                 <thead>
                   <tr className="border-b border-border text-left text-muted-foreground">
                     <th className="h-9 px-3 font-medium">Leg</th>
                     <th className="h-9 px-3 text-right font-medium">Allocation</th>
                     <th className="h-9 px-3 text-right font-medium">In (USDC raw)</th>
-                    <th className="h-9 px-3 text-right font-medium">Expected out</th>
+                    <th className="h-9 px-3 text-right font-medium">Quoted out</th>
+                    <th className="h-9 px-3 text-right font-medium">Minimum out</th>
+                    <th className="h-9 px-3 text-right font-medium">Actual out</th>
                     <th className="h-9 px-3 text-right font-medium">Impact</th>
                     <th className="h-9 px-3 font-medium">Status</th>
                   </tr>
@@ -611,10 +1071,17 @@ export function ZapInForm({
                         {leg.expectedOutAmount ?? leg.note ?? "—"}
                       </td>
                       <td className="px-3 text-right font-mono tabular-nums">
+                        {leg.minimumOutAmount ?? leg.jupiterQuote?.otherAmountThreshold ?? "—"}
+                      </td>
+                      <td className="px-3 text-right font-mono tabular-nums">
+                        {legActualAmounts[i] ?? "—"}
+                      </td>
+                      <td className="px-3 text-right font-mono tabular-nums">
                         {leg.priceImpactPct ?? "—"}
                       </td>
                       <td className="px-3 font-mono tabular-nums text-muted-foreground">
                         {legStates[i]}
+                        {legSignatures[i] ? " · tx recorded" : ""}
                       </td>
                     </tr>
                   ))}

@@ -2,10 +2,10 @@
 
 ## Current baseline
 
-Snapshot from 2026-09-18:
+Snapshot from 2026-09-19:
 
-- Rust workspace: 183 tests passed.
-- Backend: 550 Vitest tests passed.
+- Rust workspace: 199 tests passed.
+- Backend: 565 Vitest tests passed.
 - Frontend TypeScript: passed.
 - Frontend test suite: missing.
 - Root, standalone app, and standalone backend clean installs pass after the 2026-09-18 lock repair.

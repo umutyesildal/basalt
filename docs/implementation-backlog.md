@@ -52,14 +52,21 @@ Documentation evidence (2026-09-18):
 
 ### BAS-003 — Zap pre/post balance delta
 
-- [ ] Snapshot pre-swap raw ATA balances.
-- [ ] Calculate post-confirmation deltas.
-- [ ] Check quote/min-out/tolerance.
-- [ ] Add partial-leg recovery.
-- [ ] Add existing-balance regression tests.
+- [x] Snapshot pre-swap raw ATA balances.
+- [x] Calculate post-confirmation deltas.
+- [x] Check quote/min-out/tolerance.
+- [x] Add partial-leg recovery.
+- [x] Add existing-balance regression tests.
 
 **Owner area:** frontend
 **Acceptance:** Only tokens received by the Zap are deposited.
+
+Implementation evidence (2026-09-19):
+- `app/lib/zap-balance-delta.ts` provides ordered raw-balance snapshots, exact `post - pre` accounting, Jupiter minimum-output selection, and retry classification without converting economic amounts through `Number`.
+- `app/components/basket/zap-in-form.tsx` binds one immutable snapshot to the wallet and quote fingerprint, validates each confirmed leg against minimum output, freezes only received deltas for `mint_in_kind`, skips settled legs, and retains signed transaction bytes across ambiguous RPC sends.
+- The quote API exposes `minimumOutAmount`; the UI shows quoted, minimum, and actual raw output separately.
+- `backend/tests/zap-balance-delta.test.ts` covers pre-existing balances, zero/negative deltas, mint/order mismatch, BigInt boundaries, min-out, and partial-leg recovery.
+- Zap-out remains quote-only and is not presented as an end-to-end frontend flow.
 
 ### BAS-004 — Checked arithmetic
 

@@ -53,19 +53,19 @@ This proves that the devnet protocol flow is real. It does not prove issuer back
 | Check | Result | Notes |
 |---|---|---|
 | `cargo test --workspace` | 199 passed | 130 basket, 43 factory, 26 whitelist |
-| Backend Vitest | 550 passed | 13 files |
+| Backend Vitest | 565 passed | 14 files |
 | App TypeScript | Passed | `npx tsc --noEmit --incremental false` |
 | App production build | Passed | 21 routes from a clean standalone app install |
 | Clean `npm ci` | Passed | Root workspace, standalone app, and standalone backend verified independently |
 | Frontend E2E | Missing | No Playwright/wallet regression suite |
 
-Verified automated total for the repaired working tree: **749 = 199 Rust + 550 backend**. Older 599/620/421/442/549/733 counts are historical.
+Verified automated total for the repaired working tree: **764 = 199 Rust + 565 backend**. Older 599/620/421/442/549/733/749 counts are historical.
 
 ## Mainnet blockers
 
 1. The working tree fixes management-fee crank grief with exact remainder carry, but the deployed devnet basket program still requires an upgrade and existing-account smoke test.
 2. The interim Token-2022 policy is extension-free and fail-closed, with exact raw source/destination delta checks for seed and mint. Instruction-level extension, adversarial-hook, and full ProgramTest/LiteSVM coverage remain open under BAS-016; official mainnet xStocks are not admitted.
-3. Zap uses the full post-swap balance instead of `post - pre`.
+3. Zap-in now uses wallet/quote-bound raw `post - pre` snapshots with min-out validation and partial-leg recovery; Zap-out remains quote-only with no frontend execution path.
 4. Upgrade authority is a single wallet; no multisig/timelock.
 5. Mock and synthetic data are not labeled consistently across all surfaces.
 6. Price integration still targets legacy Jupiter Price v6.

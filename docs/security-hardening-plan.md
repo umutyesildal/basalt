@@ -47,7 +47,9 @@ Test TransferFee, TransferHook, DefaultAccountState, PermanentDelegate, memo req
 
 ## SEC-003 — Zap received-amount correctness
 
-**Problem:** The client does not store pre-swap balances. It treats the full post-swap ATA balance as received, which can include tokens the user already owned.
+**Status:** Completed for Zap-in on 2026-09-19. Zap-out remains a quote-only API and has no frontend execution path.
+
+**Resolved problem:** The client previously treated the full post-swap ATA balance as received, which could include tokens the user already owned.
 
 **Plan:**
 
@@ -59,6 +61,10 @@ Test TransferFee, TransferHook, DefaultAccountState, PermanentDelegate, memo req
 6. Show quoted, minimum, and actual amounts separately.
 
 **Acceptance:** Existing balances are never included in a Zap deposit, and partial-leg failure has a tested recovery path.
+
+Evidence: `app/lib/zap-balance-delta.ts`, `app/components/basket/zap-in-form.tsx`, and `backend/tests/zap-balance-delta.test.ts`.
+
+Residual limitation: balance-delta accounting excludes inventory present at the snapshot, but the same ATA cannot attribute a concurrent external deposit to a specific Jupiter transaction. The UI cancels stale wallet/input contexts and freezes deltas immediately after all legs settle; transaction-meta attribution or dedicated temporary accounts would be required to eliminate that residual race completely.
 
 ## SEC-004 — Arithmetic and cast safety
 
