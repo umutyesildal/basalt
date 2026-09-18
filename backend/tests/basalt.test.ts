@@ -1,5 +1,13 @@
 import { describe, it, expect } from "vitest";
-import { entryFee, exitFee, managementFee, splitFee, BPS_DENOM, SECONDS_PER_YEAR } from "../src/workers/feeMath";
+import {
+  entryFee,
+  exitFee,
+  managementFee,
+  managementFeeWithRemainder,
+  splitFee,
+  BPS_DENOM,
+  SECONDS_PER_YEAR,
+} from "../src/workers/feeMath";
 import { computeNav, computeSharePrice, computeDrift } from "../src/workers/navEngine";
 import { mockPrices } from "../src/workers/priceFetch";
 
@@ -41,6 +49,20 @@ describe("feeMath", () => {
   it("management yearly cap 300bps = 3%", () => {
     expect(managementFee(10_000_000,300,365*24*3600)).toBe(300_000);
     expect(managementFee(10_000_000,100,365*24*3600)).toBe(100_000);
+  });
+  it("management remainder makes one thousand 1-second accruals equal one combined accrual", () => {
+    const supply = 10_000_000n;
+    const bps = 300;
+    const combined = managementFeeWithRemainder(supply, bps, 1_000n);
+    let fee = 0n;
+    let remainder = 0n;
+    for (let i = 0; i < 1_000; i++) {
+      const next = managementFeeWithRemainder(supply, bps, 1n, remainder);
+      fee += next.fee;
+      remainder = next.remainder;
+    }
+    expect({ fee, remainder }).toEqual(combined);
+    expect(fee).toBe(9n);
   });
   it("management never exceeds cap", () => {
     for (const bps of [100,200,300]) {

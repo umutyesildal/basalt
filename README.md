@@ -1,18 +1,19 @@
 # Basalt — xStocks Strategy Baskets on Solana
 
 > "Create an index. Own your thesis." — Onchain strategy baskets powered by xStocks.
-> V0 spec: `docs/basalt-v0-spec.md` (normative product constraints). Execution plan: `plan.md`. Brand: `brand.md`.
-> Current state: **LIVE ON DEVNET (2026-09-04) — 3 programs deployed at declared IDs, 12 mock xStocks whitelisted, one basket live with mint/redeem/fee verified on-chain (38 confirmed txs; redeem_in_kind proven permissionless under a paused constituent). Backend indexer/NAV/fee-crank live against devnet. 599 tests (178 Rust + 442 backend TS).** Not yet mainnet. Evidence: `docs/devnet-live-2026-09-04.md`.
+> V0 spec: `docs/basalt-v0-spec.md` (normative product constraints). Documentation map: `docs/README.md`. Current backlog: `docs/implementation-backlog.md`. Brand: `brand.md`.
+> Current state: **Working devnet beta, not mainnet-ready. Real create/mint/redeem and read-only indexing are verified; current constituent assets are project mock mints and some deployed surfaces use labeled/demo datasets.** Verified 2026-09-18 working tree: clean root/app/backend installs pass, 183 Rust + 550 backend tests pass, and the app produces a 21-route production build. Full snapshot: `docs/current-state-2026-09-18.md`.
+> **Won: Superteam Germany "Road to Colosseum" Ideathon (2026-09-14)** — top-10 of 38 submissions, $3k USDG pool. Submission: `docs/ideathon-submission-2026-09.md`. Live demo: https://basalt-coral.vercel.app/explore. Current implementation order: `docs/implementation-backlog.md`.
 
-## Tests (all green)
+## Verification commands
 
 ```bash
-cargo test                                  # 178 Rust tests
+cargo test                                  # 183 Rust tests
 npm --prefix backend install                # once (backend has its own lockfile)
 npm --prefix backend run build              # strict NodeNext, no suppressions
-npm --prefix backend test -- --run          # 421 TS tests
+npm --prefix backend test -- --run          # 550 TS tests in the 2026-09-18 working tree
 (cd app && npx tsc --noEmit --incremental false)   # 0 errors
-npm --prefix app run build                  # 13 routes, no ignored errors
+npm --prefix app run build                  # 21 routes in the 2026-09-18 clean-build snapshot
 ```
 
 ## Devnet live (2026-09-04)
@@ -55,7 +56,7 @@ See `docs/basalt-v0-spec.md` §2-6 for account model, instruction args, mint/red
 
 Indexer listens for `BasketCreated/Minted/Redeemed/FeeAccrued` (Borsh decoders), upserts `baskets`/`events`/`creator_stats`, syncs `vault_holdings` (raw + multiplier + scaled), NAV engine snapshots `nav_snapshots` + refreshes `basket_rankings`, fee crank emits **unsigned** `accrue_management_fee` transactions. REST `/api/v1` implements the spec §8-9 routes with honest empty/error states (`NOT_INDEXED`, `DB_UNAVAILABLE`, `QUOTE_UNAVAILABLE`) — no fabricated production-looking data. Zap quotes proxy Jupiter; provenance + sequential/non-atomic warning included.
 
-## Frontend (real — 12 routes, new IA)
+## Frontend (real — 21-route production build, new IA)
 
 Owner-approved information architecture (2026-09-03):
 
@@ -66,7 +67,7 @@ Owner-approved information architecture (2026-09-03):
 - `/create` — 6-step wizard (wallet-gated Next, working slim sliders, over-10k allowed with exact-10k deploy gate, plain-language seed step with live value preview)
 - `/basket/[pubkey]` + buy/redeem — transaction surfaces; `/portfolio`, `/creator/[pubkey]`, `/legal`
 
-Design language: **monochrome UI chrome** (classic shadcn dark/light) + **ethereal chart data palette** (sage/rose/blue/sand/lavender, benchmark gray dashed — user decision 2026-09-03). No site footer; LEGAL_REVIEW_REQUIRED chips removed from the UI (review backlog — the wizard's legal-checkbox step stays functional). Charts are verified-official Bklit components (Brush = documented local adapter).
+Design language: the **BASALT identity** — hexagonal-column mark, dark industrial canvas, disciplined electric-yellow accent, Chakra Petch display, and Geist Mono labels — with chart-only data colors. No site footer; LEGAL_REVIEW_REQUIRED chips are absent from the chrome while the wizard legal step and `/legal` remain functional. Charts use locally vendored Bklit-derived sources; Brush is a documented local adapter.
 
 ## Social trading (V0.2 — fomo.family-inspired, not a clone)
 
@@ -80,7 +81,7 @@ Every basket trade already settles on-chain, so the feed shows **verified activi
 
 ## Security
 
-See spec §11. Key invariants (all evidenced in `plan.md` §6 gate table): `redeem_in_kind` never gated (no whitelist/oracle/pauser account in its context; structural test), no `admin_withdraw`, RAW-only transfers, fee caps + 90/10 split, genesis 1M inflation-attack protection. Run `cargo test` + `cso` + `review-and-iterate` before devnet/mainnet.
+See spec §11, `docs/current-state-2026-09-18.md`, and `docs/security-hardening-plan.md`. Key invariants: `redeem_in_kind` is never gated (no whitelist/oracle/pauser account in its context; structural test), no `admin_withdraw`, RAW-only transfers, fee caps + 90/10 split, and genesis 1M inflation-attack protection. Run `cargo test` plus independent security review before mainnet.
 
 ## Legal Placeholders
 
@@ -90,9 +91,9 @@ UI chips were removed at the owner's request (2026-09-03); the review items live
 
 For local (non-devnet) development, `demo-seed` seeds the local Postgres so pages render with content: 4 whitelisted mock xStocks (TSLAx/AAPLx/NVDAx/SPYx from `docs/providers.md`) and two demo baskets (**Tech Duo** 50/50 AAPLx-TSLAx, **Index Plus** 60/25/15 SPYx-NVDAx-AAPLx) with 30d NAV history (`demo-seed` source marker). Dev-only — drop or re-seed freely. When the backend runs against devnet instead, pages serve on-chain-indexed data (see "Devnet live" above) and the seed is unnecessary.
 
-## Milestones
+## Current work
 
-Execution state in `plan.md` §7-8. G0 brand superseded by the owner's **monochrome** decision (2026-09-03); G1 Bklit provenance resolved; protocol/backend truth waves complete; new-IA UI waves complete (owner feedback rounds 1-2 applied). **DEVNET LIVE (2026-09-04)** — evidence in `docs/devnet-live-2026-09-04.md`, status snapshot in `plan.md` §8c. UI waves: plan in `docs/ui-plan.md` — waves 1-3 complete (primitives + card anatomy + transaction rail; primitive integration + wizard live preview + per-basket OG images; wave-3 audit in `docs/ui-audit-wave3.md`), wave 4 (audit fixes + smoke script + docs sync) in progress. Next steps: rebalance V1 owner decisions (`docs/basalt-rebalance-v1-draft.md` §6) and live devnet verification of the UI flows against the real indexer.
+Use `docs/current-state-2026-09-18.md` for verified status and `docs/implementation-backlog.md` for implementation order. The immediate release path is: deploy and smoke-test BAS-001 on devnet; harden Token-2022 received-balance semantics; fix Zap delta accounting; finish governance, attestation, data-truth, and legal gates; then obtain an independent audit. `plan.md` is retained as the historical implementation-wave log.
 
 ## Scripts
 
@@ -101,4 +102,4 @@ Execution state in `plan.md` §7-8. G0 brand superseded by the owner's **monochr
 
 ---
 
-Generated from `basalt_build_prompt.md` via solana.new superstack skills (`scaffold-project`, `build-defi-protocol`, `cso`, `brand-design`) + orchestrated implementation waves (2026-09-01).
+Generated from the historically named `foliox_build_prompt.md` via solana.new superstack skills (`scaffold-project`, `build-defi-protocol`, `cso`, `brand-design`) + orchestrated implementation waves (2026-09-01).

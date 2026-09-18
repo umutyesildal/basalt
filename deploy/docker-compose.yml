@@ -1,0 +1,60 @@
+# Basalt production stack — backend + Postgres 16 + Caddy (auto-HTTPS).
+# No Redis on purpose: backend falls back to an in-memory TTL cache when
+# REDIS_URL is unset (src/index.ts). Fewer moving parts for the devnet demo.
+#
+# Usage (on the server):
+#   cd deploy && docker compose up -d --build
+#
+# Required env (deploy/.env — see DEPLOY.md):
+#   API_DOMAIN        e.g. api.basalt.xyz
+#   POSTGRES_PASSWORD random, `openssl rand -hex 24`
+# Backend runtime config lives in backend/.env.production (mounted as env_file).
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: basalt
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in deploy/.env}
+      POSTGRES_DB: foliox
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    # No published ports: Postgres is reachable only inside the compose network.
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U basalt -d foliox"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+
+  backend:
+    build: ../backend
+    restart: unless-stopped
+    env_file:
+      - ../backend/.env.production
+    environment:
+      DATABASE_URL: postgres://basalt:${POSTGRES_PASSWORD}@postgres:5432/foliox
+      PORT: "3001"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      API_DOMAIN: ${API_DOMAIN:?set API_DOMAIN in deploy/.env}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - backend
+
+volumes:
+  pgdata:
+  caddy_data:
+  caddy_config:

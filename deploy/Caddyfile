@@ -1,0 +1,9 @@
+# API_DOMAIN is injected from deploy/.env via docker compose.
+# Caddy obtains and renews a Let's Encrypt certificate automatically on boot.
+# NOTE: for the first certificate issuance the DNS A record must be visible
+# directly (Cloudflare proxy OFF / grey cloud). The orange-cloud proxy can be
+# enabled afterwards with SSL mode "Full (strict)" — see DEPLOY.md §5.
+{$API_DOMAIN} {
+	encode gzip
+	reverse_proxy backend:3001
+}

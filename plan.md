@@ -1,22 +1,23 @@
 # Basalt Implementation Plan
 
-> Owner: coordinator (Codex) | Workspace: `createyouretf` | Last reviewed: 2026-09-04
-> Current phase: documented discovery complete; implementation is gated on the decisions in G0.
+> Owner: coordinator (Codex) | Workspace: `createyouretf` | Last reviewed: 2026-09-18
+> Current phase: working devnet beta; P0 economic, Token-2022, data-truth, governance, and release hardening are tracked in `docs/implementation-backlog.md`.
 > Normative product constraints remain in `docs/basalt-v0-spec.md` and `AGENTS.md`.
 
 ## 0. Purpose and source of truth
 
-This is the execution plan for taking Basalt from a scaffold/prototype to a truthful, testable, polished Solana strategy-basket application. It covers protocol correctness, backend data, wallet flows, bklit UI, legal copy, accessibility, responsive behavior, and Orca worker coordination.
+This is the historical execution plan that took Basalt from a scaffold/prototype to a working devnet beta. It covers protocol correctness, backend data, wallet flows, Bklit-derived UI, legal copy, accessibility, responsive behavior, and agent coordination. Use `docs/implementation-backlog.md` for current implementation order.
 
 Use the documents in this order:
 
 1. `AGENTS.md` — hard constraints and agent workflow.
 2. `docs/basalt-v0-spec.md` — product, account, math, API, security, legal, and milestone specification.
-3. `docs/ui-discovery-2026-09-01.md` — verified current-state audit and design direction.
-4. `plan.md` — ordered implementation work, dependencies, acceptance gates, and decision log.
-5. `README.md` and `app/README.md` — operator-facing quick start and status only.
+3. `docs/current-state-2026-09-18.md` — dated verified implementation and deployment snapshot.
+4. `docs/implementation-backlog.md` — current ordered work, dependencies, and acceptance gates.
+5. `plan.md` — historical execution decisions and wave log.
+6. `README.md` and `app/README.md` — operator-facing quick start and status only.
 
-`basalt_build_prompt.md` remains the original product prompt. Do not silently weaken a constraint in the prompt or spec to make a demo easier.
+`foliox_build_prompt.md` is the original product prompt under its historical filename. Do not silently weaken a constraint in the prompt or spec to make a demo easier.
 
 ## 1. Product guardrails
 
@@ -56,7 +57,7 @@ Resolved by user decision: run `brand-design` (full interview + previews), telem
 
 ### G1 — registry provenance — RESOLVED 2026-09-01
 
-Verified live against the official registry (every `/r/{name}.json` endpoint status-checked, 14 payloads byte-diffed against local sources). Full evidence in `docs/bklit-registry-findings-2026-09-01.md`. Findings:
+Verified live against the official registry on 2026-09-01 (every `/r/{name}.json` endpoint status-checked, 14 payloads byte-diffed against local sources). The original standalone evidence file is not present; the retained findings are summarized below:
 
 1. Local `app/components/charts/*` ARE official Bklit source — official charts are themselves `@visx`-backed (`@visx/*@4.0.1-alpha.0` + `motion`, matching `app/package.json`). candlestick-chart, grid, x-axis, chart-animation byte-identical; area/line/bar/tooltip near-identical with tiny local edits.
 2. **Brush is the true gap:** `/r/brush.json` and `/r/chart-brush.json` are 404 and no payload ships ChartBrush source, although docs document the API. The local `chart-brush.tsx` stays as a **justified, documented local adapter** — never labeled official.
@@ -82,7 +83,7 @@ Dependencies: G0 is recorded; no code implementation yet.
 
 Tasks:
 
-1. Keep `plan.md`, `docs/ui-discovery-2026-09-01.md`, `AGENTS.md`, `CLAUDE.md`, and `CONTEXT.md` synchronized on status and constraints.
+1. Keep `docs/current-state-2026-09-18.md`, `docs/implementation-backlog.md`, `AGENTS.md`, `CLAUDE.md`, and `CONTEXT.md` synchronized on status and constraints.
 2. Create a safe baseline commit or equivalent immutable snapshot before new code edits. Do not reset, clean, or delete the existing untracked work.
 3. Replace stale placeholder IDs and “scaffold pending” claims in operator documentation.
 4. Record exact commands, versions, pass counts, and known failures in the phase log.

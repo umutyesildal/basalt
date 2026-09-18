@@ -23,12 +23,11 @@ pub mod whitelist {
         Ok(())
     }
 
-    pub fn add_mint(
-        ctx: Context<AddMint>,
-        decimals: u8,
-        price_source: String,
-    ) -> Result<()> {
-        require!(ctx.accounts.config.authority == ctx.accounts.authority.key(), WhitelistError::Unauthorized);
+    pub fn add_mint(ctx: Context<AddMint>, decimals: u8, price_source: String) -> Result<()> {
+        require!(
+            ctx.accounts.config.authority == ctx.accounts.authority.key(),
+            WhitelistError::Unauthorized
+        );
         require!(price_source.len() <= 64, WhitelistError::PriceSourceTooLong);
 
         // No lazy trust in the caller's `decimals` arg: the mint account is
@@ -59,23 +58,41 @@ pub mod whitelist {
     }
 
     pub fn pause_mint(ctx: Context<UpdateMint>) -> Result<()> {
-        require!(ctx.accounts.config.authority == ctx.accounts.authority.key(), WhitelistError::Unauthorized);
+        require!(
+            ctx.accounts.config.authority == ctx.accounts.authority.key(),
+            WhitelistError::Unauthorized
+        );
         let m = &mut ctx.accounts.whitelisted_mint;
-        require!(m.status == WhitelistStatus::Active as u8, WhitelistError::AlreadyPaused);
+        require!(
+            m.status == WhitelistStatus::Active as u8,
+            WhitelistError::AlreadyPaused
+        );
         m.status = WhitelistStatus::PausedNewMints as u8;
         Ok(())
     }
 
     pub fn unpause_mint(ctx: Context<UpdateMint>) -> Result<()> {
-        require!(ctx.accounts.config.authority == ctx.accounts.authority.key(), WhitelistError::Unauthorized);
+        require!(
+            ctx.accounts.config.authority == ctx.accounts.authority.key(),
+            WhitelistError::Unauthorized
+        );
         let m = &mut ctx.accounts.whitelisted_mint;
-        require!(m.status == WhitelistStatus::PausedNewMints as u8, WhitelistError::NotPaused);
+        require!(
+            m.status == WhitelistStatus::PausedNewMints as u8,
+            WhitelistError::NotPaused
+        );
         m.status = WhitelistStatus::Active as u8;
         Ok(())
     }
 
-    pub fn transfer_authority(ctx: Context<TransferAuthority>, new_authority: Pubkey) -> Result<()> {
-        require!(ctx.accounts.config.authority == ctx.accounts.authority.key(), WhitelistError::Unauthorized);
+    pub fn transfer_authority(
+        ctx: Context<TransferAuthority>,
+        new_authority: Pubkey,
+    ) -> Result<()> {
+        require!(
+            ctx.accounts.config.authority == ctx.accounts.authority.key(),
+            WhitelistError::Unauthorized
+        );
         let config = &mut ctx.accounts.config;
         config.pending_authority = Some(new_authority);
         Ok(())
@@ -83,8 +100,13 @@ pub mod whitelist {
 
     pub fn claim_authority(ctx: Context<ClaimAuthority>) -> Result<()> {
         let config = &mut ctx.accounts.config;
-        let pending = config.pending_authority.ok_or(WhitelistError::NoPendingAuthority)?;
-        require!(ctx.accounts.new_authority.key() == pending, WhitelistError::Unauthorized);
+        let pending = config
+            .pending_authority
+            .ok_or(WhitelistError::NoPendingAuthority)?;
+        require!(
+            ctx.accounts.new_authority.key() == pending,
+            WhitelistError::Unauthorized
+        );
         config.authority = pending;
         config.pending_authority = None;
         Ok(())
@@ -95,7 +117,10 @@ pub mod whitelist {
 
 /// The mint account must be owned by the Token-2022 program (spec §11 P0).
 pub fn check_mint_owner(owner: &Pubkey) -> Result<()> {
-    require!(*owner == TOKEN_2022_PROGRAM_ID, WhitelistError::InvalidMintOwner);
+    require!(
+        *owner == TOKEN_2022_PROGRAM_ID,
+        WhitelistError::InvalidMintOwner
+    );
     Ok(())
 }
 
@@ -248,7 +273,9 @@ mod tests {
     }
     #[test]
     fn test_decimals_validation() {
-        for d in 0..=12 { assert!(d <= 12); }
+        for d in 0..=12 {
+            assert!(d <= 12);
+        }
         assert!(13 > 12);
     }
     #[test]
@@ -258,13 +285,23 @@ mod tests {
     }
     #[test]
     fn test_pending_authority_none_initially() {
-        let cfg = WhitelistConfig { authority: Pubkey::default(), pending_authority: None, mint_count: 0, bump: 0 };
+        let cfg = WhitelistConfig {
+            authority: Pubkey::default(),
+            pending_authority: None,
+            mint_count: 0,
+            bump: 0,
+        };
         assert!(cfg.pending_authority.is_none());
         assert_eq!(cfg.mint_count, 0);
     }
     #[test]
     fn test_mint_count_increment() {
-        let mut cfg = WhitelistConfig { authority: Pubkey::default(), pending_authority: None, mint_count: 0, bump: 0 };
+        let mut cfg = WhitelistConfig {
+            authority: Pubkey::default(),
+            pending_authority: None,
+            mint_count: 0,
+            bump: 0,
+        };
         cfg.mint_count = cfg.mint_count.checked_add(1).unwrap();
         assert_eq!(cfg.mint_count, 1);
         cfg.mint_count = cfg.mint_count.checked_add(1).unwrap();
@@ -272,7 +309,14 @@ mod tests {
     }
     #[test]
     fn test_pause_idempotency() {
-        let mut m = WhitelistedMint { mint: Pubkey::default(), decimals: 6, multiplier_watermark: 1_000_000, status: WhitelistStatus::Active as u8, price_source: "jupiter:TSLAx".to_string(), bump: 0 };
+        let mut m = WhitelistedMint {
+            mint: Pubkey::default(),
+            decimals: 6,
+            multiplier_watermark: 1_000_000,
+            status: WhitelistStatus::Active as u8,
+            price_source: "jupiter:TSLAx".to_string(),
+            bump: 0,
+        };
         assert_eq!(m.status, 0);
         m.status = WhitelistStatus::PausedNewMints as u8;
         assert_eq!(m.status, 1);
@@ -285,7 +329,12 @@ mod tests {
     fn test_transfer_authority_flow() {
         let auth = Pubkey::new_unique();
         let new_auth = Pubkey::new_unique();
-        let mut cfg = WhitelistConfig { authority: auth, pending_authority: None, mint_count: 0, bump: 0 };
+        let mut cfg = WhitelistConfig {
+            authority: auth,
+            pending_authority: None,
+            mint_count: 0,
+            bump: 0,
+        };
         cfg.pending_authority = Some(new_auth);
         assert_eq!(cfg.pending_authority.unwrap(), new_auth);
         // claim
@@ -304,7 +353,14 @@ mod tests {
     }
     #[test]
     fn test_multiplier_watermark_default() {
-        let m = WhitelistedMint { mint: Pubkey::default(), decimals: 6, multiplier_watermark: 1_000_000, status: 0, price_source: "".to_string(), bump: 0 };
+        let m = WhitelistedMint {
+            mint: Pubkey::default(),
+            decimals: 6,
+            multiplier_watermark: 1_000_000,
+            status: 0,
+            price_source: "".to_string(),
+            bump: 0,
+        };
         assert_eq!(m.multiplier_watermark, 1_000_000);
         // after split 2x, multiplier 2_000_000
         let mut m2 = m;
@@ -371,7 +427,14 @@ mod tests {
         let arg: u8 = 6;
         let on_chain: u8 = 6;
         assert!(check_decimals(arg, on_chain).is_ok());
-        let mut m = WhitelistedMint { mint: Pubkey::default(), decimals: 0, multiplier_watermark: 1_000_000, status: WhitelistStatus::Active as u8, price_source: "jupiter:TSLAx".to_string(), bump: 0 };
+        let mut m = WhitelistedMint {
+            mint: Pubkey::default(),
+            decimals: 0,
+            multiplier_watermark: 1_000_000,
+            status: WhitelistStatus::Active as u8,
+            price_source: "jupiter:TSLAx".to_string(),
+            bump: 0,
+        };
         m.decimals = on_chain; // what add_mint stores
         assert_eq!(m.decimals, arg);
         assert_eq!(m.status, WhitelistStatus::Active as u8);

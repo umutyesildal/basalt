@@ -1,5 +1,11 @@
 # Basalt — Create an index. Own your thesis.
 
+> **RESULT (2026-09-14): WON** — Superteam Germany "Road to Colosseum Hackathon
+> Germany Ideathon" (superteam.fun/earn/listing/road-to-colosseum-hackathon-germany-ideathon).
+> 38 submissions, 10 winners, $3,000 USDG pool (750/550/400/300/250/150×5).
+> Winning rank + payout (USDG): _record here once the sponsor confirms_.
+> "Road to Colosseum": this feeds the Colosseum fall hackathon (Sep 28 – Nov 2, 2026).
+
 **Category:** RWA / Tokenisation (primary) · DeFi (secondary) · 📺 **1-minute walkthrough (Loom):** _link added after recording_
 
 ## The problem
@@ -22,7 +28,7 @@ The core promise — you can always take your stocks back without anyone's permi
 
 Three Anchor programs are deployed, whitelisting 12 devnet mock xStocks (self-minted — no official devnet xStocks exist; real mainnet integration is milestone one) and powering 3 live baskets with NAV priced from real market data. The builder is user #1: this week he minted and redeemed a basket live through the real UI with a real wallet. The flagship 6-constituent MAG SIX basket is on-chain here: [explorer.solana.com/address/CZCHnprMPvBFLCs5jwApLMPj1MEUMGJ4SWr4WWzKXYCo?cluster=devnet](https://explorer.solana.com/address/CZCHnprMPvBFLCs5jwApLMPj1MEUMGJ4SWr4WWzKXYCo?cluster=devnet)
 
-Live demo (frontend on Vercel, backend on devnet indexer): https://basalt-app-coral.vercel.app/explore
+Live demo (frontend on Vercel, backend on devnet indexer): https://basalt-coral.vercel.app/explore
 
 ## Next — the global Solana Hackathon
 

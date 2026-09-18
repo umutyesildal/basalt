@@ -5,8 +5,8 @@ use anchor_spl::associated_token::{
 use anchor_spl::token_2022::spl_token_2022::instruction::AuthorityType;
 use anchor_spl::token_2022::ID as TOKEN_2022_PROGRAM_ID;
 use anchor_spl::token_interface::{
-    find_mint_account_size, initialize_mint2, mint_to, set_authority, transfer_checked, InitializeMint2,
-    Mint, MintTo, TokenAccount, TokenInterface, TransferChecked, SetAuthority,
+    find_mint_account_size, initialize_mint2, mint_to, set_authority, transfer_checked,
+    InitializeMint2, Mint, MintTo, SetAuthority, TokenAccount, TokenInterface, TransferChecked,
 };
 use basket::Basket as BasketAccount;
 use whitelist::WhitelistedMint;
@@ -77,7 +77,12 @@ pub mod basket_factory {
         check_constituent_count(constituents.len())?;
         check_no_duplicates(&constituents)?;
         check_weights_sum(&weights_bps)?;
-        check_fee_caps(entry_fee_bps, exit_fee_bps, management_fee_bps, &ctx.accounts.factory)?;
+        check_fee_caps(
+            entry_fee_bps,
+            exit_fee_bps,
+            management_fee_bps,
+            &ctx.accounts.factory,
+        )?;
         check_metadata_hash(&metadata_hash)?;
         check_seed_amounts(&seed_amounts)?;
         // Validation 7: basket_count + 1 must not overflow.
@@ -141,7 +146,10 @@ pub mod basket_factory {
             let creator_ata_ai = &remaining[i * ACCOUNTS_PER_CONSTITUENT + 2];
             let vault_ata_ai = &remaining[i * ACCOUNTS_PER_CONSTITUENT + 3];
 
-            require!(wl_ai.owner == &whitelist::ID, FactoryError::InvalidWhitelistAccount);
+            require!(
+                wl_ai.owner == &whitelist::ID,
+                FactoryError::InvalidWhitelistAccount
+            );
             let rec = {
                 let data = wl_ai.try_borrow_data()?;
                 decode_whitelisted_mint(&data)?
@@ -163,7 +171,10 @@ pub mod basket_factory {
                 let data = mint_ai.try_borrow_data()?;
                 decode_mint_decimals(&data)?
             };
-            require!(rec.decimals == mint_decimals, FactoryError::DecimalsMismatch);
+            require!(
+                rec.decimals == mint_decimals,
+                FactoryError::DecimalsMismatch
+            );
             constituents_decimals.push(mint_decimals);
 
             require_keys_eq!(
@@ -301,7 +312,11 @@ pub mod basket_factory {
                 (ata.mint, ata.owner)
             };
             require_keys_eq!(vault_mint, constituents[i], FactoryError::InvalidVaultAta);
-            require_keys_eq!(vault_owner, vault_authority_key, FactoryError::InvalidVaultAta);
+            require_keys_eq!(
+                vault_owner,
+                vault_authority_key,
+                FactoryError::InvalidVaultAta
+            );
 
             // RAW ONLY — Token-2022 raw seed amount creator → vault, decimals from
             // the whitelist cache (== on-chain mint decimals, checked above).
@@ -353,8 +368,16 @@ pub mod basket_factory {
             let ata = TokenAccount::try_deserialize_unchecked(&mut &data[..])?;
             (ata.mint, ata.owner)
         };
-        require_keys_eq!(creator_ata_mint, share_mint_key, FactoryError::InvalidShareAta);
-        require_keys_eq!(creator_ata_owner, creator_key, FactoryError::InvalidShareAta);
+        require_keys_eq!(
+            creator_ata_mint,
+            share_mint_key,
+            FactoryError::InvalidShareAta
+        );
+        require_keys_eq!(
+            creator_ata_owner,
+            creator_key,
+            FactoryError::InvalidShareAta
+        );
 
         {
             let factory_bump_arr = [ctx.accounts.factory.bump];
@@ -416,9 +439,19 @@ pub mod basket_factory {
 
 // ===================== pure validation helpers (unit tested) =====================
 
-pub fn check_lengths(constituents: &[Pubkey], weights_bps: &[u16], seed_amounts: &[u64]) -> Result<()> {
-    require!(constituents.len() == weights_bps.len(), FactoryError::LengthMismatch);
-    require!(constituents.len() == seed_amounts.len(), FactoryError::LengthMismatch);
+pub fn check_lengths(
+    constituents: &[Pubkey],
+    weights_bps: &[u16],
+    seed_amounts: &[u64],
+) -> Result<()> {
+    require!(
+        constituents.len() == weights_bps.len(),
+        FactoryError::LengthMismatch
+    );
+    require!(
+        constituents.len() == seed_amounts.len(),
+        FactoryError::LengthMismatch
+    );
     Ok(())
 }
 
@@ -433,7 +466,10 @@ pub fn check_constituent_count(n: usize) -> Result<()> {
 pub fn check_no_duplicates(constituents: &[Pubkey]) -> Result<()> {
     for i in 0..constituents.len() {
         for j in (i + 1)..constituents.len() {
-            require!(constituents[i] != constituents[j], FactoryError::DuplicateMint);
+            require!(
+                constituents[i] != constituents[j],
+                FactoryError::DuplicateMint
+            );
         }
     }
     Ok(())
@@ -442,7 +478,10 @@ pub fn check_no_duplicates(constituents: &[Pubkey]) -> Result<()> {
 /// u128 accumulator — no overflow for any realistic weight vector.
 pub fn check_weights_sum(weights_bps: &[u16]) -> Result<()> {
     let sum: u128 = weights_bps.iter().map(|w| *w as u128).sum();
-    require!(sum == WEIGHTS_DENOMINATOR as u128, FactoryError::WeightsNot10000);
+    require!(
+        sum == WEIGHTS_DENOMINATOR as u128,
+        FactoryError::WeightsNot10000
+    );
     Ok(())
 }
 
@@ -452,8 +491,14 @@ pub fn check_fee_caps(
     management_fee_bps: u16,
     factory: &FactoryConfig,
 ) -> Result<()> {
-    require!(entry_fee_bps <= factory.entry_fee_cap_bps, FactoryError::FeeOverCap);
-    require!(exit_fee_bps <= factory.exit_fee_cap_bps, FactoryError::FeeOverCap);
+    require!(
+        entry_fee_bps <= factory.entry_fee_cap_bps,
+        FactoryError::FeeOverCap
+    );
+    require!(
+        exit_fee_bps <= factory.exit_fee_cap_bps,
+        FactoryError::FeeOverCap
+    );
     require!(
         management_fee_bps <= factory.management_fee_cap_bps,
         FactoryError::FeeOverCap
@@ -473,7 +518,10 @@ pub fn check_metadata_hash(metadata_hash: &[u8; 32]) -> Result<()> {
     Ok(())
 }
 
-pub fn check_remaining_accounts_layout(remaining_len: usize, num_constituents: usize) -> Result<()> {
+pub fn check_remaining_accounts_layout(
+    remaining_len: usize,
+    num_constituents: usize,
+) -> Result<()> {
     require!(
         remaining_len == num_constituents * ACCOUNTS_PER_CONSTITUENT,
         FactoryError::InvalidRemainingAccounts
@@ -504,7 +552,11 @@ pub fn check_whitelisted_record(
         &whitelist::ID,
     )
     .map_err(|_| error!(FactoryError::InvalidWhitelistAccount))?;
-    require_keys_eq!(*pda_key, expected_pda, FactoryError::InvalidWhitelistAccount);
+    require_keys_eq!(
+        *pda_key,
+        expected_pda,
+        FactoryError::InvalidWhitelistAccount
+    );
     Ok(())
 }
 
@@ -721,55 +773,91 @@ pub enum FactoryError {
 mod tests {
     use super::*;
 
-    fn dummy_hash(n: u8) -> [u8;32] { let mut h=[0u8;32]; h[0]=n; if n==0 { h[1]=1; } h }
-    fn pubkey(n: u8) -> Pubkey { let mut b=[0u8;32]; b[0]=n; if n==0 { b[1]=1; } Pubkey::new_from_array(b) }
+    fn dummy_hash(n: u8) -> [u8; 32] {
+        let mut h = [0u8; 32];
+        h[0] = n;
+        if n == 0 {
+            h[1] = 1;
+        }
+        h
+    }
+    fn pubkey(n: u8) -> Pubkey {
+        let mut b = [0u8; 32];
+        b[0] = n;
+        if n == 0 {
+            b[1] = 1;
+        }
+        Pubkey::new_from_array(b)
+    }
 
     #[test]
-    fn test_factory_size() { assert_eq!(FactoryConfig::SIZE, 32+32+2+2+2+2+8+1); }
+    fn test_factory_size() {
+        assert_eq!(FactoryConfig::SIZE, 32 + 32 + 2 + 2 + 2 + 2 + 8 + 1);
+    }
     #[test]
-    fn test_factory_seeds() { assert_eq!(FACTORY_SEED, b"factory"); assert_eq!(BASKET_SEED, b"basket"); }
+    fn test_factory_seeds() {
+        assert_eq!(FACTORY_SEED, b"factory");
+        assert_eq!(BASKET_SEED, b"basket");
+    }
     #[test]
     fn test_weights_sum_valid() {
         let w = vec![5000u16, 3000, 2000];
-        let sum:u32 = w.iter().map(|x| *x as u32).sum();
+        let sum: u32 = w.iter().map(|x| *x as u32).sum();
         assert_eq!(sum, 10_000);
     }
     #[test]
     fn test_weights_sum_invalid() {
         let w = vec![5000u16, 3000, 1999];
-        let sum:u32 = w.iter().map(|x| *x as u32).sum();
+        let sum: u32 = w.iter().map(|x| *x as u32).sum();
         assert_ne!(sum, 10_000);
         let w2 = vec![10000u16];
-        let sum2:u32 = w2.iter().map(|x| *x as u32).sum();
+        let sum2: u32 = w2.iter().map(|x| *x as u32).sum();
         assert_eq!(sum2, 10_000); // but count 1 <2 so still invalid via count check
     }
     #[test]
     fn test_constituent_count_bounds() {
-        for n in 2..=20 { assert!(n>=2 && n<=20); }
-        assert!(!(1>=2 && 1<=20));
-        assert!(!(21>=2 && 21<=20));
+        for n in 2..=20 {
+            assert!(n >= 2 && n <= 20);
+        }
+        assert!(!(1 >= 2 && 1 <= 20));
+        assert!(!(21 >= 2 && 21 <= 20));
     }
     #[test]
     fn test_duplicate_detection() {
-        let a = pubkey(1); let b = pubkey(2);
-        let v = vec![a,b,a];
-        let mut dup=false;
-        for i in 0..v.len() { for j in (i+1)..v.len() { if v[i]==v[j] { dup=true; } } }
+        let a = pubkey(1);
+        let b = pubkey(2);
+        let v = vec![a, b, a];
+        let mut dup = false;
+        for i in 0..v.len() {
+            for j in (i + 1)..v.len() {
+                if v[i] == v[j] {
+                    dup = true;
+                }
+            }
+        }
         assert!(dup);
-        let v2 = vec![a,b,pubkey(3)];
-        let mut dup2=false;
-        for i in 0..v2.len() { for j in (i+1)..v2.len() { if v2[i]==v2[j] { dup2=true; } } }
+        let v2 = vec![a, b, pubkey(3)];
+        let mut dup2 = false;
+        for i in 0..v2.len() {
+            for j in (i + 1)..v2.len() {
+                if v2[i] == v2[j] {
+                    dup2 = true;
+                }
+            }
+        }
         assert!(!dup2);
     }
     #[test]
     fn test_metadata_hash_zero_rejected() {
-        assert_eq!([0u8;32], [0u8;32]);
-        assert_ne!(dummy_hash(1), [0u8;32]);
-        assert_ne!(dummy_hash(0), [0u8;32]);
+        assert_eq!([0u8; 32], [0u8; 32]);
+        assert_ne!(dummy_hash(1), [0u8; 32]);
+        assert_ne!(dummy_hash(0), [0u8; 32]);
     }
     #[test]
     fn test_fee_caps() {
-        let cap_entry=300; let cap_exit=100; let cap_mgmt=300;
+        let cap_entry = 300;
+        let cap_exit = 100;
+        let cap_mgmt = 300;
         assert!(300 <= cap_entry);
         assert!(301 > cap_entry);
         assert!(100 <= cap_exit);
@@ -779,16 +867,16 @@ mod tests {
     #[test]
     fn test_seed_amounts_zero_rejected() {
         let seeds = vec![100u64, 0, 100];
-        assert!(seeds.iter().any(|x| *x==0));
+        assert!(seeds.iter().any(|x| *x == 0));
         let seeds2 = vec![100u64, 100, 100];
-        assert!(!seeds2.iter().any(|x| *x==0));
+        assert!(!seeds2.iter().any(|x| *x == 0));
     }
     #[test]
     fn test_length_mismatch() {
         let c = vec![pubkey(1), pubkey(2)];
         let w = vec![5000u16];
         assert_ne!(c.len(), w.len());
-        let w2 = vec![5000u16,5000];
+        let w2 = vec![5000u16, 5000];
         assert_eq!(c.len(), w2.len());
     }
     #[test]
@@ -799,21 +887,34 @@ mod tests {
     }
     #[test]
     fn test_basket_count_increment() {
-        let mut f = FactoryConfig { authority: pubkey(1), treasury: pubkey(2), creator_fee_split_bps: 9000, entry_fee_cap_bps: 300, exit_fee_cap_bps: 100, management_fee_cap_bps: 300, basket_count: 0, bump: 0 };
+        let mut f = FactoryConfig {
+            authority: pubkey(1),
+            treasury: pubkey(2),
+            creator_fee_split_bps: 9000,
+            entry_fee_cap_bps: 300,
+            exit_fee_cap_bps: 100,
+            management_fee_cap_bps: 300,
+            basket_count: 0,
+            bump: 0,
+        };
         f.basket_count = f.basket_count.checked_add(1).unwrap();
         assert_eq!(f.basket_count, 1);
     }
     #[test]
     fn test_weights_various_valid() {
-        for weights in [vec![5000,5000], vec![3333,3333,3334], vec![1000,1000,1000,1000,1000,1000,1000,1000,1000,1000]] {
-            let sum:u32=weights.iter().map(|x| *x as u32).sum();
+        for weights in [
+            vec![5000, 5000],
+            vec![3333, 3333, 3334],
+            vec![1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000, 1000],
+        ] {
+            let sum: u32 = weights.iter().map(|x| *x as u32).sum();
             assert_eq!(sum, 10_000);
         }
     }
     #[test]
     fn test_weights_random_invalid() {
-        for weights in [vec![5000,5000,1], vec![10000,1], vec![0,0]] {
-            let sum:u32=weights.iter().map(|x| *x as u32).sum();
+        for weights in [vec![5000, 5000, 1], vec![10000, 1], vec![0, 0]] {
+            let sum: u32 = weights.iter().map(|x| *x as u32).sum();
             assert_ne!(sum, 10_000);
         }
     }
@@ -821,18 +922,36 @@ mod tests {
     fn test_factory_pda_seeds_deterministic() {
         let factory = pubkey(10);
         let creator = pubkey(20);
-        let nonce:u64=42;
-        let seed1 = [BASKET_SEED, factory.as_ref(), creator.as_ref(), &nonce.to_le_bytes()].concat();
-        let seed2 = [BASKET_SEED, factory.as_ref(), creator.as_ref(), &nonce.to_le_bytes()].concat();
+        let nonce: u64 = 42;
+        let seed1 = [
+            BASKET_SEED,
+            factory.as_ref(),
+            creator.as_ref(),
+            &nonce.to_le_bytes(),
+        ]
+        .concat();
+        let seed2 = [
+            BASKET_SEED,
+            factory.as_ref(),
+            creator.as_ref(),
+            &nonce.to_le_bytes(),
+        ]
+        .concat();
         assert_eq!(seed1, seed2);
-        let nonce2:u64=43;
-        let seed3 = [BASKET_SEED, factory.as_ref(), creator.as_ref(), &nonce2.to_le_bytes()].concat();
+        let nonce2: u64 = 43;
+        let seed3 = [
+            BASKET_SEED,
+            factory.as_ref(),
+            creator.as_ref(),
+            &nonce2.to_le_bytes(),
+        ]
+        .concat();
         assert_ne!(seed1, seed3);
     }
     #[test]
     fn test_genesis_shares_constant() {
         // factory always mints 1M genesis, not dependent on seed size
-        const GENESIS:u64=1_000_000;
+        const GENESIS: u64 = 1_000_000;
         assert_eq!(GENESIS, 1_000_000);
         // even with tiny seed 1 vs large 1e12, genesis same
         assert_eq!(GENESIS, GENESIS);
@@ -878,7 +997,16 @@ mod tests {
     }
     #[test]
     fn test_check_fee_caps_helper() {
-        let f = FactoryConfig { authority: pubkey(1), treasury: pubkey(2), creator_fee_split_bps: 9000, entry_fee_cap_bps: 300, exit_fee_cap_bps: 100, management_fee_cap_bps: 300, basket_count: 0, bump: 0 };
+        let f = FactoryConfig {
+            authority: pubkey(1),
+            treasury: pubkey(2),
+            creator_fee_split_bps: 9000,
+            entry_fee_cap_bps: 300,
+            exit_fee_cap_bps: 100,
+            management_fee_cap_bps: 300,
+            basket_count: 0,
+            bump: 0,
+        };
         assert!(check_fee_caps(0, 0, 0, &f).is_ok());
         assert!(check_fee_caps(300, 100, 300, &f).is_ok()); // exactly at caps
         assert!(check_fee_caps(299, 99, 299, &f).is_ok());
@@ -886,7 +1014,16 @@ mod tests {
         assert!(check_fee_caps(0, 101, 0, &f).is_err());
         assert!(check_fee_caps(0, 0, 301, &f).is_err());
         // a stricter factory caps harder (caps come from FactoryConfig)
-        let strict = FactoryConfig { authority: pubkey(1), treasury: pubkey(2), creator_fee_split_bps: 9000, entry_fee_cap_bps: 50, exit_fee_cap_bps: 10, management_fee_cap_bps: 50, basket_count: 0, bump: 0 };
+        let strict = FactoryConfig {
+            authority: pubkey(1),
+            treasury: pubkey(2),
+            creator_fee_split_bps: 9000,
+            entry_fee_cap_bps: 50,
+            exit_fee_cap_bps: 10,
+            management_fee_cap_bps: 50,
+            basket_count: 0,
+            bump: 0,
+        };
         assert!(check_fee_caps(100, 0, 0, &strict).is_err());
     }
     #[test]
@@ -915,38 +1052,87 @@ mod tests {
     #[test]
     fn test_whitelist_pda_derivation_deterministic() {
         let m = pubkey(9);
-        let p1 = Pubkey::find_program_address(&[whitelist::MINT_SEED, m.as_ref()], &whitelist::ID).0;
-        let p2 = Pubkey::find_program_address(&[whitelist::MINT_SEED, m.as_ref()], &whitelist::ID).0;
+        let p1 =
+            Pubkey::find_program_address(&[whitelist::MINT_SEED, m.as_ref()], &whitelist::ID).0;
+        let p2 =
+            Pubkey::find_program_address(&[whitelist::MINT_SEED, m.as_ref()], &whitelist::ID).0;
         assert_eq!(p1, p2);
-        assert_ne!(p1, Pubkey::find_program_address(&[whitelist::MINT_SEED, pubkey(10).as_ref()], &whitelist::ID).0);
+        assert_ne!(
+            p1,
+            Pubkey::find_program_address(
+                &[whitelist::MINT_SEED, pubkey(10).as_ref()],
+                &whitelist::ID
+            )
+            .0
+        );
     }
     #[test]
     fn test_check_whitelisted_record_ok() {
         let mint = pubkey(3);
-        let (pda, bump) = Pubkey::find_program_address(&[whitelist::MINT_SEED, mint.as_ref()], &whitelist::ID);
-        assert!(check_whitelisted_record(&mint, whitelist::WhitelistStatus::Active as u8, bump, &mint, &pda).is_ok());
+        let (pda, bump) =
+            Pubkey::find_program_address(&[whitelist::MINT_SEED, mint.as_ref()], &whitelist::ID);
+        assert!(check_whitelisted_record(
+            &mint,
+            whitelist::WhitelistStatus::Active as u8,
+            bump,
+            &mint,
+            &pda
+        )
+        .is_ok());
     }
     #[test]
     fn test_check_whitelisted_record_wrong_mint() {
         let mint = pubkey(3);
-        let (pda, bump) = Pubkey::find_program_address(&[whitelist::MINT_SEED, mint.as_ref()], &whitelist::ID);
-        assert!(check_whitelisted_record(&pubkey(4), whitelist::WhitelistStatus::Active as u8, bump, &mint, &pda).is_err());
+        let (pda, bump) =
+            Pubkey::find_program_address(&[whitelist::MINT_SEED, mint.as_ref()], &whitelist::ID);
+        assert!(check_whitelisted_record(
+            &pubkey(4),
+            whitelist::WhitelistStatus::Active as u8,
+            bump,
+            &mint,
+            &pda
+        )
+        .is_err());
     }
     #[test]
     fn test_check_whitelisted_record_paused() {
         let mint = pubkey(3);
-        let (pda, bump) = Pubkey::find_program_address(&[whitelist::MINT_SEED, mint.as_ref()], &whitelist::ID);
-        assert!(check_whitelisted_record(&mint, whitelist::WhitelistStatus::PausedNewMints as u8, bump, &mint, &pda).is_err());
+        let (pda, bump) =
+            Pubkey::find_program_address(&[whitelist::MINT_SEED, mint.as_ref()], &whitelist::ID);
+        assert!(check_whitelisted_record(
+            &mint,
+            whitelist::WhitelistStatus::PausedNewMints as u8,
+            bump,
+            &mint,
+            &pda
+        )
+        .is_err());
     }
     #[test]
     fn test_check_whitelisted_record_forged_pda_fails() {
         // right record fields but the passed "PDA" account is not the derived address
         let mint = pubkey(3);
-        let (_, bump) = Pubkey::find_program_address(&[whitelist::MINT_SEED, mint.as_ref()], &whitelist::ID);
-        assert!(check_whitelisted_record(&mint, whitelist::WhitelistStatus::Active as u8, bump, &mint, &pubkey(42)).is_err());
+        let (_, bump) =
+            Pubkey::find_program_address(&[whitelist::MINT_SEED, mint.as_ref()], &whitelist::ID);
+        assert!(check_whitelisted_record(
+            &mint,
+            whitelist::WhitelistStatus::Active as u8,
+            bump,
+            &mint,
+            &pubkey(42)
+        )
+        .is_err());
         // wrong bump cannot reconstruct the PDA either
-        let (pda, _) = Pubkey::find_program_address(&[whitelist::MINT_SEED, mint.as_ref()], &whitelist::ID);
-        assert!(check_whitelisted_record(&mint, whitelist::WhitelistStatus::Active as u8, bump.wrapping_add(1), &mint, &pda).is_err());
+        let (pda, _) =
+            Pubkey::find_program_address(&[whitelist::MINT_SEED, mint.as_ref()], &whitelist::ID);
+        assert!(check_whitelisted_record(
+            &mint,
+            whitelist::WhitelistStatus::Active as u8,
+            bump.wrapping_add(1),
+            &mint,
+            &pda
+        )
+        .is_err());
     }
     #[test]
     fn test_decode_whitelisted_mint_roundtrip() {
@@ -999,16 +1185,12 @@ mod tests {
         // which is why a plain Anchor seeds constraint would be wrong here.
         let basket_key = pubkey(77);
         let (pda, bump) = vault_authority_pda(&basket_key);
-        let (expected, expected_bump) = Pubkey::find_program_address(
-            &[basket::BASKET_SEED, basket_key.as_ref()],
-            &basket::ID,
-        );
+        let (expected, expected_bump) =
+            Pubkey::find_program_address(&[basket::BASKET_SEED, basket_key.as_ref()], &basket::ID);
         assert_eq!(pda, expected);
         assert_eq!(bump, expected_bump);
-        let factory_derived = Pubkey::find_program_address(
-            &[BASKET_SEED, basket_key.as_ref()],
-            &crate::ID,
-        );
+        let factory_derived =
+            Pubkey::find_program_address(&[BASKET_SEED, basket_key.as_ref()], &crate::ID);
         assert_ne!(pda, factory_derived.0);
         // deterministic across calls, distinct per basket
         assert_eq!(vault_authority_pda(&basket_key).0, pda);
@@ -1037,12 +1219,17 @@ mod tests {
                 management_fee_bps: 200,
                 bump: 254,
                 vault_bump: 0, // the old stub wrote 0
+                management_fee_remainder: [0; basket::MANAGEMENT_FEE_REMAINDER_BYTES],
             };
             basket.vault_bump = real_bump; // what create_basket now writes
             assert_eq!(basket.vault_bump, real_bump);
             assert_eq!(
                 basket.vault_bump,
-                Pubkey::find_program_address(&[basket::BASKET_SEED, basket_key.as_ref()], &basket::ID).1
+                Pubkey::find_program_address(
+                    &[basket::BASKET_SEED, basket_key.as_ref()],
+                    &basket::ID
+                )
+                .1
             );
         }
     }

@@ -1,6 +1,6 @@
 # Basalt App (Next.js 15)
 
-Current status: **fully implemented frontend** — 13 routes, wallet-wired, brand-applied (Mineral Desk + Geist/Geist Mono per [`../brand.md`](../brand.md)). Gates: `npx tsc --noEmit --incremental false` = 0 errors; `npm run build` = green with no ignored errors (`next.config.js` is empty — no `ignoreBuildErrors`). See the repository-level [implementation plan](../plan.md) and [UI discovery](../docs/ui-discovery-2026-09-01.md).
+Current status: **working devnet frontend** — 21 generated route entries, wallet-wired, and brand-applied per [`../brand.md`](../brand.md). Gates: `npm run typecheck` = 0 errors; `npm run build` = green with no ignored errors (`next.config.js` is empty — no `ignoreBuildErrors`). See the repository-level [implementation plan](../plan.md) and [current-state snapshot](../docs/current-state-2026-09-18.md).
 
 ## Pages (spec §9 — all real)
 
@@ -11,22 +11,22 @@ Current status: **fully implemented frontend** — 13 routes, wallet-wired, bran
 - `app/basket/[pubkey]/redeem/` — pro-rata floor preview (raw + scaled + labeled USD estimate), irreversible/oracle-free copy, quiet accrue crank
 - `app/create/` — 6-step wizard: 2–20 Active mints → exact 10,000 bps → fee caps 300/100/300 → seed preview → 4 legal checkboxes (`LEGAL_REVIEW_REQUIRED`) → account-level deploy review modal
 - `app/creator/[pubkey]/`, `app/portfolio/`, `app/legal/` — honest empty/wallet-gated states, no fabricated numbers
-- `app/market/`, `app/stock/[ticker]/`, `app/providers/` — bklit chart workspaces (3/4-series normalize-100, OHLC candlestick, volume, Brush zoom, source/as-of labels)
+- `app/market/`, `app/stock/[ticker]/`, `app/providers/` — Bklit-derived chart and provider surfaces; the stock page currently uses one fit-domain area chart and Market retains the local Brush adapter
 
 ## Foundation (consume, don't rebuild)
 
 - `lib/transactions.ts` + `lib/create-basket.ts` — client-side Anchor instruction builders (no IDL), mirrored from program source; discriminators + account orders cross-verified (incl. the 4n `mint_in_kind` remaining-accounts contract)
 - `lib/format.ts` — BigInt-exact raw↔scaled, token/USD/bps formatting, address truncation
 - `lib/wallet.ts` + `app/providers.tsx` — wallet state machine (disconnected/connecting/connected/wrong-network/rejected) + `useWalletFeedback()`
-- `components/shell/` — responsive header/footer, wallet button, network indicator
+- `components/shell/` — responsive header, wallet button, and network indicator
 - `components/states/` — Skeleton variants, `ErrorState`, `EmptyState`, `FreshnessBadge({source, asOf, demo})`
 
 ## Charts
 
-`components/charts/*` are verified official Bklit registry source (see [`../docs/bklit-registry-findings-2026-09-01.md`](../docs/bklit-registry-findings-2026-09-01.md)). `chart-brush.tsx` is a **documented local adapter** (official Brush has no distributable source — 404); never label it official. `@bklit/legend` is installed but not yet wired (pending a `--legend` token decision in `globals.css`).
+`components/charts/*` are recorded as verified official Bklit registry source in [`../plan.md`, gate G1](../plan.md#g1--registry-provenance--resolved-2026-09-01). `chart-brush.tsx` is a **documented local adapter** (official Brush has no distributable source — 404); never label it official. `@bklit/legend` is installed but not yet wired (pending a `--legend` token decision in `globals.css`).
 
 ## Known gaps
 
-- Transaction flows are simulation-tested in code but not yet run against a live localnet validator (SBF toolchain blocker — tracked in `plan.md`).
-- Baskets with ≥5 constituents need Address Lookup Tables (serialized v0 tx exceeds the 1232-byte packet limit) — V1 item, surfaced as an explicit caution in the wizard.
-- Legend wiring, ESLint config for `app/`, and the browser-level QA pass are pending final integration.
+- The BAS-001 management-fee fix is locally verified but still needs a basket-program upgrade and existing-account devnet smoke test.
+- Zap remains disabled on mock devnet until received-token accounting uses `post - pre` balance deltas.
+- Playwright/wallet E2E coverage, consistent mock/demo labeling, and final legal review remain release blockers.

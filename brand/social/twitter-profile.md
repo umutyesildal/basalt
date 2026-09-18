@@ -138,6 +138,44 @@ Tokenized stock baskets on Solana. One token.
 Building this → @BasaltOnSolana
 ```
 
+## Win announcement (Superteam Germany Ideathon, 2026-09-14)
+
+Basalt placed top-10 (of 38 submissions) in the "Road to Colosseum" Ideathon —
+$3,000 USDG pool. Post from the brand account first, then the personal tease.
+Next step in copy = **Stocklana (closes Sep 18)** — Colosseum is the stop after.
+
+**Recommended — "first grant" (190 chars):**
+
+```
+First grant: secured.
+
+Basalt — baskets of tokenized stocks on Solana — placed top-10 of 38 in Superteam Germany's Road to Colosseum Ideathon.
+
+Next: the Stocklana hackathon, closing Sep 18.
+```
+
+**Ultra-short (111 chars):**
+
+```
+First grant: secured. Top-10 of 38 in Superteam Germany's Road to Colosseum Ideathon.
+
+Next: Stocklana, Sep 18.
+```
+
+**Longer variant with the proof line (252 chars):**
+
+```
+First grant: secured.
+
+Basalt placed top-10 of 38 in Superteam Germany's Road to Colosseum Ideathon — baskets of tokenized stocks on Solana, one token, on-chain redemption that no one can pause.
+
+Next: the Stocklana hackathon. Submissions close Sep 18.
+```
+
+Fill in the exact rank/placement once the sponsor posts the winner list —
+"top-10" is the safe claim until then. Reply-thread candidate: the live demo
+link (basalt-coral.vercel.app/explore) + the MAG SIX devnet explorer tx.
+
 Posting order: brand account launch tweet first, then this from the personal
 account as a quote-reply or standalone with the handle pointer — personal
 tweet feeds followers into the new account. Replace `@BasaltOnSolana` with

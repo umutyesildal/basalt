@@ -1,10 +1,10 @@
 # AGENTS.md — Basalt Project Context for AI Agents
 
 > **For: Opencode, Claude Code, Codex, Cursor, any LLM agent working in this repo**
-> **Read this first before writing code.** This is the single source of truth for Basalt V0.
-> Spec: `docs/basalt-v0-spec.md` (774 lines, 13 sections) | Prompt: `basalt_build_prompt.md`
+> **Read this first before writing code.** This file carries the normative Basalt V0 constraints; it is not the source for changing deployment/test counts.
+> Documentation map: `docs/README.md` | Current verified state: `docs/current-state-2026-09-18.md` | Operational backlog: `docs/implementation-backlog.md` | Spec: `docs/basalt-v0-spec.md` | Prompt: `foliox_build_prompt.md` (historical name)
 > Brand: **BASALT identity** (owner decision 2026-09-12: project renamed FolioX → Basalt; hexagonal basalt columns mark per `docs/design-basalt-v1.md`, electric-yellow token system per `docs/design-cyberpunk-yellow-v1.md`, Chakra Petch display, Geist Mono labels — Roman layer fully retired). Telemetry off. Legal-review chips removed from UI (backlog).
-> Status: **PROTOCOL LIVE ON DEVNET — 2 live baskets (3-stock + 6-stock MAG SIX via v0 txs + ALTs), 12 mock xStocks whitelisted, 48+ confirmed txs: mint/redeem/fee verified on-chain, redeem_in_kind proven permissionless under a paused constituent. NAV priced from real market data (Yahoo-first, catalog fallback). Backend indexer/NAV/fee-crank live (fee crank builds UNSIGNED txs only). 620 tests green (178 Rust + 442 backend TS). NEXT: owner commit-gate decision + UI Phantom buy/redeem click-through; owner review / merge of `roman-empire`.** Evidence: `docs/devnet-live-2026-09-04.md`.
+> Audit snapshot (2026-09-18, commit `7100151` plus the documented working-tree repairs): **real devnet create/mint/redeem and read-only indexer verified; assets are project mock mints, some deployed home/social surfaces use `NEXT_PUBLIC_HOME_DEMO=1`, and the product is not mainnet-ready. Clean root/app/backend installs pass; 183 Rust + 550 backend tests passed; the app produced a 21-route production build.** BAS-001 fee-grief is fixed locally but awaits a devnet upgrade/smoke. Remaining P0 items include Token-2022 extension policy, Zap balance delta, multisig/timelock, data truth labels, and reproducible deployment attestation. Counts/details later in this file may be historical; `docs/current-state-2026-09-18.md` prevails.
 
 ---
 
@@ -41,13 +41,13 @@ If you are tempted to add `admin_withdraw`, `pause_redeem`, `oracle check`, or `
 
 | Layer | Tech | Notes |
 |-------|------|-------|
-| **Solana programs** | Anchor 0.30.1, `anchor-spl` 0.30.1, `spl-token-2022` 3.0.5 | 3 programs: `whitelist`, `basket_factory`, `basket` (optional `zap_router` V0 = client sequential) |
+| **Solana programs** | Anchor 0.30.1, `anchor-spl` 0.30.1, `spl-token-2022` 3.0.5 | 3 programs: `whitelist`, `basket_factory`, `basket`; V0 Zap is client-side Jupiter periphery, not a separate program |
 | **Backend** | Node 20, TypeScript 5.4, PostgreSQL 15, Redis, BullMQ, `pg`, `ioredis`, `@solana/web3.js` 1.98 | Indexer is convenience only |
-| **Frontend** | Next.js 15, React 19, Tailwind 3.4, `shadcn/ui` + **bklit UI** (`@bklit` registry, `area-chart`, `line-chart`, `bar-chart`, `candlestick-chart`, `grid`, `chart-tooltip`, `legend`; Brush = documented local adapter pending official distribution — see `docs/bklit-registry-findings-2026-09-01.md`), `@solana/wallet-adapter`, `@solana/spl-token` | App Router, 9 pages, 6-step wizard — **Hep bklit kullanılacak** (https://bklit.com/docs/installation) — Grafik polish: Area normalize + Candlestick OHLC + Volume Bar + Brush zoom |
+| **Frontend** | Next.js 15, React 19, Tailwind 3.4, `shadcn/ui` + local Bklit-derived chart components, `@solana/wallet-adapter`, `@solana/spl-token` | App Router, 21-route production build, 6-step wizard; stock page currently uses one fit-domain area chart |
 | **Tokens** | SPL Token-2022 | Raw for transfers, scaled for display |
-| **Oracles/prices** | Jupiter Price API v6 (NAV only) | Never gates redeem |
+| **Oracles/prices** | Legacy Jupiter Price v6 adapter (reference NAV only; BAS-011 migration pending) | Never gates redeem |
 | **Zap** | Jupiter Swap API (quote → swap) | Sequential swaps + `mint_in_kind` in V0 |
-| **Tests** | Rust `cargo test` 178 tests, TS `vitest` 421 backend tests | Total 620 tests passing (178 Rust + 442 backend) |
+| **Tests** | Rust `cargo test` 183 tests, backend `vitest` 550 tests | Verified total 733 tests passing on 2026-09-18 |
 
 **Program IDs (localnet/devnet):**
 
@@ -70,15 +70,15 @@ basket         = "6Q43vFh4aqGxzvtU2vQwJX9PmX3skfYsGWZdA3fwJB9k" # programs/baske
 ├── Cargo.toml                  # workspace (3 programs) + overflow-checks
 ├── Cargo.lock
 ├── docs/
-│   ├── basalt-v0-spec.md       # 774L implementation-ready spec (§1-13)
-│   └── AGENT_CONTEXT.md        # (this file's companion) — same context expanded
-├── basalt_build_prompt.md      # original prompt (thesis + constraints)
+│   ├── basalt-v0-spec.md       # implementation-ready protocol/product spec
+│   └── README.md               # documentation map and precedence
+├── foliox_build_prompt.md      # original prompt (historical filename)
 ├── AGENTS.md                   # this file — agent entrypoint
 ├── CONTEXT.md                  # symlink/copy of this for other agents
 ├── programs/
-│   ├── whitelist/src/lib.rs    # init_config, add_mint, pause/unpause, transfer_authority (13 tests)
-│   ├── basket_factory/src/lib.rs # init_factory, create_basket (17 tests, validates 2-20, sum 10k, caps, atomic seed, genesis 1M)
-│   └── basket/src/lib.rs       # math::{gross_shares, entry_fee, exit_fee, management_fee, split_fee, redeem_amounts}, mint_in_kind, redeem_in_kind, accrue_management_fee (84 tests)
+│   ├── whitelist/src/lib.rs    # init_config, add_mint, pause/unpause, transfer_authority (21 tests)
+│   ├── basket_factory/src/lib.rs # init_factory, create_basket (38 tests, validates 2-20, sum 10k, caps, atomic seed, genesis 1M)
+│   └── basket/src/lib.rs       # math + mint_in_kind/redeem_in_kind/accrue_management_fee (124 tests)
 ├── backend/
 │   ├── src/db/schema.sql       # 8 tables + indexes + view (baskets, whitelisted_mints, vault_holdings, nav_snapshots, events, creator_stats, user_positions)
 │   ├── src/indexer/listener.ts # Event listener (poll getSignaturesForAddress, decode Program data:, write events)
@@ -94,7 +94,7 @@ basket         = "6Q43vFh4aqGxzvtU2vQwJX9PmX3skfYsGWZdA3fwJB9k" # programs/baske
 │   ├── tsconfig.json
 │   └── package.json
 ├── app/
-│   ├── app/layout.tsx          # header + wallet + footer (not investment advice)
+│   ├── app/layout.tsx          # header + wallet shell; no site footer
 │   ├── app/page.tsx            # landing: hero + CTA
 │   ├── app/explore/page.tsx    # rankings via /api/v1/baskets
 │   ├── app/basket/[pubkey]/page.tsx        # detail: NAV, sharePrice, drift, fees, holders
@@ -230,7 +230,7 @@ Backend never signs — if indexer dies, `redeem_in_kind` still works via RPC di
 
 ## 10. Frontend Page Map (Next.js App Router — new IA, owner-approved 2026-09-03)
 
-> **UI decisions (owner, 2026-09-02/03):** monochrome UI chrome (classic shadcn dark/light; primary = white/near-black) + **ethereal chart data palette** (`--chart-1..5` sage/rose/blue/sand/lavender; benchmark gray dashed; red reserved for errors). NO site footer. NO LEGAL_REVIEW_REQUIRED chips in the UI (review backlog; the wizard's legal-checkbox step + `/legal` page remain functional). Baskets are NEVER called "ETFs" in UI copy (hard legal ban) — the generic category explanation lives on Home. Charts = verified-official Bklit consumer props (see `docs/bklit-registry-findings-2026-09-01.md`; Brush = documented local adapter). Candlestick/volume/brush UI REMOVED from the stock page at owner request — stock page = one clean fitY-domain AreaChart with text range buttons.
+> **UI decisions (owner, 2026-09-02/03):** monochrome UI chrome (classic shadcn dark/light; primary = white/near-black) + **ethereal chart data palette** (`--chart-1..5` sage/rose/blue/sand/lavender; benchmark gray dashed; red reserved for errors). NO site footer. NO LEGAL_REVIEW_REQUIRED chips in the UI (review backlog; the wizard's legal-checkbox step + `/legal` page remain functional). Baskets are NEVER called "ETFs" in UI copy (hard legal ban) — the generic category explanation lives on Home. Charts use local Bklit-derived consumer components. Candlestick/volume/brush UI was removed from the stock page at owner request; the current stock page uses one clean fitY-domain AreaChart with text range buttons.
 
 ```
 app/
@@ -250,7 +250,7 @@ app/
 components/stocks/*        # stocks grid + ChangeValue helper (shared 24h coloring via chart tokens)
 components/etfs/*          # etf-grid (clickable cards), traditional-vs-tokenized (interactive, rendered on Home)
 components/create/*        # wizard components incl. wallet-gate banner + RangeField (slim native slider)
-components/charts/*        # verified-official Bklit sources; chart-brush.tsx = documented local adapter (used by Market)
+components/charts/*        # locally vendored Bklit-derived sources; chart-brush.tsx = documented local adapter (used by Market)
 components/ui/*            # card (canonical p-5 padding system), button, slider, copy-button…
 lib/solana.ts              # PROGRAMS (on-curve IDs), scaledAmount
 lib/transactions.ts + lib/create-basket.ts  # client Anchor builders (4n mint contract; mirrors program source)
@@ -274,7 +274,7 @@ Wizard gates: wallet connected (Next disabled otherwise), `2≤len≤20` Active 
 | Area | V0 | Risk |
 |------|----|------|
 | Language | `strategy basket` family only, never ETF/fund/guaranteed | securities |
-| Not advice | footer + wizard step 5 + `brand.md` | creator not adviser |
+| Not advice | wizard step 5 + `/legal` + transaction risk copy | creator not adviser |
 | Jurisdiction | frontend geo-block + disclaimer, no on-chain gate (can't gate redeem) | US etc. |
 | xStocks instrument | detail + redeem explainer: Backed structured instrument, not direct equity | issuer disclosure |
 | Creator liability | profile disclaimer + fees disclosed pre-mint, 90/10 split is compensation | |
@@ -289,16 +289,16 @@ Placeholder copy must be replaced by counsel before mainnet.
 
 ---
 
-## 13. Testing — Super Many (620 tests, All Passing)
+## 13. Testing — Verified snapshot (733 tests passing)
 
-**Rust `cargo test` 178 tests** (`cargo test -p basket` 119 + `basket_factory` 38 + `whitelist` 21):
+**Rust `cargo test` 183 tests** (`cargo test -p basket` 124 + `basket_factory` 38 + `whitelist` 21):
 
 * Gross: perfect/min, 20 constituents, tolerance 1% pass/fail `t5`/`t6`, zero supply/vault/deposit/len, dust ZeroShares `t7`, large u64 no overflow `t27`, single constituent `t5-single`
 * Fees: entry 0/100/300, exit 0/100, split 90/10 dust `split_fee(1,9000)=(0,1)` `t15`, never exceeds gross `t19`, mgmt zero elapsed/supply/bps `t12`, yearly cap 300k `t12`, hourly vs yearly + compounding `t39`, 50 random fuzz `MEGA`
 * Redeem: floor 54.725M `t40`, full/half, dust 0, never exceeds vault `t26`, multi-vault 50/30/20, rounding never over-withdraws `t32`, pro-rata max `t22`, consistency after ops `t40`
 * Invariants: multiplier 0.5–10× invariance `t31`, deposits→full redeem `t23`, genesis 1M `t36`, token decimal mismatch 6 vs 9 `t10`, reentry no CPI `t32`
 
-**TS `vitest run` 373 backend tests**:
+**TS `vitest run` 550 backend tests across 13 files** (representative suites below):
 
 * `backend/tests/basalt.test.ts:1` 34 tests (fee 30d 16438, NAV 191k, drift 1000/-1000, weight mismatch, holdings scaled)
 * `super.integration.test.ts:1` 22 tests (P0/P1/P2 security invariants, factory 2-20/duplicate/metadata, holdings/NAV 20 constituents, 200 random mint/redeem sequences never over-withdraw, fee caps monotonic 1-365d)
@@ -307,15 +307,15 @@ Placeholder copy must be replaced by counsel before mainnet.
 * `waveb-nav-api.test.ts` 45 tests (exact BigInt fixed-point NAV, drift/rounding, performance windows, zap quote legs with mocked fetch, unsigned fee-crank tx, API routes via fake PgLike)
 * `tests/basalt_math.test.ts:1` 1 legacy
 
-Total **620 tests passing** (`cargo test: 178 + backend vitest: 442`). See `backend/tests/` + `programs/*/src/lib.rs` `#[cfg(test)]`.
+Total **733 tests passing** (`cargo test: 183 + backend Vitest: 550`) on 2026-09-18. See `docs/current-state-2026-09-18.md` for dated evidence.
 
 **Run:**
 
 ```bash
 export PATH="/opt/homebrew/opt/rustup/bin:$HOME/.cargo/bin:$HOME/.avm/bin:$HOME/.local/share/solana/install/active_release/bin:$PATH"
-cargo test                          # Rust 178
-cargo test -p basket --lib          # 84 basket math
-npx --prefix backend vitest run --reporter=verbose   # TS 373
+cargo test                          # Rust 183
+cargo test -p basket --lib          # 124 basket tests
+npx --prefix backend vitest run --reporter=verbose   # TS 550
 npx tsx backend/src/index.ts        # :3001 health {"ok":true}
 bash scripts/e2e.sh                 # validator → whitelist → basket → mint/redeem → fee crank (needs solana-test-validator)
 ```
@@ -334,8 +334,8 @@ sh -c "$(curl -sSfL https://release.solana.com/v1.18.17/install)" # solana 1.18.
 # Build & test (verified)
 cargo check                         # 0 errors, 14 warnings anchor-debug
 cargo build                         # dev build (SBF needs Agave 2.x due edition2024)
-cargo test                          # 178 Rust tests
-npm --prefix backend install && npx --prefix backend vitest run  # 373 TS tests
+cargo test                          # 183 Rust tests
+npm --prefix backend install && npx --prefix backend vitest run  # 550 TS tests
 npx tsx backend/src/index.ts        # API :3001
 npm --prefix app install && npm --prefix app run dev  # Next.js :3000
 
@@ -387,8 +387,8 @@ PORT=3001
 * Don't change program IDs without updating `Anchor.toml:5` + `declare_id!` in all 3 `lib.rs:3`.
 * Don't use floating point for on-chain math — use `u128` intermediate then cast to `u64` floor.
 * Don't describe baskets as ETFs in UI copy — `LEGAL_REVIEW_REQUIRED` if you touch `app/app/legal/page.tsx:1` or `app/create/page.tsx:1`.
-* Don't break tests — 620 tests are your safety net; if you add super many more, run `cargo test` + `npx --prefix backend vitest run`.
-* **DON'T use plain HTML / düz `recharts` / `shadcn` chart** — her chart `bklit` (`https://bklit.com/docs/installation`) olmalı. `plain HTML` görünümü yasaktır, her sayfa bklit `Card/Table/Badge` + `AreaChart/BarChart` + `shadcn/tailwind.css` ile yapılmalı.
+* Don't break tests — run `cargo test --workspace` plus `npm --prefix backend test -- --run`, and update the dated snapshot when totals change.
+* **DON'T ship plain HTML, raw `recharts`, or generic `shadcn` charts.** Use the project's Bklit-derived chart and UI components consistently; preserve the established card, table, badge, chart, and theme system.
 
 **When in doubt:** `cargo test -p basket --lib -- tests::test_gross_shares_perfect` and `grep -rn "redeem" docs/basalt-v0-spec.md`.
 
@@ -431,15 +431,15 @@ Post-90: mainnet-beta capped TVL, bug bounty, QEDGen formal verification if `rev
 ## 18. References
 
 * `docs/basalt-v0-spec.md:1` — full 13-section spec with numbers, SQL, API table, page map, test plan, security/legal checklists
-* `basalt_build_prompt.md:1` — original prompt (thesis, 9 constraints, 4 programs, fee caps 300/100/300, 90/10 split, stack)
+* `foliox_build_prompt.md:1` — original prompt under its historical filename
 * `~/.agents/skills/data/solana-knowledge/03-contract-level.md:1` — PDAs, Anchor patterns
 * `~/.agents/skills/data/guides/security-checklist.md:1` — P0/P1 audit with `grep` commands
 * Backed xStocks Token-2022 docs (Scaled UI Amount extension)
-* Jupiter Price/Swap APIs (`price.jup.ag/v6/price`, `/quote`, `/swap`)
+* Legacy Jupiter Price v6 adapter (migration tracked as BAS-011) and Jupiter Swap API (`/quote`, `/swap`)
 
 ---
 
-*Generated for agents by superstack (solana.new) + Basalt architect. Keep this file updated when `docs/basalt-v0-spec.md` changes. Last updated: 2026-09-01 (implementation waves) — **178 Rust + 373 backend TS (+1 legacy) tests passing; protocol/backend/frontend implemented — see plan.md §8**.*
+*Generated for agents by superstack (solana.new) + Basalt architect. Current verification: 2026-09-18 — **183 Rust + 550 backend tests passing**. See `docs/current-state-2026-09-18.md`.*
 
 ---
 
@@ -447,9 +447,9 @@ Post-90: mainnet-beta capped TVL, bug bounty, QEDGen formal verification if `rev
 
 | File | Lines | Purpose |
 |------|-------|---------|
-| `programs/whitelist/src/lib.rs:1` | 269 | `WhitelistConfig` + `WhitelistedMint` structs, 5 ix + 13 tests |
-| `programs/basket_factory/src/lib.rs:1` | 308 | `FactoryConfig` + `Basket` alias, 2 ix + 17 tests |
-| `programs/basket/src/lib.rs:1` | 700+ | `Basket` + `math` module 6 fns + 3 ix + 84 tests + 40 mega_tests |
+| `programs/whitelist/src/lib.rs:1` | 269 | `WhitelistConfig` + `WhitelistedMint` structs, 5 ix + 21 tests |
+| `programs/basket_factory/src/lib.rs:1` | 308 | `FactoryConfig` + `Basket` alias, 2 ix + 38 tests |
+| `programs/basket/src/lib.rs:1` | 700+ | `Basket` + `math` module + 3 ix + 124 tests |
 | `backend/src/db/schema.sql:1` | 90 | 8 tables + 2 indexes + 1 view |
 | `backend/src/indexer/listener.ts:1` | 35 | `EventListener` class, poll `getSignaturesForAddress` |
 | `backend/src/indexer/holdingsSync.ts:1` | 30 | `fetchMultiplier`, `syncHoldings` raw→scaled |
@@ -458,8 +458,8 @@ Post-90: mainnet-beta capped TVL, bug bounty, QEDGen formal verification if `rev
 | `backend/src/workers/priceFetch.ts:1` | 30 | `fetchPrices` + `mockPrices` |
 | `backend/src/api/server.ts:1` | 60 | mock handler for 4 routes, CORS |
 | `backend/src/index.ts:1` | 15 | entrypoint `PORT=3001` |
-| `backend/tests/*.ts` | 800+ | 373 tests (basalt 34, super.integration 22, mega 230, backend-truth 42, waveb-nav-api 45) |
-| `app/app/*.tsx` | 200+ | 9 pages |
+| `backend/tests/*.ts` | 800+ | 550 tests across 13 files; representative suites are listed in §13 |
+| `app/app/*.tsx` | 200+ | 21-route production build |
 | `Anchor.toml:1` | 29 | program IDs + cluster |
 | `Cargo.toml:1` | 18 | workspace + overflow-checks |
 | `scripts/e2e.sh:1` | 25 | deterministic flow |
@@ -515,7 +515,7 @@ cat docs/basalt-v0-spec.md | head -n 100
 export PATH="/opt/homebrew/opt/rustup/bin:$HOME/.cargo/bin:$HOME/.avm/bin:$HOME/.local/share/solana/install/active_release/bin:$PATH"
 rustc --version; solana --version; anchor --version
 
-# 3. Run tests (should be 178 + 373 green before any edit)
+# 3. Run tests (current verified baseline: 183 Rust + 550 backend)
 cargo test
 npx --prefix backend vitest run --reporter=verbose
 
@@ -550,27 +550,19 @@ If you add a new program or page, update §4 structure + §19 table + `Anchor.to
 
 ---
 
-## 24. Current Verified State and Coordination Log (2026-09-01)
+## 24. Current Verified State (2026-09-18)
 
-The current repository is a scaffold/prototype, not localnet-ready or production-ready. A fresh Orca supervised discovery Run `run_b38cb1bbcd0c` completed with three read-only workers; no source files were changed in that run. Full findings and the implementation order are in `docs/ui-discovery-2026-09-01.md` and `plan.md`.
+The repository is a working devnet beta, not a production-ready mainnet release. The canonical dated evidence is `docs/current-state-2026-09-18.md`; the ordered work queue is `docs/implementation-backlog.md`. The 2026-09-01 wave history remains in `plan.md` and is not current release status.
 
-Verified facts:
+Verified working-tree facts:
 
-* Rust `cargo test --workspace`: 178 passed.
-* Backend Vitest: 373 passed; the root legacy test adds 1, so the combined TypeScript total is 374.
-* App production build passes only because `app/next.config.js` ignores type/lint errors; strict app TypeScript still fails.
-* Backend strict build still fails NodeNext relative-import and implicit-any errors.
-* Protocol instruction bodies still contain stubbed transfer/mint/burn/fee behavior; math unit tests do not prove localnet correctness.
-* Backend baskets/zap/multiplier/indexer paths remain empty, mock, or incomplete; wallet packages are installed but not wired.
-* The app has an `@bklit` registry entry, but the current chart tree is local `@visx` code and the local Brush adapter is explicitly a placeholder. Verify registry provenance before claiming full Bklit compliance.
-* All project files are currently untracked in Git; preserve the worktree and create a safe baseline before implementation edits. Never reset or clean it as part of routine work.
+* Rust `cargo test --workspace`: 183 passed (124 basket, 38 factory, 21 whitelist).
+* Backend Vitest: 550 passed across 13 files.
+* App typecheck and production build pass; the build emits 21 route entries.
+* Real devnet create, in-kind mint, redeem, indexing, and NAV flows were verified before the BAS-001 fee change.
+* BAS-001 exact management-fee remainder carry is locally implemented and backward-compatible with the 888-byte Basket allocation; the basket-program upgrade and existing-account devnet smoke are still pending.
+* Current devnet constituents are project-issued mocks, not economically backed official xStocks.
+* Zap remains disabled on mock devnet until post-minus-pre received-balance accounting is implemented.
+* Preserve unrelated working-tree changes. Never reset, clean, or overwrite user work as part of routine edits.
 
-Coordination rules for the next wave:
-
-1. Resolve the G0 brand and telemetry decisions in `plan.md` before writing frontend components.
-2. Resolve Bklit registry provenance and the Brush strategy before chart migration.
-3. Build shared tokens, shell, wallet state, and strict type/build health before parallel page polish.
-4. Never let multiple workers edit `globals.css`, shared chart primitives, wallet providers, or the same route concurrently.
-5. Do not mutate the older UI Run `run_7f4b8dbc5e4f`; use a fresh Task/Dispatch under the current Run for follow-up work.
-
-*End of AGENTS.md — Last verified 2026-09-01 (implementation waves complete) with Rust 178, backend Vitest 373, root legacy TypeScript 1, all release gates per plan §6 evidenced PASS; localnet E2E attempt in flight — see `plan.md`.*
+*End of CLAUDE.md — current verification: 2026-09-18. See the dated state document for evidence and deployment caveats.*

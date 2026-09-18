@@ -1,6 +1,6 @@
 # Basalt — Idea Context (pitch-deck input)
 
-> Prepared 2026-09-03 for the `create-pitch-deck` skill. Sources: `basalt_build_prompt.md`, `AGENTS.md`, `docs/basalt-v0-spec.md`, owner decisions.
+> **Historical pitch context — not current operational status.** Prepared 2026-09-03 for the `create-pitch-deck` skill. Sources: `foliox_build_prompt.md` (historical filename), `AGENTS.md`, `docs/basalt-v0-spec.md`, owner decisions. Use `docs/current-state-2026-09-18.md` and `docs/implementation-backlog.md` for current facts.
 
 ## Product
 

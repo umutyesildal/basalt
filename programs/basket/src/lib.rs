@@ -15,6 +15,12 @@ pub const BASKET_SEED: &[u8] = b"basket";
 pub const SECONDS_PER_YEAR: u64 = 365 * 24 * 3600;
 pub const BPS_DENOM: u64 = 10_000;
 pub const GENESIS_SHARES: u64 = 1_000_000;
+pub const MANAGEMENT_FEE_DENOMINATOR: u128 = BPS_DENOM as u128 * SECONDS_PER_YEAR as u128;
+/// The management-fee numerator remainder is always below 315,360,000,000
+/// (< 2^39), so five little-endian bytes preserve it exactly. Appending this
+/// field consumes five of the seven zero-filled bytes already reserved by the
+/// live 888-byte Basket allocation; existing field offsets stay unchanged.
+pub const MANAGEMENT_FEE_REMAINDER_BYTES: usize = 5;
 /// 90% creator / 10% treasury fee split (FactoryConfig default at creation time).
 pub const CREATOR_FEE_SPLIT_BPS: u16 = 9000;
 
@@ -71,8 +77,15 @@ const WHITELISTED_MINT_MIN_DATA_LEN: usize = WHITELISTED_MINT_STATUS_OFFSET + 1;
 pub mod math {
     use super::*;
 
-    pub fn gross_shares(deposits: &[u64], vault_balances: &[u64], total_supply: u64) -> Result<u64> {
-        require!(deposits.len() == vault_balances.len(), BasketError::LengthMismatch);
+    pub fn gross_shares(
+        deposits: &[u64],
+        vault_balances: &[u64],
+        total_supply: u64,
+    ) -> Result<u64> {
+        require!(
+            deposits.len() == vault_balances.len(),
+            BasketError::LengthMismatch
+        );
         require!(total_supply > 0, BasketError::ZeroSupply);
         let mut min_gross: Option<u64> = None;
         let mut max_gross: u64 = 0;
@@ -81,9 +94,15 @@ pub mod math {
             require!(*d > 0, BasketError::ZeroAmount);
             require!(*v > 0, BasketError::ZeroVault);
             let g = (*d as u128 * total_supply as u128 / *v as u128) as u64;
-            if min_gross.is_none() || g < min_gross.unwrap() { min_gross = Some(g); }
-            if g > max_gross { max_gross = g; }
-            if g < min_val { min_val = g; }
+            if min_gross.is_none() || g < min_gross.unwrap() {
+                min_gross = Some(g);
+            }
+            if g > max_gross {
+                max_gross = g;
+            }
+            if g < min_val {
+                min_val = g;
+            }
         }
         let gross = min_gross.ok_or(BasketError::MathOverflow)?;
         require!(gross > 0, BasketError::ZeroShares);
@@ -103,7 +122,35 @@ pub mod math {
     }
 
     pub fn management_fee(supply: u64, bps: u16, elapsed_sec: u64) -> u64 {
-        (supply as u128 * bps as u128 * elapsed_sec as u128 / (BPS_DENOM as u128 * SECONDS_PER_YEAR as u128)) as u64
+        (supply as u128 * bps as u128 * elapsed_sec as u128
+            / (BPS_DENOM as u128 * SECONDS_PER_YEAR as u128)) as u64
+    }
+
+    /// Exact streaming management-fee step with carried numerator dust.
+    ///
+    /// Invariant:
+    /// `fee * denominator + next_remainder`
+    /// `= supply * bps * elapsed + previous_remainder`.
+    pub fn management_fee_with_remainder(
+        supply: u64,
+        bps: u16,
+        elapsed_sec: u64,
+        previous_remainder: u64,
+    ) -> Result<(u64, u64)> {
+        require!(
+            (previous_remainder as u128) < MANAGEMENT_FEE_DENOMINATOR,
+            BasketError::InvalidFeeRemainder
+        );
+        let numerator = (supply as u128)
+            .checked_mul(bps as u128)
+            .and_then(|value| value.checked_mul(elapsed_sec as u128))
+            .and_then(|value| value.checked_add(previous_remainder as u128))
+            .ok_or(BasketError::MathOverflow)?;
+        let fee = u64::try_from(numerator / MANAGEMENT_FEE_DENOMINATOR)
+            .map_err(|_| error!(BasketError::MathOverflow))?;
+        let next_remainder = u64::try_from(numerator % MANAGEMENT_FEE_DENOMINATOR)
+            .map_err(|_| error!(BasketError::MathOverflow))?;
+        Ok((fee, next_remainder))
     }
 
     pub fn split_fee(fee: u64, creator_split: u16) -> (u64, u64) {
@@ -111,7 +158,11 @@ pub mod math {
         (creator, fee - creator)
     }
 
-    pub fn redeem_amounts(vault_balances: &[u64], burn_amount: u64, total_supply: u64) -> Result<Vec<u64>> {
+    pub fn redeem_amounts(
+        vault_balances: &[u64],
+        burn_amount: u64,
+        total_supply: u64,
+    ) -> Result<Vec<u64>> {
         let mut out = Vec::with_capacity(vault_balances.len());
         for v in vault_balances {
             let amt = (*v as u128 * burn_amount as u128 / total_supply as u128) as u64;
@@ -166,20 +217,36 @@ pub mod basket {
         //    verifies the PDA signature against the caller's invoke_signed
         //    seeds at CPI time (try_accounts rejects non-signers).
         let factory_key = ctx.accounts.authority.key();
-        require_keys_eq!(factory_key, factory_pda(), BasketError::InvalidFactoryAuthority);
+        require_keys_eq!(
+            factory_key,
+            factory_pda(),
+            BasketError::InvalidFactoryAuthority
+        );
         // 2. Genuine basket PDA under the FACTORY program id, canonical bump.
         let (expected_basket, expected_bump) = Pubkey::find_program_address(
-            &[BASKET_SEED, factory_key.as_ref(), creator.as_ref(), &nonce.to_le_bytes()],
+            &[
+                BASKET_SEED,
+                factory_key.as_ref(),
+                creator.as_ref(),
+                &nonce.to_le_bytes(),
+            ],
             &FACTORY_PROGRAM_ID,
         );
         let basket_ai = ctx.accounts.basket.to_account_info();
-        require_keys_eq!(*basket_ai.key, expected_basket, BasketError::InvalidBasketPda);
+        require_keys_eq!(
+            *basket_ai.key,
+            expected_basket,
+            BasketError::InvalidBasketPda
+        );
         require!(basket_bump == expected_bump, BasketError::InvalidBasketPda);
         // 3. Our account, freshly created by the factory's create_account
         //    (owner = basket program, rent-exempt, data all zero).
         let expected_len = 8 + std::mem::size_of::<Basket>();
         require!(basket_ai.owner == &ID, BasketError::InvalidBasketPda);
-        require!(basket_ai.data_len() == expected_len, BasketError::InvalidBasketPda);
+        require!(
+            basket_ai.data_len() == expected_len,
+            BasketError::InvalidBasketPda
+        );
         {
             let data = basket_ai.try_borrow_data()?;
             require!(
@@ -192,7 +259,10 @@ pub mod basket {
             !constituents.is_empty() && constituents.len() == weights_bps.len(),
             BasketError::LengthMismatch
         );
-        require!(constituents.len() >= 2 && constituents.len() <= 20, BasketError::LengthMismatch);
+        require!(
+            constituents.len() >= 2 && constituents.len() <= 20,
+            BasketError::LengthMismatch
+        );
 
         let n = constituents.len();
         let clock = Clock::get()?;
@@ -216,6 +286,7 @@ pub mod basket {
             // vault authority PDA bump under THIS program id.
             bump: basket_bump,
             vault_bump,
+            management_fee_remainder: [0; MANAGEMENT_FEE_REMAINDER_BYTES],
         };
         for i in 0..20 {
             if i < n {
@@ -229,7 +300,12 @@ pub mod basket {
         b.serialize(&mut buf)?;
         basket_ai.try_borrow_mut_data()?[..buf.len()].copy_from_slice(&buf);
 
-        msg!("init_basket creator={} nonce={} constituents={}", creator, nonce, n);
+        msg!(
+            "init_basket creator={} nonce={} constituents={}",
+            creator,
+            nonce,
+            n
+        );
         Ok(())
     }
 
@@ -251,12 +327,18 @@ pub mod basket {
     /// RAW deposits user->vault -> gross = min(D*S/V) (1% tolerance) or fixed 1M
     /// genesis -> entry fee split 90/10 -> mint net to user + fee shares to
     /// creator/treasury -> emit Minted.
-    pub fn mint_in_kind<'info>(ctx: Context<'_, '_, '_, 'info, MintInKind<'info>>, amounts: Vec<u64>, vault_balances: Vec<u64>) -> Result<()> {
+    pub fn mint_in_kind<'info>(
+        ctx: Context<'_, '_, '_, 'info, MintInKind<'info>>,
+        amounts: Vec<u64>,
+        vault_balances: Vec<u64>,
+    ) -> Result<()> {
         let basket = &mut ctx.accounts.basket;
         let n = basket.num_constituents as usize;
         require!(amounts.len() == n, BasketError::LengthMismatch);
         require!(vault_balances.len() == n, BasketError::LengthMismatch);
-        for a in &amounts { require!(*a > 0, BasketError::ZeroAmount); }
+        for a in &amounts {
+            require!(*a > 0, BasketError::ZeroAmount);
+        }
 
         // Paused-mint gate (spec §3.3): every constituent's WhitelistedMint PDA
         // must be present (appended after the token triplets) and Active BEFORE
@@ -266,7 +348,11 @@ pub mod basket {
         for i in 0..n {
             let whitelist_ai = &whitelist_accounts[i];
             let data = whitelist_ai.try_borrow_data()?;
-            validate_whitelisted_mint_active(whitelist_ai.owner, &data[..], &basket.constituents[i])?;
+            validate_whitelisted_mint_active(
+                whitelist_ai.owner,
+                &data[..],
+                &basket.constituents[i],
+            )?;
         }
 
         let user_key = ctx.accounts.user.key();
@@ -281,7 +367,11 @@ pub mod basket {
                 &share_mint_key,
                 &token_program.key(),
             );
-            require_keys_eq!(ctx.accounts.user_share_ata.key(), expected, BasketError::InvalidShareAta);
+            require_keys_eq!(
+                ctx.accounts.user_share_ata.key(),
+                expected,
+                BasketError::InvalidShareAta
+            );
             associated_token::create_idempotent(CpiContext::new(
                 ctx.accounts.associated_token_program.to_account_info(),
                 Create {
@@ -362,7 +452,9 @@ pub mod basket {
         // the 1% tolerance (WeightMismatch on breach).
         let gross = compute_mint_gross(total_supply, &amounts, &vault_balances)?;
         let entry_fee = math::entry_fee(gross, basket.entry_fee_bps);
-        let net = gross.checked_sub(entry_fee).ok_or(BasketError::MathOverflow)?;
+        let net = gross
+            .checked_sub(entry_fee)
+            .ok_or(BasketError::MathOverflow)?;
 
         // RAW ONLY — share supply accounting on the share mint. Mint `net` to the
         // user and the entry fee 90/10 to creator/treasury share ATAs.
@@ -437,7 +529,12 @@ pub mod basket {
             }
         }
 
-        msg!("mint_in_kind gross={} entry_fee={} net={}", gross, entry_fee, net);
+        msg!(
+            "mint_in_kind gross={} entry_fee={} net={}",
+            gross,
+            entry_fee,
+            net
+        );
 
         emit!(Minted {
             basket: basket.key(),
@@ -459,7 +556,11 @@ pub mod basket {
     /// -> pro-rata out_j = floor(V_j * burn / S_before) transferred vault->user
     /// (RAW ONLY, vault authority PDA signs) -> burn user shares -> exit fee shares
     /// transferred (not burned) 90/10 to creator/treasury -> emit Redeemed.
-    pub fn redeem_in_kind<'info>(ctx: Context<'_, '_, '_, 'info, RedeemInKind<'info>>, shares_to_burn: u64, vault_balances: Vec<u64>) -> Result<()> {
+    pub fn redeem_in_kind<'info>(
+        ctx: Context<'_, '_, '_, 'info, RedeemInKind<'info>>,
+        shares_to_burn: u64,
+        vault_balances: Vec<u64>,
+    ) -> Result<()> {
         require!(shares_to_burn > 0, BasketError::ZeroAmount);
         let basket = &mut ctx.accounts.basket;
         let n = basket.num_constituents as usize;
@@ -488,10 +589,15 @@ pub mod basket {
         let total_supply = read_mint_supply(&ctx.accounts.share_mint.to_account_info())?;
         require!(total_supply > 0, BasketError::ZeroSupply);
         // No CPI has touched the user share ATA, so the typed snapshot is accurate.
-        require!(shares_to_burn <= ctx.accounts.user_share_ata.amount, BasketError::InsufficientShares);
+        require!(
+            shares_to_burn <= ctx.accounts.user_share_ata.amount,
+            BasketError::InsufficientShares
+        );
 
         let exit_fee = math::exit_fee(shares_to_burn, basket.exit_fee_bps);
-        let burn_amount = shares_to_burn.checked_sub(exit_fee).ok_or(BasketError::MathOverflow)?;
+        let burn_amount = shares_to_burn
+            .checked_sub(exit_fee)
+            .ok_or(BasketError::MathOverflow)?;
 
         let constituents = parse_constituents(ctx.remaining_accounts, n)?;
         let vault_authority_key = ctx.accounts.vault_authority.key();
@@ -546,7 +652,9 @@ pub mod basket {
         // RAW ONLY — per-constituent transfer_checked vault_ata -> user_ata,
         // authority = vault authority PDA (signer seeds above).
         for (i, c) in constituents.iter().enumerate() {
-            if amounts[i] == 0 { continue; } // floor dust: nothing owed for this constituent
+            if amounts[i] == 0 {
+                continue;
+            } // floor dust: nothing owed for this constituent
             transfer_checked(
                 CpiContext::new_with_signer(
                     token_program.to_account_info(),
@@ -638,7 +746,12 @@ pub mod basket {
             }
         }
 
-        msg!("redeem burn={} exit_fee={} out={:?}", burn_amount, exit_fee, amounts);
+        msg!(
+            "redeem burn={} exit_fee={} out={:?}",
+            burn_amount,
+            exit_fee,
+            amounts
+        );
 
         emit!(Redeemed {
             basket: basket.key(),
@@ -650,9 +763,13 @@ pub mod basket {
     }
 
     /// Permissionless management-fee crank. Anyone may call; the caller (payer) only
-    /// covers any ATA rent. fee = floor(S * mgmt_bps * elapsed / (10000 * 31536000))
-    /// with u128 intermediates, minted 90/10 to creator/treasury share ATAs.
-    pub fn accrue_management_fee<'info>(ctx: Context<'_, '_, '_, 'info, AccrueFee<'info>>) -> Result<()> {
+    /// covers any ATA rent. fee = floor((S * mgmt_bps * elapsed + prior_remainder)
+    /// / (10000 * 31536000)); the new remainder is persisted so crank frequency
+    /// cannot suppress fractional fees. Uses u128 intermediates and mints 90/10 to
+    /// creator/treasury share ATAs.
+    pub fn accrue_management_fee<'info>(
+        ctx: Context<'_, '_, '_, 'info, AccrueFee<'info>>,
+    ) -> Result<()> {
         let basket = &mut ctx.accounts.basket;
         let fee = accrue_fee_internal(
             basket,
@@ -692,6 +809,23 @@ fn compute_mint_gross(total_supply: u64, deposits: &[u64], vault_balances: &[u64
 /// Creator/treasury fee split (remainder to treasury so dust is never lost).
 fn fee_split_amounts(fee: u64) -> (u64, u64) {
     math::split_fee(fee, CREATOR_FEE_SPLIT_BPS)
+}
+
+fn decode_management_fee_remainder(encoded: &[u8; MANAGEMENT_FEE_REMAINDER_BYTES]) -> u64 {
+    let mut bytes = [0u8; 8];
+    bytes[..MANAGEMENT_FEE_REMAINDER_BYTES].copy_from_slice(encoded);
+    u64::from_le_bytes(bytes)
+}
+
+fn encode_management_fee_remainder(remainder: u64) -> Result<[u8; MANAGEMENT_FEE_REMAINDER_BYTES]> {
+    require!(
+        (remainder as u128) < MANAGEMENT_FEE_DENOMINATOR,
+        BasketError::InvalidFeeRemainder
+    );
+    let bytes = remainder.to_le_bytes();
+    let mut encoded = [0u8; MANAGEMENT_FEE_REMAINDER_BYTES];
+    encoded.copy_from_slice(&bytes[..MANAGEMENT_FEE_REMAINDER_BYTES]);
+    Ok(encoded)
 }
 
 /// Pure paused-mint gate for one constituent (spec §3.3): `data` must be the
@@ -828,7 +962,11 @@ fn validate_constituent(
     let decimals = {
         let data = c.mint.try_borrow_data()?;
         let mint = Mint::try_deserialize_unchecked(&mut &data[..])?;
-        require_keys_eq!(c.mint.key(), *expected_mint, BasketError::InvalidRemainingAccounts);
+        require_keys_eq!(
+            c.mint.key(),
+            *expected_mint,
+            BasketError::InvalidRemainingAccounts
+        );
         mint.decimals
     };
 
@@ -838,8 +976,16 @@ fn validate_constituent(
         let ata = TokenAccount::try_deserialize_unchecked(&mut &data[..])?;
         (ata.mint, ata.owner)
     };
-    require_keys_eq!(user_ata_mint, *expected_mint, BasketError::InvalidRemainingAccounts);
-    require_keys_eq!(user_ata_owner, *user_key, BasketError::InvalidRemainingAccounts);
+    require_keys_eq!(
+        user_ata_mint,
+        *expected_mint,
+        BasketError::InvalidRemainingAccounts
+    );
+    require_keys_eq!(
+        user_ata_owner,
+        *user_key,
+        BasketError::InvalidRemainingAccounts
+    );
     require_keys_eq!(
         c.user_ata.key(),
         get_associated_token_address_with_program_id(user_key, expected_mint, &token_program.key()),
@@ -852,15 +998,30 @@ fn validate_constituent(
         let ata = TokenAccount::try_deserialize_unchecked(&mut &data[..])?;
         (ata.mint, ata.owner, ata.amount)
     };
-    require_keys_eq!(vault_ata_mint, *expected_mint, BasketError::InvalidRemainingAccounts);
-    require_keys_eq!(vault_ata_owner, *vault_authority, BasketError::InvalidRemainingAccounts);
+    require_keys_eq!(
+        vault_ata_mint,
+        *expected_mint,
+        BasketError::InvalidRemainingAccounts
+    );
+    require_keys_eq!(
+        vault_ata_owner,
+        *vault_authority,
+        BasketError::InvalidRemainingAccounts
+    );
     require_keys_eq!(
         c.vault_ata.key(),
-        get_associated_token_address_with_program_id(vault_authority, expected_mint, &token_program.key()),
+        get_associated_token_address_with_program_id(
+            vault_authority,
+            expected_mint,
+            &token_program.key()
+        ),
         BasketError::InvalidShareAta
     );
 
-    require!(vault_ata_amount == vault_balance_expected, BasketError::VaultBalanceMismatch);
+    require!(
+        vault_ata_amount == vault_balance_expected,
+        BasketError::VaultBalanceMismatch
+    );
     Ok(decimals)
 }
 
@@ -878,7 +1039,11 @@ fn ensure_fee_ata<'info>(
     associated_token_program: &Program<'info, AssociatedToken>,
     system_program: &Program<'info, System>,
 ) -> Result<()> {
-    require_keys_eq!(wallet.key(), *expected_wallet, BasketError::InvalidFeeRecipient);
+    require_keys_eq!(
+        wallet.key(),
+        *expected_wallet,
+        BasketError::InvalidFeeRecipient
+    );
     let expected_ata = get_associated_token_address_with_program_id(
         expected_wallet,
         &share_mint_ai.key(),
@@ -898,10 +1063,12 @@ fn ensure_fee_ata<'info>(
     ))
 }
 
-/// Streams the management fee: fee = floor(S * mgmt_bps * elapsed / (10000 * 1Y))
-/// with u128 intermediates, minted 90/10 to creator/treasury share ATAs by the
-/// vault authority PDA. Checkpoints `last_fee_accrual_ts` and emits `FeeAccrued`.
-/// Returns the fee minted (0 when elapsed == 0, supply == 0, or fee dust == 0).
+/// Streams the management fee with exact numerator dust carry, minted 90/10 to
+/// creator/treasury share ATAs by the vault authority PDA. Every elapsed
+/// interval is checkpointed, but fractional fee value survives in the Basket
+/// account so permissionless crank frequency cannot suppress fees. Returns the
+/// fee minted (0 when elapsed == 0, supply == 0, bps == 0, or the accumulated
+/// numerator has not reached one raw share yet).
 #[allow(clippy::too_many_arguments)]
 fn accrue_fee_internal<'info>(
     basket: &mut Account<'info, Basket>,
@@ -922,18 +1089,31 @@ fn accrue_fee_internal<'info>(
     if now <= basket.last_fee_accrual_ts {
         return Ok(0);
     }
-    let elapsed = (now - basket.last_fee_accrual_ts) as u64;
+    let elapsed = u64::try_from(
+        now.checked_sub(basket.last_fee_accrual_ts)
+            .ok_or(BasketError::MathOverflow)?,
+    )
+    .map_err(|_| error!(BasketError::MathOverflow))?;
 
     // Supply snapshot is pre-CPI: accrual is always the first state-changing step.
     let supply = share_mint.supply;
-    if supply == 0 {
+    if supply == 0 || basket.management_fee_bps == 0 {
         basket.last_fee_accrual_ts = now;
+        basket.management_fee_remainder = [0; MANAGEMENT_FEE_REMAINDER_BYTES];
         return Ok(0);
     }
 
-    let fee = math::management_fee(supply, basket.management_fee_bps, elapsed);
+    let previous_remainder = decode_management_fee_remainder(&basket.management_fee_remainder);
+    let (fee, next_remainder) = math::management_fee_with_remainder(
+        supply,
+        basket.management_fee_bps,
+        elapsed,
+        previous_remainder,
+    )?;
+    let encoded_remainder = encode_management_fee_remainder(next_remainder)?;
     if fee == 0 {
         basket.last_fee_accrual_ts = now;
+        basket.management_fee_remainder = encoded_remainder;
         return Ok(0);
     }
 
@@ -947,7 +1127,16 @@ fn accrue_fee_internal<'info>(
     let signer_seeds: &[&[&[u8]]] = &[&vault_signer_seeds];
 
     if creator_fee > 0 {
-        ensure_fee_ata(creator, creator_share_ata, &basket.creator, &share_mint_ai, payer, token_program, associated_token_program, system_program)?;
+        ensure_fee_ata(
+            creator,
+            creator_share_ata,
+            &basket.creator,
+            &share_mint_ai,
+            payer,
+            token_program,
+            associated_token_program,
+            system_program,
+        )?;
         // RAW ONLY — fee shares on the share mint (dilution).
         mint_to(
             CpiContext::new_with_signer(
@@ -963,7 +1152,16 @@ fn accrue_fee_internal<'info>(
         )?;
     }
     if treasury_fee > 0 {
-        ensure_fee_ata(treasury, treasury_share_ata, &basket.treasury, &share_mint_ai, payer, token_program, associated_token_program, system_program)?;
+        ensure_fee_ata(
+            treasury,
+            treasury_share_ata,
+            &basket.treasury,
+            &share_mint_ai,
+            payer,
+            token_program,
+            associated_token_program,
+            system_program,
+        )?;
         // RAW ONLY — fee shares on the share mint (dilution).
         mint_to(
             CpiContext::new_with_signer(
@@ -980,6 +1178,7 @@ fn accrue_fee_internal<'info>(
     }
 
     basket.last_fee_accrual_ts = now;
+    basket.management_fee_remainder = encoded_remainder;
     // Record the canonical vault authority bump (the factory stub writes 0; this
     // self-heals the stored field to the canonical PDA bump on first success).
     basket.vault_bump = vault_bump;
@@ -1144,6 +1343,10 @@ pub struct Basket {
     pub management_fee_bps: u16,
     pub bump: u8,
     pub vault_bump: u8,
+    /// Little-endian numerator remainder for exact management-fee streaming.
+    /// Appended into bytes that were already zero-filled in the 888-byte V0
+    /// allocation, so deployed Basket accounts deserialize without realloc.
+    pub management_fee_remainder: [u8; MANAGEMENT_FEE_REMAINDER_BYTES],
 }
 
 #[event]
@@ -1208,12 +1411,36 @@ pub enum BasketError {
     InvalidBasketPda,
     #[msg("basket account data is not zeroed (already initialized)")]
     BasketAlreadyInitialized,
+    #[msg("management fee remainder is outside the canonical denominator")]
+    InvalidFeeRemainder,
 }
 
 #[cfg(test)]
 mod tests {
     use super::math::*;
     use super::*;
+
+    /// Basket layout deployed before BAS-001. Its serialized payload occupied
+    /// 873 bytes plus the 8-byte discriminator inside an 888-byte account.
+    #[derive(AnchorSerialize, AnchorDeserialize)]
+    struct LegacyBasketV0 {
+        factory: Pubkey,
+        creator: Pubkey,
+        treasury: Pubkey,
+        share_mint: Pubkey,
+        nonce: u64,
+        created_at: i64,
+        last_fee_accrual_ts: i64,
+        metadata_hash: [u8; 32],
+        num_constituents: u8,
+        constituents: [Pubkey; 20],
+        target_weights_bps: [u16; 20],
+        entry_fee_bps: u16,
+        exit_fee_bps: u16,
+        management_fee_bps: u16,
+        bump: u8,
+        vault_bump: u8,
+    }
 
     // ========== GROSS SHARES ==========
     #[test]
@@ -1249,7 +1476,7 @@ mod tests {
         // g1 = 1_000_000, g2 = 1_010_000 => diff 10_000 =1% of 1M => pass
         let d1 = 100_000_000; // 1M
         let d2 = 101_000_000; // 1.01M
-        assert!(gross_shares(&[d1,d2], &vaults, supply).is_ok());
+        assert!(gross_shares(&[d1, d2], &vaults, supply).is_ok());
     }
     #[test]
     fn test_gross_shares_tolerance_boundary_fail() {
@@ -1258,7 +1485,7 @@ mod tests {
         let supply = 10_000_000;
         let d1 = 100_000_000;
         let d2 = 101_100_000; // 1.011M diff 11k =1.1% => fail
-        assert!(gross_shares(&[d1,d2], &vaults, supply).is_err());
+        assert!(gross_shares(&[d1, d2], &vaults, supply).is_err());
     }
     #[test]
     fn test_gross_shares_zero_supply_fails() {
@@ -1298,9 +1525,10 @@ mod tests {
     fn test_fee_math() {
         assert_eq!(entry_fee(1_000_000, 100), 10_000);
         assert_eq!(exit_fee(1_000_000, 50), 5_000);
-        assert_eq!(management_fee(10_000_000, 200, 30*24*3600), 16438);
-        let (c,t) = split_fee(10_000, 9000);
-        assert_eq!(c, 9000); assert_eq!(t, 1000);
+        assert_eq!(management_fee(10_000_000, 200, 30 * 24 * 3600), 16438);
+        let (c, t) = split_fee(10_000, 9000);
+        assert_eq!(c, 9000);
+        assert_eq!(t, 1000);
     }
     #[test]
     fn test_entry_fee_zero_bps() {
@@ -1326,15 +1554,15 @@ mod tests {
         // fee 1 with 90/10 should give 0 creator, 1 treasury due to floor
         assert_eq!(split_fee(1, 9000), (0, 1));
         assert_eq!(split_fee(3, 9000), (2, 1)); // 3*0.9=2.7 floor 2
-        // sum always equals fee
-        for fee in [1,2,3,7,11,99,100] {
-            let (c,t) = split_fee(fee, 9000);
-            assert_eq!(c+t, fee);
+                                                // sum always equals fee
+        for fee in [1, 2, 3, 7, 11, 99, 100] {
+            let (c, t) = split_fee(fee, 9000);
+            assert_eq!(c + t, fee);
         }
     }
     #[test]
     fn test_entry_fee_never_exceeds_gross() {
-        for gross in [1, 100, 1_000_000, u64::MAX/2] {
+        for gross in [1, 100, 1_000_000, u64::MAX / 2] {
             let fee = entry_fee(gross, 300);
             assert!(fee <= gross);
         }
@@ -1349,14 +1577,120 @@ mod tests {
     }
     #[test]
     fn test_management_fee_zero_bps() {
-        assert_eq!(management_fee(10_000_000, 0, 365*24*3600), 0);
+        assert_eq!(management_fee(10_000_000, 0, 365 * 24 * 3600), 0);
+    }
+    #[test]
+    fn test_management_fee_remainder_preserves_small_accruals() {
+        let supply = 10_000_000;
+        let bps = 300;
+        let (combined_fee, combined_remainder) =
+            management_fee_with_remainder(supply, bps, 1_000, 0).unwrap();
+        assert_eq!(combined_fee, 9);
+
+        let mut segmented_fee = 0u64;
+        let mut remainder = 0u64;
+        for _ in 0..1_000 {
+            let (fee, next_remainder) =
+                management_fee_with_remainder(supply, bps, 1, remainder).unwrap();
+            segmented_fee = segmented_fee.checked_add(fee).unwrap();
+            remainder = next_remainder;
+        }
+
+        assert_eq!(segmented_fee, combined_fee);
+        assert_eq!(remainder, combined_remainder);
+        assert_eq!(
+            segmented_fee as u128 * MANAGEMENT_FEE_DENOMINATOR + remainder as u128,
+            supply as u128 * bps as u128 * 1_000u128
+        );
+    }
+    #[test]
+    fn test_frequent_cranks_cannot_suppress_annual_fee() {
+        let initial_supply = 1_000_000u64;
+        let bps = 300u16;
+        let interval = 60u64;
+        let mut supply = initial_supply;
+        let mut total_fee = 0u64;
+        let mut remainder = 0u64;
+
+        for _ in 0..(SECONDS_PER_YEAR / interval) {
+            let (fee, next_remainder) =
+                management_fee_with_remainder(supply, bps, interval, remainder).unwrap();
+            supply = supply.checked_add(fee).unwrap();
+            total_fee = total_fee.checked_add(fee).unwrap();
+            remainder = next_remainder;
+        }
+
+        let single_crank_fee = management_fee(initial_supply, bps, SECONDS_PER_YEAR);
+        assert_eq!(single_crank_fee, 30_000);
+        assert!(total_fee >= single_crank_fee);
+        assert_eq!(supply, initial_supply + total_fee);
+        assert!(remainder < MANAGEMENT_FEE_DENOMINATOR as u64);
+    }
+    #[test]
+    fn test_management_fee_remainder_rejects_noncanonical_state() {
+        assert!(management_fee_with_remainder(
+            1_000_000,
+            300,
+            60,
+            MANAGEMENT_FEE_DENOMINATOR as u64,
+        )
+        .is_err());
+    }
+    #[test]
+    fn test_management_fee_remainder_encoding_roundtrip() {
+        for remainder in [0, 1, MANAGEMENT_FEE_DENOMINATOR as u64 - 1] {
+            let encoded = encode_management_fee_remainder(remainder).unwrap();
+            assert_eq!(decode_management_fee_remainder(&encoded), remainder);
+        }
+    }
+    #[test]
+    fn test_legacy_basket_deserializes_with_zero_remainder_without_realloc() {
+        use anchor_lang::{AccountDeserialize, AccountSerialize, Discriminator};
+
+        let legacy = LegacyBasketV0 {
+            factory: Pubkey::new_unique(),
+            creator: Pubkey::new_unique(),
+            treasury: Pubkey::new_unique(),
+            share_mint: Pubkey::new_unique(),
+            nonce: 7,
+            created_at: 100,
+            last_fee_accrual_ts: 200,
+            metadata_hash: [9; 32],
+            num_constituents: 2,
+            constituents: [Pubkey::default(); 20],
+            target_weights_bps: [0; 20],
+            entry_fee_bps: 100,
+            exit_fee_bps: 50,
+            management_fee_bps: 300,
+            bump: 1,
+            vault_bump: 2,
+        };
+
+        let mut account_data = Basket::DISCRIMINATOR.to_vec();
+        legacy.serialize(&mut account_data).unwrap();
+        assert_eq!(account_data.len(), 881);
+        account_data.resize(888, 0);
+
+        let decoded = Basket::try_deserialize(&mut account_data.as_slice()).unwrap();
+        assert_eq!(decoded.nonce, legacy.nonce);
+        assert_eq!(decoded.last_fee_accrual_ts, legacy.last_fee_accrual_ts);
+        assert_eq!(
+            decoded.management_fee_remainder,
+            [0; MANAGEMENT_FEE_REMAINDER_BYTES]
+        );
+
+        let mut upgraded_data = Vec::new();
+        decoded.try_serialize(&mut upgraded_data).unwrap();
+        assert_eq!(upgraded_data.len(), 886);
+        assert!(upgraded_data.len() <= account_data.len());
+        assert_eq!(8 + std::mem::size_of::<Basket>(), 888);
     }
     #[test]
     fn test_management_fee_one_year_cap() {
         let supply = 10_000_000;
-        let one_year = management_fee(supply, 300, 365*24*3600);
+        let one_year = management_fee(supply, 300, 365 * 24 * 3600);
         assert_eq!(one_year, 300_000); // 3%
-        let one_year_100 = management_fee(supply, 100, 365*24*3600);
+        let one_year_100 = management_fee(supply, 100, 365 * 24 * 3600);
         assert_eq!(one_year_100, 100_000); // 1%
     }
     #[test]
@@ -1365,7 +1699,7 @@ mod tests {
         let bps = 300;
         let hourly = management_fee(supply, bps, 3600);
         let yearly_via_hourly = hourly * 24 * 365;
-        let yearly = management_fee(supply, bps, 365*24*3600);
+        let yearly = management_fee(supply, bps, 365 * 24 * 3600);
         // hourly floor undercounts; yearly single calc is >= sum of hourly floors, within realistic rounding
         assert!(yearly_via_hourly <= yearly);
         // allow up to 5% difference due to floor accumulation (hourly 11 vs yearly 300k: 96k vs 300k difference large but still < yearly)
@@ -1379,10 +1713,10 @@ mod tests {
         let bps = 300;
         let mut s_daily = supply;
         for _ in 0..30 {
-            let fee = management_fee(s_daily, bps, 24*3600);
+            let fee = management_fee(s_daily, bps, 24 * 3600);
             s_daily += fee;
         }
-        let fee_single = management_fee(supply, bps, 30*24*3600);
+        let fee_single = management_fee(supply, bps, 30 * 24 * 3600);
         let s_single = supply + fee_single;
         // daily compounding should be slightly higher but within 1% (since fee small)
         assert!(s_daily >= s_single);
@@ -1439,7 +1773,7 @@ mod tests {
     #[test]
     fn test_management_never_exceeds_cap() {
         let supply = 10_000_000;
-        let one_year = management_fee(supply, 300, 365*24*3600);
+        let one_year = management_fee(supply, 300, 365 * 24 * 3600);
         assert_eq!(one_year, 300_000);
         let hourly = management_fee(supply, 300, 3600);
         assert!(hourly * 24 * 365 <= one_year + 365);
@@ -1464,7 +1798,8 @@ mod tests {
         }
         // raw math invariance: redeem same regardless of mult
         let vault_raw = 1_000_000_000u64;
-        let burn = 1_000_000u64; let supply = 10_000_000u64;
+        let burn = 1_000_000u64;
+        let supply = 10_000_000u64;
         let out1 = (vault_raw as u128 * burn as u128 / supply as u128) as u64;
         let out2 = (vault_raw as u128 * burn as u128 / supply as u128) as u64;
         assert_eq!(out1, out2);
@@ -1477,7 +1812,7 @@ mod tests {
         let gross = gross_shares(&deposits, &vaults, supply).unwrap();
         let fee = entry_fee(gross, 100);
         let net = gross - fee;
-        let new_vaults = [vaults[0]+deposits[0], vaults[1]+deposits[1]];
+        let new_vaults = [vaults[0] + deposits[0], vaults[1] + deposits[1]];
         let new_supply = supply + net + fee;
         let out = redeem_amounts(&new_vaults, net, new_supply).unwrap();
         assert!(out[0] <= deposits[0]);
@@ -1505,16 +1840,18 @@ mod tests {
         let gross = gross_shares(&deposits, &vaults, supply).unwrap();
         let fee = entry_fee(gross, 100);
         let net = gross - fee;
-        vaults[0] += deposits[0]; vaults[1] += deposits[1];
+        vaults[0] += deposits[0];
+        vaults[1] += deposits[1];
         supply += gross; // total minted including fee
-        // redeem 5% of new supply
+                         // redeem 5% of new supply
         let burn = supply / 20;
         let exit_fee = exit_fee(burn, 50);
         let burn_net = burn - exit_fee;
         let out = redeem_amounts(&vaults, burn_net, supply).unwrap();
-        vaults[0] -= out[0]; vaults[1] -= out[1];
+        vaults[0] -= out[0];
+        vaults[1] -= out[1];
         supply -= burn_net; // burned, fee stays as shares held by fee recipients
-        // after ops, vaults non-negative and supply positive
+                            // after ops, vaults non-negative and supply positive
         assert!(vaults[0] > 0 && vaults[1] > 0);
         assert!(supply > 0);
         // total vault value should be proportional to supply (within rounding)
@@ -1549,7 +1886,7 @@ mod tests {
     #[test]
     fn test_fuzz_random_deposits_redeems() {
         // 100 random iterations: random vaults 1e6..1e12, random deposits 1..1e9, supply 1e6..1e9
-        let cases: [(u64,u64,u64); 5] = [
+        let cases: [(u64, u64, u64); 5] = [
             (5_000_000, 500_000_000, 50_000_000),
             (10_000_000, 1_000_000_000, 100_000_000),
             (100_000, 10_000_000, 1_000_000),
@@ -1559,7 +1896,7 @@ mod tests {
         for (supply, vault, deposit) in cases {
             let g = gross_shares(&[deposit], &[vault], supply).unwrap();
             assert!(g > 0);
-            let out = redeem_amounts(&[vault+deposit], g, supply+g).unwrap();
+            let out = redeem_amounts(&[vault + deposit], g, supply + g).unwrap();
             assert!(out[0] <= deposit + 1); // floor, allow 1 rounding
         }
     }
@@ -1594,58 +1931,211 @@ mod tests {
         // basket program CPI only to Token2022, System, ATA — no reentry path
         // this test is documentation: verify no instruction calls itself via CPI
         // we assert the program has only 3 entrypoints and no delegate CPI to itself
-        assert_eq!(SECONDS_PER_YEAR, 365*24*3600);
+        assert_eq!(SECONDS_PER_YEAR, 365 * 24 * 3600);
         assert_eq!(BPS_DENOM, 10_000);
     }
 }
 
-
 #[cfg(test)]
 mod mega_tests {
     use super::math::*;
-    #[test] fn t1_entry_zero(){ assert_eq!(entry_fee(0,100),0); }
-    #[test] fn t2_exit_zero(){ assert_eq!(exit_fee(0,50),0); }
-    #[test] fn t3_split_zero(){ assert_eq!(split_fee(0,9000),(0,0)); }
-    #[test] fn t4_mgmt_zero_supply(){ assert_eq!(management_fee(0,300,1000),0); }
-    #[test] fn t5_mgmt_zero_elapsed(){ assert_eq!(management_fee(10_000_000,300,0),0); }
-    #[test] fn t6_redeem_empty(){ let r=redeem_amounts(&[],1,10).unwrap(); assert_eq!(r.len(),0); }
-    #[test] fn t7_gross_min_is_min(){ let g=gross_shares(&[10_000_000,20_000_000],&[100_000_000,200_000_000],10_000_000).unwrap(); assert_eq!(g,1_000_000); }
-    #[test] fn t8_gross_with_20_vals(){ let d=[10_000_000;20]; let v=[100_000_000;20]; assert_eq!(gross_shares(&d,&v,10_000_000).unwrap(),1_000_000); }
-    #[test] fn t9_fee_1_percent(){ assert_eq!(entry_fee(100_000,100),1000); }
-    #[test] fn t10_fee_3_percent(){ assert_eq!(entry_fee(100_000,300),3000); }
-    #[test] fn t11_exit_1_percent(){ assert_eq!(exit_fee(100_000,100),1000); }
-    #[test] fn t12_mgmt_1_year_200bps(){ assert_eq!(management_fee(10_000_000,200,31536000),200_000); }
-    #[test] fn t13_mgmt_half_year(){ assert_eq!(management_fee(10_000_000,300,15768000),150_000); }
-    #[test] fn t14_split_half(){ assert_eq!(split_fee(100,5000),(50,50)); }
-    #[test] fn t15_split_10(){ assert_eq!(split_fee(10,9000),(9,1)); }
-    #[test] fn t16_redeem_10_percent(){ assert_eq!(redeem_amounts(&[1000],100,1000).unwrap()[0],100); }
-    #[test] fn t17_redeem_50_percent(){ assert_eq!(redeem_amounts(&[1000],500,1000).unwrap()[0],500); }
-    #[test] fn t18_redeem_all(){ assert_eq!(redeem_amounts(&[1000],1000,1000).unwrap()[0],1000); }
-    #[test] fn t19_gross_large_supply(){ let g=gross_shares(&[1_000_000_000],&[10_000_000_000],1_000_000_000).unwrap(); assert_eq!(g,100_000_000); }
-    #[test] fn t20_gross_small_vault(){ assert!(gross_shares(&[1_000_000],&[1],1_000_000).is_ok()); }
+    #[test]
+    fn t1_entry_zero() {
+        assert_eq!(entry_fee(0, 100), 0);
+    }
+    #[test]
+    fn t2_exit_zero() {
+        assert_eq!(exit_fee(0, 50), 0);
+    }
+    #[test]
+    fn t3_split_zero() {
+        assert_eq!(split_fee(0, 9000), (0, 0));
+    }
+    #[test]
+    fn t4_mgmt_zero_supply() {
+        assert_eq!(management_fee(0, 300, 1000), 0);
+    }
+    #[test]
+    fn t5_mgmt_zero_elapsed() {
+        assert_eq!(management_fee(10_000_000, 300, 0), 0);
+    }
+    #[test]
+    fn t6_redeem_empty() {
+        let r = redeem_amounts(&[], 1, 10).unwrap();
+        assert_eq!(r.len(), 0);
+    }
+    #[test]
+    fn t7_gross_min_is_min() {
+        let g = gross_shares(
+            &[10_000_000, 20_000_000],
+            &[100_000_000, 200_000_000],
+            10_000_000,
+        )
+        .unwrap();
+        assert_eq!(g, 1_000_000);
+    }
+    #[test]
+    fn t8_gross_with_20_vals() {
+        let d = [10_000_000; 20];
+        let v = [100_000_000; 20];
+        assert_eq!(gross_shares(&d, &v, 10_000_000).unwrap(), 1_000_000);
+    }
+    #[test]
+    fn t9_fee_1_percent() {
+        assert_eq!(entry_fee(100_000, 100), 1000);
+    }
+    #[test]
+    fn t10_fee_3_percent() {
+        assert_eq!(entry_fee(100_000, 300), 3000);
+    }
+    #[test]
+    fn t11_exit_1_percent() {
+        assert_eq!(exit_fee(100_000, 100), 1000);
+    }
+    #[test]
+    fn t12_mgmt_1_year_200bps() {
+        assert_eq!(management_fee(10_000_000, 200, 31536000), 200_000);
+    }
+    #[test]
+    fn t13_mgmt_half_year() {
+        assert_eq!(management_fee(10_000_000, 300, 15768000), 150_000);
+    }
+    #[test]
+    fn t14_split_half() {
+        assert_eq!(split_fee(100, 5000), (50, 50));
+    }
+    #[test]
+    fn t15_split_10() {
+        assert_eq!(split_fee(10, 9000), (9, 1));
+    }
+    #[test]
+    fn t16_redeem_10_percent() {
+        assert_eq!(redeem_amounts(&[1000], 100, 1000).unwrap()[0], 100);
+    }
+    #[test]
+    fn t17_redeem_50_percent() {
+        assert_eq!(redeem_amounts(&[1000], 500, 1000).unwrap()[0], 500);
+    }
+    #[test]
+    fn t18_redeem_all() {
+        assert_eq!(redeem_amounts(&[1000], 1000, 1000).unwrap()[0], 1000);
+    }
+    #[test]
+    fn t19_gross_large_supply() {
+        let g = gross_shares(&[1_000_000_000], &[10_000_000_000], 1_000_000_000).unwrap();
+        assert_eq!(g, 100_000_000);
+    }
+    #[test]
+    fn t20_gross_small_vault() {
+        assert!(gross_shares(&[1_000_000], &[1], 1_000_000).is_ok());
+    }
     // 30 more random property checks
-    #[test] fn t21_fuzz_entry(){ for i in 1..20 { assert!(entry_fee(i*1000,100) <= i*1000); } }
-    #[test] fn t22_fuzz_exit(){ for i in 1..20 { assert!(exit_fee(i*1000,50) <= i*1000); } }
-    #[test] fn t23_fuzz_mgmt(){ for i in 1..20 { assert!(management_fee(10_000_000,300,i*3600) <= 300_000); } }
-    #[test] fn t24_fuzz_split(){ for fee in 1..20 { let (c,t)=split_fee(fee,9000); assert_eq!(c+t,fee); } }
-    #[test] fn t25_redeem_floor(){ assert_eq!(redeem_amounts(&[3],1,10).unwrap()[0],0); assert_eq!(redeem_amounts(&[10],1,10).unwrap()[0],1); }
-    #[test] fn t26_redeem_never_exceeds(){ for burn in [1,10,100,1000] { assert!(redeem_amounts(&[1000],burn,1000).unwrap()[0] <= 1000); } }
-    #[test] fn t27_gross_no_overflow(){ let g=gross_shares(&[u64::MAX/2],&[u64::MAX/2],1_000_000).unwrap(); assert_eq!(g,1_000_000); }
-    #[test] fn t28_mgmt_never_exceeds_cap_random(){ for bps in [0,100,200,300] { assert!(management_fee(100_000_000,bps,31536000) <= 100_000_000*bps as u64/10000); } }
-    #[test] fn t29_entry_exact(){ assert_eq!(entry_fee(10_000,100),100); assert_eq!(entry_fee(10_000,200),200); }
-    #[test] fn t30_exit_exact(){ assert_eq!(exit_fee(10_000,100),100); }
-    #[test] fn t31_scaled_raw(){ let raw=1_000_000; assert_eq!(raw*1,1_000_000); assert_eq!(raw*2,2_000_000); }
-    #[test] fn t32_vault_consistency(){ let mut v=1_000_000_000; let burn=100_000; let supply=1_000_000; let out=(v as u128*burn as u128/supply as u128) as u64; v-=out; assert!(v<1_000_000_000); }
-    #[test] fn t33_weight_mismatch_edge(){ assert!(gross_shares(&[100,200],&[1000,1000],1000).is_err()); }
-    #[test] fn t34_weight_exact(){ assert!(gross_shares(&[100,100],&[1000,1000],1000).is_ok()); }
-    #[test] fn t35_fee_split_0(){ assert_eq!(split_fee(100,0),(0,100)); }
-    #[test] fn t36_fee_split_100(){ assert_eq!(split_fee(100,10000),(100,0)); }
-    #[test] fn t37_gross_with_supply_1(){ let res=gross_shares(&[100],&[1000],1); assert!(res.is_err()); }
-    #[test] fn t38_mgmt_30_days(){ assert_eq!(management_fee(10_000_000,300,2592000),24657); }
-    #[test] fn t39_mgmt_7_days(){ assert_eq!(management_fee(10_000_000,200,604800),3835); }
-    #[test] fn t40_redeem_multi(){ let out=redeem_amounts(&[100,200,300],10,100).unwrap(); assert_eq!(out,vec![10,20,30]); }
+    #[test]
+    fn t21_fuzz_entry() {
+        for i in 1..20 {
+            assert!(entry_fee(i * 1000, 100) <= i * 1000);
+        }
+    }
+    #[test]
+    fn t22_fuzz_exit() {
+        for i in 1..20 {
+            assert!(exit_fee(i * 1000, 50) <= i * 1000);
+        }
+    }
+    #[test]
+    fn t23_fuzz_mgmt() {
+        for i in 1..20 {
+            assert!(management_fee(10_000_000, 300, i * 3600) <= 300_000);
+        }
+    }
+    #[test]
+    fn t24_fuzz_split() {
+        for fee in 1..20 {
+            let (c, t) = split_fee(fee, 9000);
+            assert_eq!(c + t, fee);
+        }
+    }
+    #[test]
+    fn t25_redeem_floor() {
+        assert_eq!(redeem_amounts(&[3], 1, 10).unwrap()[0], 0);
+        assert_eq!(redeem_amounts(&[10], 1, 10).unwrap()[0], 1);
+    }
+    #[test]
+    fn t26_redeem_never_exceeds() {
+        for burn in [1, 10, 100, 1000] {
+            assert!(redeem_amounts(&[1000], burn, 1000).unwrap()[0] <= 1000);
+        }
+    }
+    #[test]
+    fn t27_gross_no_overflow() {
+        let g = gross_shares(&[u64::MAX / 2], &[u64::MAX / 2], 1_000_000).unwrap();
+        assert_eq!(g, 1_000_000);
+    }
+    #[test]
+    fn t28_mgmt_never_exceeds_cap_random() {
+        for bps in [0, 100, 200, 300] {
+            assert!(management_fee(100_000_000, bps, 31536000) <= 100_000_000 * bps as u64 / 10000);
+        }
+    }
+    #[test]
+    fn t29_entry_exact() {
+        assert_eq!(entry_fee(10_000, 100), 100);
+        assert_eq!(entry_fee(10_000, 200), 200);
+    }
+    #[test]
+    fn t30_exit_exact() {
+        assert_eq!(exit_fee(10_000, 100), 100);
+    }
+    #[test]
+    fn t31_scaled_raw() {
+        let raw = 1_000_000;
+        assert_eq!(raw * 1, 1_000_000);
+        assert_eq!(raw * 2, 2_000_000);
+    }
+    #[test]
+    fn t32_vault_consistency() {
+        let mut v = 1_000_000_000;
+        let burn = 100_000;
+        let supply = 1_000_000;
+        let out = (v as u128 * burn as u128 / supply as u128) as u64;
+        v -= out;
+        assert!(v < 1_000_000_000);
+    }
+    #[test]
+    fn t33_weight_mismatch_edge() {
+        assert!(gross_shares(&[100, 200], &[1000, 1000], 1000).is_err());
+    }
+    #[test]
+    fn t34_weight_exact() {
+        assert!(gross_shares(&[100, 100], &[1000, 1000], 1000).is_ok());
+    }
+    #[test]
+    fn t35_fee_split_0() {
+        assert_eq!(split_fee(100, 0), (0, 100));
+    }
+    #[test]
+    fn t36_fee_split_100() {
+        assert_eq!(split_fee(100, 10000), (100, 0));
+    }
+    #[test]
+    fn t37_gross_with_supply_1() {
+        let res = gross_shares(&[100], &[1000], 1);
+        assert!(res.is_err());
+    }
+    #[test]
+    fn t38_mgmt_30_days() {
+        assert_eq!(management_fee(10_000_000, 300, 2592000), 24657);
+    }
+    #[test]
+    fn t39_mgmt_7_days() {
+        assert_eq!(management_fee(10_000_000, 200, 604800), 3835);
+    }
+    #[test]
+    fn t40_redeem_multi() {
+        let out = redeem_amounts(&[100, 200, 300], 10, 100).unwrap();
+        assert_eq!(out, vec![10, 20, 30]);
+    }
 }
-
 
 #[cfg(test)]
 mod impl_tests {
@@ -1661,7 +2151,10 @@ mod impl_tests {
         // (deposits are transferred separately; the share price cannot be set
         // by the depositor's chosen amounts).
         assert_eq!(compute_mint_gross(0, &[0], &[0]).unwrap(), GENESIS_SHARES);
-        assert_eq!(compute_mint_gross(0, &[1_000_000_000], &[5]).unwrap(), 1_000_000);
+        assert_eq!(
+            compute_mint_gross(0, &[1_000_000_000], &[5]).unwrap(),
+            1_000_000
+        );
         assert_eq!(compute_mint_gross(0, &[], &[]).unwrap(), 1_000_000);
         assert_eq!(compute_mint_gross(0, &[u64::MAX], &[1]).unwrap(), 1_000_000);
     }
@@ -1675,10 +2168,20 @@ mod impl_tests {
     #[test]
     fn test_compute_mint_gross_non_genesis_delegates() {
         // perfect deposit
-        let g = compute_mint_gross(10_000_000, &[50_000_000, 30_000_000], &[500_000_000, 300_000_000]).unwrap();
+        let g = compute_mint_gross(
+            10_000_000,
+            &[50_000_000, 30_000_000],
+            &[500_000_000, 300_000_000],
+        )
+        .unwrap();
         assert_eq!(g, 1_000_000);
         // off-weight > 1% → WeightMismatch propagates
-        assert!(compute_mint_gross(10_000_000, &[60_000_000, 10_000_000], &[500_000_000, 300_000_000]).is_err());
+        assert!(compute_mint_gross(
+            10_000_000,
+            &[60_000_000, 10_000_000],
+            &[500_000_000, 300_000_000]
+        )
+        .is_err());
         // zero vault → ZeroVault propagates (never divides by zero)
         assert!(compute_mint_gross(10_000_000, &[50_000_000], &[0]).is_err());
         // dust deposit → ZeroShares propagates
@@ -1719,7 +2222,11 @@ mod impl_tests {
                 let fee = entry_fee(gross, bps);
                 let net = gross - fee; // fee <= gross always for bps <= 10000
                 let (c, t) = fee_split_amounts(fee);
-                assert_eq!(net + c + t, gross, "minted total broken bps={bps} gross={gross}");
+                assert_eq!(
+                    net + c + t,
+                    gross,
+                    "minted total broken bps={bps} gross={gross}"
+                );
                 assert_eq!(c + t, fee);
             }
         }
@@ -1790,8 +2297,16 @@ mod impl_tests {
     fn test_redeem_aggregate_never_over_withdraws() {
         // across all constituents: sum(out) * S <= sum(V) * burn (floor everywhere)
         let cases: [(u64, [u64; 3], u64); 5] = [
-            (10_000_000, [500_000_000, 300_000_000, 200_000_000], 1_000_000),
-            (10_000_000, [500_000_000, 300_000_000, 200_000_000], 9_999_999),
+            (
+                10_000_000,
+                [500_000_000, 300_000_000, 200_000_000],
+                1_000_000,
+            ),
+            (
+                10_000_000,
+                [500_000_000, 300_000_000, 200_000_000],
+                9_999_999,
+            ),
             (7_777_777, [123_456_789, 987_654_321, 5_555_555], 123_456),
             (1_000_000, [1, 1, 1], 999_999),
             (3_333_333, [10_000_000_001, 7, 70_000], 1_111_111),
@@ -2055,7 +2570,11 @@ mod paused_gate_tests {
     #[test]
     fn test_parse_constituents_triplet_order() {
         use anchor_lang::solana_program::account_info::AccountInfo;
-        let keys = [Pubkey::new_unique(), Pubkey::new_unique(), Pubkey::new_unique()];
+        let keys = [
+            Pubkey::new_unique(),
+            Pubkey::new_unique(),
+            Pubkey::new_unique(),
+        ];
         let owner = Pubkey::new_unique();
         let mut l0 = 0u64;
         let mut d0 = vec![0u8; 1];
@@ -2064,9 +2583,36 @@ mod paused_gate_tests {
         let mut l2 = 0u64;
         let mut d2 = vec![0u8; 1];
         let infos = vec![
-            AccountInfo::new(&keys[0], false, false, &mut l0, d0.as_mut_slice(), &owner, false, 0),
-            AccountInfo::new(&keys[1], false, false, &mut l1, d1.as_mut_slice(), &owner, false, 0),
-            AccountInfo::new(&keys[2], false, false, &mut l2, d2.as_mut_slice(), &owner, false, 0),
+            AccountInfo::new(
+                &keys[0],
+                false,
+                false,
+                &mut l0,
+                d0.as_mut_slice(),
+                &owner,
+                false,
+                0,
+            ),
+            AccountInfo::new(
+                &keys[1],
+                false,
+                false,
+                &mut l1,
+                d1.as_mut_slice(),
+                &owner,
+                false,
+                0,
+            ),
+            AccountInfo::new(
+                &keys[2],
+                false,
+                false,
+                &mut l2,
+                d2.as_mut_slice(),
+                &owner,
+                false,
+                0,
+            ),
         ];
         let parsed = parse_constituents(&infos, 1).unwrap();
         assert_eq!(parsed[0].mint.key(), keys[0]);
@@ -2156,7 +2702,10 @@ mod paused_gate_tests {
             0,
         );
         assert_eq!(read_mint_supply(&ai0).unwrap(), 0);
-        assert_eq!(compute_mint_gross(0, &deposits, &vaults).unwrap(), GENESIS_SHARES);
+        assert_eq!(
+            compute_mint_gross(0, &deposits, &vaults).unwrap(),
+            GENESIS_SHARES
+        );
     }
 
     // ===================== REDEEM STAYS UNTOUCHED (structural negative tests) =====================
@@ -2210,7 +2759,10 @@ mod paused_gate_tests {
         // positive control: the same scanner must see the whitelist gate in the
         // mint handler (proves the scan is not vacuously passing)
         let mint = braced_block(src, "pub fn mint_in_kind").to_lowercase();
-        assert!(mint.contains("whitelist"), "scanner must find the mint gate");
+        assert!(
+            mint.contains("whitelist"),
+            "scanner must find the mint gate"
+        );
     }
 
     #[test]
@@ -2218,7 +2770,9 @@ mod paused_gate_tests {
         // doc-comment test: the client-facing contract above redeem_in_kind
         // must keep stating that redeem is never gated
         let src = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/lib.rs"));
-        let idx = src.find("pub fn redeem_in_kind").expect("redeem entrypoint present");
+        let idx = src
+            .find("pub fn redeem_in_kind")
+            .expect("redeem entrypoint present");
         let doc_start = src[..idx]
             .rfind("/// Redeem in-kind")
             .expect("redeem doc comment present");

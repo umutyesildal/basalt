@@ -1,7 +1,7 @@
 # Basalt V0 — Implementation-Ready Spec
 
 > Status: **Draft V0 — READY FOR CODE** | Stack: Anchor + Next.js + TypeScript Backend | Date: 2026-09-01 | Author: Basalt Architect
-> Source: `basalt_build_prompt.md` (xStocks strategy baskets, Solana-first, no-ETF language)
+> Source: `foliox_build_prompt.md` (historical filename; xStocks strategy baskets, Solana-first, no-ETF language)
 
 ---
 
@@ -164,11 +164,12 @@ pub struct Basket {
     pub entry_fee_bps: u16,         // 0..300
     pub exit_fee_bps: u16,          // 0..100
     pub management_fee_bps: u16,    // 0..300 annualized
-    pub total_minted_shares: u64,   // raw share supply at creation (optional cache)
     pub bump: u8,
     pub vault_bump: u8,
+    pub management_fee_remainder: [u8; 5], // LE numerator remainder, append-only
     // immutable: constituents, weights, fees, creator, metadata_hash, treasury at creation
-    // Size: ~ 32*3+8+8+8+32+1+32*20+2*20+2*3+8+1+1 ≈  820 + disc
+    // Existing offsets are unchanged. Serialized size is 886 bytes including
+    // discriminator and fits the original 888-byte account allocation.
 }
 ```
 
@@ -284,11 +285,12 @@ Validations:
 ```
 accrue_management_fee()
 ```
-- Anyone can call; computes `elapsed = now - basket.last_fee_accrual_ts`, `fee_shares = floor(total_supply * management_fee_bps * elapsed / (10_000 * SECONDS_PER_YEAR))`
+- Anyone can call; computes `elapsed = now - basket.last_fee_accrual_ts`, then `numerator = total_supply * management_fee_bps * elapsed + previous_remainder`, `fee_shares = floor(numerator / (10_000 * SECONDS_PER_YEAR))`, and persists `numerator % denominator`.
 - Split fee_shares to creator/treasury via `mint_to` (dilution) — increases supply, dilutes existing holders
-- Update `last_fee_accrual_ts = now`, emit `FeeAccrued`
+- Update `last_fee_accrual_ts = now`; emit `FeeAccrued` when whole shares are minted. The Basket account remains authoritative for sub-share remainder.
+- If supply or the immutable fee rate is zero, checkpoint and clear the remainder so a later holder does not inherit empty-period debt.
 - Called internally at top of `mint_in_kind` and `redeem_in_kind` (and externally by keeper/indexer every hour/day)
-- Caps: `management_fee_bps ≤300`, property test ensures never exceeds cap over elapsed time even with repeated cranks.
+- Cap: `management_fee_bps ≤300` is the nominal annualized rate applied to each interval's then-current supply. Repeated fee minting compounds supply, so a year split into many cranks can mint slightly more than 3% of the starting supply; tests cover both fixed-supply partition equivalence and the compounding behavior.
 
 No `withdraw` / `admin_withdraw` exists.
 
@@ -398,14 +400,17 @@ const SECONDS_PER_YEAR: u64 = 365 * 24 * 3600;
 let elapsed = now - last_accrual;
 if elapsed == 0 { return 0; }
 let annual_rate_bps = basket.management_fee_bps as u64; // 300 = 3%
-let fee_shares = (total_supply as u128 * annual_rate_bps as u128 * elapsed as u128)
-                 / (10_000u128 * SECONDS_PER_YEAR as u128);
-fee_shares as u64 // floor
+let denominator = 10_000u128 * SECONDS_PER_YEAR as u128;
+let numerator = total_supply as u128 * annual_rate_bps as u128 * elapsed as u128
+              + previous_remainder as u128;
+let fee_shares = numerator / denominator;
+let next_remainder = numerator % denominator;
+// Persist next_remainder exactly, then checkpoint last_accrual.
 ```
 Example: `S=10_000_000`, `mgmt 200 bps (2%)`, `elapsed 30 days (2_592_000s)`
 `fee =10_000_000 *200 *2_592_000 /(10_000*31_536_000)=10_000_000*518_400_000 /315_360_000_000≈16438` shares (0.164% for 30d, annualized 2%).
 
-**Property:** `fee_shares / S ≤ annual_rate * elapsed / SECONDS_PER_YEAR` (never exceeds cap even with daily cranks) — fuzz test accrues hourly vs yearly lump, asserts equality within rounding 1 share.
+**Property:** for fixed supply, `denominator * total_fee + final_remainder = initial_remainder + Σ(supply * bps * elapsed)`. Partitioning one interval into many permissionless cranks cannot suppress the fee.
 
 **Example timeline:**
 - Day 0: `S=10M`, last=0
@@ -629,7 +634,7 @@ brand.md                  // written by brand-design skill
 | Test file | Cases |
 |-----------|-------|
 | `tests/test_math.rs` | `gross_shares` min across constituents, 1% tolerance revert, floor rounding, `initial_shares=1M` genesis, division by zero guard |
-| `tests/test_fees.rs` | entry/exit split 90/10, treasury remainder, mgmt elapsed fee formula, cap never exceeded, hourly vs yearly equivalence |
+| `tests/test_fees.rs` | entry/exit split 90/10, treasury remainder, management-fee elapsed formula, fixed-supply partition equivalence, hourly/minute compounding behavior |
 | `tests/test_validations.rs` | weights sum 10k failure, duplicate mints, fee over cap, 2-20 bounds, metadata_hash zero revert, empty seed revert |
 | `tests/test_pda.rs` | seed derivations, bump mismatch, vault authority mismatch, wrong mint authority rejected |
 | `tests/test_token2022.rs` | mock mints with `ScaledUiAmountConfig` multiplier 1→2, update does not affect raw transfer; decimals mismatch rejected; malicious token account (wrong owner/mint) rejected |
@@ -661,7 +666,7 @@ describe("basalt basket", () => {
 | deposits→full redemption returns expected pro-rata minus fees | `sum(out_i) ≤ sum(in_i)` with equality when no fees drift, within rounding ±N | random 2-5 users, random amounts, random fees within caps |
 | no user can redeem more than proportional share | `amount_out_i ≤ vault_raw_i * shares_burn / S_before +1` (floor) | random burn amounts |
 | vault consistency after multi-user mints/redeems | `Σ vault_raw_j` monotonic with mints/redeems, total supply accounting `S_new = S_old + net - burn + mgmt` | sequence of 10 random ops |
-| management fee never exceeds cap | `fee/S ≤ mgmt_bps * elapsed / (10k * year)` | random elapsed 1s..1y |
+| management fee partition carry | for fixed supply, `denominator * total_fee + final_remainder = initial_remainder + Σ(S * bps * elapsed)` | random partitions from 1s..1y |
 | scaled multiplier change does not break raw math | deploy with multiplier 1, update to 0.5→2.0, redeem same raw | random multiplier updates |
 | rounding never over-withdraws | `Σ out_i * S_before ≤ V_j * burn_amount + N*1` | edge decimals |
 
@@ -695,7 +700,7 @@ describe("basalt basket", () => {
 - [ ] **P1: Scaled/raw confusion** — programs never multiply by multiplier; indexer only. Add comment `// RAW ONLY` on all transfers.
 - [ ] **P1: Account substitution** — user ATAs verified `owner==user`, `mint==expected`; vault ATAs derived via `associated_token::get_associated_token_address(basket_pda, mint)` and `mut` check.
 - [ ] **P1: PDA authority** — `basket PDA` seeds validated in each ix via `#[account(seeds=[...], bump)]`; `share_mint.mint_authority == basket PDA`.
-- [ ] **P1: Fee overcharging** — `≤ cap` checks + property test hourly vs yearly; `treasury+creator == fee_shares` no dust loss beyond 1 lamport.
+- [ ] **P1: Fee overcharging** — enforce `management_fee_bps ≤300`, test fixed-supply partition carry plus disclosed supply compounding, and require `treasury+creator == fee_shares` with no split dust loss.
 - [ ] **P2: Zap slippage** — V0 sequential swaps: document user may receive different amounts than quoted; next leg reverts if slippage exceeded `slippageBps` threshold. On-chain atomic zap deferred.
 - [ ] **P2: Reentrancy/CPI** — no cross-program invocation that re-enters basket (CPI only to Token-2022 + System + ATA); use `#[account(mut)]` checks.
 - [ ] **P2: Seed hijack** — `create_basket` seed transfer atomic with basket creation in same tx; no separate `init` then `seed` two-step.
@@ -765,7 +770,7 @@ Post-90: mainnet-beta with capped TVL, bug bounty, formal verification via QEDGe
 
 - `~/.agents/skills/data/solana-knowledge/03-contract-level.md` (PDAs, Anchor)
 - `~/.agents/skills/data/guides/security-checklist.md` (P0/P1 audit)
-- `basalt_build_prompt.md` (thesis, constraints, required outputs)
+- `foliox_build_prompt.md` (historical filename; thesis, constraints, required outputs)
 - Backed xStocks Token-2022 docs (Scaled UI Amount extension)
 - Jupiter Price/Swap APIs
 
@@ -773,7 +778,7 @@ Post-90: mainnet-beta with capped TVL, bug bounty, formal verification via QEDGe
 
 ## Implementation Status Amendment — 2026-09-01
 
-This specification remains the normative product and security contract. The repository has since been scaffolded, but the current implementation is not localnet-ready: protocol transfer/mint/burn paths, backend/indexer wiring, wallet flows, and strict frontend typing still have known gaps. The execution order and verified findings are recorded in `plan.md` and `docs/ui-discovery-2026-09-01.md`.
+This specification remains the normative product and security contract. The repository has since been scaffolded, but at this amendment's date the implementation was not localnet-ready: protocol transfer/mint/burn paths, backend/indexer wiring, wallet flows, and strict frontend typing still had known gaps. The historical execution order and retained findings are recorded in `plan.md`; the standalone UI-discovery note referenced by the original amendment is not present in this repository.
 
 Do not interpret the passing unit-test counts as proof of end-to-end protocol correctness. Before devnet/mainnet work, complete the real-account localnet flow and the P0/P1 security checklist in this document.
 

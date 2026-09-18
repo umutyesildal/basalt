@@ -42,12 +42,11 @@ import { ASSOCIATED_TOKEN_PROGRAM_ID, getAssociatedTokenAddressSync, TOKEN_2022_
 import { anchorIxDiscriminator } from "../indexer/events.js";
 import { isPgLike, type PgLike } from "../db/client.js";
 import { withRpcBackoff } from "../rpc/backoff.js";
+import { managementFeeWithRemainder } from "./feeMath.js";
 
 export const BASKET_PROGRAM_ID = "6Q43vFh4aqGxzvtU2vQwJX9PmX3skfYsGWZdA3fwJB9k"; // programs/basket/src/lib.rs:4
 export const FEE_CRANK_INTERVAL_MS = 3_600_000; // hourly — spec §7 fee_accrue_crank
 export const FEE_ACCRUE_MIN_ELAPSED_SEC = 3600; // baskets with elapsed > 1h
-const SECONDS_PER_YEAR = 31_536_000n;
-const BPS_DENOM = 10_000n;
 
 /** Structural slice of @solana/web3.js Connection used for the blockhash. */
 export interface BlockhashRpc {
@@ -291,8 +290,11 @@ export class FeeCrank {
     const elapsedSec = Math.max(0, Math.floor(row.elapsed_sec));
     const estimatedFeeShares =
       row.supply && BigInt(row.supply) > 0n
-        ? (BigInt(row.supply) * BigInt(row.management_fee_bps) * BigInt(elapsedSec) /
-            (BPS_DENOM * SECONDS_PER_YEAR)).toString()
+        ? managementFeeWithRemainder(
+            BigInt(row.supply),
+            row.management_fee_bps,
+            BigInt(elapsedSec),
+          ).fee.toString()
         : null;
 
     const note =
@@ -300,7 +302,10 @@ export class FeeCrank {
       "permissionless keeper. The backend never custodies, never signs and " +
       "never submits (AGENTS.md §2 #5): decode the base64 as a " +
       "VersionedTransaction, sign with the keeper wallet (feePayer) and submit. " +
-      "accrue_management_fee is permissionless — any wallet may crank.";
+      "accrue_management_fee is permissionless — any wallet may crank. " +
+      "estimatedFeeShares assumes an unknown on-chain numerator remainder of zero " +
+      "and, for otherwise identical supply and elapsed inputs, can therefore be lower " +
+      "by at most one raw share. A stale DB supply or timestamp can cause a larger difference.";
 
     return {
       basket: row.pubkey,
@@ -321,7 +326,12 @@ export class FeeCrank {
   }
 }
 
-/** Legacy helper kept for parity with the V0 crank sketch (pure math). */
+/**
+ * Legacy estimate helper. It assumes the unknown on-chain numerator remainder
+ * is zero and, for otherwise identical supply and elapsed inputs, can therefore
+ * understate the authoritative fee by at most one raw share. Callers remain
+ * responsible for snapshot freshness.
+ */
 export function estimateManagementFeeShares(
   supply: string | number,
   managementFeeBps: number,
@@ -329,7 +339,7 @@ export function estimateManagementFeeShares(
 ): string {
   const s = typeof supply === "number" ? BigInt(Math.max(0, Math.floor(supply))) : BigInt(supply);
   const elapsed = BigInt(Math.max(0, Math.floor(elapsedSec)));
-  return ((s * BigInt(managementFeeBps) * elapsed) / (BPS_DENOM * SECONDS_PER_YEAR)).toString();
+  return managementFeeWithRemainder(s, managementFeeBps, elapsed).fee.toString();
 }
 
 /**
