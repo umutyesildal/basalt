@@ -1,20 +1,12 @@
 /**
- * Shared helpers for the FolioX localnet E2E scripts (scripts/*.ts).
+ * Shared helpers for the Basalt localnet E2E scripts (scripts/*.ts).
  *
  * No @solana/spl-token dependency (not installed in this workspace) — the
- * Token-2022 instruction layouts below mirror the on-chain program directly:
- *   - spl_token_2022_interface 1.0.0 instruction.rs / extension TLV layout
- *   - instruction tags: InitializeMint2=20, TransferChecked=12, MintTo=7,
- *     SetAuthority=6, ScaledUiAmountExtension=43 (inner Initialize=0)
- *   - TLV entry = [type: u16 LE][length: u16 LE][value]
- *   - ScaledUiAmountConfig TLV value (56 bytes) = authority [u8;32] (zeroes =
- *     none) + multiplier f64 LE + new_multiplier_effective_timestamp i64 LE +
- *     new_multiplier f64 LE  → ExtensionType::ScaledUiAmount = 25
- *   - mint account with the extension = 82 base + 1 account type + 4 TLV header
- *     + 56 value = 143 bytes (the program also accepts 226 = "82 + 83 padding +
- *     1 type + 60 TLV" per the interface doc comment; the script probes both
- *     sizes via simulateTransaction and falls back to a plain mint when the
- *     deployed Token-2022 predates the extension).
+ * Token-2022 instruction layouts below mirror the on-chain program directly.
+ * Devnet/localnet mock creation intentionally uses only the extension-free
+ * 82-byte Mint layout. BAS-002's whitelist currently fails closed on every
+ * mint extension; official xStocks are issuer-created assets and must not be
+ * fabricated by these scripts.
  *
  * Program IDs are the declared ones (declare_id! / Anchor.toml) and are NOT
  * configurable: the basket and basket_factory programs compile the whitelist
@@ -73,6 +65,13 @@ export function sighash(name: string): Buffer {
   );
 }
 
+/** Anchor 8-byte account discriminator: sha256("account:<name>")[..8]. */
+export function accountDiscriminator(name: string): Buffer {
+  return Buffer.from(
+    createHash("sha256").update(`account:${name}`).digest().subarray(0, 8),
+  );
+}
+
 // ===================== borsh encoding =====================
 
 export function borshU8(v: number): Buffer {
@@ -94,11 +93,6 @@ export function borshU64(v: bigint): Buffer {
   if (v < 0n || v >= 1n << 64n) throw new Error(`borshU64 out of range: ${v}`);
   const b = Buffer.alloc(8);
   b.writeBigUInt64LE(v, 0);
-  return b;
-}
-export function borshF64(v: number): Buffer {
-  const b = Buffer.alloc(8);
-  b.writeDoubleLE(v, 0);
   return b;
 }
 /** Borsh Vec<T> length prefix. */
@@ -129,6 +123,17 @@ export function deriveWhitelistedMint(mint: PublicKey): PublicKey {
     [Buffer.from("mint"), mint.toBuffer()],
     WHITELIST_PROGRAM_ID,
   )[0];
+}
+
+/** Decode the authority field from an Anchor WhitelistConfig account. */
+export function decodeWhitelistAuthority(data: Buffer): PublicKey {
+  // 8-byte Anchor discriminator + 32-byte authority pubkey.
+  if (data.length < 40) throw new Error(`whitelist config account is too short (${data.length} bytes)`);
+  const expected = accountDiscriminator("WhitelistConfig");
+  if (!data.subarray(0, 8).equals(expected)) {
+    throw new Error("whitelist config account discriminator mismatch");
+  }
+  return new PublicKey(data.subarray(8, 40));
 }
 /** FactoryConfig PDA — seeds [b"factory"] under the factory program. */
 export function deriveFactoryConfig(): PublicKey {
@@ -197,28 +202,6 @@ export function initializeMint2(
       borshU8(decimals),
       mintAuthority.toBuffer(),
       cOptionPubkey(freezeAuthority),
-    ),
-  });
-}
-
-/**
- * InitializeScaledUiAmountConfig — outer tag 43 (TokenInstruction::
- * ScaledUiAmountExtension), inner variant 0 (Initialize), payload = authority
- * [u8;32] (zeroes = none) + multiplier f64. Accounts: [mint(w)].
- */
-export function initializeScaledUiAmountConfig(
-  mint: PublicKey,
-  multiplier: number,
-  authority: PublicKey | null,
-): TransactionInstruction {
-  return new TransactionInstruction({
-    programId: TOKEN_2022_PROGRAM_ID,
-    keys: [{ pubkey: mint, isSigner: false, isWritable: true }],
-    data: concat(
-      borshU8(43),
-      borshU8(0),
-      authority ? authority.toBuffer() : Buffer.alloc(32),
-      borshF64(multiplier),
     ),
   });
 }
@@ -553,19 +536,25 @@ export function ixAccrueManagementFee(
 export async function readMint(
   conn: Connection,
   mint: PublicKey,
-): Promise<{ supply: bigint; decimals: number; scaledExtension: boolean } | null> {
+): Promise<{
+  supply: bigint;
+  decimals: number;
+  /** True only for the exact extension-free Token-2022 Mint layout. */
+  extensionFree: boolean;
+} | null> {
   const info = await conn.getAccountInfo(mint);
   if (!info) return null;
+  if (!info.owner.equals(TOKEN_2022_PROGRAM_ID)) return null;
   const d = info.data;
+  // Token-2022 Mint's base layout is 82 bytes. Extension-bearing mints are
+  // longer, but still carry the same initialized base fields at the front.
+  if (d.length < 82 || d[45] !== 1) return null;
   const supply = d.readBigUInt64LE(36);
   const decimals = d[44];
-  // TLV starts after the 82-byte base mint + 1 account-type byte.
-  let scaledExtension = false;
-  if (d.length > 83) {
-    const extType = d.readUInt16LE(83);
-    scaledExtension = extType === 25; // ExtensionType::ScaledUiAmount
-  }
-  return { supply, decimals, scaledExtension };
+  // Extension-free Token-2022 Mint accounts are exactly the 82-byte base
+  // layout. Extension-bearing accounts append an account-type/TLV region.
+  const extensionFree = d.length === 82;
+  return { supply, decimals, extensionFree };
 }
 
 export async function readTokenAmount(
@@ -894,29 +883,6 @@ export async function send(
   const sig = await sendRetry(conn, tx, signers, { skipPreflight: false });
   console.log(`  tx ${name}: ${sig}`);
   return sig;
-}
-
-/**
- * Send + confirm, returning false instead of throwing when the tx fails.
- * Safe for probes: a failed Solana transaction is atomic, so a failed
- * create-mint attempt (e.g. wrong extension space) leaves no state behind.
- * Transient transport errors (devnet 429 / stale blockhash) are retried with
- * backoff and do NOT count as layout rejections.
- */
-export async function trySend(
-  conn: Connection,
-  ixs: TransactionInstruction[],
-  signers: Keypair[],
-): Promise<boolean> {
-  await txPace();
-  const tx = new Transaction().add(...withCuLimit(ixs));
-  try {
-    await sendRetry(conn, tx, signers, { skipPreflight: true });
-    return true;
-  } catch (e) {
-    if (isTransient(e)) return false; // give up after retries — caller may re-probe
-    return false;
-  }
 }
 
 // ===================== versioned (v0) transactions + address lookup tables =====================
@@ -1292,14 +1258,14 @@ export async function sendV0(
 
 // ===================== program error names (debug aid) =====================
 
-const ERR_NAMES: Record<number, string> = {};
+const ERR_NAMES: Record<number, string[]> = {};
 [
-  ["wl", ["PriceSourceTooLong", "InvalidDecimals", "AlreadyPaused", "NotPaused", "Unauthorized", "NoPendingAuthority", "InvalidMintOwner", "DecimalsMismatch"]],
-  ["fx", ["LengthMismatch", "InvalidConstituentCount", "WeightsNot10000", "DuplicateMint", "EmptyMetadataHash", "ZeroSeedAmount", "FeeOverCap", "InvalidSplit", "BasketCountOverflow", "InvalidRemainingAccounts", "InvalidWhitelistAccount", "NotWhitelisted", "MintNotActive", "DecimalsMismatch", "MintMismatch", "InvalidMintAccount", "InvalidCreatorAta", "InsufficientSeedBalance", "InvalidVaultAta", "InvalidVaultAuthority", "InvalidShareAta", "InvalidTokenProgram"]],
-  ["bskt", ["LengthMismatch", "ZeroAmount", "MathOverflow", "ZeroSupply", "ZeroVault", "ZeroShares", "WeightMismatch", "InsufficientShares", "ShareMintMismatch", "InvalidFeeRecipient", "InvalidShareAta", "InvalidRemainingAccounts", "VaultBalanceMismatch", "MintPaused", "InvalidWhitelistAccount"]],
+  ["wl", ["PriceSourceTooLong", "InvalidDecimals", "AlreadyPaused", "NotPaused", "Unauthorized", "NoPendingAuthority", "InvalidMintOwner", "DecimalsMismatch", "InvalidMintAccountData", "MalformedMintExtensions", "UninitializedMint", "MintExtensionNotAllowed"]],
+  ["fx", ["LengthMismatch", "InvalidConstituentCount", "WeightsNot10000", "DuplicateMint", "EmptyMetadataHash", "ZeroSeedAmount", "FeeOverCap", "InvalidSplit", "BasketCountOverflow", "InvalidRemainingAccounts", "InvalidWhitelistAccount", "NotWhitelisted", "MintNotActive", "DecimalsMismatch", "MintMismatch", "InvalidMintAccount", "UnsupportedMintExtensions", "InvalidCreatorAta", "InsufficientSeedBalance", "SeedSentDeltaMismatch", "SeedReceivedDeltaMismatch", "InvalidVaultAta", "InvalidVaultAuthority", "InvalidShareAta", "InvalidTokenProgram", "InvalidBasketProgram"]],
+  ["bskt", ["LengthMismatch", "ZeroAmount", "MathOverflow", "ZeroSupply", "ZeroVault", "ZeroShares", "WeightMismatch", "InsufficientShares", "ShareMintMismatch", "InvalidFeeRecipient", "InvalidShareAta", "InvalidRemainingAccounts", "VaultBalanceMismatch", "InvalidTokenProgram", "UnsupportedMintExtensions", "ActualSentDeltaMismatch", "ActualReceivedDeltaMismatch", "MintPaused", "InvalidWhitelistAccount", "InvalidFactoryAuthority", "InvalidBasketPda", "BasketAlreadyInitialized", "InvalidFeeRemainder"]],
 ].forEach(([prefix, names]) => {
   (names as string[]).forEach((n, i) => {
-    ERR_NAMES[6000 + i] = `${prefix}:${n}`;
+    (ERR_NAMES[6000 + i] ??= []).push(`${prefix}:${n}`);
   });
 });
 
@@ -1317,7 +1283,8 @@ export function describeErr(err: unknown): string {
   const code = decodeCustomCode(err);
   const msg = err instanceof Error ? err.message : String(err);
   const short = msg.split("\n").slice(-2).join(" ").slice(0, 300);
-  return code !== null ? `${short} (${code} = ${ERR_NAMES[code] ?? "unknown"})` : short;
+  const candidates = code === null ? null : ERR_NAMES[code]?.join(" | ");
+  return code !== null ? `${short} (${code} = ${candidates ?? "unknown"})` : short;
 }
 
 // ===================== per-basket state registry =====================

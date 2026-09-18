@@ -35,14 +35,20 @@ Completion evidence (working tree, 2026-09-18):
 
 ### BAS-002 — Token-2022 extension policy
 
-- [ ] Record official xStocks extension fixtures.
-- [ ] Implement whitelist allowlist/denylist.
-- [ ] Account for actual received balance delta in seed/mint.
-- [ ] Fail closed on unsupported extensions.
+- [x] Record official xStocks extension fixtures.
+- [x] Implement a strict extension-free whitelist allowlist/denylist boundary.
+- [x] Account for actual received balance delta in seed/mint.
+- [x] Fail closed on unsupported extensions.
 - [ ] Add extension integration tests.
 
 **Owner area:** on-chain + client
 **Acceptance:** Transfer semantics cannot break vault/share accounting.
+
+Documentation evidence (2026-09-18):
+- `docs/fixtures/token2022-mainnet-xstocks-2026-09-18.json` records the observed mainnet-beta Token-2022 owner, decimals, extension order, authorities, account lengths, account-data hashes, and scaled multipliers for TSLAx, AAPLx, and NVDAx at slot `448202873`.
+- `docs/bas-002-token2022-extension-policy.md` records the deny-by-default policy, V0 incompatibilities, received-balance-delta design, and the invariant that redeem remains permissionless, oracle-free, backend-independent, and not gated by the whitelist pause flag.
+- The current V0 boundary is intentionally narrow: whitelist admission, factory seed, and basket mint accept only extension-free Token-2022 mints; seed/mint transfers require exact raw source and destination deltas. Official xStocks remain unsupported until the dependency and hook-aware transfer work is complete.
+- Host-level policy and delta tests are green. Instruction-level extension, adversarial-hook, and full ProgramTest/LiteSVM coverage remain open under BAS-016.
 
 ### BAS-003 — Zap pre/post balance delta
 
@@ -192,7 +198,8 @@ Local workflow evidence (2026-09-18):
 - Rust after BAS-001: format, workspace check, 183 tests, and Clippy all exit 0. Clippy emits existing Anchor cfg/style warnings but no errors.
 - Node after BAS-001: clean root install, backend build, 550 tests, app typecheck, and 21-route production build all exit 0.
 - Dependency gates: root and backend block critical production advisories; app blocks high production advisories. All three configured commands exit 0.
-- Hosted run `35394708139` passed Rust, dependency-audit, and secret-scan jobs. Its Node job exposed an ignored-file dependency in `devnet-catalog.test.ts`; the test now reads the tracked, secret-free `.env.devnet.example`. A green rerun is still required before BAS-015 closes.
+- Hosted run `35394708139` passed Rust, dependency-audit, and secret-scan jobs. Its Node job exposed an ignored-file dependency in `devnet-catalog.test.ts`; the test now reads the tracked, secret-free `.env.devnet.example`.
+- Hosted rerun `35395553351` is fully green: Rust workspace, Node workspace, dependency audit, and secret scan all passed on commit `9ddee47`.
 - Manifest evidence: `deploy/deployment-manifest.schema.json`, `deploy/deployment-manifest.template.json`, `scripts/generate-deployment-manifest.mjs`, and `docs/deployment-attestation.md`. RPC verification of authorities, slots, and deployed program bytes remains pending.
 
 ### BAS-016 — Solana instruction-level suite

@@ -5,14 +5,18 @@
  * script adds the 24 catalog additions (owner request 2026-09-15: "çok daha
  * fazla stock") to the EXISTING devnet whitelist without touching anything
  * else:
- *   - for each new symbol: create a fresh Token-2022 mint (ScaledUiAmount
- *     extension first, same probe ladder as createWhitelist), mint 10M to the
- *     payer ATA, then whitelist add_mint with price_source "mock:<slug>".
+ *   - for each new symbol: create a fresh extension-free Token-2022 dev mint,
+ *     mint 10M to the payer ATA, then whitelist add_mint with price_source
+ *     "mock:<slug>".
  *   - stable per-symbol mint keypairs (stateKeypair "mint-<SYM>.json") +
  *     reuse-from-state, so a 429-throttled partial run resumes cleanly.
  *   - verify every WhitelistedMint PDA reads back Active with the right
  *     decimals, then append to state.json (mints / mockSymbols /
  *     mintAddressBySymbol).
+ *
+ * These are self-minted dev fixtures, not official xStocks. BAS-002 currently
+ * fails closed on all Token-2022 mint extensions; official mainnet xStocks
+ * require a separately verified extension profile and are never fabricated here.
  *
  * RUN (from the repo root):
  *   FOLIOX_E2E_STATE_DIR=scripts/.e2e-devnet \
@@ -36,13 +40,13 @@ import {
 } from "@solana/web3.js";
 import {
   createAtaIdempotent,
+  decodeWhitelistAuthority,
   deriveAta,
   deriveWhitelistConfig,
   deriveWhitelistedMint,
   ensureSol,
   fmtRaw,
   initializeMint2,
-  initializeScaledUiAmountConfig,
   ixAddMint,
   loadState,
   mintTo,
@@ -54,14 +58,13 @@ import {
   stateKeypair,
   step,
   TOKEN_2022_PROGRAM_ID,
-  trySend,
+  WHITELIST_PROGRAM_ID,
   hasStepFailure,
 } from "./lib.ts";
 
 const MINT_DECIMALS = 6;
 const PAYER_SUPPLY = 10_000_000n * 10n ** BigInt(MINT_DECIMALS);
-const SCALED_SPACE_COMPACT = 82 + 1 + 4 + 56;
-const SCALED_SPACE_PADDED = 82 + 83 + 1 + 4 + 56;
+/** Extension-free Token-2022 Mint layout accepted by the current whitelist. */
 const PLAIN_SPACE = 82;
 
 /**
@@ -106,6 +109,15 @@ async function main() {
   const config = deriveWhitelistConfig();
   const configInfo = await conn.getAccountInfo(config);
   if (!configInfo) throw new Error(`whitelist config ${config.toBase58()} not found on this cluster`);
+  if (!configInfo.owner.equals(WHITELIST_PROGRAM_ID)) {
+    throw new Error(`whitelist config ${config.toBase58()} is not owned by the whitelist program`);
+  }
+  const authority = decodeWhitelistAuthority(configInfo.data);
+  if (!authority.equals(payer.publicKey)) {
+    throw new Error(
+      `whitelist config authority ${authority.toBase58()} != payer ${payer.publicKey.toBase58()}`,
+    );
+  }
   if (savedState.whitelistConfig && savedState.whitelistConfig !== config.toBase58()) {
     throw new Error(
       `state.json whitelistConfig ${savedState.whitelistConfig} != derived ${config.toBase58()} — wrong state dir?`,
@@ -115,11 +127,16 @@ async function main() {
   await ensureSol(conn, payer, 2, 10);
 
   const prior: Record<string, string> = { ...(savedState?.mintAddressBySymbol ?? {}) };
-  const mintStates: { symbol: string; mint: string; scaled: boolean }[] = [];
+  if (savedState?.mints) {
+    savedState.mints.forEach((addr: string, i: number) => {
+      const symbol: string | undefined = savedState.mockSymbols?.[i];
+      if (symbol && !prior[symbol]) prior[symbol] = addr;
+    });
+  }
+  const mintStates: { symbol: string; mint: string }[] = [];
 
-  // ---- create the 24 mock Token-2022 mints (same probe ladder as
-  //      createWhitelist.ts) ----
-  await step(`create mock xStocks x${NEW_MOCKS.length} (Token-2022, ScaledUiAmountConfig x1.0, decimals 6)`, async () => {
+  // ---- create the 24 plain Token-2022 mints ----
+  await step(`create plain mock xStocks x${NEW_MOCKS.length} (Token-2022, extensions none, decimals 6)`, async () => {
     for (const mock of NEW_MOCKS) {
       const mintKp: Keypair = stateKeypair(`mint-${mock.symbol}.json`);
       const mint = mintKp.publicKey;
@@ -133,28 +150,48 @@ async function main() {
         if (!st || st.decimals !== MINT_DECIMALS) {
           throw new Error(`existing ${mock.symbol} mint decimals mismatch`);
         }
+        if (!st.extensionFree) {
+          throw new Error(
+            `existing ${mock.symbol} mint ${existingAddr.toBase58()} has Token-2022 extensions; ` +
+              "BAS-002 dev mocks must be extension-free (use a fresh state dir)",
+          );
+        }
         const payerAta = deriveAta(payer.publicKey, existingAddr);
-        const bal = BigInt(
+        let payerBalance = BigInt(
           await conn.getTokenAccountBalance(payerAta).then((r) => r.value.amount).catch(() => "0"),
         );
-        if (bal < PAYER_SUPPLY) {
-          // Note: mint authority was the ORIGINAL deploy payer; a top-up from
-          // this payer only works when it still holds mint authority. If the
-          // mint was created by another wallet, top-up is skipped loudly.
-          try {
-            await send(conn, `mint_to(${mock.symbol}, top-up)`, [
-              createAtaIdempotent(payer.publicKey, payer.publicKey, existingAddr),
-              mintTo(existingAddr, payerAta, payer.publicKey, PAYER_SUPPLY - bal),
-            ], [payer]);
-          } catch (e) {
-            console.log(`  ${mock.symbol}: top-up failed (mint authority is not this payer) — continuing`);
-          }
+        if (payerBalance < PAYER_SUPPLY) {
+          // The fixture's mint authority must still be this payer. Do not
+          // silently accept a short balance: later basket seeding would fail
+          // much farther from the actual state/reuse problem.
+          await send(conn, `mint_to(${mock.symbol}, top-up)`, [
+            createAtaIdempotent(payer.publicKey, payer.publicKey, existingAddr),
+            mintTo(existingAddr, payerAta, payer.publicKey, PAYER_SUPPLY - payerBalance),
+          ], [payer]);
+          payerBalance = BigInt(
+            await conn.getTokenAccountBalance(payerAta).then((r) => r.value.amount).catch(() => "0"),
+          );
         }
-        mintStates.push({ symbol: mock.symbol, mint: existingAddr.toBase58(), scaled: st!.scaledExtension });
-        console.log(`  ${mock.symbol}: ${existingAddr.toBase58()} [reused] payer ATA ${fmtRaw(bal)}`);
+        if (payerBalance < PAYER_SUPPLY) {
+          throw new Error(`payer ATA short for reused ${mock.symbol}: ${payerBalance} < ${PAYER_SUPPLY}`);
+        }
+        mintStates.push({ symbol: mock.symbol, mint: existingAddr.toBase58() });
+        console.log(
+          `  ${mock.symbol}: ${existingAddr.toBase58()} [reused plain raw Token-2022 dev mock] payer ATA ${fmtRaw(payerBalance)}`,
+        );
         continue;
       }
-      if (await conn.getAccountInfo(mint)) {
+      const occupied = await conn.getAccountInfo(mint);
+      if (occupied) {
+        if (occupied.owner.equals(TOKEN_2022_PROGRAM_ID)) {
+          const state = await readMint(conn, mint);
+          if (state && !state.extensionFree) {
+            throw new Error(
+              `mock mint ${mint.toBase58()} already has Token-2022 extensions; ` +
+                "BAS-002 dev mocks must be extension-free (use a fresh state dir)",
+            );
+          }
+        }
         throw new Error(`mock mint ${mint.toBase58()} already exists (fresh state dir required)`);
       }
       const payerAta = deriveAta(payer.publicKey, mint);
@@ -163,57 +200,26 @@ async function main() {
         mintTo(mint, payerAta, payer.publicKey, PAYER_SUPPLY),
       ];
 
-      const attempts: { label: string; space: number; ixs: ReturnType<typeof initializeMint2>[] }[] = [
-        {
-          label: `scaled(${SCALED_SPACE_COMPACT}B)`,
-          space: SCALED_SPACE_COMPACT,
-          ixs: [
-            initializeScaledUiAmountConfig(mint, 1.0, payer.publicKey),
-            initializeMint2(mint, MINT_DECIMALS, payer.publicKey, null),
-          ],
-        },
-        {
-          label: `scaled(${SCALED_SPACE_PADDED}B)`,
-          space: SCALED_SPACE_PADDED,
-          ixs: [
-            initializeScaledUiAmountConfig(mint, 1.0, payer.publicKey),
-            initializeMint2(mint, MINT_DECIMALS, payer.publicKey, null),
-          ],
-        },
-        {
-          label: "plain(82B)",
+      const ixs = [
+        SystemProgram.createAccount({
+          fromPubkey: payer.publicKey,
+          newAccountPubkey: mint,
           space: PLAIN_SPACE,
-          ixs: [initializeMint2(mint, MINT_DECIMALS, payer.publicKey, null)],
-        },
+          lamports: await conn.getMinimumBalanceForRentExemption(PLAIN_SPACE),
+          programId: TOKEN_2022_PROGRAM_ID,
+        }),
+        initializeMint2(mint, MINT_DECIMALS, payer.publicKey, null),
+        ...tail,
       ];
-
-      let done = false;
-      let usedLabel = "";
-      for (const a of attempts) {
-        const ixs = [
-          SystemProgram.createAccount({
-            fromPubkey: payer.publicKey,
-            newAccountPubkey: mint,
-            space: a.space,
-            lamports: await conn.getMinimumBalanceForRentExemption(a.space),
-            programId: TOKEN_2022_PROGRAM_ID,
-          }),
-          ...a.ixs,
-          ...tail,
-        ];
-        const ok = await trySend(conn, ixs, [payer, mintKp]);
-        if (ok) {
-          usedLabel = a.label;
-          done = true;
-          break;
-        }
-      }
-      if (!done) throw new Error(`could not create mock mint ${mock.symbol} in any layout`);
+      await send(conn, `create plain mock mint(${mock.symbol})`, ixs, [payer, mintKp]);
 
       const state = await readMint(conn, mint);
       if (!state) throw new Error(`mint ${mock.symbol} vanished after creation`);
       if (state.decimals !== MINT_DECIMALS) {
         throw new Error(`mint ${mock.symbol} decimals ${state.decimals} != ${MINT_DECIMALS}`);
+      }
+      if (!state.extensionFree) {
+        throw new Error(`mint ${mock.symbol} unexpectedly contains Token-2022 extensions`);
       }
       if (state.supply < PAYER_SUPPLY) throw new Error(`mint ${mock.symbol} supply short`);
       const payerBal = await conn
@@ -228,8 +234,10 @@ async function main() {
         [mock.symbol]: mint.toBase58(),
       };
       saveState({ mintAddressBySymbol: savedState.mintAddressBySymbol });
-      mintStates.push({ symbol: mock.symbol, mint: mint.toBase58(), scaled: state.scaledExtension });
-      console.log(`  ${mock.symbol}: ${mint.toBase58()} [${usedLabel}] payer ATA ${fmtRaw(BigInt(payerBal))}`);
+      mintStates.push({ symbol: mock.symbol, mint: mint.toBase58() });
+      console.log(
+        `  ${mock.symbol}: ${mint.toBase58()} [plain raw Token-2022 dev mock] payer ATA ${fmtRaw(BigInt(payerBal))}`,
+      );
     }
   });
 

@@ -1,15 +1,17 @@
 # Basalt current state — 2026-09-18
 
-> Snapshot of commit `71001516353d3dd64d06ffc5770099844f40bb20` on `main`, the deployed web app, and read-only Solana devnet checks. Dynamic values may change after this date.
+> Snapshot of current committed baseline `9ddee47` on `main`, the deployed web app, and read-only Solana devnet checks. BAS-002 policy and test changes described below are working-tree evidence until committed. Dynamic values may change after this date.
 
 ## Executive status
 
 Basalt is a working Solana devnet beta, not a visual scaffold. Create, in-kind mint, redeem, indexing, and NAV flows use real code and real devnet transactions. The current constituent tokens are project-issued devnet mocks with no economic backing, and parts of the deployed home/social experience use a demo dataset. The product is not mainnet-ready.
 
+The current BAS-002 boundary is intentionally fail-closed: new whitelist admission, factory seed, and basket mint accept only extension-free Token-2022 mints; seed and mint transfers verify exact raw source and destination deltas. Official mainnet xStocks remain unsupported until the dependency upgrade and hook-aware transfer path are audited. Instruction-level extension and adversarial-hook coverage remains open under BAS-016. These changes do not gate `redeem_in_kind`, which remains permissionless, oracle-free, backend-independent, and independent of the whitelist pause flag.
+
 ## Canonical source and deployment
 
 - Canonical branch: `main`
-- Audited commit: `71001516353d3dd64d06ffc5770099844f40bb20`
+- Audited commit: `9ddee47`
 - Live app: `https://basalt-coral.vercel.app/`
 - Solana cluster: `devnet`
 - Basket program: `6Q43vFh4aqGxzvtU2vQwJX9PmX3skfYsGWZdA3fwJB9k`
@@ -50,19 +52,19 @@ This proves that the devnet protocol flow is real. It does not prove issuer back
 
 | Check | Result | Notes |
 |---|---|---|
-| `cargo test --workspace` | 183 passed | 124 basket, 38 factory, 21 whitelist |
+| `cargo test --workspace` | 199 passed | 130 basket, 43 factory, 26 whitelist |
 | Backend Vitest | 550 passed | 13 files |
 | App TypeScript | Passed | `npx tsc --noEmit --incremental false` |
 | App production build | Passed | 21 routes from a clean standalone app install |
 | Clean `npm ci` | Passed | Root workspace, standalone app, and standalone backend verified independently |
 | Frontend E2E | Missing | No Playwright/wallet regression suite |
 
-Verified automated total for the repaired working tree: **733 = 183 Rust + 550 backend**. Older 599/620/421/442/549 counts are historical.
+Verified automated total for the repaired working tree: **749 = 199 Rust + 550 backend**. Older 599/620/421/442/549/733 counts are historical.
 
 ## Mainnet blockers
 
 1. The working tree fixes management-fee crank grief with exact remainder carry, but the deployed devnet basket program still requires an upgrade and existing-account smoke test.
-2. Token-2022 extension compatibility and received-balance accounting are not enforced.
+2. The interim Token-2022 policy is extension-free and fail-closed, with exact raw source/destination delta checks for seed and mint. Instruction-level extension, adversarial-hook, and full ProgramTest/LiteSVM coverage remain open under BAS-016; official mainnet xStocks are not admitted.
 3. Zap uses the full post-swap balance instead of `post - pre`.
 4. Upgrade authority is a single wallet; no multisig/timelock.
 5. Mock and synthetic data are not labeled consistently across all surfaces.

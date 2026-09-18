@@ -6,7 +6,7 @@ use anchor_spl::token_2022::spl_token_2022::instruction::AuthorityType;
 use anchor_spl::token_2022::ID as TOKEN_2022_PROGRAM_ID;
 use anchor_spl::token_interface::{
     find_mint_account_size, initialize_mint2, mint_to, set_authority, transfer_checked,
-    InitializeMint2, Mint, MintTo, SetAuthority, TokenAccount, TokenInterface, TransferChecked,
+    InitializeMint2, MintTo, SetAuthority, TokenAccount, TokenInterface, TransferChecked,
 };
 use basket::Basket as BasketAccount;
 use whitelist::WhitelistedMint;
@@ -177,6 +177,10 @@ pub mod basket_factory {
             );
             constituents_decimals.push(mint_decimals);
 
+            require!(
+                creator_ata_ai.owner == &token_program_key,
+                FactoryError::InvalidCreatorAta
+            );
             require_keys_eq!(
                 creator_ata_ai.key(),
                 get_associated_token_address_with_program_id(
@@ -306,6 +310,10 @@ pub mod basket_factory {
                     token_program: token_program.to_account_info(),
                 },
             ))?;
+            require!(
+                vault_ata_ai.owner == &token_program_key,
+                FactoryError::InvalidVaultAta
+            );
             let (vault_mint, vault_owner) = {
                 let data = vault_ata_ai.try_borrow_data()?;
                 let ata = TokenAccount::try_deserialize_unchecked(&mut &data[..])?;
@@ -318,6 +326,15 @@ pub mod basket_factory {
                 FactoryError::InvalidVaultAta
             );
 
+            // Snapshot both raw balances immediately before the CPI.  A
+            // Token-2022 mint may apply transfer fees or other balance effects,
+            // so checking only
+            // the source balance before the transfer is not enough: the
+            // basket must reject any transfer whose actual source debit or
+            // vault credit differs from the requested raw seed amount.
+            let creator_balance_before = read_token_account_amount(&creator_ata_ai)?;
+            let vault_balance_before = read_token_account_amount(&vault_ata_ai)?;
+
             // RAW ONLY — Token-2022 raw seed amount creator → vault, decimals from
             // the whitelist cache (== on-chain mint decimals, checked above).
             // Atomic with basket creation — no init-then-seed two-step (§11 P2).
@@ -325,14 +342,24 @@ pub mod basket_factory {
                 CpiContext::new(
                     token_program.to_account_info(),
                     TransferChecked {
-                        from: creator_ata_ai,
+                        from: creator_ata_ai.clone(),
                         mint: mint_ai,
-                        to: vault_ata_ai,
+                        to: vault_ata_ai.clone(),
                         authority: ctx.accounts.creator.to_account_info(),
                     },
                 ),
                 seed_amounts[i],
                 constituents_decimals[i],
+            )?;
+
+            let creator_balance_after = read_token_account_amount(&creator_ata_ai)?;
+            let vault_balance_after = read_token_account_amount(&vault_ata_ai)?;
+            verify_transfer_deltas(
+                creator_balance_before,
+                creator_balance_after,
+                vault_balance_before,
+                vault_balance_after,
+                seed_amounts[i],
             )?;
         }
 
@@ -363,6 +390,10 @@ pub mod basket_factory {
                 token_program: token_program.to_account_info(),
             },
         ))?;
+        require!(
+            ctx.accounts.creator_share_ata.to_account_info().owner == &token_program_key,
+            FactoryError::InvalidShareAta
+        );
         let (creator_ata_mint, creator_ata_owner) = {
             let data = ctx.accounts.creator_share_ata.try_borrow_data()?;
             let ata = TokenAccount::try_deserialize_unchecked(&mut &data[..])?;
@@ -567,15 +598,52 @@ pub fn vault_authority_pda(basket_key: &Pubkey) -> (Pubkey, u8) {
     Pubkey::find_program_address(&[basket::BASKET_SEED, basket_key.as_ref()], &basket::ID)
 }
 
-/// Deserializes a Token-2022 mint (extension-aware) and returns its decimals.
+/// Applies the whitelist program's canonical fail-closed Token-2022 extension
+/// policy and returns the mint decimals. Re-validating here prevents Active
+/// whitelist records created by an older program version from bypassing the
+/// current policy during basket creation.
 pub fn decode_mint_decimals(data: &[u8]) -> Result<u8> {
-    let mint = Mint::try_deserialize_unchecked(&mut &data[..])?;
-    Ok(mint.decimals)
+    whitelist::decode_mint_decimals(data)
+        .map_err(|_| error!(FactoryError::UnsupportedMintExtensions))
 }
 
 /// Deserializes a `WhitelistedMint` PDA record (discriminator checked).
 pub fn decode_whitelisted_mint(data: &[u8]) -> Result<WhitelistedMint> {
     WhitelistedMint::try_deserialize(&mut &data[..])
+}
+
+/// Reads the raw `amount` field from a Token / Token-2022 account after a CPI.
+/// The borrowed data is released before the caller invokes another CPI, so the
+/// helper is safe to use for before/after balance snapshots in one instruction.
+pub fn read_token_account_amount(account: &AccountInfo) -> Result<u64> {
+    let data = account.try_borrow_data()?;
+    let token_account = TokenAccount::try_deserialize_unchecked(&mut &data[..])?;
+    Ok(token_account.amount)
+}
+
+/// Verify both sides of a raw token transfer. Exact equality rejects
+/// fee-on-transfer or other unexpected balance effects: a basket seed must
+/// credit the vault with exactly the amount used by the immutable backing
+/// invariant.
+pub fn verify_transfer_deltas(
+    before_from: u64,
+    after_from: u64,
+    before_to: u64,
+    after_to: u64,
+    expected: u64,
+) -> Result<()> {
+    let sent = before_from
+        .checked_sub(after_from)
+        .ok_or(FactoryError::SeedSentDeltaMismatch)?;
+    let received = after_to
+        .checked_sub(before_to)
+        .ok_or(FactoryError::SeedReceivedDeltaMismatch)?;
+    require!(sent == expected, FactoryError::SeedSentDeltaMismatch);
+    require!(
+        received == expected,
+        FactoryError::SeedReceivedDeltaMismatch
+    );
+    Ok(())
 }
 
 /// Creates the Token-2022 share mint PDA: system `create_account` (extension
@@ -753,10 +821,16 @@ pub enum FactoryError {
     MintMismatch,
     #[msg("Mint account is not owned by the passed token program")]
     InvalidMintAccount,
+    #[msg("Constituent mint does not satisfy the current Token-2022 extension policy")]
+    UnsupportedMintExtensions,
     #[msg("Creator constituent ATA is not the derived ATA / wrong owner or mint")]
     InvalidCreatorAta,
     #[msg("Creator ATA balance is below the raw seed amount")]
     InsufficientSeedBalance,
+    #[msg("Creator raw debit did not equal the requested seed amount")]
+    SeedSentDeltaMismatch,
+    #[msg("Vault raw credit did not equal the requested seed amount")]
+    SeedReceivedDeltaMismatch,
     #[msg("Vault ATA is not the derived ATA / wrong owner or mint")]
     InvalidVaultAta,
     #[msg("Vault authority account is not the basket program's vault authority PDA")]
@@ -870,6 +944,21 @@ mod tests {
         assert!(seeds.iter().any(|x| *x == 0));
         let seeds2 = vec![100u64, 100, 100];
         assert!(!seeds2.iter().any(|x| *x == 0));
+    }
+    #[test]
+    fn test_transfer_delta_exact_raw_amount() {
+        assert!(verify_transfer_deltas(1_000, 750, 10, 260, 250).is_ok());
+    }
+    #[test]
+    fn test_transfer_delta_rejects_fee_or_hook_debit() {
+        // Source lost 251 while the requested/received amount was 250.
+        assert!(verify_transfer_deltas(1_000, 749, 10, 260, 250).is_err());
+    }
+    #[test]
+    fn test_transfer_delta_rejects_short_credit() {
+        // A fee-on-transfer or hook that credits less than requested must not
+        // silently create an under-backed basket.
+        assert!(verify_transfer_deltas(1_000, 750, 10, 259, 250).is_err());
     }
     #[test]
     fn test_length_mismatch() {
@@ -1175,6 +1264,54 @@ mod tests {
     fn test_decode_mint_decimals_truncated_fails() {
         let buf = [0u8; 40];
         assert!(decode_mint_decimals(&buf).is_err());
+    }
+
+    fn token2022_mint_data_with_extension(extension: u16, value_len: usize) -> Vec<u8> {
+        let mut data = vec![0u8; 166 + 4 + value_len];
+        data[44] = 6;
+        data[45] = 1;
+        data[165] = 1; // AccountType::Mint
+        data[166..168].copy_from_slice(&extension.to_le_bytes());
+        data[168..170].copy_from_slice(&(value_len as u16).to_le_bytes());
+        data
+    }
+
+    #[test]
+    fn test_factory_decoder_rejects_extension_bearing_mint() {
+        // Factory creation must re-apply the whitelist policy so an older,
+        // permissive WhitelistedMint record cannot bypass the current deny-by-
+        // default extension policy.
+        let data = token2022_mint_data_with_extension(1, 0);
+        assert!(decode_mint_decimals(&data).is_err());
+    }
+
+    fn braced_block(src: &str, anchor: &str) -> String {
+        let start = src
+            .find(anchor)
+            .unwrap_or_else(|| panic!("anchor '{anchor}' not found"));
+        let open = start + src[start..].find('{').expect("no brace after anchor");
+        let mut depth = 0usize;
+        for (i, ch) in src[open..].char_indices() {
+            match ch {
+                '{' => depth += 1,
+                '}' => {
+                    depth -= 1;
+                    if depth == 0 {
+                        return src[open..=open + i].to_string();
+                    }
+                }
+                _ => {}
+            }
+        }
+        panic!("unbalanced braces after '{anchor}'");
+    }
+
+    #[test]
+    fn test_create_entrypoint_reapplies_fail_closed_mint_policy() {
+        let src = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/lib.rs"));
+        let create = braced_block(src, "pub fn create_basket");
+        assert!(create.contains("decode_mint_decimals(&data)"));
+        assert!(src.contains("whitelist::decode_mint_decimals(data)"));
     }
 
     // ========== VAULT AUTHORITY PDA (basket program id) ==========

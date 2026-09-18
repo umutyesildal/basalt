@@ -1,54 +1,54 @@
-# xStocks Provider Envanteri — Basalt V0.1 Minimal
+# xStocks Provider Inventory — Basalt V0.1 Minimal
 
-> Tek kaynaktan beslenen fiyat değil, **karşılaştırmalı** fiyat. Her ticker 3′lü: `xStock (Jupiter/on-chain) vs Gerçek Hisse (Yahoo) vs Endeks (Nasdaq/QQQ)`
+> Prices are comparative, not a single-source truth. Each ticker has three series: `xStock (Jupiter/on-chain) vs underlying equity (Yahoo) vs benchmark (Nasdaq/QQQ)`.
 
-## 1. Providerlar
+## 1. Providers
 
-| ID | Ad | Tip | Veri | Not |
+| ID | Name | Type | Data | Notes |
 |----|----|-----|------|-----|
-| `backed` | Backed Finance | xStocks ihraçcısı | Token-2022 `ScaledUiAmount`, mint → ticker eşleşmesi | Whitelist `whitelist::add_mint` ile eklenir, multiplier 1.0→2.0 split |
-| `jupiter` | Jupiter Price API v6 | On-chain fiyat | `price.jup.ag/v6/price?ids=mint` | NAV için, redeem’i asla gate’lemez |
-| `yahoo` | Yahoo Finance | Gerçek hisse | `query2.finance.yahoo.com/v8/finance/chart/TSLA?interval=1d&range=1mo` | Nasdaq karşılaştırma için, CORS proxy gerekebilir |
-| `nasdaq` | Nasdaq Benchmark | Endeks | Yahoo `QQQ` / `SPY` / `^IXIC` | Sepet benchmark’ı |
+| `backed` | Backed Finance | xStocks issuer | Token-2022 `ScaledUiAmount`, mint → ticker mapping | Official mints require BAS-002 compatibility approval; current V0 admits extension-free dev mocks only |
+| `jupiter` | Jupiter Price API v6 | On-chain price | `price.jup.ag/v6/price?ids=mint` | NAV only; it never gates redemption |
+| `yahoo` | Yahoo Finance | Underlying equity | `query2.finance.yahoo.com/v8/finance/chart/TSLA?interval=1d&range=1mo` | Used for comparison; a CORS proxy may be required |
+| `nasdaq` | Nasdaq Benchmark | Index | Yahoo `QQQ` / `SPY` / `^IXIC` | Basket benchmark |
 
-## 2. Ticker → Mint Eşleştirmesi (V0.1 ilk 4)
+## 2. Ticker → Mint Mapping (V0.1 initial four)
 
-**Düzeltme (2026-09-03, `docs/devnet-tokens-research-2026-09-03.md`):** aşağıdaki `Xs…` mintler **gerçek mainnet xStocks mintleridir** (mock değil — baştaki "mock" etiketi yanlıştı) ve gerçek decimals **8'dir, 6 değil** (on-chain doğrulandı: ScaledUiAmountConfig + transferHook mevcut). Devnet'te resmi xStock yoktur → devnet testleri kendi mintlediğimiz mock Token-2022'lerle yapılır (decimals bizim seçimimiz). Mainnet hazırlığında whitelist'i 8 decimals ile kur.
+**Correction (2026-09-03, `docs/devnet-tokens-research-2026-09-03.md`):** The `Xs…` mints below are real mainnet xStocks (not mocks) and use 8 decimals, not 6. On-chain observations show `ScaledUiAmountConfig` and `TransferHook`. No official xStocks are used on devnet; devnet tests use self-minted Token-2022 mocks with project-selected decimals. Under the current BAS-002 policy, these official mints remain fixture-only and must not be admitted until the extension-aware dependency and transfer path are approved.
 
-| Ticker | Gerçek Sembol | xStock Mint (MAINNET gerçeği) | Decimals | Provider | Not |
+| Ticker | Underlying | xStock Mint (MAINNET) | Decimals | Provider | Notes |
 |--------|---------------|-------------------------------|----------|----------|-----|
-| TSLAx | TSLA | `XsDoVfqeBukxuZHWhdvWHBhgEHjGNst4MLodqsJHzoB` | **8** | backed | Solscan doğrulandı |
-| AAPLx | AAPL | `XsbEhLAtcf6HdfpFZ5xEMdqW8nfAvcsP5bdudRLJzJp` | **8** | backed | Solscan doğrulandı |
-| NVDAx | NVDA | `Xsc9qvGR1efVDFGLrVsmkzv3qi45LTBjeUKSPmx9qEh` | **8** | backed | Solscan doğrulandı |
-| SPYx | SPY | `XsoCS1TfEyfFhfvj8EtZ528L3CaKBDBRqRapnBbDF2W` | **8** | backed | Solscan doğrulandı |
+| TSLAx | TSLA | `XsDoVfqeBukxuZHWhdvWHBhgEHjGNst4MLodqsJHzoB` | **8** | backed | Observed on-chain; not V0-approved |
+| AAPLx | AAPL | `XsbEhLAtcf6HdfpFZ5xEMdqW8nfAvcsP5bdudRLJzJp` | **8** | backed | Observed on-chain; not V0-approved |
+| NVDAx | NVDA | `Xsc9qvGR1efVDFGLrVsmkzv3qi45LTBjeUKSPmx9qEh` | **8** | backed | Observed on-chain; not V0-approved |
+| SPYx | SPY | `XsoCS1TfEyfFhfvj8EtZ528L3CaKBDBRqRapnBbDF2W` | **8** | backed | Catalogue entry; not V0-approved |
 
-Local dev DB'sindeki whitelist seed'i (6 decimals mock davranışı) devnet demoları için ayrı tutulur; mainnet geçişinde gerçek mintler + 8 decimals ile yeniden kurulur.
+The local dev database keeps a separate 6-decimal mock whitelist seed for devnet demos. Mainnet admission must use freshly verified mint accounts and the approved extension policy, not this seed.
 
-## 3. Fiyat Kaynakları Detay
+## 3. Price Source Details
 
 ### Jupiter (on-chain xStock)
 ```
 GET https://price.jup.ag/v6/price?ids=XTSLA...,XAAPL...
 → { data: { "XTSLA...": { price: 251.34 } } }
 ```
-Fallback 0, cache 30s Redis `price:jupiter:{mint}`.
+Fallback 0; cache for 30 seconds in Redis at `price:jupiter:{mint}`.
 
-### Yahoo (gerçek)
+### Yahoo (underlying equity)
 ```
 GET https://query2.finance.yahoo.com/v8/finance/chart/TSLA?interval=1d&range=1mo
 GET https://query2.finance.yahoo.com/v8/finance/chart/QQQ?interval=1d&range=1mo
 → chart.result[0].indicators.quote[0].close[] + timestamps
 ```
-Backend proxy: `GET /api/v1/prices/yahoo?symbol=TSLA&range=1mo` → normalize eder. Header `User-Agent` gerekir, rate limit 2s.
+Backend proxy: `GET /api/v1/prices/yahoo?symbol=TSLA&range=1mo` normalizes the response. A `User-Agent` header is required; rate-limit requests to 2 seconds.
 
-### Karşılaştırma mantığı
-- Her snapshot: `{ ts, jupiter, yahoo, diffBps = (jupiter - yahoo)/yahoo *10000 }`
-- Depeg alarm: `|diffBps| > 200` (2%) → UI amber badge.
-- Nasdaq benchmark: `QQQ` ile xStock fiyatını normalize (base 100, inception), yan yana çiz.
+### Comparison logic
+- Each snapshot: `{ ts, jupiter, yahoo, diffBps = (jupiter - yahoo)/yahoo *10000 }`
+- Depeg alert: `|diffBps| > 200` (2%) → amber UI badge.
+- Normalize xStock and `QQQ` prices to a 100 base at inception and plot them side by side.
 
-## 4. Minimal Şema Eklentisi
+## 4. Minimal Schema Additions
 
-Mevcut `backend/src/db/schema.sql` üzerine:
+Add the following tables to `backend/src/db/schema.sql`:
 
 ```sql
 CREATE TABLE providers (id TEXT PRIMARY KEY, name TEXT, type TEXT);
@@ -60,10 +60,10 @@ CREATE TABLE price_snapshots (
 CREATE TABLE index_snapshots (symbol TEXT, price_usd NUMERIC, ts TIMESTAMPTZ, PRIMARY KEY (symbol, ts));
 ```
 
-V0.1’de SQLite bile olur: `price_snapshots` + `index_snapshots` 1 dakikalık cron.
+SQLite is sufficient for V0.1 if needed: run a one-minute cron for `price_snapshots` and `index_snapshots`.
 
-## 5. Öncelik
+## 5. Priority
 
-Bugün 1 saatte: **TSLA, NVDA, QQQ** 3’lüsü canlı; AAPL/SPY mock ile tamamla. Sonra 15 xStocks’a genişlet.
+First target: make **TSLA, NVDA, and QQQ** live; keep AAPL/SPY explicitly marked as mock where applicable. Then expand to 15 xStocks after BAS-002 approval.
 
-*LEGAL_REVIEW_REQUIRED: xStocks fiyatları Backed instrument’ıdır, doğrudan hisse fiyatı değildir.*
+*LEGAL_REVIEW_REQUIRED: xStocks are Backed instruments and are not direct equity ownership.*

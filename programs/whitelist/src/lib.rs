@@ -1,6 +1,10 @@
 use anchor_lang::prelude::*;
+use anchor_lang::solana_program::program_pack::Pack;
+use anchor_spl::token_2022::spl_token_2022::{
+    extension::{BaseStateWithExtensions, StateWithExtensions},
+    state::Mint as Token2022Mint,
+};
 use anchor_spl::token_2022::ID as TOKEN_2022_PROGRAM_ID;
-use anchor_spl::token_interface::Mint;
 
 declare_id!("FRavMcYQb2FVAHbbG6fGieQHdKk1UrQqgKsAAXTPRQeS");
 
@@ -124,11 +128,35 @@ pub fn check_mint_owner(owner: &Pubkey) -> Result<()> {
     Ok(())
 }
 
-/// Deserializes a Token-2022 mint (extension-aware, so xStocks with e.g.
-/// ScaledUiAmountConfig TLV data parse fine) and returns its on-chain decimals.
+/// Deserializes a Token-2022 mint and returns its on-chain decimals.
+///
+/// V0 intentionally accepts only the extension-free base `Mint` layout. The
+/// pinned SPL Token-2022 3.0.5 dependency does not model the newer xStocks
+/// extension profile (including `ScaledUiAmountConfig`), so accepting opaque
+/// TLV data here would make transfer/redeem semantics unverifiable. Unknown,
+/// duplicate, or malformed TLV data therefore fails closed.
 pub fn decode_mint_decimals(data: &[u8]) -> Result<u8> {
-    let mint = Mint::try_deserialize_unchecked(&mut &data[..])?;
-    Ok(mint.decimals)
+    let mint = StateWithExtensions::<Token2022Mint>::unpack(data).map_err(|error| match error {
+        anchor_lang::solana_program::program_error::ProgramError::UninitializedAccount => {
+            error!(WhitelistError::UninitializedMint)
+        }
+        _ => error!(WhitelistError::InvalidMintAccountData),
+    })?;
+    let extension_types = mint
+        .get_extension_types()
+        .map_err(|_| error!(WhitelistError::MalformedMintExtensions))?;
+    require!(
+        extension_types.is_empty(),
+        WhitelistError::MintExtensionNotAllowed
+    );
+    // An extensionless mint must use the exact base Mint allocation. This
+    // rejects padded/opaque TLV buffers that happen to contain no parsed
+    // entries, rather than treating them as a plain mint.
+    require!(
+        data.len() == Token2022Mint::LEN,
+        WhitelistError::InvalidMintAccountData
+    );
+    Ok(mint.base.decimals)
 }
 
 /// The `decimals` arg must be within the cap AND match the actual mint.
@@ -245,6 +273,14 @@ pub enum WhitelistError {
     InvalidMintOwner,
     #[msg("Decimals arg does not match the on-chain mint decimals")]
     DecimalsMismatch,
+    #[msg("Mint account data is invalid")]
+    InvalidMintAccountData,
+    #[msg("Mint account contains malformed extension data")]
+    MalformedMintExtensions,
+    #[msg("Mint account is not initialized")]
+    UninitializedMint,
+    #[msg("Mint extensions are not allowed")]
+    MintExtensionNotAllowed,
 }
 
 #[cfg(test)]
@@ -378,6 +414,7 @@ mod tests {
     fn test_check_mint_owner_rejects_other_programs() {
         // System program (wallet), SPL Token classic, random program — all reject.
         assert!(check_mint_owner(&Pubkey::default()).is_err());
+        assert!(check_mint_owner(&anchor_spl::token::ID).is_err());
         assert!(check_mint_owner(&Pubkey::new_unique()).is_err());
     }
     #[test]
@@ -419,6 +456,85 @@ mod tests {
         assert!(decode_mint_decimals(&buf).is_err());
         let empty: [u8; 0] = [];
         assert!(decode_mint_decimals(&empty).is_err());
+    }
+
+    fn mint_data_with_extension(extension: u16, value_len: usize) -> Vec<u8> {
+        // Token-2022 mints with extensions use the 165-byte extension prefix,
+        // followed by the Mint account-type marker and TLV entries.
+        let mut data = vec![0u8; 166 + 4 + value_len];
+        data[44] = 6;
+        data[45] = 1;
+        data[165] = 1; // AccountType::Mint
+        data[166..168].copy_from_slice(&extension.to_le_bytes());
+        data[168..170].copy_from_slice(&(value_len as u16).to_le_bytes());
+        data
+    }
+
+    #[test]
+    fn test_decode_mint_decimals_rejects_known_extensions() {
+        // TransferFeeConfig is representative: V0 has no extension allowlist.
+        let data = mint_data_with_extension(1, 0);
+        let result = decode_mint_decimals(&data);
+        assert!(result.is_err());
+        assert!(format!("{result:?}").contains("MintExtensionNotAllowed"));
+    }
+
+    #[test]
+    fn test_decode_mint_decimals_rejects_malformed_tlv() {
+        let mut data = mint_data_with_extension(1, 0);
+        data[168..170].copy_from_slice(&u16::MAX.to_le_bytes());
+        let result = decode_mint_decimals(&data);
+        assert!(result.is_err());
+        assert!(format!("{result:?}").contains("MalformedMintExtensions"));
+    }
+
+    #[test]
+    fn test_decode_mint_decimals_rejects_padded_empty_tlv_region() {
+        let mut data = vec![0u8; 166];
+        data[44] = 6;
+        data[45] = 1;
+        data[165] = 1; // AccountType::Mint, but no extension entry.
+        let result = decode_mint_decimals(&data);
+        assert!(result.is_err());
+        assert!(format!("{result:?}").contains("InvalidMintAccountData"));
+    }
+
+    #[test]
+    fn test_decode_mint_decimals_rejects_uninitialized_base_mint() {
+        let mut data = [0u8; 82];
+        data[44] = 6;
+        let result = decode_mint_decimals(&data);
+        assert!(result.is_err());
+        assert!(format!("{result:?}").contains("UninitializedMint"));
+    }
+
+    fn braced_block(src: &str, anchor: &str) -> String {
+        let start = src
+            .find(anchor)
+            .unwrap_or_else(|| panic!("anchor '{anchor}' not found"));
+        let open = start + src[start..].find('{').expect("no brace after anchor");
+        let mut depth = 0usize;
+        for (i, ch) in src[open..].char_indices() {
+            match ch {
+                '{' => depth += 1,
+                '}' => {
+                    depth -= 1;
+                    if depth == 0 {
+                        return src[open..=open + i].to_string();
+                    }
+                }
+                _ => {}
+            }
+        }
+        panic!("unbalanced braces after '{anchor}'");
+    }
+
+    #[test]
+    fn test_add_mint_entrypoint_uses_fail_closed_decoder() {
+        let src = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/lib.rs"));
+        let add_mint = braced_block(src, "pub fn add_mint");
+        assert!(add_mint.contains("decode_mint_decimals(&data)"));
+        assert!(src.contains("MintExtensionNotAllowed"));
     }
     #[test]
     fn test_add_mint_caches_onchain_decimals_semantics() {

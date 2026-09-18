@@ -1,0 +1,80 @@
+{
+  "schema_version": "bas-002.token2022-fixture.v1",
+  "kind": "token2022-mainnet-xstocks-observation",
+  "observed_at_date": "2026-09-18",
+  "cluster": "mainnet-beta",
+  "slot": 448202873,
+  "observation_scope": "Point-in-time evidence of mint account bytes and decoded Token-2022 extensions. Supply, authorities, configuration, multiplier, pause state, and account bytes are mutable.",
+  "programs": {
+    "token2022": "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb"
+  },
+  "shared_observed_fields": {
+    "owner": "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb",
+    "decimals": 8,
+    "extension_order": [
+      { "id": 18, "name": "MetadataPointer" },
+      { "id": 12, "name": "PermanentDelegate" },
+      { "id": 6, "name": "DefaultAccountState", "state": "Initialized", "state_code": 1 },
+      { "id": 25, "name": "ScaledUiAmountConfig" },
+      { "id": 26, "name": "PausableConfig", "paused": false },
+      { "id": 4, "name": "ConfidentialTransferMint" },
+      { "id": 14, "name": "TransferHook", "program_id": null, "program_id_note": "None/default at observation; hook authority is mutable" },
+      { "id": 19, "name": "TokenMetadata" }
+    ],
+    "authorities": {
+      "scaled_ui_amount": "S7vYFFWH6BjJyEsdrPQpqpYTqLTrPRK6KW3VwsJuRaS",
+      "permanent_delegate_metadata_hook": "5aMNNLQJwAEeoemTEMkv5NVjqKwvvefRYCQ5Z67HFvEq",
+      "pause": "JDq14BWvqCRFNu1krb12bcRpbGtJZ1FLEakMw6FdxJNs"
+    }
+  },
+  "assets": [
+    {
+      "symbol": "TSLAx",
+      "underlying": "TSLA",
+      "mint": "XsDoVfqeBukxuZHWhdvWHBhgEHjGNst4MLodqsJHzoB",
+      "account_data_len_bytes": 678,
+      "account_data_sha256": "74bde2c8afcf154a27832ba07caba20caa261286246f404a2ffd7f604ecfca84",
+      "scaled_ui_multiplier": 1
+    },
+    {
+      "symbol": "AAPLx",
+      "underlying": "AAPL",
+      "mint": "XsbEhLAtcf6HdfpFZ5xEMdqW8nfAvcsP5bdudRLJzJp",
+      "account_data_len_bytes": 678,
+      "account_data_sha256": "d8f8370a463e93af87638c2968903819bd2c68647cd3485f1e63cb3942836b7b",
+      "scaled_ui_multiplier": 1.0026642075893797
+    },
+    {
+      "symbol": "NVDAx",
+      "underlying": "NVDA",
+      "mint": "Xsc9qvGR1efVDFGLrVsmkzv3qi45LTBjeUKSPmx9qEh",
+      "account_data_len_bytes": 679,
+      "account_data_sha256": "8d518878dfbe607807cada615dfa0834eda8288569b571f63f5a40cba41724f6",
+      "scaled_ui_multiplier": 1.0009180758490996
+    }
+  ],
+  "policy": {
+    "status": "observed-but-not-approved",
+    "default_action_for_new_or_unknown_extensions": "reject",
+    "current_v0_compatibility": "extension-free Token-2022 dev mocks supported; official xStocks unsupported until Anchor/SPL upgrade and hook-aware transfer contract",
+    "accepted_extension_ids_for_future_review": [18, 6, 25, 19],
+    "rejected_extension_ids_for_v0": [12, 26, 4, 14],
+    "redeem_invariant": "redeem_in_kind remains permissionless, oracle-free, backend-independent, and not gated by the whitelist pause flag; incompatible mints are rejected at admission instead of adding a redeem gate"
+  },
+  "source_links": [
+    "https://solana.com/docs/tokens/extensions",
+    "https://github.com/solana-program/token-2022",
+    "https://github.com/solana-program/token-2022/blob/main/interface/src/extension/scaled_ui_amount/mod.rs",
+    "https://docs.xstocks.fi/developers",
+    "https://api.xstocks.fi/api/v2/public/assets",
+    "https://api.backed.fi/api-docs/",
+    "https://github.com/backed-fi/cowswap-xstocks-tokenlist",
+    "https://assets.backed.fi/products"
+  ],
+  "limitations": [
+    "This fixture is not a live allowlist and does not authorize use of any asset.",
+    "The observation timestamp is date-granular; the slot is the primary chain position recorded for the audit.",
+    "Account hashes and decoded values are reproducibility evidence, not an immutable identity or a guarantee of future configuration.",
+    "No product, legal, custody, or investment conclusion follows from the presence of these mints on mainnet."
+  ]
+}

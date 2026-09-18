@@ -2,13 +2,13 @@
 
 > "Create an index. Own your thesis." — Onchain strategy baskets powered by xStocks.
 > V0 spec: `docs/basalt-v0-spec.md` (normative product constraints). Documentation map: `docs/README.md`. Current backlog: `docs/implementation-backlog.md`. Brand: `brand.md`.
-> Current state: **Working devnet beta, not mainnet-ready. Real create/mint/redeem and read-only indexing are verified; current constituent assets are project mock mints and some deployed surfaces use labeled/demo datasets.** Verified 2026-09-18 working tree: clean root/app/backend installs pass, 183 Rust + 550 backend tests pass, and the app produces a 21-route production build. Full snapshot: `docs/current-state-2026-09-18.md`.
+> Current state: **Working devnet beta, not mainnet-ready. Real create/mint/redeem and read-only indexing are verified; current constituent assets are project mock mints and some deployed surfaces use labeled/demo datasets.** Verified 2026-09-18 working tree: clean root/app/backend installs pass, 199 Rust + 550 backend tests pass, and the app produces a 21-route production build. Full snapshot: `docs/current-state-2026-09-18.md`.
 > **Won: Superteam Germany "Road to Colosseum" Ideathon (2026-09-14)** — top-10 of 38 submissions, $3k USDG pool. Submission: `docs/ideathon-submission-2026-09.md`. Live demo: https://basalt-coral.vercel.app/explore. Current implementation order: `docs/implementation-backlog.md`.
 
 ## Verification commands
 
 ```bash
-cargo test                                  # 183 Rust tests
+cargo test                                  # 199 Rust tests
 npm --prefix backend install                # once (backend has its own lockfile)
 npm --prefix backend run build              # strict NodeNext, no suppressions
 npm --prefix backend test -- --run          # 550 TS tests in the 2026-09-18 working tree
@@ -19,7 +19,7 @@ npm --prefix app run build                  # 21 routes in the 2026-09-18 clean-
 ## Devnet live (2026-09-04)
 
 - Deployed at declared IDs: `whitelist` `FRavMcYQb2FVAHbbG6fGieQHdKk1UrQqgKsAAXTPRQeS`, `basket_factory` `3hzoPep9JKgTmzLT6CNW5x3EN7WNYDevM6KHVM7pLgMF`, `basket` `6Q43vFh4aqGxzvtU2vQwJX9PmX3skfYsGWZdA3fwJB9k`.
-- 12 mock xStocks whitelisted (TSLAx…SPYx, Token-2022 ScaledUiAmountConfig); one live basket at 3 constituents — NVDAx/AAPLx/MSFTx 4000/3200/2800 bps, fees 100/50/200 — with mint, redeem, and management-fee flows confirmed on-chain (38 txs, all `err: null`; supply/fee/NAV reconcile exactly).
+- Historical 2026-09-04 devnet evidence records 12 mock xStocks and one live basket (the then-deployed mocks used `ScaledUiAmountConfig` multiplier 1.0). Current BAS-002 scripts intentionally create extension-free Token-2022 mocks and reject extension-bearing mints; official mainnet xStocks remain unsupported pending the audited upgrade and hook-aware transfer path. The recorded basket lifecycle still reconciles exactly (38 confirmed transactions; see `docs/devnet-live-2026-09-04.md`).
 - Transaction-size limit (resolved): `create_basket` / `mint_in_kind` / `redeem_in_kind` compile offline to v0 messages ≤ 1232 B for n = 2..10 constituents; n ≥ 4 routes through one address-lookup table. Proof: `npm run proof:txsize` (`scripts/checkTxSize.ts`).
 
 Run the backend against devnet:
@@ -33,7 +33,7 @@ Full evidence pack — signature tables, address tables, reconciliation, reprodu
 
 ## Stack
 
-- **Solana programs (Anchor 0.30, real Token-2022 CPI):** `whitelist` (Token-2022 ownership + decimals verification), `basket_factory` (atomic seed transfers, genesis 1M with temp-mint-authority handoff), `basket` (real `transfer_checked`/`burn`/`mint_to`; `redeem_in_kind` permissionless + oracle-free, structurally tested)
+- **Solana programs (Anchor 0.30, real Token-2022 CPI):** `whitelist` (exact Token-2022 ownership + decimals + extension-free fail-closed validation), `basket_factory` (atomic seed transfers with exact raw deltas, genesis 1M with temp-mint-authority handoff), `basket` (real `transfer_checked`/`burn`/`mint_to`; `redeem_in_kind` permissionless + oracle-free, structurally tested)
 - **Backend:** Node 20 + TypeScript (strict) + PostgreSQL + optional Redis — real indexer (Anchor event decode), holdings sync with ScaledUiAmount multiplier, exact BigInt fixed-point NAV engine, REST API with `source`/`asOf` provenance on every row; backend never signs
 - **Frontend:** Next.js 15 + Tailwind 3.4 + **bklit UI** (registry provenance verified; Brush = documented local adapter) + wallet-adapter (Phantom/Solflare, full state machine) — brand per `brand.md` (monochrome base + BASALT MARK, Chakra Petch display — 2026-09-12 identity update)
 - **Token:** SPL Token-2022 — raw transfers on-chain, `scaled = raw × multiplier` for display/NAV
@@ -42,7 +42,7 @@ Full evidence pack — signature tables, address tables, reconciliation, reprodu
 
 | Program | ID (localnet/devnet) | State |
 |---------|----------------------|-------|
-| `whitelist` | `FRavMcYQb2FVAHbbG6fGieQHdKk1UrQqgKsAAXTPRQeS` | Real; `add_mint` verifies Token-2022 ownership + decimals (extension-aware) |
+| `whitelist` | `FRavMcYQb2FVAHbbG6fGieQHdKk1UrQqgKsAAXTPRQeS` | Real; `add_mint` verifies exact Token-2022 ownership + decimals and rejects all extensions in the current V0 boundary |
 | `basket_factory` | `3hzoPep9JKgTmzLT6CNW5x3EN7WNYDevM6KHVM7pLgMF` | Real; full §3.2 validations, atomic seed, genesis mint, real `vault_bump` |
 | `basket` | `6Q43vFh4aqGxzvtU2vQwJX9PmX3skfYsGWZdA3fwJB9k` | Real; `mint_in_kind` (4n remaining-accounts contract, pause-gated), `redeem_in_kind` (3n, never gated), `accrue_management_fee` |
 
@@ -51,7 +51,7 @@ See `docs/basalt-v0-spec.md` §2-6 for account model, instruction args, mint/red
 ## Token-2022 Accounting
 
 - On-chain: **raw** (`transfer_checked` with decimals; `// RAW ONLY` on every CPI site)
-- Off-chain: `scaled = raw × multiplier` (`ScaledUiAmountConfig`, f64 per spl-token 0.4.15); amounts crossing module boundaries travel as decimal strings (BigInt-exact)
+- Off-chain: `scaled = raw × multiplier` (the indexer is ScaledUiAmount-aware); current dev mocks are extension-free with multiplier 1.0, while official xStocks are fixture-only and not admitted by V0. Amounts crossing module boundaries travel as decimal strings (BigInt-exact).
 
 ## Backend (real)
 
@@ -94,7 +94,7 @@ For local (non-devnet) development, `demo-seed` seeds the local Postgres so page
 
 ## Current work
 
-Use `docs/current-state-2026-09-18.md` for verified status and `docs/implementation-backlog.md` for implementation order. The immediate release path is: deploy and smoke-test BAS-001 on devnet; harden Token-2022 received-balance semantics; fix Zap delta accounting; finish governance, attestation, data-truth, and legal gates; then obtain an independent audit. `plan.md` is retained as the historical implementation-wave log.
+Use `docs/current-state-2026-09-18.md` for verified status and `docs/implementation-backlog.md` for implementation order. The interim BAS-002 boundary is now extension-free and fail-closed, with exact raw source/destination delta checks for seed and mint; official mainnet xStocks remain unsupported until the audited dependency and hook-aware transfer path is complete. The immediate release path is: deploy and smoke-test BAS-001 on devnet; add BAS-002 instruction-level extension coverage under BAS-016; fix Zap delta accounting; finish governance, attestation, data-truth, and legal gates; then obtain an independent audit. `plan.md` is retained as the historical implementation-wave log.
 
 ## Scripts
 

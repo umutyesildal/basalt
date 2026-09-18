@@ -1,7 +1,13 @@
 use anchor_lang::prelude::*;
+use anchor_lang::solana_program::program_pack::Pack;
 use anchor_spl::associated_token::{
     self, get_associated_token_address_with_program_id, AssociatedToken, Create,
 };
+use anchor_spl::token_2022::spl_token_2022::{
+    extension::{BaseStateWithExtensions, StateWithExtensions},
+    state::Mint as Token2022Mint,
+};
+use anchor_spl::token_2022::ID as TOKEN_2022_PROGRAM_ID;
 use anchor_spl::token_interface::{
     burn, mint_to, transfer_checked, Burn, Mint, MintTo, TokenAccount, TokenInterface,
     TransferChecked,
@@ -384,6 +390,10 @@ pub mod basket {
                 },
             ))?;
             let user_share_ata_ai = ctx.accounts.user_share_ata.to_account_info();
+            require!(
+                user_share_ata_ai.owner == &token_program.key(),
+                BasketError::InvalidTokenProgram
+            );
             let (ata_owner, ata_mint) = {
                 let data = user_share_ata_ai.try_borrow_data()?;
                 let ata = TokenAccount::try_deserialize_unchecked(&mut &data[..])?;
@@ -420,6 +430,7 @@ pub mod basket {
         let vault_authority_key = ctx.accounts.vault_authority.key();
         let mut decimals: Vec<u8> = Vec::with_capacity(n);
         for (i, c) in constituents.iter().enumerate() {
+            validate_supported_mint_extensions(&c.mint)?;
             let d = validate_constituent(
                 c,
                 &basket.constituents[i],
@@ -433,6 +444,8 @@ pub mod basket {
 
         // RAW ONLY — Token-2022 raw amounts; never scaled. authority = user (tx signer).
         for (i, c) in constituents.iter().enumerate() {
+            let user_balance_before = read_token_account_amount(&c.user_ata)?;
+            let vault_balance_before = read_token_account_amount(&c.vault_ata)?;
             transfer_checked(
                 CpiContext::new(
                     token_program.to_account_info(),
@@ -445,6 +458,15 @@ pub mod basket {
                 ),
                 amounts[i],
                 decimals[i],
+            )?;
+            let user_balance_after = read_token_account_amount(&c.user_ata)?;
+            let vault_balance_after = read_token_account_amount(&c.vault_ata)?;
+            verify_transfer_deltas(
+                user_balance_before,
+                user_balance_after,
+                vault_balance_before,
+                vault_balance_after,
+                amounts[i],
             )?;
         }
 
@@ -705,6 +727,8 @@ pub mod basket {
                     &ctx.accounts.system_program,
                 )?;
                 // RAW ONLY — share mint amounts (decimals from the share mint itself).
+                // A creator redeeming from their own fee ATA is a valid Token-2022
+                // self-transfer/no-op: the exit-fee shares already remain there.
                 transfer_checked(
                     CpiContext::new(
                         token_program.to_account_info(),
@@ -909,6 +933,59 @@ fn read_mint_supply(mint_ai: &AccountInfo) -> Result<u64> {
     Ok(mint.supply)
 }
 
+/// Read the raw amount from a Token / Token-2022 account after a CPI. The
+/// borrow ends before the caller invokes another CPI, allowing safe before /
+/// after snapshots within one instruction.
+fn read_token_account_amount(account: &AccountInfo) -> Result<u64> {
+    let data = account.try_borrow_data()?;
+    let token_account = TokenAccount::try_deserialize_unchecked(&mut &data[..])?;
+    Ok(token_account.amount)
+}
+
+/// Current V0 policy accepts extension-free Token-2022 constituent mints only.
+/// This check also runs on `mint_in_kind`, so baskets or whitelist records made
+/// before the policy cannot keep minting against unsupported transfer
+/// semantics. It is deliberately absent from `redeem_in_kind`: exits remain
+/// permissionless and independent of the whitelist/pause policy.
+fn validate_supported_mint_extensions(mint_ai: &AccountInfo) -> Result<()> {
+    let data = mint_ai.try_borrow_data()?;
+    let mint = StateWithExtensions::<Token2022Mint>::unpack(&data)
+        .map_err(|_| error!(BasketError::UnsupportedMintExtensions))?;
+    let extension_types = mint
+        .get_extension_types()
+        .map_err(|_| error!(BasketError::UnsupportedMintExtensions))?;
+    require!(
+        extension_types.is_empty() && data.len() == Token2022Mint::LEN,
+        BasketError::UnsupportedMintExtensions
+    );
+    Ok(())
+}
+
+/// Require an exact raw debit and credit for a seed or mint-side deposit. This
+/// rejects fee-on-transfer or other unexpected balance effects: basket backing
+/// is defined in raw units, so silently receiving less than requested would
+/// break the pro-rata invariant. Redeem deliberately does not use this gate.
+fn verify_transfer_deltas(
+    before_from: u64,
+    after_from: u64,
+    before_to: u64,
+    after_to: u64,
+    expected: u64,
+) -> Result<()> {
+    let sent = before_from
+        .checked_sub(after_from)
+        .ok_or(BasketError::ActualSentDeltaMismatch)?;
+    let received = after_to
+        .checked_sub(before_to)
+        .ok_or(BasketError::ActualReceivedDeltaMismatch)?;
+    require!(sent == expected, BasketError::ActualSentDeltaMismatch);
+    require!(
+        received == expected,
+        BasketError::ActualReceivedDeltaMismatch
+    );
+    Ok(())
+}
+
 /// Per-constituent token accounts passed via remaining_accounts as triplets
 /// [mint_i, user_ata_i, vault_ata_i] in `basket.constituents` order.
 struct ConstituentAccounts<'info> {
@@ -937,7 +1014,7 @@ fn parse_constituents<'info>(
 }
 
 /// Validates one constituent's token accounts:
-/// - all three accounts owned by a token program (SPL Token or Token-2022);
+/// - all three accounts owned by the exact Token-2022 program;
 /// - mint account key == `expected_mint` (decimals read from the mint itself, so
 ///   `transfer_checked` always validates the raw amount scale);
 /// - user ATA: mint == expected, owner == `user_key`, address == derived ATA;
@@ -953,11 +1030,25 @@ fn validate_constituent(
     token_program: &Interface<TokenInterface>,
     vault_balance_expected: u64,
 ) -> Result<u8> {
-    use anchor_lang::CheckOwner;
-    // All three must be token-program accounts.
-    Mint::check_owner(c.mint.owner)?;
-    TokenAccount::check_owner(c.user_ata.owner)?;
-    TokenAccount::check_owner(c.vault_ata.owner)?;
+    // All three accounts must be owned by the exact Token-2022 program passed
+    // to the instruction. `TokenAccount::check_owner` accepts either SPL Token
+    // program, which would otherwise leave an account-family substitution
+    // hole even though FolioX's xStocks policy is Token-2022-only.
+    require_keys_eq!(
+        *c.mint.owner,
+        token_program.key(),
+        BasketError::InvalidTokenProgram
+    );
+    require_keys_eq!(
+        *c.user_ata.owner,
+        token_program.key(),
+        BasketError::InvalidTokenProgram
+    );
+    require_keys_eq!(
+        *c.vault_ata.owner,
+        token_program.key(),
+        BasketError::InvalidTokenProgram
+    );
 
     let decimals = {
         let data = c.mint.try_borrow_data()?;
@@ -1060,7 +1151,20 @@ fn ensure_fee_ata<'info>(
             system_program: system_program.to_account_info(),
             token_program: token_program.to_account_info(),
         },
-    ))
+    ))?;
+    let ata_ai = ata.to_account_info();
+    require!(
+        ata_ai.owner == &token_program.key(),
+        BasketError::InvalidTokenProgram
+    );
+    let (ata_mint, ata_owner) = {
+        let data = ata_ai.try_borrow_data()?;
+        let account = TokenAccount::try_deserialize_unchecked(&mut &data[..])?;
+        (account.mint, account.owner)
+    };
+    require_keys_eq!(ata_mint, share_mint_ai.key(), BasketError::InvalidShareAta);
+    require_keys_eq!(ata_owner, *expected_wallet, BasketError::InvalidShareAta);
+    Ok(())
 }
 
 /// Streams the management fee with exact numerator dust carry, minted 90/10 to
@@ -1212,7 +1316,8 @@ pub struct MintInKind<'info> {
     pub basket: Account<'info, Basket>,
     #[account(
         mut,
-        constraint = share_mint.key() == basket.share_mint @ BasketError::ShareMintMismatch
+        constraint = share_mint.key() == basket.share_mint @ BasketError::ShareMintMismatch,
+        constraint = share_mint.to_account_info().owner == &TOKEN_2022_PROGRAM_ID @ BasketError::InvalidTokenProgram
     )]
     pub share_mint: InterfaceAccount<'info, Mint>,
     #[account(mut)]
@@ -1243,6 +1348,7 @@ pub struct MintInKind<'info> {
     /// created if needed. Only used to receive fee shares.
     #[account(mut)]
     pub treasury_share_ata: UncheckedAccount<'info>,
+    #[account(constraint = token_program.key() == TOKEN_2022_PROGRAM_ID @ BasketError::InvalidTokenProgram)]
     pub token_program: Interface<'info, TokenInterface>,
     pub associated_token_program: Program<'info, AssociatedToken>,
     pub system_program: Program<'info, System>,
@@ -1254,12 +1360,18 @@ pub struct RedeemInKind<'info> {
     pub basket: Account<'info, Basket>,
     #[account(
         mut,
-        constraint = share_mint.key() == basket.share_mint @ BasketError::ShareMintMismatch
+        constraint = share_mint.key() == basket.share_mint @ BasketError::ShareMintMismatch,
+        constraint = share_mint.to_account_info().owner == &TOKEN_2022_PROGRAM_ID @ BasketError::InvalidTokenProgram
     )]
     pub share_mint: InterfaceAccount<'info, Mint>,
     #[account(mut)]
     pub user: Signer<'info>,
-    #[account(mut, token::mint = share_mint, token::authority = user)]
+    #[account(
+        mut,
+        token::mint = share_mint,
+        token::authority = user,
+        constraint = user_share_ata.to_account_info().owner == &TOKEN_2022_PROGRAM_ID @ BasketError::InvalidTokenProgram
+    )]
     pub user_share_ata: InterfaceAccount<'info, TokenAccount>,
     /// CHECK: vault/share-mint authority PDA ["basket", basket.key()]. Signs every
     /// vault transfer and fee mint_to; no data is read from this account.
@@ -1282,6 +1394,7 @@ pub struct RedeemInKind<'info> {
     /// created if needed. Only used to receive exit fee shares.
     #[account(mut)]
     pub treasury_share_ata: UncheckedAccount<'info>,
+    #[account(constraint = token_program.key() == TOKEN_2022_PROGRAM_ID @ BasketError::InvalidTokenProgram)]
     pub token_program: Interface<'info, TokenInterface>,
     pub associated_token_program: Program<'info, AssociatedToken>,
     pub system_program: Program<'info, System>,
@@ -1293,7 +1406,8 @@ pub struct AccrueFee<'info> {
     pub basket: Account<'info, Basket>,
     #[account(
         mut,
-        constraint = share_mint.key() == basket.share_mint @ BasketError::ShareMintMismatch
+        constraint = share_mint.key() == basket.share_mint @ BasketError::ShareMintMismatch,
+        constraint = share_mint.to_account_info().owner == &TOKEN_2022_PROGRAM_ID @ BasketError::InvalidTokenProgram
     )]
     pub share_mint: InterfaceAccount<'info, Mint>,
     #[account(mut)]
@@ -1320,6 +1434,7 @@ pub struct AccrueFee<'info> {
     /// created if needed. Only used to receive fee shares.
     #[account(mut)]
     pub treasury_share_ata: UncheckedAccount<'info>,
+    #[account(constraint = token_program.key() == TOKEN_2022_PROGRAM_ID @ BasketError::InvalidTokenProgram)]
     pub token_program: Interface<'info, TokenInterface>,
     pub associated_token_program: Program<'info, AssociatedToken>,
     pub system_program: Program<'info, System>,
@@ -1401,6 +1516,14 @@ pub enum BasketError {
     InvalidRemainingAccounts,
     #[msg("Supplied vault balance does not match the on-chain vault balance")]
     VaultBalanceMismatch,
+    #[msg("Only the Token-2022 program and accounts are accepted")]
+    InvalidTokenProgram,
+    #[msg("Constituent mint does not satisfy the current Token-2022 extension policy")]
+    UnsupportedMintExtensions,
+    #[msg("Token source raw debit did not equal the requested transfer amount")]
+    ActualSentDeltaMismatch,
+    #[msg("Token destination raw credit did not equal the requested transfer amount")]
+    ActualReceivedDeltaMismatch,
     #[msg("Constituent mint is paused for new mints (WhitelistedMint.status != Active)")]
     MintPaused,
     #[msg("remaining_accounts whitelist entry is not the WhitelistedMint PDA for its constituent mint (wrong owner, discriminator, or mint field)")]
@@ -2529,6 +2652,23 @@ mod paused_gate_tests {
         }
     }
 
+    #[test]
+    fn test_transfer_delta_exact_raw_amount() {
+        assert!(verify_transfer_deltas(1_000, 750, 10, 260, 250).is_ok());
+    }
+
+    #[test]
+    fn test_transfer_delta_rejects_extra_source_debit() {
+        // Transfer fees/hooks that debit more than the requested raw amount
+        // are incompatible with the basket's exact backing invariant.
+        assert!(verify_transfer_deltas(1_000, 749, 10, 260, 250).is_err());
+    }
+
+    #[test]
+    fn test_transfer_delta_rejects_short_destination_credit() {
+        assert!(verify_transfer_deltas(1_000, 750, 10, 259, 250).is_err());
+    }
+
     // ===================== REMAINING_ACCOUNTS ORDERING =====================
 
     #[test]
@@ -2780,5 +2920,87 @@ mod paused_gate_tests {
         assert!(doc.contains("no whitelist"), "doc must say NO whitelist");
         assert!(doc.contains("no oracle"), "doc must say NO oracle");
         assert!(doc.contains("no pauser"), "doc must say NO pauser");
+    }
+
+    #[test]
+    fn test_mint_handler_calls_extension_policy() {
+        let src = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/lib.rs"));
+        let mint = braced_block(src, "pub fn mint_in_kind");
+        assert!(
+            mint.contains("validate_supported_mint_extensions(&c.mint)"),
+            "mint entrypoint must fail closed on unsupported Token-2022 extensions"
+        );
+        assert!(
+            mint.contains("validate_constituent("),
+            "mint entrypoint must retain constituent account validation"
+        );
+    }
+
+    fn token2022_mint_data_with_extension(extension: u16, value_len: usize) -> Vec<u8> {
+        let mut data = vec![0u8; 166 + 4 + value_len];
+        data[44] = 6;
+        data[45] = 1;
+        data[165] = 1; // AccountType::Mint
+        data[166..168].copy_from_slice(&extension.to_le_bytes());
+        data[168..170].copy_from_slice(&(value_len as u16).to_le_bytes());
+        data
+    }
+
+    #[test]
+    fn test_mint_extension_policy_rejects_extension_bearing_account() {
+        let key = Pubkey::new_unique();
+        let owner = TOKEN_2022_PROGRAM_ID;
+        let mut lamports = 0;
+        let mut data = token2022_mint_data_with_extension(1, 0);
+        let account = AccountInfo::new(
+            &key,
+            false,
+            false,
+            &mut lamports,
+            &mut data,
+            &owner,
+            false,
+            0,
+        );
+        assert!(validate_supported_mint_extensions(&account).is_err());
+    }
+
+    #[test]
+    fn test_token2022_owner_checks_are_pinned_on_token_entrypoints() {
+        let src = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/lib.rs"));
+        for account_struct in [
+            "pub struct MintInKind",
+            "pub struct RedeemInKind",
+            "pub struct AccrueFee",
+        ] {
+            let block = braced_block(src, account_struct);
+            assert!(
+                block.contains("TOKEN_2022_PROGRAM_ID"),
+                "{account_struct} must pin the exact Token-2022 program"
+            );
+            assert!(
+                block.contains("share_mint.to_account_info().owner"),
+                "{account_struct} must pin the share mint owner family"
+            );
+        }
+        let constituent = braced_block(src, "fn validate_constituent");
+        for owner_check in ["*c.mint.owner", "*c.user_ata.owner", "*c.vault_ata.owner"] {
+            assert!(
+                constituent.contains(owner_check),
+                "constituent validation must check {owner_check}"
+            );
+        }
+        for identity_check in [
+            "user_ata_mint",
+            "user_ata_owner",
+            "vault_ata_mint",
+            "vault_ata_owner",
+            "token_program.key()",
+        ] {
+            assert!(
+                constituent.contains(identity_check),
+                "constituent validation must retain {identity_check}"
+            );
+        }
     }
 }

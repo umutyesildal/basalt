@@ -7,6 +7,8 @@
 >
 > Network: Solana **devnet**, RPC `https://api.devnet.solana.com`. Explorer links use `?cluster=devnet`.
 
+> **Historical snapshot warning (BAS-002, 2026-09-18):** This evidence pack records the deployment and mint profiles observed on 2026-09-04. That run used mock mints with `ScaledUiAmountConfig` multiplier 1.0. The current scripts intentionally create extension-free Token-2022 mocks, and current V0 admission rejects extension-bearing mints. Do not treat this dated evidence as approval for official mainnet xStocks or as the current reproduction recipe.
+
 ## 1. Executive summary — what is live
 
 The full FolioX protocol ran end-to-end on Solana devnet on 2026-09-04 and the state is still live and RPC-verifiable:
@@ -283,7 +285,7 @@ export FOLIOX_E2E_PAYER=/path/to/funded-payer.json                  # keypair wi
 export FOLIOX_E2E_TREASURY="$PWD/scripts/.e2e-devnet/treasury.json" # independent treasury → observable 90/10 split
 
 # the four E2E scripts, in order
-npx tsx scripts/createWhitelist.ts        # 12 mock xStocks (ScaledUiAmountConfig) + init_config + add_mint ×12
+npx tsx scripts/createWhitelist.ts        # 12 extension-free Token-2022 mock xStocks + init_config + add_mint ×12
 FOLIOX_E2E_BASKET_N=3 npx tsx scripts/createBasket.ts   # init_factory + create_basket (N=3 is the live rung; 6/5/4 hit the wire limit, §6)
 npx tsx scripts/mintAndRedeem.ts          # prep, mint_in_kind, pause → redeem_in_kind (proves permissionless exit), unpause, top-up mint
 npx tsx scripts/accrueFee.ts              # permissionless management-fee accrual
