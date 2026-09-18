@@ -1,12 +1,14 @@
 # Basalt current state — 2026-09-18
 
-> Snapshot of current committed baseline `9ddee47` on `main`, the deployed web app, and read-only Solana devnet checks. BAS-002 policy and test changes described below are working-tree evidence until committed. Dynamic values may change after this date.
+> Snapshot of the current `main` repository state, the deployed web app, and read-only Solana devnet checks. BAS-002, BAS-003, and BAS-004 policy, code, and test evidence described below is repository-local; hosted CI and the documented upgrade/deployment gates remain authoritative for release status. Dynamic values may change after this date.
 
 ## Executive status
 
 Basalt is a working Solana devnet beta, not a visual scaffold. Create, in-kind mint, redeem, indexing, and NAV flows use real code and real devnet transactions. The current constituent tokens are project-issued devnet mocks with no economic backing, and parts of the deployed home/social experience use a demo dataset. The product is not mainnet-ready.
 
 The current BAS-002 boundary is intentionally fail-closed: new whitelist admission, factory seed, and basket mint accept only extension-free Token-2022 mints; seed and mint transfers verify exact raw source and destination deltas. Official mainnet xStocks remain unsupported until the dependency upgrade and hook-aware transfer path are audited. Instruction-level extension and adversarial-hook coverage remains open under BAS-016. These changes do not gate `redeem_in_kind`, which remains permissionless, oracle-free, backend-independent, and independent of the whitelist pause flag.
+
+BAS-004 checked arithmetic is complete in the working tree. Economic narrowing and multiplication paths now fail with domain errors, bps inputs are bounded, and boundary/property coverage includes max-u64 and conservation invariants. Factory account-size and remaining-account arithmetic plus the whitelist mint counter were hardened as related peripheral paths. This does not close BAS-016 or any independent-audit/mainnet gate.
 
 ## Canonical source and deployment
 
@@ -52,18 +54,18 @@ This proves that the devnet protocol flow is real. It does not prove issuer back
 
 | Check | Result | Notes |
 |---|---|---|
-| `cargo test --workspace` | 199 passed | 130 basket, 43 factory, 26 whitelist |
+| `cargo test --workspace` | 207 passed | 136 basket, 44 factory, 27 whitelist |
 | Backend Vitest | 565 passed | 14 files |
 | App TypeScript | Passed | `npx tsc --noEmit --incremental false` |
 | App production build | Passed | 21 routes from a clean standalone app install |
 | Clean `npm ci` | Passed | Root workspace, standalone app, and standalone backend verified independently |
 | Frontend E2E | Missing | No Playwright/wallet regression suite |
 
-Verified automated total for the repaired working tree: **764 = 199 Rust + 565 backend**. Older 599/620/421/442/549/733/749 counts are historical.
+Verified automated total for the repaired working tree: **772 = 207 Rust + 565 backend**. Older 599/620/421/442/549/733/749/764 counts are historical.
 
 ## Mainnet blockers
 
-1. The working tree fixes management-fee crank grief with exact remainder carry, but the deployed devnet basket program still requires an upgrade and existing-account smoke test.
+1. The working tree fixes management-fee crank grief with exact remainder carry, but the deployed devnet basket program still requires an upgrade and existing-account smoke test. BAS-004 arithmetic hardening is complete locally, but it still needs the normal release/upgrade evidence before being treated as deployed security status.
 2. The interim Token-2022 policy is extension-free and fail-closed, with exact raw source/destination delta checks for seed and mint. Instruction-level extension, adversarial-hook, and full ProgramTest/LiteSVM coverage remain open under BAS-016; official mainnet xStocks are not admitted.
 3. Zap-in now uses wallet/quote-bound raw `post - pre` snapshots with min-out validation and partial-leg recovery; Zap-out remains quote-only with no frontend execution path.
 4. Upgrade authority is a single wallet; no multisig/timelock.

@@ -4,7 +4,7 @@
 > **Read this first before writing code.** This file carries the normative Basalt V0 constraints; it is not the source for changing deployment/test counts.
 > Documentation map: `docs/README.md` | Current verified state: `docs/current-state-2026-09-18.md` | Operational backlog: `docs/implementation-backlog.md` | Spec: `docs/basalt-v0-spec.md` | Prompt: `foliox_build_prompt.md` (historical name)
 > Brand: **BASALT identity** (owner decision 2026-09-12: project renamed FolioX → Basalt; hexagonal basalt columns mark per `docs/design-basalt-v1.md`, electric-yellow token system per `docs/design-cyberpunk-yellow-v1.md`, Chakra Petch display, Geist Mono labels — Roman layer fully retired). Telemetry off. Legal-review chips removed from UI (backlog).
-> Audit snapshot (2026-09-19, current working tree): **real devnet create/mint/redeem and read-only indexer verified; assets are project mock mints, some deployed home/social surfaces use `NEXT_PUBLIC_HOME_DEMO=1`, and the product is not mainnet-ready. Clean root/app/backend installs pass; 199 Rust + 565 backend tests passed; the app produced a 21-route production build.** BAS-001 fee-grief is fixed locally but awaits a devnet upgrade/smoke. The BAS-002 interim boundary now admits only extension-free Token-2022 mints, verifies exact raw source/destination deltas for seed and mint, and keeps official xStocks unsupported pending audited dependency and hook-aware transfer work. Instruction-level extension/adversarial-hook coverage remains open under BAS-016; multisig/timelock, data truth labels, and reproducible deployment attestation also remain open. Counts/details later in this file may be historical; `docs/current-state-2026-09-18.md` prevails.
+> Audit snapshot (2026-09-19, current working tree): **real devnet create/mint/redeem and read-only indexer verified; assets are project mock mints, some deployed home/social surfaces use `NEXT_PUBLIC_HOME_DEMO=1`, and the product is not mainnet-ready. Clean root/app/backend installs pass; 207 Rust + 565 backend tests passed; the app produced a 21-route production build.** BAS-001 fee-grief is fixed locally but awaits a devnet upgrade/smoke. BAS-002 remains extension-free and fail-closed, BAS-003 Zap-in delta accounting is complete, and BAS-004 checked arithmetic is complete locally with max-u64/property coverage; official xStocks remain unsupported pending audited dependency and hook-aware transfer work. Instruction-level extension/adversarial-hook coverage remains open under BAS-016; multisig/timelock, data truth labels, and reproducible deployment attestation also remain open. Counts/details later in this file may be historical; `docs/current-state-2026-09-18.md` prevails.
 
 ---
 
@@ -47,7 +47,7 @@ If you are tempted to add `admin_withdraw`, `pause_redeem`, `oracle check`, or `
 | **Tokens** | SPL Token-2022 | Raw for transfers, scaled for display |
 | **Oracles/prices** | Legacy Jupiter Price v6 adapter (reference NAV only; BAS-011 migration pending) | Never gates redeem |
 | **Zap** | Jupiter Swap API (quote → swap) | Sequential swaps + `mint_in_kind` in V0 |
-| **Tests** | Rust `cargo test` 199 tests, backend `vitest` 565 tests | Verified total 764 tests passing on 2026-09-19 |
+| **Tests** | Rust `cargo test` 207 tests, backend `vitest` 565 tests | Verified total 772 tests passing on 2026-09-19 |
 
 **Program IDs (localnet/devnet):**
 
@@ -76,9 +76,9 @@ basket         = "6Q43vFh4aqGxzvtU2vQwJX9PmX3skfYsGWZdA3fwJB9k" # programs/baske
 ├── AGENTS.md                   # this file — agent entrypoint
 ├── CONTEXT.md                  # symlink/copy of this for other agents
 ├── programs/
-│   ├── whitelist/src/lib.rs    # init_config, add_mint, pause/unpause, transfer_authority (26 tests)
-│   ├── basket_factory/src/lib.rs # init_factory, create_basket (43 tests, validates 2-20, sum 10k, caps, atomic seed, genesis 1M)
-│   └── basket/src/lib.rs       # math + mint_in_kind/redeem_in_kind/accrue_management_fee (130 tests)
+│   ├── whitelist/src/lib.rs    # init_config, add_mint, pause/unpause, transfer_authority (27 tests)
+│   ├── basket_factory/src/lib.rs # init_factory, create_basket (44 tests, validates 2-20, sum 10k, caps, atomic seed, genesis 1M)
+│   └── basket/src/lib.rs       # math + mint_in_kind/redeem_in_kind/accrue_management_fee (136 tests)
 ├── backend/
 │   ├── src/db/schema.sql       # 8 tables + indexes + view (baskets, whitelisted_mints, vault_holdings, nav_snapshots, events, creator_stats, user_positions)
 │   ├── src/indexer/listener.ts # Event listener (poll getSignaturesForAddress, decode Program data:, write events)
@@ -304,9 +304,9 @@ Placeholder copy must be replaced by counsel before mainnet.
 
 ---
 
-## 13. Testing — Verified snapshot (764 tests passing)
+## 13. Testing — Verified snapshot (772 tests passing)
 
-**Rust `cargo test` 199 tests** (`cargo test -p basket` 130 + `basket_factory` 43 + `whitelist` 26):
+**Rust `cargo test` 207 tests** (`cargo test -p basket` 136 + `basket_factory` 44 + `whitelist` 27):
 
 * Gross: perfect/min, 20 constituents, tolerance 1% pass/fail `t5`/`t6`, zero supply/vault/deposit/len, dust ZeroShares `t7`, large u64 no overflow `t27`, single constituent `t5-single`
 * Fees: entry 0/100/300, exit 0/100, split 90/10 dust `split_fee(1,9000)=(0,1)` `t15`, never exceeds gross `t19`, mgmt zero elapsed/supply/bps `t12`, yearly cap 300k `t12`, hourly vs yearly + compounding `t39`, 50 random fuzz `MEGA`
@@ -323,14 +323,14 @@ Placeholder copy must be replaced by counsel before mainnet.
 * `zap-balance-delta.test.ts` 15 tests (existing-balance exclusion, exact BigInt deltas, min-out, ordered mint identity, and partial-leg recovery)
 * `tests/basalt_math.test.ts:1` 1 legacy
 
-Total **764 tests passing** (`cargo test: 199 + backend Vitest: 565`) on 2026-09-19. See `docs/current-state-2026-09-18.md` for dated evidence. BAS-002 host-level extension-policy and raw-delta tests are included; instruction-level extension/adversarial-hook coverage remains open under BAS-016.
+Total **772 tests passing** (`cargo test: 207 + backend Vitest: 565`) on 2026-09-19. See `docs/current-state-2026-09-18.md` for dated evidence. BAS-002 host-level extension-policy and raw-delta tests, BAS-003 Zap delta tests, and BAS-004 checked-arithmetic boundary/property tests are included; instruction-level extension/adversarial-hook coverage remains open under BAS-016.
 
 **Run:**
 
 ```bash
 export PATH="/opt/homebrew/opt/rustup/bin:$HOME/.cargo/bin:$HOME/.avm/bin:$HOME/.local/share/solana/install/active_release/bin:$PATH"
-cargo test                          # Rust 199
-cargo test -p basket --lib          # 130 basket tests
+cargo test                          # Rust 207
+cargo test -p basket --lib          # 136 basket tests
 npx --prefix backend vitest run --reporter=verbose   # TS 565
 npx tsx backend/src/index.ts        # :3001 health {"ok":true}
 bash scripts/e2e.sh                 # validator → whitelist → basket → mint/redeem → fee crank (needs solana-test-validator)
@@ -350,7 +350,7 @@ sh -c "$(curl -sSfL https://release.solana.com/v1.18.17/install)" # solana 1.18.
 # Build & test (verified)
 cargo check                         # 0 errors, 14 warnings anchor-debug
 cargo build                         # dev build (SBF needs Agave 2.x due edition2024)
-cargo test                          # 199 Rust tests
+cargo test                          # 207 Rust tests
 npm --prefix backend install && npx --prefix backend vitest run  # 565 TS tests
 npx tsx backend/src/index.ts        # API :3001
 npm --prefix app install && npm --prefix app run dev  # Next.js :3000
@@ -455,7 +455,7 @@ Post-90: mainnet-beta capped TVL, bug bounty, QEDGen formal verification if `rev
 
 ---
 
-*Generated for agents by superstack (solana.new) + Basalt architect. Current verification: 2026-09-19 — **199 Rust + 565 backend tests passing**. Official mainnet xStocks remain unsupported by the interim extension-free V0 boundary; see `docs/bas-002-token2022-extension-policy.md` and `docs/current-state-2026-09-18.md`.*
+*Generated for agents by superstack (solana.new) + Basalt architect. Current verification: 2026-09-19 — **207 Rust + 565 backend tests passing**. Official mainnet xStocks remain unsupported by the interim extension-free V0 boundary; see `docs/bas-002-token2022-extension-policy.md` and `docs/current-state-2026-09-18.md`.*
 
 ---
 
@@ -463,9 +463,9 @@ Post-90: mainnet-beta capped TVL, bug bounty, QEDGen formal verification if `rev
 
 | File | Lines | Purpose |
 |------|-------|---------|
-| `programs/whitelist/src/lib.rs:1` | 269 | `WhitelistConfig` + `WhitelistedMint` structs, 5 ix + 26 tests |
-| `programs/basket_factory/src/lib.rs:1` | 308 | `FactoryConfig` + `Basket` alias, 2 ix + 43 tests |
-| `programs/basket/src/lib.rs:1` | 700+ | `Basket` + `math` module + 3 ix + 130 tests |
+| `programs/whitelist/src/lib.rs:1` | 269 | `WhitelistConfig` + `WhitelistedMint` structs, 5 ix + 27 tests |
+| `programs/basket_factory/src/lib.rs:1` | 308 | `FactoryConfig` + `Basket` alias, 2 ix + 44 tests |
+| `programs/basket/src/lib.rs:1` | 700+ | `Basket` + `math` module + 3 ix + 136 tests |
 | `backend/src/db/schema.sql:1` | 90 | 8 tables + 2 indexes + 1 view |
 | `backend/src/indexer/listener.ts:1` | 35 | `EventListener` class, poll `getSignaturesForAddress` |
 | `backend/src/indexer/holdingsSync.ts:1` | 30 | `fetchMultiplier`, `syncHoldings` raw→scaled |
@@ -531,7 +531,7 @@ cat docs/basalt-v0-spec.md | head -n 100
 export PATH="/opt/homebrew/opt/rustup/bin:$HOME/.cargo/bin:$HOME/.avm/bin:$HOME/.local/share/solana/install/active_release/bin:$PATH"
 rustc --version; solana --version; anchor --version
 
-# 3. Run tests (current verified baseline: 199 Rust + 565 backend)
+# 3. Run tests (current verified baseline: 207 Rust + 565 backend)
 cargo test
 npx --prefix backend vitest run --reporter=verbose
 
@@ -572,11 +572,12 @@ The repository is a working devnet beta, not a production-ready mainnet release.
 
 Verified working-tree facts:
 
-* Rust `cargo test --workspace`: 199 passed (130 basket, 43 factory, 26 whitelist).
+* Rust `cargo test --workspace`: 207 passed (136 basket, 44 factory, 27 whitelist).
 * Backend Vitest: 565 passed across 14 files.
 * App typecheck and production build pass; the build emits 21 route entries.
 * Real devnet create, in-kind mint, redeem, indexing, and NAV flows were verified before the BAS-001 fee change.
 * BAS-001 exact management-fee remainder carry is locally implemented and backward-compatible with the 888-byte Basket allocation; the basket-program upgrade and existing-account devnet smoke are still pending.
+* BAS-004 checked arithmetic is locally complete: economic conversions/multiplication and bps validation are checked, max-u64/property tests pass, and factory/whitelist counter-size paths fail safely. Instruction-level arithmetic and adversarial-hook coverage remains part of BAS-016.
 * Current devnet constituents are project-issued mocks, not economically backed official xStocks.
 * Zap-in now uses verified post-minus-pre raw deltas; mock devnet has no Jupiter routes for local constituent mints.
 * Preserve unrelated working-tree changes. Never reset, clean, or overwrite user work as part of routine edits.

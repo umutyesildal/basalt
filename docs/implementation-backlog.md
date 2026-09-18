@@ -70,12 +70,19 @@ Implementation evidence (2026-09-19):
 
 ### BAS-004 — Checked arithmetic
 
-- [ ] Replace unchecked `u128 -> u64` conversions.
-- [ ] Check `diff * 100` and bps expressions.
-- [ ] Add boundary and fuzz tests.
+- [x] Replace unchecked `u128 -> u64` conversions.
+- [x] Check `diff * 100` and bps expressions.
+- [x] Add boundary and fuzz tests.
 
 **Owner area:** on-chain
 **Acceptance:** No unchecked overflow or narrowing in economic paths.
+
+Implementation evidence (repository-local, 2026-09-19):
+- Basket economic helpers now use checked `u128` multiplication/division and fallible `u64::try_from` conversions for gross shares, entry/exit fees, management fees, fee splits, and pro-rata redemption amounts.
+- Bps inputs are rejected above the 10,000 bps denominator; tolerance comparisons use checked widened arithmetic instead of overflowing `diff * 100`. Redemption also rejects zero supply and burns above total supply.
+- Boundary and deterministic property tests cover `u64::MAX`, narrowing failures, invalid bps, zero-supply redemption, fee-split conservation, max-value redemption, and repeated randomized arithmetic cases.
+- Peripheral hardening replaces unchecked account-size conversions in the factory and the whitelist mint counter now fails atomically at `u32::MAX`; remaining-account length multiplication is checked in both programs.
+- Rust verification is now 207 tests: basket 136, basket_factory 44, whitelist 27. BAS-016 still owns instruction-level ProgramTest/LiteSVM, extension, and adversarial-hook coverage; this completion does not make mainnet ready.
 
 ### BAS-005 — Single fee-split source
 
@@ -374,7 +381,7 @@ Local workflow evidence (2026-09-18):
 ## Recommended execution order
 
 1. BAS-014 → BAS-015: establish reproducible build and CI truth.
-2. BAS-001/003/004/005 in parallel; research official fixtures for BAS-002.
+2. BAS-001/003/004/005 in parallel; research official fixtures for BAS-002. BAS-004 is complete locally; its checked arithmetic remains covered by the normal Rust gates.
 3. BAS-016 locks all P0 protocol fixes at instruction level.
 4. BAS-009/010/011/019/020 repair data and trust layers.
 5. BAS-012/013/006/007/008 complete mainnet gates.

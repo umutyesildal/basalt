@@ -4,12 +4,13 @@
 
 Snapshot from 2026-09-19:
 
-- Rust workspace: 199 tests passed.
+- Rust workspace: 207 tests passed (136 basket, 44 basket_factory, 27 whitelist).
 - Backend: 565 Vitest tests passed.
 - Frontend TypeScript: passed.
 - Frontend test suite: missing.
 - Root, standalone app, and standalone backend clean installs pass after the 2026-09-18 lock repair.
 - Most Rust tests are host unit/source-structure tests. Devnet/localnet proves real CPI behavior, but ProgramTest/LiteSVM coverage is insufficient.
+- BAS-004 adds checked-arithmetic boundary/property coverage for max-u64 inputs, invalid bps, narrowing failures, redemption bounds, and fee conservation; this does not replace the missing instruction-level suite.
 
 Test count alone is not a quality metric. Release gates focus on behavior, invariants, and reproducible evidence.
 
@@ -74,6 +75,7 @@ Use wallet test doubles for UI-state tests, plus at least one localnet/nightly f
 - Full redemption leaves only defined flooring dust.
 - Mint/redeem round trips cannot create value outside fees and flooring.
 - For fixed supply, management-fee numerator value is independent of how elapsed time is partitioned across cranks; supply-changing compounding is tested and disclosed separately.
+- Checked economic arithmetic must return domain errors rather than wrap or narrow; max-u64 and deterministic property cases remain part of the Rust release gate.
 - Multiplier changes never alter raw ownership.
 - Creator plus treasury equals total fee.
 - Deposit accounting equals actual received raw delta.

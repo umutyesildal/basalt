@@ -2,13 +2,13 @@
 
 > "Create an index. Own your thesis." — Onchain strategy baskets powered by xStocks.
 > V0 spec: `docs/basalt-v0-spec.md` (normative product constraints). Documentation map: `docs/README.md`. Current backlog: `docs/implementation-backlog.md`. Brand: `brand.md`.
-> Current state: **Working devnet beta, not mainnet-ready. Real create/mint/redeem and read-only indexing are verified; current constituent assets are project mock mints and some deployed surfaces use labeled/demo datasets.** Verified 2026-09-19 working tree: clean root/app/backend installs pass, 199 Rust + 565 backend tests pass, and the app produces a 21-route production build. Full snapshot: `docs/current-state-2026-09-18.md`.
+> Current state: **Working devnet beta, not mainnet-ready. Real create/mint/redeem and read-only indexing are verified; current constituent assets are project mock mints and some deployed surfaces use labeled/demo datasets.** Verified 2026-09-19 working tree: clean root/app/backend installs pass, 207 Rust + 565 backend tests pass, and the app produces a 21-route production build. Full snapshot: `docs/current-state-2026-09-18.md`.
 > **Won: Superteam Germany "Road to Colosseum" Ideathon (2026-09-14)** — top-10 of 38 submissions, $3k USDG pool. Submission: `docs/ideathon-submission-2026-09.md`. Live demo: https://basalt-coral.vercel.app/explore. Current implementation order: `docs/implementation-backlog.md`.
 
 ## Verification commands
 
 ```bash
-cargo test                                  # 199 Rust tests
+cargo test                                  # 207 Rust tests
 npm --prefix backend install                # once (backend has its own lockfile)
 npm --prefix backend run build              # strict NodeNext, no suppressions
 npm --prefix backend test -- --run          # 565 TS tests in the 2026-09-19 working tree
@@ -94,7 +94,7 @@ For local (non-devnet) development, `demo-seed` seeds the local Postgres so page
 
 ## Current work
 
-Use `docs/current-state-2026-09-18.md` for verified status and `docs/implementation-backlog.md` for implementation order. The interim BAS-002 boundary is now extension-free and fail-closed, with exact raw source/destination delta checks for seed and mint; official mainnet xStocks remain unsupported until the audited dependency and hook-aware transfer path is complete. The immediate release path is: deploy and smoke-test BAS-001 on devnet; add BAS-002 instruction-level extension coverage under BAS-016; fix Zap delta accounting; finish governance, attestation, data-truth, and legal gates; then obtain an independent audit. `plan.md` is retained as the historical implementation-wave log.
+Use `docs/current-state-2026-09-18.md` for verified status and `docs/implementation-backlog.md` for implementation order. The interim BAS-002 boundary is now extension-free and fail-closed, with exact raw source/destination delta checks for seed and mint; official mainnet xStocks remain unsupported until the audited dependency and hook-aware transfer path is complete. BAS-003 Zap-in delta accounting and BAS-004 checked arithmetic are complete in the working tree, while instruction-level coverage under BAS-016, governance, attestation, data-truth, and legal gates remain open before an independent audit and any mainnet decision. `plan.md` is retained as the historical implementation-wave log.
 
 ## Scripts
 

@@ -56,7 +56,7 @@ pub mod whitelist {
         whitelisted.bump = ctx.bumps.whitelisted_mint;
 
         let config = &mut ctx.accounts.config;
-        config.mint_count = config.mint_count.checked_add(1).unwrap();
+        config.mint_count = next_mint_count(config.mint_count)?;
 
         Ok(())
     }
@@ -164,6 +164,15 @@ pub fn check_decimals(arg: u8, on_chain_decimals: u8) -> Result<()> {
     require!(arg <= MAX_DECIMALS, WhitelistError::InvalidDecimals);
     require!(arg == on_chain_decimals, WhitelistError::DecimalsMismatch);
     Ok(())
+}
+
+/// Increment the number of whitelisted mints without allowing the account
+/// counter to wrap. The handler uses this helper so a saturated config fails
+/// atomically instead of panicking inside an instruction.
+pub fn next_mint_count(current: u32) -> Result<u32> {
+    current
+        .checked_add(1)
+        .ok_or(WhitelistError::MintCountOverflow.into())
 }
 
 #[derive(Accounts)]
@@ -281,6 +290,8 @@ pub enum WhitelistError {
     UninitializedMint,
     #[msg("Mint extensions are not allowed")]
     MintExtensionNotAllowed,
+    #[msg("Whitelisted mint count overflow")]
+    MintCountOverflow,
 }
 
 #[cfg(test)]
@@ -338,10 +349,15 @@ mod tests {
             mint_count: 0,
             bump: 0,
         };
-        cfg.mint_count = cfg.mint_count.checked_add(1).unwrap();
+        cfg.mint_count = next_mint_count(cfg.mint_count).unwrap();
         assert_eq!(cfg.mint_count, 1);
-        cfg.mint_count = cfg.mint_count.checked_add(1).unwrap();
+        cfg.mint_count = next_mint_count(cfg.mint_count).unwrap();
         assert_eq!(cfg.mint_count, 2);
+    }
+    #[test]
+    fn test_mint_count_overflow_is_rejected() {
+        assert!(next_mint_count(u32::MAX).is_err());
+        assert_eq!(next_mint_count(u32::MAX - 1).unwrap(), u32::MAX);
     }
     #[test]
     fn test_pause_idempotency() {

@@ -227,8 +227,14 @@ pub mod basket_factory {
         //       writes the data into the account it now owns.
         // The factory PDA signs the CPI, making init_basket factory-only; the
         // whole tx is atomic, so any failure reverts everything.
-        let basket_space = (8 + std::mem::size_of::<BasketAccount>()) as u64;
-        let basket_lamports = Rent::get()?.minimum_balance(basket_space as usize);
+        let basket_space_usize = 8usize
+            .checked_add(std::mem::size_of::<BasketAccount>())
+            .ok_or(FactoryError::AccountSizeOverflow)?;
+        let basket_space = u64::try_from(basket_space_usize)
+            .map_err(|_| error!(FactoryError::AccountSizeOverflow))?;
+        let basket_lamports = Rent::get()?.minimum_balance(
+            usize::try_from(basket_space).map_err(|_| error!(FactoryError::AccountSizeOverflow))?,
+        );
         {
             let nonce_le = nonce.to_le_bytes();
             let basket_bump_arr = [ctx.bumps.basket];
@@ -553,8 +559,11 @@ pub fn check_remaining_accounts_layout(
     remaining_len: usize,
     num_constituents: usize,
 ) -> Result<()> {
+    let expected_len = num_constituents
+        .checked_mul(ACCOUNTS_PER_CONSTITUENT)
+        .ok_or(FactoryError::InvalidRemainingAccounts)?;
     require!(
-        remaining_len == num_constituents * ACCOUNTS_PER_CONSTITUENT,
+        remaining_len == expected_len,
         FactoryError::InvalidRemainingAccounts
     );
     Ok(())
@@ -666,8 +675,11 @@ pub fn init_share_mint<'info>(
     share_mint_bump: u8,
     basket_key: &Pubkey,
 ) -> Result<()> {
-    let space = find_mint_account_size(None)? as u64;
-    let lamports = Rent::get()?.minimum_balance(space as usize);
+    let space = u64::try_from(find_mint_account_size(None)?)
+        .map_err(|_| error!(FactoryError::AccountSizeOverflow))?;
+    let lamports = Rent::get()?.minimum_balance(
+        usize::try_from(space).map_err(|_| error!(FactoryError::AccountSizeOverflow))?,
+    );
     let bump_arr = [share_mint_bump];
     let signer_seeds: &[&[&[u8]]] = &[&[SHARE_MINT_SEED, basket_key.as_ref(), &bump_arr]];
     anchor_lang::system_program::create_account(
@@ -841,6 +853,8 @@ pub enum FactoryError {
     InvalidTokenProgram,
     #[msg("basket_program account is not the declared basket program")]
     InvalidBasketProgram,
+    #[msg("Account size does not fit the required integer type")]
+    AccountSizeOverflow,
 }
 
 #[cfg(test)]
@@ -959,6 +973,10 @@ mod tests {
         // A fee-on-transfer or hook that credits less than requested must not
         // silently create an under-backed basket.
         assert!(verify_transfer_deltas(1_000, 750, 10, 259, 250).is_err());
+    }
+    #[test]
+    fn test_transfer_delta_accepts_max_raw_amount() {
+        assert!(verify_transfer_deltas(u64::MAX, 0, 0, u64::MAX, u64::MAX).is_ok());
     }
     #[test]
     fn test_length_mismatch() {
@@ -1135,6 +1153,7 @@ mod tests {
         assert!(check_remaining_accounts_layout(4 * 2 + 1, 2).is_err());
         assert!(check_remaining_accounts_layout(4 * 2 - 1, 2).is_err());
         assert!(check_remaining_accounts_layout(3 * 3, 3).is_err()); // triplet layout rejected
+        assert!(check_remaining_accounts_layout(usize::MAX, usize::MAX).is_err());
     }
 
     // ========== WHITELIST RECORD + PDA VALIDATION ==========

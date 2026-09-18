@@ -68,12 +68,16 @@ Residual limitation: balance-delta accounting excludes inventory present at the 
 
 ## SEC-004 — Arithmetic and cast safety
 
-- Replace economic `u128 -> u64` casts with checked conversions.
-- Use checked arithmetic for `diff * 100`, bps, supply, and elapsed-time expressions.
-- Add max-u64, 20-constituent, and boundary fuzz tests.
-- Return domain-specific errors on overflow or underflow.
+**Status: Completed and locally verified in the 2026-09-19 repository state; hosted CI and deployment evidence remain separate release gates.**
+
+- Economic `u128 -> u64` casts now use checked division plus `u64::try_from` in gross-share, fee, split, and redemption helpers.
+- `diff * 100`, bps validation, supply/elapsed-time products, treasury remainder subtraction, account-size conversions, remaining-account length products, and the whitelist counter now fail safely instead of wrapping or panicking.
+- Boundary and deterministic property tests cover max-u64 values, invalid bps, narrowing failures, zero-supply redemption, fee conservation, pro-rata floor bounds, and repeated randomized arithmetic cases.
+- Factory and whitelist peripheral hardening is included without changing the immutable basket model or the permissionless, oracle-free, unpausable redeem path.
 
 **Acceptance:** No unchecked narrowing cast or multiplication remains in an economic path.
+
+**Residual scope:** Instruction-level ProgramTest/LiteSVM, Token-2022 extension, and adversarial-hook coverage remain open under BAS-016. This arithmetic completion does not waive the independent audit, governance, attestation, legal, or official-xStocks gates required before mainnet.
 
 ## SEC-005 — Single source for fee split
 

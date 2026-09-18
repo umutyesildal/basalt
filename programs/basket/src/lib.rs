@@ -99,7 +99,15 @@ pub mod math {
         for (d, v) in deposits.iter().zip(vault_balances.iter()) {
             require!(*d > 0, BasketError::ZeroAmount);
             require!(*v > 0, BasketError::ZeroVault);
-            let g = (*d as u128 * total_supply as u128 / *v as u128) as u64;
+            let numerator = (*d as u128)
+                .checked_mul(total_supply as u128)
+                .ok_or(BasketError::MathOverflow)?;
+            let g = u64::try_from(
+                numerator
+                    .checked_div(*v as u128)
+                    .ok_or(BasketError::MathOverflow)?,
+            )
+            .map_err(|_| error!(BasketError::MathOverflow))?;
             if min_gross.is_none() || g < min_gross.unwrap() {
                 min_gross = Some(g);
             }
@@ -114,22 +122,47 @@ pub mod math {
         require!(gross > 0, BasketError::ZeroShares);
         if max_gross > min_val {
             let diff = max_gross - min_val;
-            require!(diff * 100 <= min_val, BasketError::WeightMismatch);
+            let scaled_diff = (diff as u128)
+                .checked_mul(100)
+                .ok_or(BasketError::MathOverflow)?;
+            require!(scaled_diff <= min_val as u128, BasketError::WeightMismatch);
         }
         Ok(gross)
     }
 
-    pub fn entry_fee(gross: u64, bps: u16) -> u64 {
-        (gross as u128 * bps as u128 / BPS_DENOM as u128) as u64
+    pub fn entry_fee(gross: u64, bps: u16) -> Result<u64> {
+        checked_bps_fee(gross, bps)
     }
 
-    pub fn exit_fee(shares: u64, bps: u16) -> u64 {
-        (shares as u128 * bps as u128 / BPS_DENOM as u128) as u64
+    pub fn exit_fee(shares: u64, bps: u16) -> Result<u64> {
+        checked_bps_fee(shares, bps)
     }
 
-    pub fn management_fee(supply: u64, bps: u16, elapsed_sec: u64) -> u64 {
-        (supply as u128 * bps as u128 * elapsed_sec as u128
-            / (BPS_DENOM as u128 * SECONDS_PER_YEAR as u128)) as u64
+    pub fn management_fee(supply: u64, bps: u16, elapsed_sec: u64) -> Result<u64> {
+        require!(bps as u64 <= BPS_DENOM, BasketError::InvalidFeeBps);
+        let numerator = (supply as u128)
+            .checked_mul(bps as u128)
+            .and_then(|value| value.checked_mul(elapsed_sec as u128))
+            .ok_or(BasketError::MathOverflow)?;
+        u64::try_from(
+            numerator
+                .checked_div(MANAGEMENT_FEE_DENOMINATOR)
+                .ok_or(BasketError::MathOverflow)?,
+        )
+        .map_err(|_| error!(BasketError::MathOverflow))
+    }
+
+    fn checked_bps_fee(amount: u64, bps: u16) -> Result<u64> {
+        require!(bps as u64 <= BPS_DENOM, BasketError::InvalidFeeBps);
+        let numerator = (amount as u128)
+            .checked_mul(bps as u128)
+            .ok_or(BasketError::MathOverflow)?;
+        u64::try_from(
+            numerator
+                .checked_div(BPS_DENOM as u128)
+                .ok_or(BasketError::MathOverflow)?,
+        )
+        .map_err(|_| error!(BasketError::MathOverflow))
     }
 
     /// Exact streaming management-fee step with carried numerator dust.
@@ -143,6 +176,7 @@ pub mod math {
         elapsed_sec: u64,
         previous_remainder: u64,
     ) -> Result<(u64, u64)> {
+        require!(bps as u64 <= BPS_DENOM, BasketError::InvalidFeeBps);
         require!(
             (previous_remainder as u128) < MANAGEMENT_FEE_DENOMINATOR,
             BasketError::InvalidFeeRemainder
@@ -159,9 +193,22 @@ pub mod math {
         Ok((fee, next_remainder))
     }
 
-    pub fn split_fee(fee: u64, creator_split: u16) -> (u64, u64) {
-        let creator = (fee as u128 * creator_split as u128 / BPS_DENOM as u128) as u64;
-        (creator, fee - creator)
+    pub fn split_fee(fee: u64, creator_split: u16) -> Result<(u64, u64)> {
+        require!(
+            creator_split as u64 <= BPS_DENOM,
+            BasketError::InvalidFeeBps
+        );
+        let numerator = (fee as u128)
+            .checked_mul(creator_split as u128)
+            .ok_or(BasketError::MathOverflow)?;
+        let creator = u64::try_from(
+            numerator
+                .checked_div(BPS_DENOM as u128)
+                .ok_or(BasketError::MathOverflow)?,
+        )
+        .map_err(|_| error!(BasketError::MathOverflow))?;
+        let treasury = fee.checked_sub(creator).ok_or(BasketError::MathOverflow)?;
+        Ok((creator, treasury))
     }
 
     pub fn redeem_amounts(
@@ -169,9 +216,19 @@ pub mod math {
         burn_amount: u64,
         total_supply: u64,
     ) -> Result<Vec<u64>> {
+        require!(total_supply > 0, BasketError::ZeroSupply);
+        require!(burn_amount <= total_supply, BasketError::InsufficientShares);
         let mut out = Vec::with_capacity(vault_balances.len());
         for v in vault_balances {
-            let amt = (*v as u128 * burn_amount as u128 / total_supply as u128) as u64;
+            let numerator = (*v as u128)
+                .checked_mul(burn_amount as u128)
+                .ok_or(BasketError::MathOverflow)?;
+            let amt = u64::try_from(
+                numerator
+                    .checked_div(total_supply as u128)
+                    .ok_or(BasketError::MathOverflow)?,
+            )
+            .map_err(|_| error!(BasketError::MathOverflow))?;
             out.push(amt);
         }
         Ok(out)
@@ -473,7 +530,7 @@ pub mod basket {
         // Gross shares: genesis (S == 0) pays fixed 1_000_000, else min(D*S/V) with
         // the 1% tolerance (WeightMismatch on breach).
         let gross = compute_mint_gross(total_supply, &amounts, &vault_balances)?;
-        let entry_fee = math::entry_fee(gross, basket.entry_fee_bps);
+        let entry_fee = math::entry_fee(gross, basket.entry_fee_bps)?;
         let net = gross
             .checked_sub(entry_fee)
             .ok_or(BasketError::MathOverflow)?;
@@ -500,7 +557,7 @@ pub mod basket {
             )?;
         }
         if entry_fee > 0 {
-            let (creator_fee, treasury_fee) = fee_split_amounts(entry_fee);
+            let (creator_fee, treasury_fee) = fee_split_amounts(entry_fee)?;
             if creator_fee > 0 {
                 ensure_fee_ata(
                     &ctx.accounts.creator,
@@ -616,7 +673,7 @@ pub mod basket {
             BasketError::InsufficientShares
         );
 
-        let exit_fee = math::exit_fee(shares_to_burn, basket.exit_fee_bps);
+        let exit_fee = math::exit_fee(shares_to_burn, basket.exit_fee_bps)?;
         let burn_amount = shares_to_burn
             .checked_sub(exit_fee)
             .ok_or(BasketError::MathOverflow)?;
@@ -711,7 +768,7 @@ pub mod basket {
 
         // Exit fee shares are TRANSFERRED (not burned) 90/10 to creator/treasury.
         if exit_fee > 0 {
-            let (creator_fee, treasury_fee) = fee_split_amounts(exit_fee);
+            let (creator_fee, treasury_fee) = fee_split_amounts(exit_fee)?;
             let share_mint_ai = ctx.accounts.share_mint.to_account_info();
             let share_decimals = ctx.accounts.share_mint.decimals;
             let user_share_ata_ai = ctx.accounts.user_share_ata.to_account_info();
@@ -831,7 +888,7 @@ fn compute_mint_gross(total_supply: u64, deposits: &[u64], vault_balances: &[u64
 }
 
 /// Creator/treasury fee split (remainder to treasury so dust is never lost).
-fn fee_split_amounts(fee: u64) -> (u64, u64) {
+fn fee_split_amounts(fee: u64) -> Result<(u64, u64)> {
     math::split_fee(fee, CREATOR_FEE_SPLIT_BPS)
 }
 
@@ -998,8 +1055,11 @@ fn parse_constituents<'info>(
     remaining: &[AccountInfo<'info>],
     num_constituents: usize,
 ) -> Result<Vec<ConstituentAccounts<'info>>> {
+    let expected_len = num_constituents
+        .checked_mul(3)
+        .ok_or(BasketError::InvalidRemainingAccounts)?;
     require!(
-        remaining.len() == num_constituents * 3,
+        remaining.len() == expected_len,
         BasketError::InvalidRemainingAccounts
     );
     let mut out = Vec::with_capacity(num_constituents);
@@ -1221,7 +1281,7 @@ fn accrue_fee_internal<'info>(
         return Ok(0);
     }
 
-    let (creator_fee, treasury_fee) = fee_split_amounts(fee);
+    let (creator_fee, treasury_fee) = fee_split_amounts(fee)?;
     let share_mint_ai = share_mint.to_account_info();
 
     // PDA signer seeds for the vault/share-mint authority: ["basket", basket.key(), bump].
@@ -1536,6 +1596,8 @@ pub enum BasketError {
     BasketAlreadyInitialized,
     #[msg("management fee remainder is outside the canonical denominator")]
     InvalidFeeRemainder,
+    #[msg("Fee basis points exceed the 10000 bps denominator")]
+    InvalidFeeBps,
 }
 
 #[cfg(test)]
@@ -1646,61 +1708,64 @@ mod tests {
     // ========== FEES ==========
     #[test]
     fn test_fee_math() {
-        assert_eq!(entry_fee(1_000_000, 100), 10_000);
-        assert_eq!(exit_fee(1_000_000, 50), 5_000);
-        assert_eq!(management_fee(10_000_000, 200, 30 * 24 * 3600), 16438);
-        let (c, t) = split_fee(10_000, 9000);
+        assert_eq!(entry_fee(1_000_000, 100).unwrap(), 10_000);
+        assert_eq!(exit_fee(1_000_000, 50).unwrap(), 5_000);
+        assert_eq!(
+            management_fee(10_000_000, 200, 30 * 24 * 3600).unwrap(),
+            16438
+        );
+        let (c, t) = split_fee(10_000, 9000).unwrap();
         assert_eq!(c, 9000);
         assert_eq!(t, 1000);
     }
     #[test]
     fn test_entry_fee_zero_bps() {
-        assert_eq!(entry_fee(1_000_000, 0), 0);
+        assert_eq!(entry_fee(1_000_000, 0).unwrap(), 0);
     }
     #[test]
     fn test_entry_fee_max_bps() {
-        assert_eq!(entry_fee(1_000_000, 300), 30_000);
+        assert_eq!(entry_fee(1_000_000, 300).unwrap(), 30_000);
     }
     #[test]
     fn test_exit_fee_max_bps() {
-        assert_eq!(exit_fee(1_000_000, 100), 10_000);
+        assert_eq!(exit_fee(1_000_000, 100).unwrap(), 10_000);
     }
     #[test]
     fn test_split_fee_exact() {
-        assert_eq!(split_fee(10_000, 9000), (9000, 1000));
-        assert_eq!(split_fee(10_000, 5000), (5000, 5000));
-        assert_eq!(split_fee(10_000, 0), (0, 10_000));
-        assert_eq!(split_fee(10_000, 10_000), (10_000, 0));
+        assert_eq!(split_fee(10_000, 9000).unwrap(), (9000, 1000));
+        assert_eq!(split_fee(10_000, 5000).unwrap(), (5000, 5000));
+        assert_eq!(split_fee(10_000, 0).unwrap(), (0, 10_000));
+        assert_eq!(split_fee(10_000, 10_000).unwrap(), (10_000, 0));
     }
     #[test]
     fn test_split_fee_dust() {
         // fee 1 with 90/10 should give 0 creator, 1 treasury due to floor
-        assert_eq!(split_fee(1, 9000), (0, 1));
-        assert_eq!(split_fee(3, 9000), (2, 1)); // 3*0.9=2.7 floor 2
-                                                // sum always equals fee
+        assert_eq!(split_fee(1, 9000).unwrap(), (0, 1));
+        assert_eq!(split_fee(3, 9000).unwrap(), (2, 1)); // 3*0.9=2.7 floor 2
+                                                         // sum always equals fee
         for fee in [1, 2, 3, 7, 11, 99, 100] {
-            let (c, t) = split_fee(fee, 9000);
+            let (c, t) = split_fee(fee, 9000).unwrap();
             assert_eq!(c + t, fee);
         }
     }
     #[test]
     fn test_entry_fee_never_exceeds_gross() {
         for gross in [1, 100, 1_000_000, u64::MAX / 2] {
-            let fee = entry_fee(gross, 300);
+            let fee = entry_fee(gross, 300).unwrap();
             assert!(fee <= gross);
         }
     }
     #[test]
     fn test_management_fee_zero_elapsed() {
-        assert_eq!(management_fee(10_000_000, 300, 0), 0);
+        assert_eq!(management_fee(10_000_000, 300, 0).unwrap(), 0);
     }
     #[test]
     fn test_management_fee_zero_supply() {
-        assert_eq!(management_fee(0, 300, 3600), 0);
+        assert_eq!(management_fee(0, 300, 3600).unwrap(), 0);
     }
     #[test]
     fn test_management_fee_zero_bps() {
-        assert_eq!(management_fee(10_000_000, 0, 365 * 24 * 3600), 0);
+        assert_eq!(management_fee(10_000_000, 0, 365 * 24 * 3600).unwrap(), 0);
     }
     #[test]
     fn test_management_fee_remainder_preserves_small_accruals() {
@@ -1743,7 +1808,7 @@ mod tests {
             remainder = next_remainder;
         }
 
-        let single_crank_fee = management_fee(initial_supply, bps, SECONDS_PER_YEAR);
+        let single_crank_fee = management_fee(initial_supply, bps, SECONDS_PER_YEAR).unwrap();
         assert_eq!(single_crank_fee, 30_000);
         assert!(total_fee >= single_crank_fee);
         assert_eq!(supply, initial_supply + total_fee);
@@ -1811,18 +1876,18 @@ mod tests {
     #[test]
     fn test_management_fee_one_year_cap() {
         let supply = 10_000_000;
-        let one_year = management_fee(supply, 300, 365 * 24 * 3600);
+        let one_year = management_fee(supply, 300, 365 * 24 * 3600).unwrap();
         assert_eq!(one_year, 300_000); // 3%
-        let one_year_100 = management_fee(supply, 100, 365 * 24 * 3600);
+        let one_year_100 = management_fee(supply, 100, 365 * 24 * 3600).unwrap();
         assert_eq!(one_year_100, 100_000); // 1%
     }
     #[test]
     fn test_management_fee_hourly_vs_yearly() {
         let supply = 10_000_000;
         let bps = 300;
-        let hourly = management_fee(supply, bps, 3600);
+        let hourly = management_fee(supply, bps, 3600).unwrap();
         let yearly_via_hourly = hourly * 24 * 365;
-        let yearly = management_fee(supply, bps, 365 * 24 * 3600);
+        let yearly = management_fee(supply, bps, 365 * 24 * 3600).unwrap();
         // hourly floor undercounts; yearly single calc is >= sum of hourly floors, within realistic rounding
         assert!(yearly_via_hourly <= yearly);
         // allow up to 5% difference due to floor accumulation (hourly 11 vs yearly 300k: 96k vs 300k difference large but still < yearly)
@@ -1836,10 +1901,10 @@ mod tests {
         let bps = 300;
         let mut s_daily = supply;
         for _ in 0..30 {
-            let fee = management_fee(s_daily, bps, 24 * 3600);
+            let fee = management_fee(s_daily, bps, 24 * 3600).unwrap();
             s_daily += fee;
         }
-        let fee_single = management_fee(supply, bps, 30 * 24 * 3600);
+        let fee_single = management_fee(supply, bps, 30 * 24 * 3600).unwrap();
         let s_single = supply + fee_single;
         // daily compounding should be slightly higher but within 1% (since fee small)
         assert!(s_daily >= s_single);
@@ -1896,9 +1961,9 @@ mod tests {
     #[test]
     fn test_management_never_exceeds_cap() {
         let supply = 10_000_000;
-        let one_year = management_fee(supply, 300, 365 * 24 * 3600);
+        let one_year = management_fee(supply, 300, 365 * 24 * 3600).unwrap();
         assert_eq!(one_year, 300_000);
-        let hourly = management_fee(supply, 300, 3600);
+        let hourly = management_fee(supply, 300, 3600).unwrap();
         assert!(hourly * 24 * 365 <= one_year + 365);
     }
     #[test]
@@ -1933,7 +1998,7 @@ mod tests {
         let deposits = [100_000_000, 100_000_000];
         let supply = 10_000_000;
         let gross = gross_shares(&deposits, &vaults, supply).unwrap();
-        let fee = entry_fee(gross, 100);
+        let fee = entry_fee(gross, 100).unwrap();
         let net = gross - fee;
         let new_vaults = [vaults[0] + deposits[0], vaults[1] + deposits[1]];
         let new_supply = supply + net + fee;
@@ -1961,14 +2026,14 @@ mod tests {
         // mint 10%
         let deposits = [100_000_000, 100_000_000];
         let gross = gross_shares(&deposits, &vaults, supply).unwrap();
-        let fee = entry_fee(gross, 100);
-        let net = gross - fee;
+        let fee = entry_fee(gross, 100).unwrap();
+        let _net = gross - fee;
         vaults[0] += deposits[0];
         vaults[1] += deposits[1];
         supply += gross; // total minted including fee
                          // redeem 5% of new supply
         let burn = supply / 20;
-        let exit_fee = exit_fee(burn, 50);
+        let exit_fee = exit_fee(burn, 50).unwrap();
         let burn_net = burn - exit_fee;
         let out = redeem_amounts(&vaults, burn_net, supply).unwrap();
         vaults[0] -= out[0];
@@ -2027,14 +2092,14 @@ mod tests {
     fn test_fee_overcharging_never() {
         for bps in [0, 1, 100, 299, 300] {
             for gross in [1, 100, 10_000, 1_000_000, 1_000_000_000] {
-                let fee = entry_fee(gross, bps);
+                let fee = entry_fee(gross, bps).unwrap();
                 assert!(fee <= gross);
                 assert!(fee <= gross * bps as u64 / 10_000 + 1);
             }
         }
         for bps in [0, 50, 100] {
             for shares in [1, 100, 1_000_000] {
-                let fee = exit_fee(shares, bps);
+                let fee = exit_fee(shares, bps).unwrap();
                 assert!(fee <= shares);
             }
         }
@@ -2064,23 +2129,23 @@ mod mega_tests {
     use super::math::*;
     #[test]
     fn t1_entry_zero() {
-        assert_eq!(entry_fee(0, 100), 0);
+        assert_eq!(entry_fee(0, 100).unwrap(), 0);
     }
     #[test]
     fn t2_exit_zero() {
-        assert_eq!(exit_fee(0, 50), 0);
+        assert_eq!(exit_fee(0, 50).unwrap(), 0);
     }
     #[test]
     fn t3_split_zero() {
-        assert_eq!(split_fee(0, 9000), (0, 0));
+        assert_eq!(split_fee(0, 9000).unwrap(), (0, 0));
     }
     #[test]
     fn t4_mgmt_zero_supply() {
-        assert_eq!(management_fee(0, 300, 1000), 0);
+        assert_eq!(management_fee(0, 300, 1000).unwrap(), 0);
     }
     #[test]
     fn t5_mgmt_zero_elapsed() {
-        assert_eq!(management_fee(10_000_000, 300, 0), 0);
+        assert_eq!(management_fee(10_000_000, 300, 0).unwrap(), 0);
     }
     #[test]
     fn t6_redeem_empty() {
@@ -2105,31 +2170,31 @@ mod mega_tests {
     }
     #[test]
     fn t9_fee_1_percent() {
-        assert_eq!(entry_fee(100_000, 100), 1000);
+        assert_eq!(entry_fee(100_000, 100).unwrap(), 1000);
     }
     #[test]
     fn t10_fee_3_percent() {
-        assert_eq!(entry_fee(100_000, 300), 3000);
+        assert_eq!(entry_fee(100_000, 300).unwrap(), 3000);
     }
     #[test]
     fn t11_exit_1_percent() {
-        assert_eq!(exit_fee(100_000, 100), 1000);
+        assert_eq!(exit_fee(100_000, 100).unwrap(), 1000);
     }
     #[test]
     fn t12_mgmt_1_year_200bps() {
-        assert_eq!(management_fee(10_000_000, 200, 31536000), 200_000);
+        assert_eq!(management_fee(10_000_000, 200, 31536000).unwrap(), 200_000);
     }
     #[test]
     fn t13_mgmt_half_year() {
-        assert_eq!(management_fee(10_000_000, 300, 15768000), 150_000);
+        assert_eq!(management_fee(10_000_000, 300, 15768000).unwrap(), 150_000);
     }
     #[test]
     fn t14_split_half() {
-        assert_eq!(split_fee(100, 5000), (50, 50));
+        assert_eq!(split_fee(100, 5000).unwrap(), (50, 50));
     }
     #[test]
     fn t15_split_10() {
-        assert_eq!(split_fee(10, 9000), (9, 1));
+        assert_eq!(split_fee(10, 9000).unwrap(), (9, 1));
     }
     #[test]
     fn t16_redeem_10_percent() {
@@ -2156,25 +2221,25 @@ mod mega_tests {
     #[test]
     fn t21_fuzz_entry() {
         for i in 1..20 {
-            assert!(entry_fee(i * 1000, 100) <= i * 1000);
+            assert!(entry_fee(i * 1000, 100).unwrap() <= i * 1000);
         }
     }
     #[test]
     fn t22_fuzz_exit() {
         for i in 1..20 {
-            assert!(exit_fee(i * 1000, 50) <= i * 1000);
+            assert!(exit_fee(i * 1000, 50).unwrap() <= i * 1000);
         }
     }
     #[test]
     fn t23_fuzz_mgmt() {
         for i in 1..20 {
-            assert!(management_fee(10_000_000, 300, i * 3600) <= 300_000);
+            assert!(management_fee(10_000_000, 300, i * 3600).unwrap() <= 300_000);
         }
     }
     #[test]
     fn t24_fuzz_split() {
         for fee in 1..20 {
-            let (c, t) = split_fee(fee, 9000);
+            let (c, t) = split_fee(fee, 9000).unwrap();
             assert_eq!(c + t, fee);
         }
     }
@@ -2197,17 +2262,20 @@ mod mega_tests {
     #[test]
     fn t28_mgmt_never_exceeds_cap_random() {
         for bps in [0, 100, 200, 300] {
-            assert!(management_fee(100_000_000, bps, 31536000) <= 100_000_000 * bps as u64 / 10000);
+            assert!(
+                management_fee(100_000_000, bps, 31536000).unwrap()
+                    <= 100_000_000 * bps as u64 / 10000
+            );
         }
     }
     #[test]
     fn t29_entry_exact() {
-        assert_eq!(entry_fee(10_000, 100), 100);
-        assert_eq!(entry_fee(10_000, 200), 200);
+        assert_eq!(entry_fee(10_000, 100).unwrap(), 100);
+        assert_eq!(entry_fee(10_000, 200).unwrap(), 200);
     }
     #[test]
     fn t30_exit_exact() {
-        assert_eq!(exit_fee(10_000, 100), 100);
+        assert_eq!(exit_fee(10_000, 100).unwrap(), 100);
     }
     #[test]
     fn t31_scaled_raw() {
@@ -2234,11 +2302,11 @@ mod mega_tests {
     }
     #[test]
     fn t35_fee_split_0() {
-        assert_eq!(split_fee(100, 0), (0, 100));
+        assert_eq!(split_fee(100, 0).unwrap(), (0, 100));
     }
     #[test]
     fn t36_fee_split_100() {
-        assert_eq!(split_fee(100, 10000), (100, 0));
+        assert_eq!(split_fee(100, 10000).unwrap(), (100, 0));
     }
     #[test]
     fn t37_gross_with_supply_1() {
@@ -2247,11 +2315,11 @@ mod mega_tests {
     }
     #[test]
     fn t38_mgmt_30_days() {
-        assert_eq!(management_fee(10_000_000, 300, 2592000), 24657);
+        assert_eq!(management_fee(10_000_000, 300, 2592000).unwrap(), 24657);
     }
     #[test]
     fn t39_mgmt_7_days() {
-        assert_eq!(management_fee(10_000_000, 200, 604800), 3835);
+        assert_eq!(management_fee(10_000_000, 200, 604800).unwrap(), 3835);
     }
     #[test]
     fn t40_redeem_multi() {
@@ -2314,25 +2382,25 @@ mod impl_tests {
     // ========== FEE SPLIT (90/10 with remainder-to-treasury) ==========
     #[test]
     fn test_fee_split_amounts_dust_cases() {
-        assert_eq!(fee_split_amounts(0), (0, 0));
-        assert_eq!(fee_split_amounts(1), (0, 1)); // 1*0.9=0.9 floor 0 → dust to treasury
-        assert_eq!(fee_split_amounts(3), (2, 1)); // 2.7 floor 2
-        assert_eq!(fee_split_amounts(9), (8, 1)); // 8.1 floor 8
-        assert_eq!(fee_split_amounts(10), (9, 1));
-        assert_eq!(fee_split_amounts(11), (9, 2)); // 9.9 floor 9
-        assert_eq!(fee_split_amounts(10_000), (9_000, 1_000));
+        assert_eq!(fee_split_amounts(0).unwrap(), (0, 0));
+        assert_eq!(fee_split_amounts(1).unwrap(), (0, 1)); // 1*0.9=0.9 floor 0 → dust to treasury
+        assert_eq!(fee_split_amounts(3).unwrap(), (2, 1)); // 2.7 floor 2
+        assert_eq!(fee_split_amounts(9).unwrap(), (8, 1)); // 8.1 floor 8
+        assert_eq!(fee_split_amounts(10).unwrap(), (9, 1));
+        assert_eq!(fee_split_amounts(11).unwrap(), (9, 2)); // 9.9 floor 9
+        assert_eq!(fee_split_amounts(10_000).unwrap(), (9_000, 1_000));
     }
 
     #[test]
     fn test_fee_split_amounts_sum_invariant_exhaustive() {
         // creator + treasury == fee for every fee 0..=5000 and a spread of large fees
         for fee in 0..=5000u64 {
-            let (c, t) = fee_split_amounts(fee);
+            let (c, t) = fee_split_amounts(fee).unwrap();
             assert_eq!(c + t, fee, "sum broken at fee={fee}");
             assert!(c <= fee);
         }
         for fee in [10_000u64, 123_456, 9_999_999, u64::MAX] {
-            let (c, t) = fee_split_amounts(fee);
+            let (c, t) = fee_split_amounts(fee).unwrap();
             assert_eq!(c.checked_add(t), Some(fee));
         }
     }
@@ -2342,9 +2410,9 @@ mod impl_tests {
         // net (user) + creator_fee + treasury_fee == gross, for all capped bps
         for bps in [0u16, 1, 50, 100, 299, 300] {
             for gross in [1u64, 999, 10_000, 1_000_000, 123_456_789, u64::MAX / 2] {
-                let fee = entry_fee(gross, bps);
+                let fee = entry_fee(gross, bps).unwrap();
                 let net = gross - fee; // fee <= gross always for bps <= 10000
-                let (c, t) = fee_split_amounts(fee);
+                let (c, t) = fee_split_amounts(fee).unwrap();
                 assert_eq!(
                     net + c + t,
                     gross,
@@ -2361,8 +2429,8 @@ mod impl_tests {
         for bps in [100u16, 200, 300] {
             for days in [1u64, 7, 30, 180, 365] {
                 let elapsed = days * 24 * 3600;
-                let fee = management_fee(10_000_000, bps, elapsed);
-                let (c, t) = fee_split_amounts(fee);
+                let fee = management_fee(10_000_000, bps, elapsed).unwrap();
+                let (c, t) = fee_split_amounts(fee).unwrap();
                 assert_eq!(c + t, fee);
                 // creator share floors toward 90%
                 assert!(c <= fee * 9 / 10 + 1);
@@ -2398,10 +2466,10 @@ mod impl_tests {
         // creator+treasury transfers (c + t == fee)
         for bps in [0u16, 50, 100] {
             for b in [1u64, 100, 1_000_000, 10_000_000] {
-                let fee = exit_fee(b, bps);
+                let fee = exit_fee(b, bps).unwrap();
                 let burn = b - fee;
                 assert_eq!(b - burn, fee);
-                let (c, t) = fee_split_amounts(fee);
+                let (c, t) = fee_split_amounts(fee).unwrap();
                 assert_eq!(c + t, fee);
             }
         }
@@ -2411,7 +2479,7 @@ mod impl_tests {
     fn test_redeem_burn_positive_when_fee_bps_capped() {
         // with caps (exit <= 100 bps) the burned amount is always > 0 for shares > 0
         for bps in [0u16, 1, 99, 100] {
-            let fee = exit_fee(1, bps);
+            let fee = exit_fee(1, bps).unwrap();
             assert!(1 - fee > 0);
         }
     }
@@ -2479,15 +2547,123 @@ mod impl_tests {
     #[test]
     fn test_redeem_spec_example_54_725_000() {
         // spec §5.3: S=10M, V_TSLA=550M, B=1M, exit 50bps → fee 5k, burn 995k, out 54_725_000
-        let fee = exit_fee(1_000_000, 50);
+        let fee = exit_fee(1_000_000, 50).unwrap();
         assert_eq!(fee, 5_000);
         let burn = 1_000_000 - fee;
         assert_eq!(burn, 995_000);
         let out = redeem_amounts(&[550_000_000], burn, 10_000_000).unwrap();
         assert_eq!(out[0], 54_725_000);
-        let (c, t) = fee_split_amounts(fee);
+        let (c, t) = fee_split_amounts(fee).unwrap();
         assert_eq!(c, 4_500);
         assert_eq!(t, 500);
+    }
+}
+
+#[cfg(test)]
+mod bas004_arithmetic_tests {
+    use super::math;
+    use super::*;
+
+    #[test]
+    fn checked_fee_helpers_reject_invalid_bps_and_keep_u64_boundaries() {
+        assert_eq!(
+            math::entry_fee(u64::MAX, BPS_DENOM as u16).unwrap(),
+            u64::MAX
+        );
+        assert_eq!(
+            math::exit_fee(u64::MAX, BPS_DENOM as u16).unwrap(),
+            u64::MAX
+        );
+        assert_eq!(
+            math::management_fee(u64::MAX, BPS_DENOM as u16, SECONDS_PER_YEAR).unwrap(),
+            u64::MAX
+        );
+        assert_eq!(
+            math::split_fee(u64::MAX, BPS_DENOM as u16).unwrap(),
+            (u64::MAX, 0)
+        );
+
+        let invalid_bps = (BPS_DENOM + 1) as u16;
+        assert!(math::entry_fee(1, invalid_bps).is_err());
+        assert!(math::exit_fee(1, invalid_bps).is_err());
+        assert!(math::management_fee(1, invalid_bps, 1).is_err());
+        assert!(math::split_fee(1, invalid_bps).is_err());
+        assert!(math::management_fee_with_remainder(1, invalid_bps, 1, 0).is_err());
+    }
+
+    #[test]
+    fn checked_helpers_reject_narrowing_and_tolerance_overflow() {
+        // The quotient is larger than u64 even though the u128 product itself fits.
+        assert!(math::gross_shares(&[u64::MAX], &[1], u64::MAX).is_err());
+
+        // `diff * 100` overflows u64 for this valid pair of computed gross values.
+        // The checked u128 comparison must return WeightMismatch instead of panicking.
+        let result = math::gross_shares(&[u64::MAX, u64::MAX], &[1, 2], 1);
+        assert!(result.is_err());
+    }
+
+    #[test]
+    fn redeem_requires_nonzero_supply_and_burn_within_supply() {
+        assert!(math::redeem_amounts(&[1], 0, 0).is_err());
+        assert!(math::redeem_amounts(&[1], 2, 1).is_err());
+        assert_eq!(
+            math::redeem_amounts(&[u64::MAX], u64::MAX, u64::MAX).unwrap(),
+            vec![u64::MAX]
+        );
+    }
+
+    #[test]
+    fn management_fee_rejects_checked_narrowing() {
+        assert!(math::management_fee(u64::MAX, BPS_DENOM as u16, u64::MAX).is_err());
+    }
+
+    #[test]
+    fn deterministic_arithmetic_properties_hold_at_boundaries() {
+        let mut state = 0x9e37_79b9_7f4a_7c15u64;
+        for _ in 0..512 {
+            state = state
+                .wrapping_mul(6_364_136_223_846_793_005)
+                .wrapping_add(1_442_695_040_888_963_407);
+            let amount = state;
+            let bps = (state % (BPS_DENOM + 1)) as u16;
+            let expected_fee =
+                u64::try_from((amount as u128 * bps as u128) / BPS_DENOM as u128).unwrap();
+
+            assert_eq!(math::entry_fee(amount, bps).unwrap(), expected_fee);
+            assert_eq!(math::exit_fee(amount, bps).unwrap(), expected_fee);
+            assert!(expected_fee <= amount);
+
+            let (creator, treasury) = math::split_fee(amount, bps).unwrap();
+            assert_eq!(creator.checked_add(treasury), Some(amount));
+            assert!(creator <= amount);
+
+            let supply = 1 + (state % 1_000_000_000_000);
+            let elapsed = state % (SECONDS_PER_YEAR * 10);
+            let expected_management = u64::try_from(
+                (supply as u128 * bps as u128 * elapsed as u128) / MANAGEMENT_FEE_DENOMINATOR,
+            )
+            .unwrap();
+            assert_eq!(
+                math::management_fee(supply, bps, elapsed).unwrap(),
+                expected_management
+            );
+
+            let vault = 1 + (state % 1_000_000_000_000);
+            let redeem_supply = 1 + (state % 1_000_000);
+            let burn = state % (redeem_supply + 1);
+            let out = math::redeem_amounts(&[vault], burn, redeem_supply)
+                .unwrap()
+                .pop()
+                .unwrap();
+            assert!(out <= vault);
+            assert!((out as u128) * redeem_supply as u128 <= (vault as u128) * burn as u128);
+        }
+    }
+
+    #[test]
+    fn split_accounts_rejects_constituent_count_multiplication_overflow() {
+        assert!(split_token_accounts_and_whitelist::<u8>(&[], usize::MAX).is_err());
+        assert!(parse_constituents(&[], usize::MAX).is_err());
     }
 }
 
