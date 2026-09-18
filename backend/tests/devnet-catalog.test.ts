@@ -707,11 +707,11 @@ describe("NAV math with injected realistic (yahoo) prices — same formulas, rea
 });
 
 // ============================================================================
-// 4. .env.devnet profile — real env names, program IDs, honest gating
+// 4. .env.devnet.example profile — real env names, program IDs, honest gating
 // ============================================================================
 
-describe(".env.devnet — profile parses with the exact env names from code", () => {
-  const envPath = new URL("../.env.devnet", import.meta.url);
+describe(".env.devnet.example — tracked profile parses with the exact env names from code", () => {
+  const envPath = new URL("../.env.devnet.example", import.meta.url);
   const raw = fs.readFileSync(envPath, "utf8");
   const parsed: Record<string, string> = {};
   for (const line of raw.split("\n")) {

@@ -25,6 +25,7 @@ npm --prefix app run build                  # 21 routes in the 2026-09-18 clean-
 Run the backend against devnet:
 
 ```bash
+cp backend/.env.devnet.example backend/.env.devnet
 cd backend && set -a && . ./.env.devnet && set +a && npx tsx src/index.ts
 ```
 

@@ -1,0 +1,58 @@
+{
+  "$schema": "./deployment-manifest.schema.json",
+  "schemaVersion": 1,
+  "project": "basalt",
+  "generatedAt": "1970-01-01T00:00:00.000Z",
+  "git": {
+    "commit": null,
+    "dirty": false
+  },
+  "deployment": {
+    "environment": "devnet",
+    "cluster": "devnet",
+    "rpcUrl": null,
+    "status": "not-attested",
+    "upgradeAuthority": null,
+    "deployedSlot": null
+  },
+  "programs": {
+    "basket": {
+      "programId": null,
+      "upgradeAuthority": null,
+      "deployedSlot": null
+    },
+    "basket_factory": {
+      "programId": null,
+      "upgradeAuthority": null,
+      "deployedSlot": null
+    },
+    "whitelist": {
+      "programId": null,
+      "upgradeAuthority": null,
+      "deployedSlot": null
+    }
+  },
+  "toolchain": {
+    "node": null,
+    "npm": null,
+    "rustc": null,
+    "cargo": null,
+    "solanaCli": null,
+    "anchor": null
+  },
+  "dependencies": {
+    "locks": {
+      "root": { "path": "package-lock.json", "sha256": null },
+      "app": { "path": "app/package-lock.json", "sha256": null },
+      "backend": { "path": "backend/package-lock.json", "sha256": null }
+    }
+  },
+  "artifacts": {
+    "elf": [],
+    "images": []
+  },
+  "limitations": [
+    "Replace placeholders with post-deploy RPC verification before publishing.",
+    "This file is a template; generate a manifest with scripts/generate-deployment-manifest.mjs."
+  ]
+}

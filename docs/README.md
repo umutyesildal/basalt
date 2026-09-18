@@ -26,6 +26,7 @@ Basket counts, test counts, API versions, and deployment claims in older files a
 | `product-ux-improvement-plan.md` | Onboarding, create, trading, charts, and accessibility |
 | `testing-and-release-plan.md` | CI, test layers, release evidence, and rollback |
 | `dependency-audit-2026-09-18.md` | Dated npm audit evidence, remediation, and accepted upstream risk |
+| `deployment-attestation.md` | Deployment manifest generation, artifact hashes, and verification limits |
 
 ## Update discipline
 

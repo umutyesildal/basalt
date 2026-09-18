@@ -87,8 +87,8 @@ Completion evidence (working tree, 2026-09-18):
 ### BAS-007 — Reproducible program attestation
 
 - [ ] Pin deterministic toolchain.
-- [ ] Generate ELF SHA-256 hashes.
-- [ ] Add deployment-manifest schema and script.
+- [x] Generate optional ELF and image SHA-256 hashes.
+- [x] Add deployment-manifest schema, template, and generator.
 - [ ] Verify on-chain program data.
 
 **Owner area:** protocol/CI/ops
@@ -181,9 +181,9 @@ Completion evidence (2026-09-18):
 - [x] Define Rust format/check/test gates.
 - [x] Define backend build/test gates.
 - [x] Define frontend typecheck/build gates.
-- [~] Define dependency and secret scans; first hosted CI run is still required.
-- [ ] Pin third-party GitHub Actions to reviewed commit SHAs.
-- [ ] Artifact/deployment manifest.
+- [x] Define dependency and secret scans; the first hosted run passed both gates.
+- [x] Pin third-party GitHub Actions to reviewed commit SHAs.
+- [x] Artifact/deployment manifest shape and deterministic local generator.
 
 **Dependency:** BAS-014
 **Acceptance:** Required checks gate every merge.
@@ -192,7 +192,8 @@ Local workflow evidence (2026-09-18):
 - Rust after BAS-001: format, workspace check, 183 tests, and Clippy all exit 0. Clippy emits existing Anchor cfg/style warnings but no errors.
 - Node after BAS-001: clean root install, backend build, 550 tests, app typecheck, and 21-route production build all exit 0.
 - Dependency gates: root and backend block critical production advisories; app blocks high production advisories. All three configured commands exit 0.
-- Secret scanning and merge protection require the first hosted GitHub Actions run; no commit or push was performed as part of this local repair.
+- Hosted run `35394708139` passed Rust, dependency-audit, and secret-scan jobs. Its Node job exposed an ignored-file dependency in `devnet-catalog.test.ts`; the test now reads the tracked, secret-free `.env.devnet.example`. A green rerun is still required before BAS-015 closes.
+- Manifest evidence: `deploy/deployment-manifest.schema.json`, `deploy/deployment-manifest.template.json`, `scripts/generate-deployment-manifest.mjs`, and `docs/deployment-attestation.md`. RPC verification of authorities, slots, and deployed program bytes remains pending.
 
 ### BAS-016 — Solana instruction-level suite
 
