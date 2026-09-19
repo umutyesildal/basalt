@@ -4,8 +4,8 @@
 
 Snapshot from 2026-09-19:
 
-- Rust workspace: 207 tests passed (136 basket, 44 basket_factory, 27 whitelist).
-- Backend: 565 Vitest tests passed.
+- Rust workspace: 208 tests passed (136 basket, 45 basket_factory, 27 whitelist).
+- Backend: 576 Vitest tests passed across 16 files.
 - Frontend TypeScript: passed.
 - Frontend test suite: missing.
 - Root, standalone app, and standalone backend clean installs pass after the 2026-09-18 lock repair.
@@ -75,6 +75,7 @@ Use wallet test doubles for UI-state tests, plus at least one localnet/nightly f
 - Full redemption leaves only defined flooring dust.
 - Mint/redeem round trips cannot create value outside fees and flooring.
 - For fixed supply, management-fee numerator value is independent of how elapsed time is partitioned across cranks; supply-changing compounding is tested and disclosed separately.
+- Every entry, exit, and management-fee path uses the protocol-wide split `creator=floor(fee*9000/10000)`, `treasury=fee-creator`; the conservation invariant assigns all split dust to treasury. The legacy factory split field/argument is pinned to 9,000 rather than treated as a V0 override.
 - Checked economic arithmetic must return domain errors rather than wrap or narrow; max-u64 and deterministic property cases remain part of the Rust release gate.
 - Multiplier changes never alter raw ownership.
 - Creator plus treasury equals total fee.

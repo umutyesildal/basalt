@@ -4,7 +4,7 @@
 > **Read this first before writing code.** This file carries the normative Basalt V0 constraints; it is not the source for changing deployment/test counts.
 > Documentation map: `docs/README.md` | Current verified state: `docs/current-state-2026-09-18.md` | Operational backlog: `docs/implementation-backlog.md` | Spec: `docs/basalt-v0-spec.md` | Prompt: `foliox_build_prompt.md` (historical name)
 > Brand: **BASALT identity** (owner decision 2026-09-12: project renamed FolioX → Basalt; hexagonal basalt columns mark per `docs/design-basalt-v1.md`, electric-yellow token system per `docs/design-cyberpunk-yellow-v1.md`, Chakra Petch display, Geist Mono labels — Roman layer fully retired). Telemetry off. Legal-review chips removed from UI (backlog).
-> Audit snapshot (2026-09-19, current working tree): **real devnet create/mint/redeem and read-only indexer verified; assets are project mock mints, some deployed home/social surfaces use `NEXT_PUBLIC_HOME_DEMO=1`, and the product is not mainnet-ready. Clean root/app/backend installs pass; 207 Rust + 565 backend tests passed; the app produced a 21-route production build.** BAS-001 fee-grief is fixed locally but awaits a devnet upgrade/smoke. BAS-002 remains extension-free and fail-closed, BAS-003 Zap-in delta accounting is complete, and BAS-004 checked arithmetic is complete locally with max-u64/property coverage; official xStocks remain unsupported pending audited dependency and hook-aware transfer work. Instruction-level extension/adversarial-hook coverage remains open under BAS-016; multisig/timelock, data truth labels, and reproducible deployment attestation also remain open. Counts/details later in this file may be historical; `docs/current-state-2026-09-18.md` prevails.
+> Audit snapshot (2026-09-19, current working tree): **real devnet create/mint/redeem and read-only indexer verified; assets are project mock mints, some deployed home/social surfaces use `NEXT_PUBLIC_HOME_DEMO=1`, and the product is not mainnet-ready. Clean root/app/backend installs pass; 208 Rust + 576 backend tests passed; the app produced a 21-route production build.** BAS-001 fee-grief is fixed locally but awaits a devnet upgrade/smoke. BAS-002 remains extension-free and fail-closed, BAS-003 Zap-in delta accounting is complete, BAS-004 checked arithmetic is complete locally, and BAS-005 fixes the V0 fee split at 90/10 with then-current-supply compounding disclosed; official xStocks remain unsupported pending audited dependency and hook-aware transfer work. Instruction-level extension/adversarial-hook coverage remains open under BAS-016; multisig/timelock, data truth labels, and reproducible deployment attestation also remain open. Counts/details later in this file may be historical; `docs/current-state-2026-09-18.md` prevails.
 
 ---
 
@@ -47,7 +47,7 @@ If you are tempted to add `admin_withdraw`, `pause_redeem`, `oracle check`, or `
 | **Tokens** | SPL Token-2022 | Raw for transfers, scaled for display |
 | **Oracles/prices** | Legacy Jupiter Price v6 adapter (reference NAV only; BAS-011 migration pending) | Never gates redeem |
 | **Zap** | Jupiter Swap API (quote → swap) | Sequential swaps + `mint_in_kind` in V0 |
-| **Tests** | Rust `cargo test` 207 tests, backend `vitest` 565 tests | Verified total 772 tests passing on 2026-09-19 |
+| **Tests** | Rust `cargo test` 208 tests, backend `vitest` 576 tests | Verified total 784 tests passing on 2026-09-19 |
 
 **Program IDs (localnet/devnet):**
 
@@ -77,7 +77,7 @@ basket         = "6Q43vFh4aqGxzvtU2vQwJX9PmX3skfYsGWZdA3fwJB9k" # programs/baske
 ├── CONTEXT.md                  # symlink/copy of this for other agents
 ├── programs/
 │   ├── whitelist/src/lib.rs    # init_config, add_mint, pause/unpause, transfer_authority (27 tests)
-│   ├── basket_factory/src/lib.rs # init_factory, create_basket (44 tests, validates 2-20, sum 10k, caps, atomic seed, genesis 1M)
+│   ├── basket_factory/src/lib.rs # init_factory, create_basket (45 tests, validates 2-20, sum 10k, caps, atomic seed, genesis 1M)
 │   └── basket/src/lib.rs       # math + mint_in_kind/redeem_in_kind/accrue_management_fee (136 tests)
 ├── backend/
 │   ├── src/db/schema.sql       # 8 tables + indexes + view (baskets, whitelisted_mints, vault_holdings, nav_snapshots, events, creator_stats, user_positions)
@@ -137,7 +137,7 @@ basket         = "6Q43vFh4aqGxzvtU2vQwJX9PmX3skfYsGWZdA3fwJB9k" # programs/baske
 | `BasketShareMint` | `b"share_mint", basket.key()` | PDA `b"basket", basket.key()` | Token-2022 mint, decimals 6 |
 | `VaultATA` per constituent | ATA `basket_pda, mint` | basket PDA | Token-2022 account |
 
-Basket immutable — no update ix. `FactoryConfig.creator_fee_split_bps = 9000` default (90% creator, 10% treasury) + caps `entry 300, exit 100, mgmt 300`.
+Basket immutable — no update ix. V0 fee split is protocol-wide (90% creator / 10% treasury); `FactoryConfig.creator_fee_split_bps` remains only for legacy ABI compatibility and is pinned to 9000, plus caps `entry 300, exit 100, mgmt 300`.
 
 Events: `BasketCreated {basket, creator, num_constituents, share_mint, ts}`, `Minted {gross, net, entry_fee}`, `Redeemed {shares_burned, exit_fee}`, `FeeAccrued {shares_minted, elapsed_sec}` (`programs/basket/src/lib.rs:222`).
 
@@ -154,14 +154,14 @@ Events: `BasketCreated {basket, creator, num_constituents, share_mint, ts}`, `Mi
 
 **Basket Factory (`basket_factory::`):**
 
-* `init_factory(treasury:Pubkey, creator_split:u16)` — split ≤10000
+* `init_factory(treasury:Pubkey, creator_split:u16)` — legacy split argument; only 9000 is accepted in V0
 * `create_basket(nonce:u64, constituents:Vec<Pubkey>, weights:Vec<u16>, entry:u16, exit:u16, mgmt:u16, metadata_hash:[u8;32], seed_amounts:Vec<u64>)` — validates 2-20, no dup, sum 10000, fee caps, `seed>0`, atomic `transfer_checked` creator→vault, mints genesis `GENESIS_SHARES = 1_000_000` (`programs/basket/src/lib.rs:9`), emits `BasketCreated`, increments `factory.basket_count`. Remaining accounts are whitelisted mints for verification (V0 stub trusts caller).
 
 **Basket (`basket::`):**
 
-* `mint_in_kind(amounts:Vec<u64>, vault_balances:Vec<u64>)` — len == `num_constituents`, `amount>0`, `accrue_internal` first, `gross = min(D*S/V)` with 1% tolerance else `WeightMismatch`, `entry_fee = gross*bps/10000`, `net = gross-fee`, `split_fee(fee,9000)`, emit `Minted`. **Client contract (implemented):** remaining_accounts = `[mint_i, user_ata_i, vault_ata_i]` triplets (3n) FOLLOWED BY n `WhitelistedMint` PDAs (total 4n); each PDA must be whitelist-program-owned with `status==Active` else `MintPaused` (fail-closed) — mirrored in `app/lib/transactions.ts`
+* `mint_in_kind(amounts:Vec<u64>, vault_balances:Vec<u64>)` — len == `num_constituents`, `amount>0`, `accrue_internal` first, `gross = min(D*S/V)` with 1% tolerance else `WeightMismatch`, `entry_fee = gross*bps/10000`, `net = gross-fee`, fixed `fee_split_amounts(fee)`, emit `Minted`. **Client contract (implemented):** remaining_accounts = `[mint_i, user_ata_i, vault_ata_i]` triplets (3n) FOLLOWED BY n `WhitelistedMint` PDAs (total 4n); each PDA must be whitelist-program-owned with `status==Active` else `MintPaused` (fail-closed) — mirrored in `app/lib/transactions.ts`
 * `redeem_in_kind(shares:u64, vault_balances:Vec<u64>)` — `shares>0`, `shares ≤ user_share_ata.amount`, `total_supply>0`, `accrue_internal`, `exit_fee = shares*bps/10000`, `burn = shares-fee`, `amount_out = V*burn/S` floor per constituent, emit `Redeemed`. **Never checks whitelist/oracle/pauser** — remaining_accounts = 3n triplets ONLY, structurally tested (`RedeemInKind` gate-free assertion).
-* `accrue_management_fee()` — `elapsed = now - last_accrual`, `fee = supply*bps*elapsed/(10000*31536000)`, `split_fee`, emit `FeeAccrued`, update `last_fee_accrual_ts` (`programs/basket/src/lib.rs:131`). Permissionless.
+* `accrue_management_fee()` — exact numerator remainder carry: each interval uses then-current supply and `fee = (supply*bps*elapsed + previous_remainder)/(10000*31536000)`; fee shares join supply and later intervals compound slightly. Split with the fixed protocol rule, emit `FeeAccrued`, update `last_fee_accrual_ts` (`programs/basket/src/lib.rs:131`). Zero supply or zero bps checkpoints clear the remainder. Permissionless.
 
 ---
 
@@ -192,7 +192,7 @@ Off-weight `D=[60M,30M,10M]` → `gross=[1.2M,1M,0.5M]`, `max-min 700k > 1%*500k
 
 Example: `S=10M`, `V_TSLA=550M`, `B=1M`, `exit 50bps → fee 5k, burn 995k, out=550M*995k/10M=54_725_000` (`docs/basalt-v0-spec.md:370`).
 
-**Mgmt streaming:** `fee = supply * bps * elapsed / (10000*31536000)` (`backend/src/workers/feeMath.ts:10` + `basket/src/lib.rs:46`). Example `supply 10M, 200bps, 30d → 16,438` (`docs/basalt-v0-spec.md:405`). Split `creator = fee*9000/10000, treasury = fee-creator` remainder to treasury.
+**Mgmt streaming:** `fee = (then_current_supply * bps * elapsed + previous_remainder) / (10000*31536000)` (`backend/src/workers/feeMath.ts:10` + `basket/src/lib.rs:46`). Fee-share mints increase supply for later intervals, so the nominal annual rate is not a fixed charge against initial supply. Example `supply 10M, 200bps, 30d → 16,438` (`docs/basalt-v0-spec.md:405`). Split `creator = floor(fee*9000/10000), treasury=fee-creator`; all split dust goes to treasury.
 
 ---
 
@@ -263,7 +263,7 @@ Wizard gates: wallet connected (Next disabled otherwise), `2≤len≤20` Active 
 ## 11. Security Checklist (Must Pass Before Mainnet)
 
 * **P0:** signer on `creator`/`user`/`authority`; owner checks `Token2022` for vault/mint; no `admin_withdraw` (grep `transfer` only in mint/redeem); redeem not pausable (no whitelist/oracle/backend check); oracle-free redeem (`programs/basket/src/lib.rs:103` has no oracle account)
-* **P1:** pro-rata `V*burn/S` floor; genesis `1M` fixed vs inflation attack (factory `seed>0` + weight check); rounding dust favors remaining holders; `transfer_checked` with `decimals` from whitelist; `// RAW ONLY`; ATA substitution `owner==user` + `mint==expected` + `getAssociatedTokenAddress`; PDA seeds `#[account(seeds=[...],bump)]`; fee `≤ cap` + `treasury+creator == fee`
+* **P1:** pro-rata `V*burn/S` floor; genesis `1M` fixed vs inflation attack (factory `seed>0` + weight check); rounding dust favors remaining holders; `transfer_checked` with `decimals` from whitelist; `// RAW ONLY`; ATA substitution `owner==user` + `mint==expected` + `getAssociatedTokenAddress`; PDA seeds `#[account(seeds=[...],bump)]`; fee `≤ cap` + canonical `creator=floor(fee*9000/10000)` + `treasury=fee-creator` on every path
 * **P2:** zap slippage sequential not atomic (`docs/basalt-v0-spec.md:295`); CPI only to Token2022/System/ATA; seed atomic same tx as `create_basket` (no init→seed two-step)
 * Run `cargo audit`, `npm audit`, `cso` skill, `review-and-iterate` skill before `deploy-to-mainnet`.
 
@@ -289,34 +289,34 @@ Placeholder copy must be replaced by counsel before mainnet.
 
 ---
 
-## 13. Testing — Verified snapshot (772 tests passing)
+## 13. Testing — Verified snapshot (784 tests passing)
 
-**Rust `cargo test` 207 tests** (`cargo test -p basket` 136 + `basket_factory` 44 + `whitelist` 27):
+**Rust `cargo test` 208 tests** (`cargo test -p basket` 136 + `basket_factory` 45 + `whitelist` 27):
 
 * Gross: perfect/min, 20 constituents, tolerance 1% pass/fail `t5`/`t6`, zero supply/vault/deposit/len, dust ZeroShares `t7`, large u64 no overflow `t27`, single constituent `t5-single`
 * Fees: entry 0/100/300, exit 0/100, split 90/10 dust `split_fee(1,9000)=(0,1)` `t15`, never exceeds gross `t19`, mgmt zero elapsed/supply/bps `t12`, yearly cap 300k `t12`, hourly vs yearly + compounding `t39`, 50 random fuzz `MEGA`
 * Redeem: floor 54.725M `t40`, full/half, dust 0, never exceeds vault `t26`, multi-vault 50/30/20, rounding never over-withdraws `t32`, pro-rata max `t22`, consistency after ops `t40`
 * Invariants: multiplier 0.5–10× invariance `t31`, deposits→full redeem `t23`, genesis 1M `t36`, token decimal mismatch 6 vs 9 `t10`, reentry no CPI `t32`
 
-**TS `vitest run` 565 backend tests across 14 files** (representative suites below):
+**TS `vitest run` 576 backend tests across 16 files** (representative suites below):
 
-* `backend/tests/basalt.test.ts:1` 35 tests (fee 30d 16438, NAV 191k, drift 1000/-1000, weight mismatch, holdings scaled)
+* `backend/tests/basalt.test.ts:1` 41 tests (fixed fee policy, exact management remainder/compounding, NAV, drift, weight mismatch, holdings scaled)
 * `super.integration.test.ts:1` 22 tests (P0/P1/P2 security invariants, factory 2-20/duplicate/metadata, holdings/NAV 20 constituents, 200 random mint/redeem sequences never over-withdraw, fee caps monotonic 1-365d)
 * `mega.test.ts:1` 230 tests (50 entry, 50 exit, 50 mgmt, 20 split, 20 NAV, 20 drift, 30 redeem vault+1M increments)
 * `backend-truth.test.ts` 42 tests (event discriminators + Borsh fixtures, Token-2022 multiplier parse, listener upserts + DB-less degradation, schema idempotency, price cache/fallback)
 * `waveb-nav-api.test.ts` 45 tests (exact BigInt fixed-point NAV, drift/rounding, performance windows, zap quote legs with mocked fetch, unsigned fee-crank tx, API routes via fake PgLike)
 * `zap-balance-delta.test.ts` 15 tests (existing-balance exclusion, exact BigInt deltas, min-out, ordered mint identity, and partial-leg recovery)
-* `tests/basalt_math.test.ts:1` 1 legacy
+* `protocol-policy.test.ts` 3 tests + `script-builders.test.ts` 2 tests (client fee-split conservation and legacy `init_factory` wire/source compatibility)
 
-Total **772 tests passing** (`cargo test: 207 + backend Vitest: 565`) on 2026-09-19. See `docs/current-state-2026-09-18.md` for dated evidence. BAS-002 host-level extension-policy and raw-delta tests, BAS-003 Zap delta tests, and BAS-004 checked-arithmetic boundary/property tests are included; instruction-level extension/adversarial-hook coverage remains open under BAS-016.
+Total **784 tests passing** (`cargo test: 208 + backend Vitest: 576`) on 2026-09-19. See `docs/current-state-2026-09-18.md` for dated evidence. BAS-002 host-level extension-policy and raw-delta tests, BAS-003 Zap delta tests, BAS-004 checked-arithmetic boundary/property tests, and BAS-005 fee-policy/client-builder invariants are included; instruction-level extension/adversarial-hook coverage remains open under BAS-016.
 
 **Run:**
 
 ```bash
 export PATH="/opt/homebrew/opt/rustup/bin:$HOME/.cargo/bin:$HOME/.avm/bin:$HOME/.local/share/solana/install/active_release/bin:$PATH"
-cargo test                          # Rust 199
+cargo test                          # Rust 208
 cargo test -p basket --lib          # 136 basket tests
-npx --prefix backend vitest run --reporter=verbose   # TS 565
+npx --prefix backend vitest run --reporter=verbose   # TS 576
 npx tsx backend/src/index.ts        # :3001 health {"ok":true}
 bash scripts/e2e.sh                 # validator → whitelist → basket → mint/redeem → fee crank (needs solana-test-validator)
 ```
@@ -335,8 +335,8 @@ sh -c "$(curl -sSfL https://release.solana.com/v1.18.17/install)" # solana 1.18.
 # Build & test (verified)
 cargo check                         # 0 errors, 14 warnings anchor-debug
 cargo build                         # dev build (SBF needs Agave 2.x due edition2024)
-cargo test                          # 207 Rust tests
-npm --prefix backend install && npx --prefix backend vitest run  # 565 TS tests
+cargo test                          # 208 Rust tests
+npm --prefix backend install && npx --prefix backend vitest run  # 576 TS tests
 npx tsx backend/src/index.ts        # API :3001
 npm --prefix app install && npm --prefix app run dev  # Next.js :3000
 
@@ -440,7 +440,7 @@ Post-90: mainnet-beta capped TVL, bug bounty, QEDGen formal verification if `rev
 
 ---
 
-*Generated for agents by superstack (solana.new) + Basalt architect. Current verification: 2026-09-19 — **207 Rust + 565 backend tests passing**. Official mainnet xStocks remain unsupported by the interim extension-free V0 boundary; see `docs/bas-002-token2022-extension-policy.md` and `docs/current-state-2026-09-18.md`.*
+*Generated for agents by superstack (solana.new) + Basalt architect. Current verification: 2026-09-19 — **208 Rust + 576 backend tests passing**. Official mainnet xStocks remain unsupported by the interim extension-free V0 boundary; see `docs/bas-002-token2022-extension-policy.md` and `docs/current-state-2026-09-18.md`.*
 
 ---
 
@@ -449,7 +449,7 @@ Post-90: mainnet-beta capped TVL, bug bounty, QEDGen formal verification if `rev
 | File | Lines | Purpose |
 |------|-------|---------|
 | `programs/whitelist/src/lib.rs:1` | 269 | `WhitelistConfig` + `WhitelistedMint` structs, 5 ix + 27 tests |
-| `programs/basket_factory/src/lib.rs:1` | 308 | `FactoryConfig` + `Basket` alias, 2 ix + 44 tests |
+| `programs/basket_factory/src/lib.rs:1` | 308 | `FactoryConfig` + `Basket` alias, 2 ix + 45 tests |
 | `programs/basket/src/lib.rs:1` | 700+ | `Basket` + `math` module + 3 ix + 136 tests |
 | `backend/src/db/schema.sql:1` | 90 | 8 tables + 2 indexes + 1 view |
 | `backend/src/indexer/listener.ts:1` | 35 | `EventListener` class, poll `getSignaturesForAddress` |
@@ -459,7 +459,7 @@ Post-90: mainnet-beta capped TVL, bug bounty, QEDGen formal verification if `rev
 | `backend/src/workers/priceFetch.ts:1` | 30 | `fetchPrices` + `mockPrices` |
 | `backend/src/api/server.ts:1` | 60 | mock handler for 4 routes, CORS |
 | `backend/src/index.ts:1` | 15 | entrypoint `PORT=3001` |
-| `backend/tests/*.ts` | 800+ | 565 tests across 14 files; representative suites are listed in §13 |
+| `backend/tests/*.ts` | 800+ | 576 tests across 16 files; representative suites are listed in §13 |
 | `app/app/*.tsx` | 200+ | 21-route production build |
 | `Anchor.toml:1` | 29 | program IDs + cluster |
 | `Cargo.toml:1` | 18 | workspace + overflow-checks |
@@ -516,7 +516,7 @@ cat docs/basalt-v0-spec.md | head -n 100
 export PATH="/opt/homebrew/opt/rustup/bin:$HOME/.cargo/bin:$HOME/.avm/bin:$HOME/.local/share/solana/install/active_release/bin:$PATH"
 rustc --version; solana --version; anchor --version
 
-# 3. Run tests (current verified baseline: 207 Rust + 565 backend)
+# 3. Run tests (current verified baseline: 208 Rust + 576 backend)
 cargo test
 npx --prefix backend vitest run --reporter=verbose
 
@@ -557,8 +557,8 @@ The repository is a working devnet beta, not a production-ready mainnet release.
 
 Verified working-tree facts:
 
-* Rust `cargo test --workspace`: 207 passed (136 basket, 44 factory, 27 whitelist).
-* Backend Vitest: 565 passed across 14 files.
+* Rust `cargo test --workspace`: 208 passed (136 basket, 45 factory, 27 whitelist).
+* Backend Vitest: 576 passed across 16 files.
 * App typecheck and production build pass; the build emits 21 route entries.
 * Real devnet create, in-kind mint, redeem, indexing, and NAV flows were verified before the BAS-001 fee change.
 * BAS-001 exact management-fee remainder carry is locally implemented and backward-compatible with the 888-byte Basket allocation; the basket-program upgrade and existing-account devnet smoke are still pending.

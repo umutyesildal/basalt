@@ -82,17 +82,25 @@ Implementation evidence (repository-local, 2026-09-19):
 - Bps inputs are rejected above the 10,000 bps denominator; tolerance comparisons use checked widened arithmetic instead of overflowing `diff * 100`. Redemption also rejects zero supply and burns above total supply.
 - Boundary and deterministic property tests cover `u64::MAX`, narrowing failures, invalid bps, zero-supply redemption, fee-split conservation, max-value redemption, and repeated randomized arithmetic cases.
 - Peripheral hardening replaces unchecked account-size conversions in the factory and the whitelist mint counter now fails atomically at `u32::MAX`; remaining-account length multiplication is checked in both programs.
-- Rust verification is now 207 tests: basket 136, basket_factory 44, whitelist 27. BAS-016 still owns instruction-level ProgramTest/LiteSVM, extension, and adversarial-hook coverage; this completion does not make mainnet ready.
+- The BAS-004 completion run was 207 Rust tests: basket 136, basket_factory 44, whitelist 27. BAS-005 subsequently raised the current baseline to 208. BAS-016 still owns instruction-level ProgramTest/LiteSVM, extension, and adversarial-hook coverage; this completion does not make mainnet ready.
 
 ### BAS-005 — Single fee-split source
 
-- [ ] Decide fixed 90/10 versus configurable.
-- [ ] Decide and disclose simple versus interval-compounded management-fee semantics.
-- [ ] Align program, factory, state, spec, and client.
-- [ ] Add split invariants to every fee path.
+- [x] Decide fixed 90/10 versus configurable.
+- [x] Decide and disclose simple versus interval-compounded management-fee semantics.
+- [x] Align program, factory, state, spec, and client.
+- [x] Add split invariants to every fee path.
 
 **Owner area:** protocol + spec
 **Acceptance:** Factory configuration and actual distribution cannot diverge.
+
+Completion evidence (repository-local, 2026-09-19; deployment-independent):
+- V0 policy is fixed protocol-wide at 9,000 / 1,000 bps (90% creator / 10% treasury). The creator leg is `floor(fee * 9000 / 10000)` and the treasury leg is `fee - creator`, so every fee path conserves the full fee and all split dust goes to treasury.
+- `programs/basket/src/lib.rs` uses the canonical creator split for entry, exit, and management-fee distribution. `programs/basket_factory/src/lib.rs` retains `creator_fee_split_bps` and the `init_factory` argument only for legacy ABI/account-layout compatibility and rejects non-canonical values; it does not provide a V0 override.
+- The frontend policy module at `app/lib/protocol-policy.ts` derives exact split helpers and labels used by active fee, transaction-review, documentation, and legal surfaces. The normative explanation is in `docs/basalt-v0-spec.md` §6.2-6.3.
+- Management fee accrual carries the exact numerator remainder at each checkpoint and evaluates the interval against then-current supply. Fee shares join supply, so later intervals compound slightly; the nominal annualized rate is not a fixed charge against initial supply. Fixed-supply partition equivalence remains a separate invariant.
+- Local repository evidence covers split conservation/dust and management-fee remainder/compounding behavior. This closes the documentation and policy decision only; BAS-016 instruction-level coverage, audit, hosted CI, upgrade, existing-account devnet smoke, legal review, governance, and mainnet gates remain open.
+- Current local verification is 208 Rust tests (136 basket, 45 basket_factory, 27 whitelist) plus 576 backend tests across 16 files; frontend typecheck and production build pass.
 
 ### BAS-006 — Multisig and timelock
 

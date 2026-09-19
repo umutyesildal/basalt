@@ -7,6 +7,9 @@ import {
   EXIT_FEE_CAP_BPS,
   MANAGEMENT_FEE_CAP_BPS,
 } from "@/lib/create-basket";
+import {
+  PROTOCOL_FEE_SPLIT_LABEL,
+} from "@/lib/protocol-policy";
 
 interface FeeSpec {
   key: "entry" | "exit" | "management";
@@ -22,7 +25,7 @@ const FEE_SPECS: FeeSpec[] = [
 
 /**
  * Step 3 — three fee sliders within the factory caps (300/100/300 bps) and a
- * single 90/10 split line. Fees are charged in basket shares, never in
+ * single protocol-wide fee-split line. Fees are charged in basket shares, never in
  * underlying, and are fixed for the life of the basket.
  */
 export function FeesEditor({
@@ -71,8 +74,8 @@ export function FeesEditor({
       </p>
 
       <p className="text-xs leading-5 text-muted-foreground">
-        Fees are charged in basket shares and split 90% to you (creator) / 10%
-        to the treasury — fixed for the life of the basket.
+        Fees are charged in basket shares. The protocol-wide split is{" "}
+        {PROTOCOL_FEE_SPLIT_LABEL} — fixed for the life of the basket.
       </p>
     </div>
   );

@@ -24,22 +24,18 @@
  * it scales down proportionally (BigInt floor). Fee income (entry/exit/mgmt
  * fee shares credited to creator/treasury) carries NO cost basis.
  *
- * FEE SPLIT: programs/basket CREATOR_FEE_SPLIT_BPS = 9000 — fees split 90%
- * creator / 10% treasury with dust to treasury (mirrors fee_split_amounts).
+ * FEE SPLIT: feeMath CREATOR_FEE_SPLIT_BPS = 9000 — fees split 90% creator /
+ * 10% treasury with dust to treasury (mirrors the on-chain fee_split_amounts).
  *
  * DEGRADATION: db === null (or non-PgLike) skips every write with a warn and
  * returns false — the indexer stays runnable without Postgres.
  */
 import { isPgLike, type PgLike } from "../db/client.js";
 import type { DecodedFolioxEvent, FeeAccruedEvent, MintedEvent, RedeemedEvent } from "./events.js";
+import { splitFeeBigInt } from "../workers/feeMath.js";
 
 /** Fixed-point scale (digits after the dot) for cost_basis math. */
 export const COST_BASIS_SCALE = 12n;
-
-/** Creator share of protocol fees, in bps (program constant, 90%). */
-export const CREATOR_FEE_SPLIT_BPS = 9000n;
-
-const BPS_DENOM = 10_000n;
 
 // --- decimal-string fixed-point helpers (BigInt only, never Number) ---------
 
@@ -192,8 +188,7 @@ async function creditFeeSplit(db: PgLike, basket: string, feeShares: bigint): Pr
     console.warn(`[positions] fee split skipped (basket not indexed): ${basket}`);
     return;
   }
-  const creatorAmt = (feeShares * CREATOR_FEE_SPLIT_BPS) / BPS_DENOM; // floor
-  const treasuryAmt = feeShares - creatorAmt; // dust stays whole
+  const { creator: creatorAmt, treasury: treasuryAmt } = splitFeeBigInt(feeShares);
   if (creatorAmt > 0n) {
     await applyPositionDelta(db, { user: row.creator, basket, delta: creatorAmt, costDeltaFixed: null });
   }

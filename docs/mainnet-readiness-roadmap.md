@@ -27,7 +27,7 @@ Deliverables:
 - SEC-002 Token-2022 extension policy and received-delta accounting.
 - SEC-003 Zap pre/post balance delta.
 - Checked arithmetic and casts.
-- One source for fee split.
+- One source for fee split: repository-local V0 policy is fixed at 90% creator / 10% treasury with creator-floor/treasury-remainder conservation; hosted/deployment and audit gates remain separate.
 - ProgramTest/LiteSVM adversarial suite.
 - 20-constituent compute and transaction-size evidence.
 

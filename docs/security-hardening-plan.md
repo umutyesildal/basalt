@@ -22,7 +22,8 @@
 
 **Residual behavior and pending evidence:**
 
-- Fee shares join supply, so frequent cranks intentionally compound the nominal rate. At the maximum 300 bps rate, minute-level cranking produces about 304.54 bps relative to starting supply over one year (about 4.54 bps above a single annual crank). BAS-005 must decide and disclose the intended simple-versus-compounded semantics before mainnet.
+- Fee shares join supply, so frequent cranks intentionally compound the nominal rate. At the maximum 300 bps rate, minute-level cranking produces about 304.54 bps relative to starting supply over one year (about 4.54 bps above a single annual crank). V0 explicitly uses this then-current-supply interval semantics; the nominal annualized rate is not a simple fixed charge against initial supply.
+- When total supply or the immutable management-fee rate is zero, the checkpoint advances and clears the stored numerator remainder. A later holder therefore cannot inherit fee debt from an empty or zero-rate interval.
 - Existing accounts start the new remainder at zero; fractional fees already lost to pre-upgrade zero-fee checkpoints are not recoverable.
 - The zero-supply reset branch is implemented but still needs instruction-level coverage proving that the first later holder inherits no empty-period fee debt.
 - Backend estimates assume remainder zero. The remainder alone causes at most a one-raw-share understatement for the same supply and elapsed inputs, while stale indexed inputs can create a larger estimate-to-execution difference.
@@ -81,14 +82,23 @@ Residual limitation: balance-delta accounting excludes inventory present at the 
 
 ## SEC-005 — Single source for fee split
 
-The factory stores `creator_fee_split_bps`, while the basket program uses a fixed 90/10 split.
+**Status: Complete in the repository-local policy and client/docs layer (2026-09-19; deployment-independent).**
 
-Choose one design:
+V0 is fixed protocol-wide at 9,000 / 1,000 bps: creator receives
+`floor(fee * 9000 / 10000)`, and treasury receives `fee - creator`. This
+conserves every fee and assigns all split dust to treasury. The basket program
+uses the same canonical split on entry, exit, and management-fee paths.
 
-- If V0 is permanently 90/10, remove the configurable factory parameter and document the constant.
-- If configurable, copy the split into immutable basket state and use it in every fee path.
+The factory's `creator_fee_split_bps` field and `init_factory` argument remain
+only for legacy ABI/account-layout compatibility and are pinned to 9,000;
+non-canonical values are rejected. There is no V0 per-factory or per-basket
+override. The frontend derives labels and exact split previews from
+`app/lib/protocol-policy.ts`, while the normative formula is documented in
+`docs/basalt-v0-spec.md` §6.2.
 
-The system must not document both behaviors simultaneously.
+This status does not waive BAS-016 instruction-level coverage, independent
+audit, hosted CI, program upgrade, existing-account devnet smoke, governance,
+legal review, or the mainnet go/no-go gate.
 
 ## SEC-006 — Upgrade governance
 

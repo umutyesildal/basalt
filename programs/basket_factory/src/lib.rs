@@ -40,11 +40,12 @@ pub mod basket_factory {
         treasury: Pubkey,
         creator_fee_split_bps: u16,
     ) -> Result<()> {
-        require!(creator_fee_split_bps <= 10_000, FactoryError::InvalidSplit);
+        check_creator_fee_split(creator_fee_split_bps)?;
         let f = &mut ctx.accounts.factory;
         f.authority = ctx.accounts.authority.key();
         f.treasury = treasury;
-        f.creator_fee_split_bps = creator_fee_split_bps;
+        // Retain the legacy ABI field, but persist only the canonical V0 value.
+        f.creator_fee_split_bps = basket::CREATOR_FEE_SPLIT_BPS;
         f.entry_fee_cap_bps = 300;
         f.exit_fee_cap_bps = 100;
         f.management_fee_cap_bps = 300;
@@ -72,6 +73,12 @@ pub mod basket_factory {
         metadata_hash: [u8; 32],
         seed_amounts: Vec<u64>,
     ) -> Result<()> {
+        // This must stay the first handler check: legacy factory accounts keep
+        // the u16 field for ABI compatibility, but V0 only supports the
+        // basket program's canonical 90/10 split. Revalidate it before any
+        // state mutation or CPI.
+        check_creator_fee_split(ctx.accounts.factory.creator_fee_split_bps)?;
+
         // ---- pure arg validations (spec §3.2 validations 1-8) ----
         check_lengths(&constituents, &weights_bps, &seed_amounts)?;
         check_constituent_count(constituents.len())?;
@@ -543,6 +550,17 @@ pub fn check_fee_caps(
     Ok(())
 }
 
+/// V0 has one fee split. The u16 argument and FactoryConfig field remain in
+/// the wire/account layout for compatibility with already-built clients and
+/// accounts, but no other split is valid.
+pub fn check_creator_fee_split(creator_fee_split_bps: u16) -> Result<()> {
+    require!(
+        creator_fee_split_bps == basket::CREATOR_FEE_SPLIT_BPS,
+        FactoryError::InvalidSplit
+    );
+    Ok(())
+}
+
 pub fn check_seed_amounts(seed_amounts: &[u64]) -> Result<()> {
     for amt in seed_amounts {
         require!(*amt > 0, FactoryError::ZeroSeedAmount);
@@ -779,6 +797,9 @@ pub struct CreateBasket<'info> {
 pub struct FactoryConfig {
     pub authority: Pubkey,
     pub treasury: Pubkey,
+    /// Legacy V0 ABI field. The split is fixed by
+    /// `basket::CREATOR_FEE_SPLIT_BPS`; this field remains at its original
+    /// offset and is revalidated before every basket creation.
     pub creator_fee_split_bps: u16,
     pub entry_fee_cap_bps: u16,
     pub exit_fee_cap_bps: u16,
@@ -988,9 +1009,19 @@ mod tests {
     }
     #[test]
     fn test_creator_split_valid() {
-        assert!(9000 <= 10_000);
-        assert!(10_000 <= 10_000);
-        assert!(10_001 > 10_000);
+        assert_eq!(basket::CREATOR_FEE_SPLIT_BPS, 9000);
+        assert!(check_creator_fee_split(basket::CREATOR_FEE_SPLIT_BPS).is_ok());
+    }
+    #[test]
+    fn test_creator_split_helper_rejects_every_noncanonical_value() {
+        for split in 0u16..=u16::MAX {
+            let accepted = check_creator_fee_split(split).is_ok();
+            assert_eq!(
+                accepted,
+                split == basket::CREATOR_FEE_SPLIT_BPS,
+                "unexpected split acceptance: {split}"
+            );
+        }
     }
     #[test]
     fn test_basket_count_increment() {

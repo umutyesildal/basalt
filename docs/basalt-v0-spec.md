@@ -103,7 +103,7 @@ All PDAs derived from respective program IDs.
 |---------|-------|-----------|-------|
 | `WhitelistConfig` | `b"config"` | whitelist program | singleton |
 | `WhitelistedMint` | `b"mint", mintPubkey` | whitelist program | one per xStock mint |
-| `FactoryConfig` | `b"factory"` | basket_factory program | holds treasury, split, caps |
+| `FactoryConfig` | `b"factory"` | basket_factory program | holds treasury, legacy split field, caps |
 | `Basket` | `b"basket", factory.key(), creator.key(), nonce (u64)` | `basket` program PDA `b"basket", basket.key()` | nonce avoids creator collisions |
 | `BasketShareMint` | `b"share_mint", basket.key()` | PDA `b"basket", basket.key()` | Token-2022 mint, decimals 6 `ASSUMPTION` |
 | `VaultATA` (per constituent i) | ATA: `AssociatedToken::derive( basket_pda, mint_i )` | basket PDA | one Token-2022 token account per constituent, owned by basket PDA |
@@ -140,7 +140,7 @@ pub enum WhitelistStatus { Active, PausedNewMints }
 pub struct FactoryConfig {
     pub authority: Pubkey,
     pub treasury: Pubkey,           // fee recipient
-    pub creator_fee_split_bps: u16, // e.g. 9000 = 90% creator
+    pub creator_fee_split_bps: u16, // legacy ABI field; V0 must be 9000
     pub entry_fee_cap_bps: u16,     // 300
     pub exit_fee_cap_bps: u16,      // 100
     pub management_fee_cap_bps: u16,// 300 / year
@@ -176,7 +176,7 @@ pub struct Basket {
 **Constraints:**
 - `Basket` immutable after `create_basket` — no update instruction exists (enforces V0 constraint #1).
 - Governance `WhitelistConfig::authority` can `pause_new_mints` but no instruction can set `Basket` to pausable redeem — redeem path has no `Paused` check.
-- `FactoryConfig::creator_fee_split_bps` + treasury split = 10_000.
+- `FactoryConfig::creator_fee_split_bps` is retained for legacy ABI/account-layout compatibility and is pinned to the protocol constant 9_000. V0 has no configurable per-factory or per-basket split.
 
 ### 2.3 Token Accounts
 
@@ -257,7 +257,7 @@ Validations:
 - Compute `gross_shares` to mint (see §5)
 - Accrue management fee first (see `accrue_management_fee` internal)
 - Deduct entry fee: `entry_fee_shares = floor(gross_shares * entry_fee_bps / 10_000)`
-- Mint `gross_shares - entry_fee_shares` to user, `entry_fee_shares` split 90/10 to creator/treasury ATAs of share mint (create ATA if needed)
+- Mint `gross_shares - entry_fee_shares` to user. Split `entry_fee_shares` with the protocol-wide rule `creator=floor(fee*9000/10000)`, `treasury=fee-creator` to the creator/treasury share ATAs (create ATA if needed); all split dust goes to treasury.
 - Emit `Minted`
 
 No oracle, no pauser.
@@ -286,7 +286,7 @@ Validations:
 accrue_management_fee()
 ```
 - Anyone can call; computes `elapsed = now - basket.last_fee_accrual_ts`, then `numerator = total_supply * management_fee_bps * elapsed + previous_remainder`, `fee_shares = floor(numerator / (10_000 * SECONDS_PER_YEAR))`, and persists `numerator % denominator`.
-- Split fee_shares to creator/treasury via `mint_to` (dilution) — increases supply, dilutes existing holders
+- Split fee_shares to creator/treasury via `mint_to` (dilution) using the same protocol-wide rule — increases supply, dilutes existing holders
 - Update `last_fee_accrual_ts = now`; emit `FeeAccrued` when whole shares are minted. The Basket account remains authoritative for sub-share remainder.
 - If supply or the immutable fee rate is zero, checkpoint and clear the remainder so a later holder does not inherit empty-period debt.
 - Called internally at top of `mint_in_kind` and `redeem_in_kind` (and externally by keeper/indexer every hour/day)
@@ -386,13 +386,16 @@ Rounding: use `floor` for `amount_out` to avoid over-withdraw; `ceil` for fee sh
 - **Management:** `management_fee_bps` 0..300 annualized, streamed via `mint_to` dilution.
 
 ### 6.2 Split
-`FactoryConfig.creator_fee_split_bps = 9000` default → 90% creator, 10% treasury. Configurable per factory (future: per basket override `LEGAL_REVIEW_REQUIRED` — creator fee as securities implication).
+V0 uses one protocol-wide fee split: **90% creator / 10% treasury**. The creator leg is always floored and the treasury receives the exact remainder:
 
 Split math:
 ```rust
-let creator_shares = fee_shares * creator_split / 10_000;
-let treasury_shares = fee_shares - creator_shares; // remainder to treasury avoids dust loss
+const CREATOR_FEE_SPLIT_BPS: u128 = 9_000;
+let creator_shares = fee_shares * CREATOR_FEE_SPLIT_BPS / 10_000;
+let treasury_shares = fee_shares - creator_shares; // all split dust goes to treasury
 ```
+
+The `FactoryConfig.creator_fee_split_bps` field and `init_factory` argument remain only for legacy ABI/account-layout compatibility. They are pinned to 9,000, and the basket program uses the same protocol constant on entry, exit, and management-fee paths. No V0 factory or basket override exists.
 
 ### 6.3 Management Fee Streaming
 ```rust
@@ -410,7 +413,7 @@ let next_remainder = numerator % denominator;
 Example: `S=10_000_000`, `mgmt 200 bps (2%)`, `elapsed 30 days (2_592_000s)`
 `fee =10_000_000 *200 *2_592_000 /(10_000*31_536_000)=10_000_000*518_400_000 /315_360_000_000≈16438` shares (0.164% for 30d, annualized 2%).
 
-**Property:** for fixed supply, `denominator * total_fee + final_remainder = initial_remainder + Σ(supply * bps * elapsed)`. Partitioning one interval into many permissionless cranks cannot suppress the fee.
+**Property:** for fixed supply, `denominator * total_fee + final_remainder = initial_remainder + Σ(supply * bps * elapsed)`. Partitioning one interval into many permissionless cranks cannot suppress the fee. In the live protocol, each checkpoint uses the then-current total supply; fee shares minted at a checkpoint join supply and therefore make later intervals compound slightly. The nominal annualized rate is an interval rate, not a simple fixed charge against the initial supply.
 
 **Example timeline:**
 - Day 0: `S=10M`, last=0
@@ -634,7 +637,7 @@ brand.md                  // written by brand-design skill
 | Test file | Cases |
 |-----------|-------|
 | `tests/test_math.rs` | `gross_shares` min across constituents, 1% tolerance revert, floor rounding, `initial_shares=1M` genesis, division by zero guard |
-| `tests/test_fees.rs` | entry/exit split 90/10, treasury remainder, management-fee elapsed formula, fixed-supply partition equivalence, hourly/minute compounding behavior |
+| `tests/test_fees.rs` | canonical entry/exit split, treasury remainder, management-fee elapsed formula, fixed-supply partition equivalence, then-current-supply compounding behavior |
 | `tests/test_validations.rs` | weights sum 10k failure, duplicate mints, fee over cap, 2-20 bounds, metadata_hash zero revert, empty seed revert |
 | `tests/test_pda.rs` | seed derivations, bump mismatch, vault authority mismatch, wrong mint authority rejected |
 | `tests/test_token2022.rs` | mock mints with `ScaledUiAmountConfig` multiplier 1→2, update does not affect raw transfer; decimals mismatch rejected; malicious token account (wrong owner/mint) rejected |
@@ -700,7 +703,7 @@ describe("basalt basket", () => {
 - [ ] **P1: Scaled/raw confusion** — programs never multiply by multiplier; indexer only. Add comment `// RAW ONLY` on all transfers.
 - [ ] **P1: Account substitution** — user ATAs verified `owner==user`, `mint==expected`; vault ATAs derived via `associated_token::get_associated_token_address(basket_pda, mint)` and `mut` check.
 - [ ] **P1: PDA authority** — `basket PDA` seeds validated in each ix via `#[account(seeds=[...], bump)]`; `share_mint.mint_authority == basket PDA`.
-- [ ] **P1: Fee overcharging** — enforce `management_fee_bps ≤300`, test fixed-supply partition carry plus disclosed supply compounding, and require `treasury+creator == fee_shares` with no split dust loss.
+- [ ] **P1: Fee overcharging** — enforce `management_fee_bps ≤300`, test fixed-supply partition carry plus disclosed then-current-supply compounding, and require `treasury+creator == fee_shares` with all split dust assigned to treasury.
 - [ ] **P2: Zap slippage** — V0 sequential swaps: document user may receive different amounts than quoted; next leg reverts if slippage exceeded `slippageBps` threshold. On-chain atomic zap deferred.
 - [ ] **P2: Reentrancy/CPI** — no cross-program invocation that re-enters basket (CPI only to Token-2022 + System + ATA); use `#[account(mut)]` checks.
 - [ ] **P2: Seed hijack** — `create_basket` seed transfer atomic with basket creation in same tx; no separate `init` then `seed` two-step.

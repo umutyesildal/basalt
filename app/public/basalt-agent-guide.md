@@ -68,7 +68,7 @@ The programs emit four Anchor events; the indexer stores them in its `events` ta
 - `BasketCreated { basket, creator, num_constituents, share_mint, ts }` — genesis minted 1,000,000 shares to the creator's seed deposit.
 - `Minted { basket, user, gross_shares, net_shares, entry_fee_shares }` — shares are u64 raw units (divide by 10^6). `net = gross − entry_fee`.
 - `Redeemed { basket, user, shares_burned, exit_fee_shares }` — burning shares returns underlying tokens pro rata; redemption output is computed from vault balances, not an oracle.
-- `FeeAccrued { basket, shares_minted, elapsed_sec }` — management fee accrues by dilution (new shares to creator/treasury 90/10); a permissionless crank triggers it.
+- `FeeAccrued { basket, shares_minted, elapsed_sec }` — management fee accrues by dilution (new shares split by the fixed protocol-wide 90% creator / 10% treasury rule; creator is floored and treasury receives the remainder); a permissionless crank triggers it. Each checkpoint uses then-current supply, so fee-share mints make later intervals compound slightly. Zero supply or zero bps clears the carried remainder.
 
 Where to observe them today:
 

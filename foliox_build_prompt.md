@@ -87,7 +87,7 @@ Use configurable caps:
 - Entry fee cap: 300 bps.
 - Exit fee cap: 100 bps.
 - Management fee cap: 300 bps/year.
-- Default split: 90% creator / 10% protocol treasury, but make this configurable at protocol level.
+- V0 split is fixed protocol-wide at 90% creator / 10% protocol treasury. Compute the creator leg as `floor(fee * 9000 / 10000)` and send the exact remainder to treasury, including split dust. A legacy factory split field/argument may remain for ABI compatibility, but it must be pinned to 9,000; no V0 per-factory or per-basket override exists.
 
 Fees should be paid in basket shares:
 

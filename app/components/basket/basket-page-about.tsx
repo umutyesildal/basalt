@@ -21,6 +21,7 @@ import {
 } from "@/components/basket/basket-api";
 import { BasketSectionHeader } from "@/components/basket/basket-page-section-header";
 import { formatAsOf, formatBpsAsPercent, formatTokenAmount, truncateAddress } from "@/lib/format";
+import { PROTOCOL_FEE_SPLIT_LABEL } from "@/lib/protocol-policy";
 
 /**
  * About tab — what this basket is and what it costs:
@@ -33,7 +34,7 @@ import { formatAsOf, formatBpsAsPercent, formatTokenAmount, truncateAddress } fr
  *  · The fee block per spec §6: management fee streams as share dilution via
  *    `accrue_management_fee` (fee_shares = supply × rate × elapsed /
  *    (10,000 × seconds-per-year), capped at 300 bps/yr), entry/exit one-time
- *    fees with their protocol caps, and the 90/10 creator/treasury split.
+ *    fees with their protocol caps, and the canonical protocol fee split.
  *
  * All figures are API-driven; missing values render as em dashes.
  */
@@ -300,7 +301,7 @@ export function BasketPageAbout({
         <BasketSectionHeader
           eyebrow="Paid in shares"
           title="Fees"
-          note="90/10 creator/treasury split"
+          note={PROTOCOL_FEE_SPLIT_LABEL}
         />
         <Card>
           <CardContent className="flex flex-col gap-3 p-5 first:pt-5">
@@ -333,12 +334,13 @@ export function BasketPageAbout({
             </div>
             <p className="font-mono text-[11px] leading-5 text-muted-foreground">
               Management accrues on-chain as share dilution:{" "}
-              <span className="whitespace-nowrap">supply × rate × elapsed</span> ÷{" "}
-              <span className="whitespace-nowrap">(10,000 × seconds per year)</span>, minted 90%
-              creator / 10% treasury by the permissionless{" "}
+              <span className="whitespace-nowrap">(supply × rate × elapsed + stored remainder)</span> ÷{" "}
+              <span className="whitespace-nowrap">(10,000 × seconds per year)</span>, minted{" "}
+              {PROTOCOL_FEE_SPLIT_LABEL} by the permissionless{" "}
               <span className="font-mono">accrue_management_fee</span> crank — capped at 3.00%/yr.
-              Entry is one-time on mint (cap 3.00%), exit on redeem (cap 1.00%). Weights and fees
-              are immutable on-chain.
+              Each checkpoint uses the then-current supply; newly minted fee shares therefore
+              make later intervals compound slightly. Entry is one-time on mint (cap 3.00%), exit
+              on redeem (cap 1.00%). Weights and fees are immutable on-chain.
             </p>
             {lastAccrualSeconds !== null && lastAccrualSeconds > 0 ? (
               <p className="font-mono text-[11px] tabular-nums text-muted-foreground">

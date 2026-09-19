@@ -37,6 +37,7 @@ import {
 import { formatBpsAsPercent, scaledFromRaw, truncateAddress } from "@/lib/format";
 import { withRetry, withRetryOnce } from "@/lib/rpc-retry";
 import { RPC_ENDPOINT, describeRpcError, describeWalletError } from "@/lib/wallet";
+import { PROTOCOL_FEE_SPLIT_LABEL } from "@/lib/protocol-policy";
 import {
   classifyLegRecovery,
   createZapBalanceSnapshot,
@@ -1175,7 +1176,7 @@ export function ZapInForm({
               <SummaryRow
                 label="Fees"
                 muted
-                value={`${feesLine(detail.entry_fee_bps, detail.exit_fee_bps, detail.management_fee_bps)} (90% supports the creator)`}
+                value={`${feesLine(detail.entry_fee_bps, detail.exit_fee_bps, detail.management_fee_bps)} (${PROTOCOL_FEE_SPLIT_LABEL})`}
               />
             </TxSummaryCard>
           }

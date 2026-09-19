@@ -21,6 +21,7 @@ import {
   SHARE_MINT_DECIMALS,
   WEIGHTS_DENOMINATOR,
 } from "@/lib/create-basket";
+import { PROTOCOL_FEE_SPLIT_LABEL } from "@/lib/protocol-policy";
 import { PROGRAMS } from "@/lib/solana";
 
 /**
@@ -238,7 +239,7 @@ export default function DocsPage() {
                   },
                   {
                     title: "Shares mint net of the entry fee",
-                    body: "The fee splits 90/10 between the basket creator and the treasury, and a Minted event lands on-chain — readable by anyone.",
+                    body: `The fee splits ${PROTOCOL_FEE_SPLIT_LABEL} between the basket creator and the treasury, and a Minted event lands on-chain — readable by anyone.`,
                   },
                 ]}
               />
@@ -450,13 +451,15 @@ export default function DocsPage() {
                 Creators choose three fees within hard caps, and the caps are
                 enforced by the factory at deploy — not by policy. Every fee is
                 charged in basket shares, never in the underlying tokens, and
-                splits 90% to the basket&apos;s creator and 10% to the
+                splits {PROTOCOL_FEE_SPLIT_LABEL} between the basket&apos;s creator and the
                 treasury. Entry is one-time on mint. Exit is one-time on
                 redeem. Management accrues continuously as share dilution
-                through a permissionless crank — supply × rate × elapsed ÷
+                through a permissionless crank — (then-current supply × rate × elapsed +
+                stored numerator remainder) ÷
                 ({WEIGHTS_DENOMINATOR.toLocaleString("en-US")} × seconds per
                 year) — and is checkpointed inside every mint and redeem so the
-                accrual is never stale.
+                accrual is never stale. Fee shares join supply, so later
+                intervals compound slightly.
               </P>
             </div>
 

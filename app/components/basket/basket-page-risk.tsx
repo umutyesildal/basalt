@@ -14,6 +14,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { BasketSectionHeader } from "@/components/basket/basket-page-section-header";
+import { PROTOCOL_FEE_SPLIT_LABEL } from "@/lib/protocol-policy";
 
 const METHOD: { title: string; body: string }[] = [
   {
@@ -30,7 +31,7 @@ const METHOD: { title: string; body: string }[] = [
   },
   {
     title: "Fee mechanics",
-    body: "The management fee accrues on-chain by minting new shares (supply dilution) via the permissionless accrue_management_fee crank: supply × rate × elapsed ÷ (10,000 × seconds per year), capped at 3.00%/yr. Entry (cap 3.00%) and exit (cap 1.00%) fees are one-time and also paid in shares, split 90% creator / 10% treasury.",
+    body: `The management fee accrues on-chain by minting new shares (supply dilution) via the permissionless accrue_management_fee crank: (then-current supply × rate × elapsed + stored numerator remainder) ÷ (10,000 × seconds per year), capped at 3.00%/yr. Newly minted fee shares make later intervals compound slightly. Entry (cap 3.00%) and exit (cap 1.00%) fees are one-time and also paid in shares, split ${PROTOCOL_FEE_SPLIT_LABEL}.`,
   },
 ];
 

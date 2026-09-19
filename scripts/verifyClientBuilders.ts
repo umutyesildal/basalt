@@ -39,6 +39,7 @@ import {
   deriveVaultAuthority as deriveVaultAuthorityApp,
 } from "../app/lib/transactions.ts";
 import {
+  CREATOR_FEE_SPLIT_BPS,
   PACKET_LIMIT,
   ensureSol,
   fmtRaw,
@@ -216,13 +217,16 @@ async function main() {
     // (entry fee + intra-tx accrual); treasury the rest. Only the intra-tx
     // accrual is unknown — bounded by the fee rate over 10 minutes.
     const bound = floorDiv(supplyBefore * mgmtBps * ACCRUAL_BOUND_SEC, 10_000n * SECONDS_PER_YEAR);
-    const creatorLegFixed = floorDiv(entryFee * 9000n, 10_000n);
+    const creatorLegFixed = floorDiv(entryFee * BigInt(CREATOR_FEE_SPLIT_BPS), 10_000n);
     const userShareDelta = deltaOf(confirmed, user, shareMint);
     const treasuryShareDelta = deltaOf(confirmed, treasury, shareMint);
     if (userIsCreator) {
       // user's share ATA = creator's: net mint + 90% entry fee + 90% accrual.
       const accruedToCreator = userShareDelta - net - creatorLegFixed;
-      if (accruedToCreator < 0n || accruedToCreator > floorDiv(bound * 9000n, 10_000n)) {
+      if (
+        accruedToCreator < 0n ||
+        accruedToCreator > floorDiv(bound * BigInt(CREATOR_FEE_SPLIT_BPS), 10_000n)
+      ) {
         throw new Error(`user(=creator) share delta ${userShareDelta} outside net ${net} + fee legs (accrual bound ${bound})`);
       }
     } else if (userShareDelta !== net) {
@@ -279,11 +283,14 @@ async function main() {
     }
     const bound = floorDiv(supplyBefore * mgmtBps * ACCRUAL_BOUND_SEC, 10_000n * SECONDS_PER_YEAR);
     // The exit fee is NOT burned: it is split 90/10 creator/treasury as shares.
-    const exitFeeCreatorLeg = floorDiv(exitFee * 9000n, 10_000n);
+    const exitFeeCreatorLeg = floorDiv(exitFee * BigInt(CREATOR_FEE_SPLIT_BPS), 10_000n);
     const userShareDelta = deltaOf(confirmed, user, shareMint);
     const feeLeg = userShareDelta + shares - (userIsCreator ? exitFeeCreatorLeg : 0n);
     if (userIsCreator) {
-      if (feeLeg < 0n || feeLeg > floorDiv(bound * 9000n, 10_000n)) {
+      if (
+        feeLeg < 0n ||
+        feeLeg > floorDiv(bound * BigInt(CREATOR_FEE_SPLIT_BPS), 10_000n)
+      ) {
         throw new Error(`user share delta ${userShareDelta} != -shares + exit-fee leg ${exitFeeCreatorLeg} + accrual within bound ${bound}`);
       }
     } else if (userShareDelta !== -shares) {

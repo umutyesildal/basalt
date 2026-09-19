@@ -51,6 +51,7 @@ import {
   type BuiltMintRedeemTx,
 } from "../app/lib/transactions.ts";
 import {
+  CREATOR_FEE_SPLIT_BPS,
   deriveAltAddress,
   ensureSol,
   legacyWireSize,
@@ -357,7 +358,7 @@ async function main() {
     // creator (the payer IS the nonce-1 creator). Same model as
     // scripts/verifyClientBuilders.ts.
     const exitFee = (shares * BigInt(six.exitBps)) / 10_000n;
-    const creatorLeg = (exitFee * 9000n) / 10_000n;
+    const creatorLeg = (exitFee * BigInt(CREATOR_FEE_SPLIT_BPS)) / 10_000n;
     const bound = (supply * six.mgmtBps * 600n) / (10_000n * 31_536_000n);
     const shareAfter = (await readTokenAmount(conn, shareAta)) ?? 0n;
     const floor_ = shareBal - shares + creatorLeg;

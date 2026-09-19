@@ -34,7 +34,7 @@ describe("MEGA: managementFee 50 cases", () => {
 describe("MEGA: splitFee 20 cases", () => {
   for (let fee=1; fee<=20; fee++) {
     it(`split fee ${fee}`, () => {
-      const {creator,treasury}=splitFee(fee,9000);
+      const {creator,treasury}=splitFee(fee);
       expect(creator+treasury).toBe(fee);
       expect(creator).toBe(Math.floor(fee*0.9));
     });

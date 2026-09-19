@@ -61,6 +61,10 @@ import { withRetry, withRetryOnce } from "@/lib/rpc-retry";
 const utf8 = (text: string): Uint8Array => new TextEncoder().encode(text);
 
 import { PROGRAMS } from "@/lib/solana";
+import {
+  CREATOR_FEE_SPLIT_PERCENT,
+  TREASURY_FEE_SPLIT_PERCENT,
+} from "@/lib/protocol-policy";
 import { CLUSTER, explorerClusterQuery } from "@/lib/wallet";
 
 /** programs/basket — declare_id!("37VPG…") (programs/basket/src/lib.rs:10). */
@@ -274,7 +278,7 @@ function coreAccounts(keys: BasketCoreKeys): ExpectedAccount[] {
     {
       label: "creator",
       pubkey: keys.creator,
-      note: "Basket creator — receives 90% of fees",
+      note: `Basket creator — receives ${CREATOR_FEE_SPLIT_PERCENT}% of fees`,
     },
     {
       label: "creator_share_ata",
@@ -285,7 +289,7 @@ function coreAccounts(keys: BasketCoreKeys): ExpectedAccount[] {
     {
       label: "treasury",
       pubkey: keys.treasury,
-      note: "Protocol treasury — receives 10% of fees",
+      note: `Protocol treasury — receives ${TREASURY_FEE_SPLIT_PERCENT}% of fees`,
     },
     {
       label: "treasury_share_ata",

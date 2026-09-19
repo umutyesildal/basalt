@@ -5,6 +5,9 @@ import {
   managementFee,
   managementFeeWithRemainder,
   splitFee,
+  splitFeeBigInt,
+  CREATOR_FEE_SPLIT_BPS,
+  CREATOR_FEE_SPLIT_BPS_BIGINT,
   BPS_DENOM,
   SECONDS_PER_YEAR,
 } from "../src/workers/feeMath";
@@ -21,16 +24,31 @@ describe("feeMath", () => {
     expect(exitFee(1_000_000, 50)).toBe(5_000);
     expect(exitFee(1_000_000, 100)).toBe(10_000);
   });
-  it("split 90/10", () => {
+  it("uses the fixed 90/10 policy", () => {
+    expect(CREATOR_FEE_SPLIT_BPS).toBe(9000);
+    expect(CREATOR_FEE_SPLIT_BPS_BIGINT).toBe(9000n);
     expect(splitFee(10_000)).toEqual({ creator: 9000, treasury: 1000 });
-    expect(splitFee(10_000, 5000)).toEqual({ creator: 5000, treasury: 5000 });
-    expect(splitFee(1, 9000)).toEqual({ creator: 0, treasury: 1 });
+    expect(splitFee(1)).toEqual({ creator: 0, treasury: 1 });
   });
-  it("split sums to fee", () => {
-    for (const fee of [1,2,3,7,99,1000,999999]) {
+  it("split floors to creator, preserves dust, and matches the BigInt helper", () => {
+    for (const fee of [0, 1, 2, 3, 9, 10, 11, 99, 100, 101, 9999, 10_000, 999_999, Number.MAX_SAFE_INTEGER]) {
       const { creator, treasury } = splitFee(fee);
       expect(creator+treasury).toBe(fee);
+      expect({ creator: BigInt(creator), treasury: BigInt(treasury) }).toEqual(splitFeeBigInt(BigInt(fee)));
+      expect(creator).toBe(Math.floor((fee * CREATOR_FEE_SPLIT_BPS) / BPS_DENOM));
     }
+  });
+  it("rejects invalid fee inputs rather than applying a different split", () => {
+    expect(() => splitFee(-1)).toThrow(RangeError);
+    expect(() => splitFee(1.5)).toThrow(RangeError);
+    expect(() => splitFeeBigInt(-1n)).toThrow(RangeError);
+  });
+  it("rejects management bps outside the on-chain domain", () => {
+    expect(() => entryFee(1, -1)).toThrow(RangeError);
+    expect(() => exitFee(1, 10_001)).toThrow(RangeError);
+    expect(() => managementFee(1, -1, 1)).toThrow(RangeError);
+    expect(() => managementFee(1, 10_001, 1)).toThrow(RangeError);
+    expect(() => managementFee(1, 1.5, 1)).toThrow(RangeError);
   });
   it("never exceeds gross/shares", () => {
     for (const gross of [1,100,1_000_000]) {
@@ -64,6 +82,45 @@ describe("feeMath", () => {
     expect({ fee, remainder }).toEqual(combined);
     expect(fee).toBe(9n);
   });
+  it("management remainder is partition-independent for fixed supply", () => {
+    const supply = 12_345_678n;
+    const bps = 237;
+    const elapsed = [1n, 7n, 61n, 3_600n, 86_399n, 1_000_000n];
+    const totalElapsed = elapsed.reduce((sum, seconds) => sum + seconds, 0n);
+    const combined = managementFeeWithRemainder(supply, bps, totalElapsed);
+
+    let fee = 0n;
+    let remainder = 0n;
+    for (const seconds of elapsed) {
+      const next = managementFeeWithRemainder(supply, bps, seconds, remainder);
+      fee += next.fee;
+      remainder = next.remainder;
+    }
+
+    expect({ fee, remainder }).toEqual(combined);
+    expect(BigInt(BPS_DENOM * SECONDS_PER_YEAR) * fee + remainder).toBe(
+      supply * BigInt(bps) * totalElapsed,
+    );
+  });
+  it("management fee compounds from the then-current supply at each checkpoint", () => {
+    const initialSupply = 10_000_000n;
+    const bps = 300;
+    const checkpoints = [30n * 24n * 3600n, 30n * 24n * 3600n, 30n * 24n * 3600n, 30n * 24n * 3600n];
+    let supply = initialSupply;
+    let remainder = 0n;
+    let accrued = 0n;
+    for (const elapsed of checkpoints) {
+      const next = managementFeeWithRemainder(supply, bps, elapsed, remainder);
+      accrued += next.fee;
+      supply += next.fee;
+      remainder = next.remainder;
+    }
+
+    const fixedSupply = managementFeeWithRemainder(initialSupply, bps, checkpoints.reduce((a, b) => a + b, 0n));
+    expect(accrued).toBe(98_995n);
+    expect(accrued).toBeGreaterThan(fixedSupply.fee);
+    expect(supply).toBe(initialSupply + accrued);
+  });
   it("management never exceeds cap", () => {
     for (const bps of [100,200,300]) {
       for (const supply of [1_000_000,10_000_000,100_000_000]) {
@@ -79,6 +136,14 @@ describe("feeMath", () => {
     const single = s + managementFee(s,300,30*24*3600);
     expect(daily).toBeGreaterThanOrEqual(single);
     expect(daily - single).toBeLessThan(1000);
+  });
+  it("management remainder clears carried dust for zero supply and zero bps", () => {
+    expect(managementFeeWithRemainder(0n, 300, 123n, 42n)).toEqual({ fee: 0n, remainder: 0n });
+    expect(managementFeeWithRemainder(10_000_000n, 0, 123n, 42n)).toEqual({ fee: 0n, remainder: 0n });
+  });
+  it("management remainder rejects non-integer and out-of-range bps", () => {
+    expect(() => managementFeeWithRemainder(1n, 1.5, 1n)).toThrow(RangeError);
+    expect(() => managementFeeWithRemainder(1n, BPS_DENOM + 1, 1n)).toThrow(RangeError);
   });
   it("random fuzz fees", () => {
     for (let i=0;i<100;i++) {

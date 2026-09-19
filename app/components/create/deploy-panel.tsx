@@ -46,6 +46,10 @@ import {
   updatePendingTx,
 } from "@/components/feedback/pending-tx";
 import { formatRawAsTokenUnits, type ConstituentDraft } from "./types";
+import {
+  CREATOR_FEE_SPLIT_PERCENT,
+  PROTOCOL_FEE_SPLIT_LABEL,
+} from "@/lib/protocol-policy";
 
 /** Uint8Array to lowercase hex (metadata hash display). */
 function toHex(bytes: Uint8Array): string {
@@ -411,7 +415,7 @@ export function DeployPanel({
           <p className="text-base font-semibold text-primary-text">🎉 Basket created!</p>
           <p className="mt-1 text-xs text-muted-foreground">
             {GENESIS_SHARES.toLocaleString()} genesis shares are in your wallet — you&apos;re
-            the creator and earn 90% of fees.
+            the creator and earn {CREATOR_FEE_SPLIT_PERCENT}% of fees.
           </p>
           <div className="mt-3 flex flex-wrap gap-2">
             <Button render={<Link href={`/basket/${pda.basket.toBase58()}`} />} size="sm">
@@ -583,12 +587,12 @@ export function DeployPanel({
                 <SummaryRow
                   label="You get"
                   emphasis
-                  value={`${GENESIS_SHARES.toLocaleString()} shares — you're the creator and earn 90% of fees`}
+                  value={`${GENESIS_SHARES.toLocaleString()} shares — you're the creator and earn ${CREATOR_FEE_SPLIT_PERCENT}% of fees`}
                 />
                 <SummaryRow
                   label="Fees"
                   muted
-                  value={`${feesLine(entryFeeBps, exitFeeBps, managementFeeBps)} (90% supports the creator)`}
+                  value={`${feesLine(entryFeeBps, exitFeeBps, managementFeeBps)} (${PROTOCOL_FEE_SPLIT_LABEL})`}
                 />
               </TxSummaryCard>
             </div>

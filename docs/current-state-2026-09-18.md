@@ -54,14 +54,14 @@ This proves that the devnet protocol flow is real. It does not prove issuer back
 
 | Check | Result | Notes |
 |---|---|---|
-| `cargo test --workspace` | 207 passed | 136 basket, 44 factory, 27 whitelist |
-| Backend Vitest | 565 passed | 14 files |
+| `cargo test --workspace` | 208 passed | 136 basket, 45 factory, 27 whitelist |
+| Backend Vitest | 576 passed | 16 files |
 | App TypeScript | Passed | `npx tsc --noEmit --incremental false` |
 | App production build | Passed | 21 routes from a clean standalone app install |
 | Clean `npm ci` | Passed | Root workspace, standalone app, and standalone backend verified independently |
 | Frontend E2E | Missing | No Playwright/wallet regression suite |
 
-Verified automated total for the repaired working tree: **772 = 207 Rust + 565 backend**. Older 599/620/421/442/549/733/749/764 counts are historical.
+Verified automated total for the repaired working tree: **784 = 208 Rust + 576 backend**. Older 599/620/421/442/549/733/749/764/772 counts are historical.
 
 ## Mainnet blockers
 

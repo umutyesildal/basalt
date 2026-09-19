@@ -80,7 +80,7 @@ The V0 Zap is not atomic. If a leg fails, intermediate tokens remain in the user
 
 - The working tree carries management-fee numerator remainder in an append-only five-byte field; the deployed devnet program still requires an upgrade and existing-account smoke test.
 - Whitelist state does not encode a Token-2022 policy version; V0 enforces an extension-free, fail-closed boundary in instructions.
-- Factory-configured fee split may diverge from the basket program's 90/10 constant.
+- V0 fee split divergence is resolved: `creator_fee_split_bps` remains only as a legacy factory ABI/account-layout field, is pinned to 9,000, and the basket program uses the protocol-wide 90/10 split on every fee path. The client policy helper and docs derive the same labels/formula.
 - `events.sig` as a sole primary key can drop multiple events from one transaction.
 - BullMQ is listed as a dependency, while runtime orchestration uses direct interval loops.
 - Health combines liveness and readiness.

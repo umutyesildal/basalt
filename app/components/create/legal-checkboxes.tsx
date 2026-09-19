@@ -2,6 +2,11 @@
 
 import { LegalReviewTag } from "./legal-review-tag";
 import type { LegalAcknowledgments } from "./types";
+import {
+  CREATOR_FEE_SPLIT_PERCENT,
+  PROTOCOL_FEE_SPLIT_SHORT_LABEL,
+  TREASURY_FEE_SPLIT_PERCENT,
+} from "@/lib/protocol-policy";
 
 interface AcknowledgmentSpec {
   key: keyof LegalAcknowledgments;
@@ -33,9 +38,9 @@ const ACKNOWLEDGMENTS: AcknowledgmentSpec[] = [
   {
     key: "creatorNotAdviser",
     statement:
-      "I am not acting as a licensed adviser, and the 90/10 fee split is my compensation.",
+      `I am not acting as a licensed adviser, and the ${PROTOCOL_FEE_SPLIT_SHORT_LABEL} fee split is my compensation.`,
     detail:
-      "Unless separately licensed, deploying a basket does not make me an adviser or asset manager. The fee schedule I set (up to 300/100/300 bps) is paid by depositors and redeemers, split 90% creator / 10% treasury, and is immutable once deployed.",
+      `Unless separately licensed, deploying a basket does not make me an adviser or asset manager. The fee schedule I set (up to 300/100/300 bps) is paid by depositors and redeemers, split ${CREATOR_FEE_SPLIT_PERCENT}% creator / ${TREASURY_FEE_SPLIT_PERCENT}% treasury, and is immutable once deployed.`,
   },
 ];
 

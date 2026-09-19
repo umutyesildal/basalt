@@ -49,6 +49,7 @@ import path from "path";
 import {
   ASSOCIATED_TOKEN_PROGRAM_ID,
   BASKET_PROGRAM_ID,
+  CREATOR_FEE_SPLIT_BPS,
   PACKET_LIMIT,
   TOKEN_2022_PROGRAM_ID,
   SYSTEM_PROGRAM_ID,
@@ -82,7 +83,6 @@ import {
   toVersionedTx,
 } from "./lib.ts";
 
-const CREATOR_FEE_SPLIT_BPS = 9000;
 const ENTRY_FEE_BPS = 100;
 const EXIT_FEE_BPS = 50;
 const MGMT_FEE_BPS = 200;
@@ -204,7 +204,7 @@ async function main() {
       console.log(`  factory exists (${factory.toBase58()}) — skipping init`);
       return;
     }
-    await send(conn, "init_factory", [ixInitFactory(creator, treasury, CREATOR_FEE_SPLIT_BPS)], [payer]);
+    await send(conn, "init_factory", [ixInitFactory(creator, treasury)], [payer]);
     const info = await conn.getAccountInfo(factory);
     if (!info) throw new Error("factory not created");
     // FactoryConfig: 8 disc + authority 32 + treasury 32 + split u16 @72.

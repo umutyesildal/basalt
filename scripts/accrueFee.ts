@@ -15,6 +15,7 @@
  */
 
 import {
+  CREATOR_FEE_SPLIT_BPS,
   deriveAta,
   fmtRaw,
   ixAccrueManagementFee,
@@ -35,7 +36,7 @@ import {
 import { PublicKey } from "@solana/web3.js";
 
 const SECONDS_PER_YEAR = 31_536_000n;
-const CREATOR_SPLIT_BPS = 9000n;
+const CREATOR_SPLIT_BPS = BigInt(CREATOR_FEE_SPLIT_BPS);
 const MAX_WAIT_SEC = 90;
 const POLL_SEC = 5;
 const TARGET_FEE = 2n; // shares; small target so the wait stays short

@@ -2,16 +2,16 @@
 
 > "Create an index. Own your thesis." — Onchain strategy baskets powered by xStocks.
 > V0 spec: `docs/basalt-v0-spec.md` (normative product constraints). Documentation map: `docs/README.md`. Current backlog: `docs/implementation-backlog.md`. Brand: `brand.md`.
-> Current state: **Working devnet beta, not mainnet-ready. Real create/mint/redeem and read-only indexing are verified; current constituent assets are project mock mints and some deployed surfaces use labeled/demo datasets.** Verified 2026-09-19 working tree: clean root/app/backend installs pass, 207 Rust + 565 backend tests pass, and the app produces a 21-route production build. Full snapshot: `docs/current-state-2026-09-18.md`.
+> Current state: **Working devnet beta, not mainnet-ready. Real create/mint/redeem and read-only indexing are verified; current constituent assets are project mock mints and some deployed surfaces use labeled/demo datasets.** Verified 2026-09-19 working tree: clean root/app/backend installs pass, 208 Rust + 576 backend tests pass, and the app produces a 21-route production build. Full snapshot: `docs/current-state-2026-09-18.md`.
 > **Won: Superteam Germany "Road to Colosseum" Ideathon (2026-09-14)** — top-10 of 38 submissions, $3k USDG pool. Submission: `docs/ideathon-submission-2026-09.md`. Live demo: https://basalt-coral.vercel.app/explore. Current implementation order: `docs/implementation-backlog.md`.
 
 ## Verification commands
 
 ```bash
-cargo test                                  # 207 Rust tests
+cargo test                                  # 208 Rust tests
 npm --prefix backend install                # once (backend has its own lockfile)
 npm --prefix backend run build              # strict NodeNext, no suppressions
-npm --prefix backend test -- --run          # 565 TS tests in the 2026-09-19 working tree
+npm --prefix backend test -- --run          # 576 TS tests in the 2026-09-19 working tree
 (cd app && npx tsc --noEmit --incremental false)   # 0 errors
 npm --prefix app run build                  # 21 routes in the 2026-09-19 clean-build snapshot
 ```
@@ -82,7 +82,7 @@ Every basket trade already settles on-chain, so the feed shows **verified activi
 
 ## Security
 
-See spec §11, `docs/current-state-2026-09-18.md`, and `docs/security-hardening-plan.md`. Key invariants: `redeem_in_kind` is never gated (no whitelist/oracle/pauser account in its context; structural test), no `admin_withdraw`, RAW-only transfers, fee caps + 90/10 split, and genesis 1M inflation-attack protection. Run `cargo test` plus independent security review before mainnet.
+See spec §11, `docs/current-state-2026-09-18.md`, and `docs/security-hardening-plan.md`. Key invariants: `redeem_in_kind` is never gated (no whitelist/oracle/pauser account in its context; structural test), no `admin_withdraw`, RAW-only transfers, fee caps + canonical protocol-wide 90/10 split (creator floor, treasury remainder), and genesis 1M inflation-attack protection. Run `cargo test` plus independent security review before mainnet.
 
 ## Legal Placeholders
 

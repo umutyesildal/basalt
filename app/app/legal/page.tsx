@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { PROTOCOL_FEE_SPLIT_LABEL } from "@/lib/protocol-policy";
 
 interface Section {
   title: string;
@@ -41,7 +42,7 @@ const SECTIONS: Section[] = [
     title: "Fees",
     toc: "Fees",
     body: [
-      "Creators set three fees at deployment, within hard caps: entry up to 300 bps, exit up to 100 bps, and management up to 300 bps per year. Fees are charged in basket shares, never in underlying tokens. Fee revenue splits 90% to the basket creator and 10% to the treasury; the split floors the creator portion so the two always sum to the fee.",
+      `Creators set three fees at deployment, within hard caps: entry up to 300 bps, exit up to 100 bps, and management up to 300 bps per year. Fees are charged in basket shares, never in underlying tokens. V0 uses the protocol-wide ${PROTOCOL_FEE_SPLIT_LABEL} split; the creator portion is floored and the treasury receives the exact remainder, including split dust.`,
       "The fee schedule is immutable once a basket is deployed. Review it before minting — it is disclosed on every basket page and in the create wizard.",
     ],
   },

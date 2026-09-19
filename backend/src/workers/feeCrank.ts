@@ -74,8 +74,10 @@ export interface BuiltFeeTx {
   treasury: string;
   managementFeeBps: number;
   elapsedSec: number;
-  /** floor(supply × bps × elapsed / (10000 × 31536000)) — estimate only; the
-   *  on-chain value is recomputed by the program from actual state. */
+  /** One-checkpoint estimate using the indexed then-current supply. The
+   *  on-chain value is recomputed from actual supply, elapsed time, and its
+   *  stored numerator remainder. Repeated checkpoints compound because prior
+   *  fee shares join the next checkpoint's supply. */
   estimatedFeeShares: string | null;
   /** UNSIGNED versioned transaction, base64 — null when no RPC (no blockhash). */
   transactionBase64: string | null;
@@ -303,6 +305,8 @@ export class FeeCrank {
       "never submits (AGENTS.md §2 #5): decode the base64 as a " +
       "VersionedTransaction, sign with the keeper wallet (feePayer) and submit. " +
       "accrue_management_fee is permissionless — any wallet may crank. " +
+      "Each checkpoint uses the then-current supply, so fee-share minting makes later " +
+      "intervals compound slightly. " +
       "estimatedFeeShares assumes an unknown on-chain numerator remainder of zero " +
       "and, for otherwise identical supply and elapsed inputs, can therefore be lower " +
       "by at most one raw share. A stale DB supply or timestamp can cause a larger difference.";
@@ -327,10 +331,12 @@ export class FeeCrank {
 }
 
 /**
- * Legacy estimate helper. It assumes the unknown on-chain numerator remainder
- * is zero and, for otherwise identical supply and elapsed inputs, can therefore
- * understate the authoritative fee by at most one raw share. Callers remain
- * responsible for snapshot freshness.
+ * Legacy one-checkpoint estimate helper. It uses the supplied then-current
+ * supply and assumes the unknown on-chain numerator remainder is zero. For
+ * otherwise identical supply and elapsed inputs it can therefore understate
+ * the authoritative fee by at most one raw share. Callers remain responsible
+ * for snapshot freshness and for modeling interval compounding across multiple
+ * checkpoints.
  */
 export function estimateManagementFeeShares(
   supply: string | number,

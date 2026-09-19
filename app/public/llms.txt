@@ -4,7 +4,7 @@
 
 ## How it works
 
-- A creator picks 2-20 whitelisted xStock tokens (tickers suffixed `x`, e.g. `TSLAx`), sets weights that must sum to 10,000 bps, sets fees (entry 0-300, exit 0-100, management 0-300 bps; creator/treasury split 90/10) and deploys atomically with an in-kind seed deposit (genesis supply 1,000,000 shares).
+- A creator picks 2-20 whitelisted xStock tokens (tickers suffixed `x`, e.g. `TSLAx`), sets weights that must sum to 10,000 bps, sets fees (entry 0-300, exit 0-100, management 0-300 bps; fixed protocol-wide split 90% creator / 10% treasury, with creator-floor and treasury-remainder dust handling) and deploys atomically with an in-kind seed deposit (genesis supply 1,000,000 shares).
 - `mint_in_kind`: deposit constituents proportionally, receive shares net of entry fee. Paused constituents block minting only.
 - `redeem_in_kind`: burn shares, receive the underlying tokens pro rata net of exit fee. Never gated — no whitelist, oracle or pauser account in its context.
 - `accrue_management_fee`: permissionless crank; the fee accrues by share dilution.

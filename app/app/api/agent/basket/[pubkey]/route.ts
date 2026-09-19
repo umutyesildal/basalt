@@ -23,6 +23,7 @@ import {
   formatUsd,
   truncateAddress,
 } from "@/lib/format";
+import { PROTOCOL_FEE_SPLIT_LABEL } from "@/lib/protocol-policy";
 
 export const dynamic = "force-dynamic";
 
@@ -330,7 +331,7 @@ function renderBasketMarkdown(
   out.push(
     `- Management fee: ${
       mgmt !== null ? `${formatBpsAsPercent(mgmt)} per year` : "unknown"
-    } — accrues by share dilution via a permissionless crank; creator/treasury split 90/10`,
+    } — accrues by share dilution via a permissionless crank; creator/treasury split ${PROTOCOL_FEE_SPLIT_LABEL}`,
   );
   out.push("");
 

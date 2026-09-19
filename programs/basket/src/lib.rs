@@ -27,7 +27,7 @@ pub const MANAGEMENT_FEE_DENOMINATOR: u128 = BPS_DENOM as u128 * SECONDS_PER_YEA
 /// field consumes five of the seven zero-filled bytes already reserved by the
 /// live 888-byte Basket allocation; existing field offsets stay unchanged.
 pub const MANAGEMENT_FEE_REMAINDER_BYTES: usize = 5;
-/// 90% creator / 10% treasury fee split (FactoryConfig default at creation time).
+/// Canonical V0 fee policy: 90% creator / 10% treasury on every fee path.
 pub const CREATOR_FEE_SPLIT_BPS: u16 = 9000;
 
 // ===================== whitelist paused-mint gate (spec §3.3) =====================

@@ -33,6 +33,7 @@ import { Keypair, PublicKey } from "@solana/web3.js";
 import {
   ASSOCIATED_TOKEN_PROGRAM_ID,
   BASKET_PROGRAM_ID,
+  CREATOR_FEE_SPLIT_BPS,
   SYSTEM_PROGRAM_ID,
   TOKEN_2022_PROGRAM_ID,
   createAtaIdempotent,
@@ -186,7 +187,7 @@ async function main() {
     if (spread * 100n > gross) throw new Error("internal: deposits exceed the 1% tolerance — test bug");
     const entryFee = floorDiv(gross * BigInt(entryBps), 10_000n);
     const net = gross - entryFee;
-    const creatorFee = floorDiv(entryFee * 9000n, 10_000n);
+    const creatorFee = floorDiv(entryFee * BigInt(CREATOR_FEE_SPLIT_BPS), 10_000n);
     const treasuryFee = entryFee - creatorFee;
     console.log(
       `  expected: gross=${gross} entry_fee=${entryFee} (creator ${creatorFee} / treasury ${treasuryFee}) net=${net}`,

@@ -46,6 +46,8 @@ export const FACTORY_PROGRAM_ID = new PublicKey(
 export const BASKET_PROGRAM_ID = new PublicKey(
   "6Q43vFh4aqGxzvtU2vQwJX9PmX3skfYsGWZdA3fwJB9k",
 );
+/** Canonical V0 creator/treasury split: 90% / 10%. */
+export const CREATOR_FEE_SPLIT_BPS = 9_000;
 /** Canonical Token-2022 program. */
 export const TOKEN_2022_PROGRAM_ID = new PublicKey(
   "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb",
@@ -332,12 +334,23 @@ export function ixSetMintPaused(
   });
 }
 
-/** factory init_factory(treasury, creator_fee_split_bps) — factory, authority(signer), system. */
+/**
+ * factory init_factory(treasury, creator_fee_split_bps) — factory,
+ * authority(signer), system.
+ *
+ * The on-chain u16 remains in the instruction for V0 wire compatibility, but
+ * the split is protocol-fixed and cannot be selected by callers.
+ */
 export function ixInitFactory(
   authority: PublicKey,
   treasury: PublicKey,
-  creatorFeeSplitBps: number,
+  creatorFeeSplitBps = CREATOR_FEE_SPLIT_BPS,
 ): TransactionInstruction {
+  if (creatorFeeSplitBps !== CREATOR_FEE_SPLIT_BPS) {
+    throw new RangeError(
+      `V0 creator fee split is fixed at ${CREATOR_FEE_SPLIT_BPS} bps`,
+    );
+  }
   return new TransactionInstruction({
     programId: FACTORY_PROGRAM_ID,
     keys: [
@@ -348,7 +361,7 @@ export function ixInitFactory(
     data: concat(
       sighash("init_factory"),
       treasury.toBuffer(),
-      borshU16(creatorFeeSplitBps),
+      borshU16(CREATOR_FEE_SPLIT_BPS),
     ),
   });
 }
