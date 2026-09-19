@@ -50,6 +50,11 @@ for command_name in solana solana-keygen solana-test-validator node; do
   command -v "$command_name" >/dev/null || { printf 'Missing command: %s\n' "$command_name" >&2; exit 2; }
 done
 
+# macOS can create AppleDouble `._*` files while the validator packs genesis.
+# Those entries make the validator reject its own archive, so keep this
+# disposable ledger free of extended-attribute sidecars.
+export COPYFILE_DISABLE=1
+
 TEMP_DIR="$(mktemp -d "${TMPDIR:-/tmp}/basalt-governance-rehearsal.XXXXXX")"
 OPERATOR_KEYPAIR="$TEMP_DIR/operator.json"
 GOVERNANCE_KEYPAIR="$TEMP_DIR/governance-placeholder.json"
@@ -108,6 +113,7 @@ done
 solana cluster-version --url "$RPC_URL" >/dev/null
 kill -0 "$VALIDATOR_PID" >/dev/null
 solana airdrop 20 "$OPERATOR_PUBKEY" --url "$RPC_URL" >/dev/null
+solana airdrop 20 "$GOVERNANCE_PUBKEY" --url "$RPC_URL" >/dev/null
 
 solana program deploy "$PROGRAM_SO" \
   --url "$RPC_URL" \

@@ -29,6 +29,7 @@ Basket counts, test counts, API versions, and deployment claims in older files a
 | `deployment-attestation.md` | Deployment manifest generation, artifact hashes, and verification limits |
 | `upgrade-governance-policy.md` | Target multisig/timelock policy, current authority disclosure, and completion evidence |
 | `devnet-governance-audit-2026-09-19.md` | Finalized RPC evidence for current program and whitelist authorities |
+| `local-governance-rehearsal-2026-09-19.md` | Disposable localnet authority transfer, rejection, and rollback evidence |
 | `bas-002-token2022-extension-policy.md` | Token-2022 admission policy, received-delta design, and extension compatibility |
 | `fixtures/token2022-mainnet-xstocks-2026-09-18.json` | Point-in-time mainnet-beta Token-2022 evidence for TSLAx, AAPLx, and NVDAx |
 

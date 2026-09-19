@@ -11,26 +11,17 @@
 # Works from the repo root with the PATH from AGENTS.md §13:
 #   export PATH="/opt/homebrew/opt/rustup/bin:$HOME/.cargo/bin:$HOME/.avm/bin:$HOME/.local/share/solana/install/active_release/bin:$PATH"
 #
-# KNOWN BLOCKERS (2026-09-01, see the localnet-E2E worker report):
-#   B1 (SBF toolchain, AGENTS.md §20) — platform-tools v1.41 (rustc 1.75)
-#      cannot compile the current Cargo.lock (crypto-common 0.2.2 and friends
-#      need edition2024 / rustc >= 1.85), and its cargo cannot even parse the
-#      lockfile: "lock file version 4 requires -Znext-lockfile-bump". Fix:
-#      `sed -i '' 's/version = 4/version = 3/' Cargo.lock` + either pin the
-#      drifted crates back to rustc-1.75-compatible releases or install a
-#      newer platform-tools via `cargo build-sbf --tools-version v1.4x`.
-#   B2 (program IDs, BLOCKS DEPLOY EVEN AFTER B1) — the declared program ids in
-#      Anchor.toml are NOT deployable: sXShikYX7G5n3S3qp78RWQBxh2YJARLvufiCoaxjAyq
-#      (factory) and 37VPGtd57kXJ1HvH1xvdZr1y3s4KXj9pP2o6GdYLgbb1 (basket) are
-#      OFF-CURVE points, so no ed25519 deploy keypair can exist for them, and
-#      no target/deploy/*-keypair.json is committed for the on-curve whitelist
-#      id either. Deployment REQUIRES the programs to sit exactly at the
-#      declared ids (whitelist::ID / basket::ID are compiled into the other
-#      programs' cross-program checks), so a fix must change declare_id! in all
-#      3 programs/*/src/lib.rs + Anchor.toml + AGENTS.md §14 env ids (programs/
-#      owner action, out of the scripts worker's scope). Until then step 3
-#      fails and steps 4.x fail on their first program call; the mock-mint
-#      portion of createWhitelist (pure Token-2022) still runs and passes.
+# CURRENT LOCALNET BOUNDARY (verified 2026-09-19):
+#   B1 RESOLVED — `cargo build-sbf --offline` produces all three artifacts with
+#      platform-tools v1.41 / rustc 1.75 and the current version-3 Cargo.lock.
+#   B2 REMAINS — canonical target/deploy/*-keypair.json files are intentionally
+#      absent from the repository. A fresh deployment must sit at the exact
+#      compiled `declare_id!` addresses because the programs cross-check those
+#      IDs. Never invent or commit production keys. The loopback-only
+#      `scripts/rehearse-governance-localnet.sh` uses disposable program IDs to
+#      prove loader authority mechanics; it does not prove protocol execution.
+#      A full functional E2E needs an isolated source copy compiled with
+#      matching temporary IDs, or an explicitly authorized secure ceremony.
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -138,9 +129,9 @@ for prog in whitelist basket_factory basket; do
   [[ -f "target/deploy/$prog-keypair.json" ]] || { MISSING="$MISSING target/deploy/$prog-keypair.json"; DEPLOY_READY=0; }
 done
 if [[ $DEPLOY_READY -eq 0 ]]; then
-  record "$STEP" "FAIL (missing:$MISSING — B1 SBF build not produced and/or B2 deploy keypairs absent, see header comments)"
+  record "$STEP" "FAIL (missing:$MISSING — build artifacts and canonical deploy keypairs are required, see header comments)"
   echo "FAIL: $STEP"
-  echo "  blocked: program binaries/keypairs absent. Known blockers B1 (SBF toolchain) and B2 (declared program ids are off-curve -> undeployable; needs declare_id! regeneration) — see file header."
+  echo "  blocked: program binaries and/or canonical deploy keypairs are absent. SBF build is verified; never invent or commit release keys — see file header."
 else
   KP_MISMATCH=0
   # bash-3.2 compatible (macOS stock bash): associative arrays unsupported.
@@ -159,7 +150,7 @@ else
     fi
   done
   if [[ $KP_MISMATCH -eq 1 ]]; then
-    record "$STEP" "FAIL (deploy keypair addresses do not match the declared ids — programs must sit exactly at the declared ids; see B2)"
+    record "$STEP" "FAIL (deploy keypair addresses do not match the declared ids — programs must sit exactly at the compiled addresses; see B2)"
     echo "FAIL: $STEP"
   else
     solana airdrop 10 --url "$RPC_URL" >/dev/null 2>&1 || true

@@ -82,5 +82,7 @@ For the policy, ceremony sequence, and evidence required to close the
 single-key upgrade risk, see `docs/upgrade-governance-policy.md`. The
 loopback-only `scripts/rehearse-governance-localnet.sh` proves transfer,
 former-authority rejection, executable state, ProgramData stability, and
-rollback with disposable keys. It is not proof of a real multisig threshold or
-time lock and must never be published as production governance evidence.
+rollback with disposable keys. The three-artifact 2026-09-19 result is recorded
+in `docs/local-governance-rehearsal-2026-09-19.md`. It is not proof of a real
+multisig threshold or time lock and must never be published as production
+governance evidence.

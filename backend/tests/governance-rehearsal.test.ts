@@ -97,5 +97,8 @@ describe("governance rehearsal guardrails", () => {
     );
     expect(script).not.toContain("--final");
     expect(script).toContain('kill -0 "$VALIDATOR_PID"');
+    expect(script).toContain("export COPYFILE_DISABLE=1");
+    expect(script).toContain('solana airdrop 20 "$OPERATOR_PUBKEY"');
+    expect(script).toContain('solana airdrop 20 "$GOVERNANCE_PUBKEY"');
   });
 });

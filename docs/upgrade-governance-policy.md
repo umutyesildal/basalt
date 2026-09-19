@@ -23,6 +23,12 @@ No multisig address, vault address, threshold, signer public keys, timelock
 configuration, or successful authority transfer has been independently
 verified for the current deployment.
 
+All three disposable artifacts passed a private-localnet loader authority
+transfer, former-authority rejection, ProgramData/executable stability, and
+rollback rehearsal on 2026-09-19. The evidence is in
+`docs/local-governance-rehearsal-2026-09-19.md`. That rehearsal proves transfer
+mechanics only; it is not a real 2-of-3 or 48-hour time-lock ceremony.
+
 Until post-transfer RPC evidence is published:
 
 - treat the programs as upgradeable under a single-key authority;

@@ -58,7 +58,7 @@ basket_factory = "3hzoPep9JKgTmzLT6CNW5x3EN7WNYDevM6KHVM7pLgMF" # programs/baske
 basket         = "6Q43vFh4aqGxzvtU2vQwJX9PmX3skfYsGWZdA3fwJB9k" # programs/basket/src/lib.rs:4
 ```
 
-**Toolchain (verified):** `rustc 1.98`, `cargo 1.98`, `solana-cli 1.18.17`, `anchor-cli 0.30.1` via `avm 1.1.2` (`~/.cargo/bin`, `~/.avm/bin`, `~/.local/share/solana`). `anchor build` SBF currently blocked by `edition2024` crates on `rustc 1.75` platform-tools — `cargo check`/`cargo test` is authoritative (`scripts/e2e.sh:12` documents). Set `overflow-checks = true` in `Cargo.toml:9`.
+**Toolchain (verified):** `rustc 1.98`, `cargo 1.98`, `solana-cli 1.18.17`, `anchor-cli 0.30.1` via `avm 1.1.2` (`~/.cargo/bin`, `~/.avm/bin`, `~/.local/share/solana`). On 2026-09-19, `cargo build-sbf --offline` succeeded for all three programs with platform-tools v1.41 / SBF rustc 1.75 and the current version-3 `Cargo.lock`. The remaining fresh-local-deploy blocker is the intentional absence of canonical program-id keypairs; use the disposable governance rehearsal only for loader authority mechanics. Set `overflow-checks = true` in `Cargo.toml:9`.
 
 ---
 
@@ -335,7 +335,7 @@ sh -c "$(curl -sSfL https://release.solana.com/v1.18.17/install)" # solana 1.18.
 
 # Build & test (verified)
 cargo check                         # 0 errors, 14 warnings anchor-debug
-cargo build                         # dev build (SBF needs Agave 2.x due edition2024)
+cargo build-sbf --offline           # verified for all 3 programs on 2026-09-19
 cargo test                          # 208 Rust tests
 npm --prefix backend install && npx --prefix backend vitest run  # 596 TS tests
 npx tsx backend/src/index.ts        # API :3001
@@ -474,8 +474,8 @@ Use `read` tool on these before editing — they are authoritative.
 
 | Symptom | Cause | Fix |
 |---------|-------|-----|
-| `anchor build` → `edition2024` error | platform-tools `rustc 1.75` too old for latest `crypto-common` | Use `cargo check`/`cargo test` for verification; SBF needs Agave 2.x or `cargo update --pin` older deps. Documented `README.md:13` |
-| `Cargo.lock version 4 requires -Znext-lockfile-bump` | Solana cargo 1.75 vs lockfile 4 | `sed -i '' 's/version = 4/version = 3/' Cargo.lock` then `anchor build`, or delete lockfile and `cargo generate-lockfile` |
+| `cargo build-sbf --offline` reports an `edition2024` or lockfile-version error | Dependency or lockfile drift from the verified version-3 `Cargo.lock` | Do not hand-edit or delete the lockfile. Restore the reviewed lockfile, run `cargo build-sbf --offline`, and review any dependency change before updating it. |
+| Local deploy cannot find canonical program keypairs | Canonical deploy keypairs are intentionally absent from the repository | Never invent or commit production keys. Use `scripts/rehearse-governance-localnet.sh` for disposable loader-mechanics proof; a full functional E2E needs an isolated temporary-ID source copy or an authorized secure ceremony. |
 | `WeightMismatch` on mint | deposits off-target >1% | Check `D*S/V` for each constituent, ensure deposits proportional to `V` (which tracks actual holdings, not target weights) |
 | `ZeroShares` | dust deposit `D*S/V == 0` | Increase deposit or vault must have non-zero holdings; genesis uses fixed 1M |
 | `InsufficientShares` on redeem | `burn > user_share_ata.amount` | Query `getTokenAccountBalance` for share ATA first |

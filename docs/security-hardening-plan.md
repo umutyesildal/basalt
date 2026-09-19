@@ -112,7 +112,10 @@ legal review, or the mainnet go/no-go gate.
 
 The canonical decision and completion checklist are in
 `docs/upgrade-governance-policy.md`. Repository-local rehearsal tooling is
-loopback-only and must not be presented as real multisig evidence.
+loopback-only. All three disposable artifacts passed loader authority transfer,
+former-authority rejection, ProgramData/executable stability, and rollback on
+2026-09-19; see `docs/local-governance-rehearsal-2026-09-19.md`. That result
+must not be presented as real multisig or time-lock evidence.
 
 **Acceptance:** No single hot wallet can upgrade a program.
 
