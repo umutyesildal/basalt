@@ -100,17 +100,26 @@ Completion evidence (repository-local, 2026-09-19; deployment-independent):
 - The frontend policy module at `app/lib/protocol-policy.ts` derives exact split helpers and labels used by active fee, transaction-review, documentation, and legal surfaces. The normative explanation is in `docs/basalt-v0-spec.md` §6.2-6.3.
 - Management fee accrual carries the exact numerator remainder at each checkpoint and evaluates the interval against then-current supply. Fee shares join supply, so later intervals compound slightly; the nominal annualized rate is not a fixed charge against initial supply. Fixed-supply partition equivalence remains a separate invariant.
 - Local repository evidence covers split conservation/dust and management-fee remainder/compounding behavior. This closes the documentation and policy decision only; BAS-016 instruction-level coverage, audit, hosted CI, upgrade, existing-account devnet smoke, legal review, governance, and mainnet gates remain open.
-- Current local verification is 208 Rust tests (136 basket, 45 basket_factory, 27 whitelist) plus 576 backend tests across 16 files; frontend typecheck and production build pass.
+- Current local verification is 208 Rust tests (136 basket, 45 basket_factory, 27 whitelist) plus 596 backend tests across 18 files; frontend typecheck and production build pass.
 
-### BAS-006 — Multisig and timelock
+### BAS-006 — Multisig and timelock `[~]`
 
-- [ ] Decide signers and threshold.
+- [x] Decide signer roles and threshold policy.
 - [ ] Rehearse authority transfer.
-- [ ] Define timelock and announcement policy.
-- [ ] Disclose governance in UI and deployment manifest.
+- [x] Define timelock and announcement policy.
+- [x] Disclose current governance status in UI and the deployment-manifest contract.
 
 **Owner area:** governance/ops
 **Acceptance:** One hot wallet cannot upgrade programs.
+
+Partial completion evidence (repository-local, 2026-09-19):
+- `docs/upgrade-governance-policy.md` fixes the production target at an autonomous, hardware-wallet-backed 2-of-3 vault with independent Protocol Maintainer, Security and Incident Lead, and Operations and Release Lead roles. It defines one 48-hour on-chain delay for normal and emergency upgrades, plus announcement and incident evidence; there is no unilateral bypass.
+- All three BPF upgrade authorities and the separate `WhitelistConfig.authority` target the governance vault. Basket parameters remain immutable and redemption remains permissionless, oracle-free, backend-independent, whitelist-independent, and unpausable.
+- Manifest v2 can represent unknown, single-key, multisig, and immutable authority models, verification source, threshold, signer count, time lock, rehearsal, and per-program authority evidence without converting operator declarations into RPC proof.
+- The app, agent guide, agent markdown route, and release documentation disclose the current boundary: the last repository evidence is dated 2026-09-04, shows a single-key devnet authority, and is not a fresh governance attestation.
+- The local rehearsal tooling is intentionally loopback-only and uses disposable authority keys. Passing it proves CLI transfer/rollback mechanics, not a Squads threshold or production time lock.
+
+**Still open:** Create the actual autonomous multisig, approve the exact signer and vault public keys, run and publish the full 2-of-3 delayed rehearsal, transfer all three program authorities and the whitelist authority, then verify them from fresh RPC state. Until that evidence exists, the acceptance criterion is not met and BAS-006 remains partial.
 
 ### BAS-007 — Reproducible program attestation
 

@@ -55,20 +55,20 @@ This proves that the devnet protocol flow is real. It does not prove issuer back
 | Check | Result | Notes |
 |---|---|---|
 | `cargo test --workspace` | 208 passed | 136 basket, 45 factory, 27 whitelist |
-| Backend Vitest | 576 passed | 16 files |
+| Backend Vitest | 596 passed | 18 files |
 | App TypeScript | Passed | `npx tsc --noEmit --incremental false` |
 | App production build | Passed | 21 routes from a clean standalone app install |
 | Clean `npm ci` | Passed | Root workspace, standalone app, and standalone backend verified independently |
 | Frontend E2E | Missing | No Playwright/wallet regression suite |
 
-Verified automated total for the repaired working tree: **784 = 208 Rust + 576 backend**. Older 599/620/421/442/549/733/749/764/772 counts are historical.
+Verified automated total for the repaired working tree: **804 = 208 Rust + 596 backend**. Older 599/620/421/442/549/733/749/764/772/784 counts are historical.
 
 ## Mainnet blockers
 
 1. The working tree fixes management-fee crank grief with exact remainder carry, but the deployed devnet basket program still requires an upgrade and existing-account smoke test. BAS-004 arithmetic hardening is complete locally, but it still needs the normal release/upgrade evidence before being treated as deployed security status.
 2. The interim Token-2022 policy is extension-free and fail-closed, with exact raw source/destination delta checks for seed and mint. Instruction-level extension, adversarial-hook, and full ProgramTest/LiteSVM coverage remain open under BAS-016; official mainnet xStocks are not admitted.
 3. Zap-in now uses wallet/quote-bound raw `post - pre` snapshots with min-out validation and partial-leg recovery; Zap-out remains quote-only with no frontend execution path.
-4. Upgrade authority is a single wallet; no multisig/timelock.
+4. The latest repository evidence (2026-09-04) records one single-wallet upgrade authority and no multisig/time lock. BAS-006 now defines the target 2-of-3 governance policy and honest disclosure, but no fresh RPC attestation or authority transfer exists; the one-hot-wallet mainnet blocker remains.
 5. Mock and synthetic data are not labeled consistently across all surfaces.
 6. Price integration still targets legacy Jupiter Price v6.
 7. Dependency audit still reports transitive vulnerabilities requiring triage and controlled upgrades.

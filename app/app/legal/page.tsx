@@ -79,7 +79,8 @@ const SECTIONS: Section[] = [
     title: "Immutability and upgrade authority",
     toc: "Upgradability",
     body: [
-      "Basket parameters — constituents, weights, fee schedule, creator, and metadata hash — cannot change after deployment; no update instruction exists. The on-chain programs themselves are currently upgradable: the programs' upgrade authorities can deploy changed program code. The intended path is an upgradable multisig with a disclosed timelock in a later version. This is a material risk: program logic itself could change.",
+      "Basket parameters — constituents, weights, fee schedule, creator, and metadata hash — cannot change after deployment; no update instruction exists. The on-chain programs themselves remain upgradable. The latest repository evidence, captured on 2026-09-04, records one single-key devnet upgrade authority; no multisig, timelock, or current authority state has been independently attested. Program IDs shown by this site are declared addresses, not proof of the deployed program bytes or present governance configuration. Program logic could change, so this remains a material trust assumption and a mainnet blocker.",
+      "The target policy is an autonomous hardware-wallet-backed 2-of-3 governance vault, with one 48-hour on-chain timelock and public announcement for every upgrade. That target is a plan, not the current verified deployment state. It does not change redemption: redeem_in_kind remains permissionless, oracle-free, backend-independent, whitelist-independent, and unpausable.",
     ],
   },
   {

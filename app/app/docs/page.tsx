@@ -536,9 +536,11 @@ export default function DocsPage() {
                   <p className="mt-1 text-sm leading-6 text-muted-foreground">
                     The programs hold the vaults, and code can be wrong. The
                     programs are currently upgradable: their upgrade authority
-                    can deploy changed logic. Immutability is promised for
-                    basket parameters, not for program code — the upgrade
-                    authority is a disclosed trust assumption.
+                    can deploy changed logic. The latest repository evidence is
+                    dated 2026-09-04 and records one single-key authority; no
+                    multisig, timelock, or current authority state is
+                    independently attested. Immutability applies to basket
+                    parameters, not program code.
                   </p>
                 </li>
                 <li className="border-l border-border/60 pl-4">
@@ -630,6 +632,13 @@ export default function DocsPage() {
                   </li>
                 ))}
               </ul>
+
+              <p className="mt-3 font-mono text-[11px] leading-5 text-muted-foreground">
+                Declared program IDs are not governance proof. Basalt&apos;s target
+                is an autonomous hardware-wallet-backed 2-of-3 vault with one
+                48-hour on-chain timelock, but that migration has not been
+                verified. It remains a mainnet blocker.
+              </p>
 
               <p className="mt-6 text-[15px] leading-7 text-muted-foreground">
                 If this site disappeared tomorrow, redemption would still work:

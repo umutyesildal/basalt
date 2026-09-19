@@ -5,7 +5,7 @@
 Snapshot from 2026-09-19:
 
 - Rust workspace: 208 tests passed (136 basket, 45 basket_factory, 27 whitelist).
-- Backend: 576 Vitest tests passed across 16 files.
+- Backend: 596 Vitest tests passed across 18 files.
 - Frontend TypeScript: passed.
 - Frontend test suite: missing.
 - Root, standalone app, and standalone backend clean installs pass after the 2026-09-18 lock repair.
@@ -124,6 +124,14 @@ Every release records:
 - known limitations,
 - rollback and communication runbook.
 
+For an upgradeable Solana release, the evidence package also records the
+ProgramData address and fresh RPC-derived upgrade authority for each program,
+the governance vault and threshold, configured time lock, announcement URL,
+authority-transfer transaction, and the result of the rehearsal defined in
+`docs/upgrade-governance-policy.md`. An operator-supplied manifest value is not
+RPC attestation. The loopback rehearsal proves authority-transfer mechanics
+only; it does not prove a real multisig threshold or production time lock.
+
 ## Release blockers
 
 - Any open P0 security issue.
@@ -134,3 +142,4 @@ Every release records:
 - Missing frontend E2E for primary money flows.
 - Incomplete mainnet asset allowlist or legal/geo decision.
 - Upgrade authority remains one hot wallet.
+- Governance threshold, time lock, or authority state is asserted without fresh on-chain evidence.

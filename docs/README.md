@@ -27,6 +27,7 @@ Basket counts, test counts, API versions, and deployment claims in older files a
 | `testing-and-release-plan.md` | CI, test layers, release evidence, and rollback |
 | `dependency-audit-2026-09-18.md` | Dated npm audit evidence, remediation, and accepted upstream risk |
 | `deployment-attestation.md` | Deployment manifest generation, artifact hashes, and verification limits |
+| `upgrade-governance-policy.md` | Target multisig/timelock policy, current authority disclosure, and completion evidence |
 | `bas-002-token2022-extension-policy.md` | Token-2022 admission policy, received-delta design, and extension compatibility |
 | `fixtures/token2022-mainnet-xstocks-2026-09-18.json` | Point-in-time mainnet-beta Token-2022 evidence for TSLAx, AAPLx, and NVDAx |
 

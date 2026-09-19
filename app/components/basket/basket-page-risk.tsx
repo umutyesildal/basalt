@@ -41,6 +41,10 @@ const RISKS: { title: string; body: string }[] = [
     body: "Three Anchor programs (whitelist, basket_factory, basket) hold and move vault assets. The code is tested (program-level and integration suites) but an independent audit is still pending — treat contract risk as live until it completes.",
   },
   {
+    title: "Upgrade governance risk",
+    body: "Basket parameters are immutable, but the programs remain upgradable. The latest repository evidence is dated 2026-09-04 and records one single-key devnet authority; no multisig, timelock, or current authority state is independently attested. The target 2-of-3 policy has not yet been activated.",
+  },
+  {
     title: "Price tracking and depeg",
     body: "Basket value tracks xStock prices. xStocks are tokenized references to underlying equities and can trade away from them, so share price can deviate from the notional basket value.",
   },

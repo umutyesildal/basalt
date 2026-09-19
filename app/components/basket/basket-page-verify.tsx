@@ -218,7 +218,9 @@ export function BasketPageVerify({
 
       <p className="mt-2 border-t border-border/60 pt-4 font-mono text-[11px] leading-5 text-muted-foreground">
         Every claim on this page is checkable on-chain — start from the addresses
-        above, not from us.
+        above, not from us. These declared IDs do not prove current program bytes
+        or governance: the latest repository authority evidence is dated
+        2026-09-04, records a single key, and is not a fresh RPC attestation.
       </p>
     </section>
   );

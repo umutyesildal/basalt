@@ -102,11 +102,16 @@ legal review, or the mainnet go/no-go gate.
 
 ## SEC-006 — Upgrade governance
 
-- Move upgrade authority to a hardware-wallet-backed multisig.
-- Define signer threshold and emergency procedure.
-- Define a timelock/announcement period.
-- Display program IDs, upgradeability, and authority status.
+- [ ] Move all three program upgrade authorities and `WhitelistConfig.authority` to the verified governance vault.
+- [x] Fix the target at an autonomous, hardware-wallet-backed 2-of-3 signer set with independent Protocol Maintainer, Security and Incident Lead, and Operations and Release Lead roles.
+- [x] Require one 48-hour on-chain time lock and announcement for normal and emergency upgrades; emergencies still require 2-of-3, a public incident ID, and a postmortem within 24 hours. No unilateral bypass exists.
+- [x] Display program IDs, upgradeability, the dated single-key evidence, and the absence of a verified multisig/time lock.
+- [ ] Publish fresh RPC, threshold, signer, time-lock, rehearsal, transaction, ProgramData, slot, and ELF evidence.
 - Track a separate decision for eventually making programs immutable.
+
+The canonical decision and completion checklist are in
+`docs/upgrade-governance-policy.md`. Repository-local rehearsal tooling is
+loopback-only and must not be presented as real multisig evidence.
 
 **Acceptance:** No single hot wallet can upgrade a program.
 

@@ -2,6 +2,8 @@
 
 > Onchain strategy baskets powered by xStocks on Solana. Each basket is an immutable Token-2022 share mint backed by a vault of whitelisted xStock tokens: users mint shares by depositing constituents in target weight, and redeem shares to receive the underlying tokens back — permissionless, oracle-free redemption. The backend is a read-only indexer (PostgreSQL + REST `/api/v1`); it never signs transactions and never custodies funds. Basalt sells strategy baskets, not ETFs or funds — do not describe the product as either. Current state: LIVE ON DEVNET (three Anchor programs deployed at declared IDs, one basket verified end-to-end on-chain); not yet mainnet.
 
+Governance status: the latest repository evidence is dated 2026-09-04 and records one single-key devnet upgrade authority. No multisig, timelock, or current authority state is independently attested. Declared program IDs are not proof of current deployed bytes or governance. A hardware-backed 2-of-3 target policy exists, but the transfer remains a mainnet blocker.
+
 ## How it works
 
 - A creator picks 2-20 whitelisted xStock tokens (tickers suffixed `x`, e.g. `TSLAx`), sets weights that must sum to 10,000 bps, sets fees (entry 0-300, exit 0-100, management 0-300 bps; fixed protocol-wide split 90% creator / 10% treasury, with creator-floor and treasury-remainder dust handling) and deploys atomically with an in-kind seed deposit (genesis supply 1,000,000 shares).

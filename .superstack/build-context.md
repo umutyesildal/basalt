@@ -11,8 +11,8 @@
 
 ## Verification
 
-- 183 Rust tests (including management-fee remainder, crank-frequency, legacy-account compatibility, pro-rata, fee-cap, genesis, and redeem-gate invariants).
-- 550 backend TS tests (event decode fixtures, BigInt NAV and fee math, positions ledger idempotency, API contracts).
+- 208 Rust tests (including management-fee remainder, crank-frequency, legacy-account compatibility, pro-rata, fee-cap, genesis, checked arithmetic, and redeem-gate invariants).
+- 596 backend TS tests (event decode fixtures, BigInt NAV and fee math, positions ledger idempotency, API contracts, deployment-manifest v2, and loopback governance-rehearsal guardrails).
 - Frontend: tsc 0 errors, next build green (21 generated route entries, no ignored errors), browser-verified dark/light + 390px.
 - Historical pre-BAS-001 localnet E2E: 8/8 steps PASS, twice consecutive (validator → deploy → whitelist → basket → mint/redeem → accrue → health). The remainder change still needs an existing-account devnet smoke test.
 
@@ -28,6 +28,7 @@
 - The new remainder path is verified by host math and serialization tests, not yet by ProgramTest/LiteSVM or a post-upgrade live transaction.
 - Token-2022 extension compatibility and actual-received balance accounting remain P0 work.
 - Legal copy pending counsel (strategy-basket positioning).
+- BAS-006 has a repository-local autonomous 2-of-3/48-hour target policy, manifest v2, and loopback-only authority-transfer tooling. The real multisig, full threshold/time-lock rehearsal, authority transfer, and fresh RPC evidence remain open.
 - BAS-005 fee-split source and interval-compounding semantics are documented and derived by the frontend policy helper; this is not deployment, audit, hosted-CI, or mainnet evidence.
 
 ## DeFi build handoff — 2026-09-18

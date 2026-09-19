@@ -19,7 +19,7 @@
   ],
   "properties": {
     "$schema": { "type": "string", "minLength": 1 },
-    "schemaVersion": { "type": "integer", "const": 1 },
+    "schemaVersion": { "type": "integer", "const": 2 },
     "project": { "type": "string", "const": "basalt" },
     "generatedAt": { "type": "string", "format": "date-time" },
     "git": {
@@ -34,14 +34,15 @@
     "deployment": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["environment", "cluster", "rpcUrl", "status", "upgradeAuthority", "deployedSlot"],
+      "required": ["environment", "cluster", "rpcUrl", "status", "upgradeAuthority", "deployedSlot", "governance"],
       "properties": {
         "environment": { "type": "string", "minLength": 1 },
         "cluster": { "type": "string", "minLength": 1 },
         "rpcUrl": { "type": ["string", "null"], "format": "uri" },
         "status": { "type": "string", "enum": ["not-attested", "attested-inputs", "verified"] },
         "upgradeAuthority": { "type": ["string", "null"], "minLength": 1 },
-        "deployedSlot": { "type": ["integer", "null"], "minimum": 0 }
+        "deployedSlot": { "type": ["integer", "null"], "minimum": 0 },
+        "governance": { "$ref": "#/$defs/governance" }
       }
     },
     "programs": {
@@ -123,6 +124,70 @@
   },
   "$defs": {
     "sha256": { "type": "string", "pattern": "^[0-9a-fA-F]{64}$" },
+    "authorityModel": {
+      "type": "string",
+      "enum": ["single-key", "multisig", "immutable", "unknown"]
+    },
+    "authoritySource": {
+      "type": "string",
+      "enum": ["rpc", "operator-declaration", "unknown"]
+    },
+    "governance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "authorityModel",
+        "authoritySource",
+        "authorityVerifiedAt",
+        "multisigAddress",
+        "threshold",
+        "signerCount",
+        "signers",
+        "timelock",
+        "transferRehearsal"
+      ],
+      "properties": {
+        "authorityModel": { "$ref": "#/$defs/authorityModel" },
+        "authoritySource": { "$ref": "#/$defs/authoritySource" },
+        "authorityVerifiedAt": { "type": ["string", "null"], "format": "date-time" },
+        "multisigAddress": { "type": ["string", "null"], "minLength": 32 },
+        "threshold": { "type": ["integer", "null"], "minimum": 2 },
+        "signerCount": { "type": ["integer", "null"], "minimum": 3 },
+        "signers": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["role", "publicKey"],
+            "properties": {
+              "role": { "type": "string", "minLength": 1 },
+              "publicKey": { "type": "string", "minLength": 32 }
+            }
+          }
+        },
+        "timelock": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["status", "delaySeconds", "announcementPeriodSeconds", "policyUrl"],
+          "properties": {
+            "status": { "type": "string", "enum": ["not-configured", "configured", "verified", "unknown"] },
+            "delaySeconds": { "type": ["integer", "null"], "minimum": 0 },
+            "announcementPeriodSeconds": { "type": ["integer", "null"], "minimum": 0 },
+            "policyUrl": { "type": ["string", "null"], "format": "uri" }
+          }
+        },
+        "transferRehearsal": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["status", "transaction", "verifiedAt"],
+          "properties": {
+            "status": { "type": "string", "enum": ["not-run", "passed", "failed", "unknown"] },
+            "transaction": { "type": ["string", "null"], "minLength": 1 },
+            "verifiedAt": { "type": ["string", "null"], "format": "date-time" }
+          }
+        }
+      }
+    },
     "lock": {
       "type": "object",
       "additionalProperties": false,
@@ -135,10 +200,13 @@
     "program": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["programId", "upgradeAuthority", "deployedSlot"],
+      "required": ["programId", "upgradeAuthority", "upgradeAuthorityModel", "authoritySource", "authorityVerifiedAt", "deployedSlot"],
       "properties": {
         "programId": { "type": ["string", "null"], "minLength": 32 },
         "upgradeAuthority": { "type": ["string", "null"], "minLength": 1 },
+        "upgradeAuthorityModel": { "$ref": "#/$defs/authorityModel" },
+        "authoritySource": { "$ref": "#/$defs/authoritySource" },
+        "authorityVerifiedAt": { "type": ["string", "null"], "format": "date-time" },
         "deployedSlot": { "type": ["integer", "null"], "minimum": 0 }
       }
     }

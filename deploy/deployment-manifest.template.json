@@ -1,6 +1,6 @@
 {
   "$schema": "./deployment-manifest.schema.json",
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "project": "basalt",
   "generatedAt": "1970-01-01T00:00:00.000Z",
   "git": {
@@ -13,22 +13,51 @@
     "rpcUrl": null,
     "status": "not-attested",
     "upgradeAuthority": null,
-    "deployedSlot": null
+    "deployedSlot": null,
+    "governance": {
+      "authorityModel": "unknown",
+      "authoritySource": "unknown",
+      "authorityVerifiedAt": null,
+      "multisigAddress": null,
+      "threshold": null,
+      "signerCount": null,
+      "signers": [],
+      "timelock": {
+        "status": "unknown",
+        "delaySeconds": null,
+        "announcementPeriodSeconds": null,
+        "policyUrl": null
+      },
+      "transferRehearsal": {
+        "status": "not-run",
+        "transaction": null,
+        "verifiedAt": null
+      }
+    }
   },
   "programs": {
     "basket": {
       "programId": null,
       "upgradeAuthority": null,
+      "upgradeAuthorityModel": "unknown",
+      "authoritySource": "unknown",
+      "authorityVerifiedAt": null,
       "deployedSlot": null
     },
     "basket_factory": {
       "programId": null,
       "upgradeAuthority": null,
+      "upgradeAuthorityModel": "unknown",
+      "authoritySource": "unknown",
+      "authorityVerifiedAt": null,
       "deployedSlot": null
     },
     "whitelist": {
       "programId": null,
       "upgradeAuthority": null,
+      "upgradeAuthorityModel": "unknown",
+      "authoritySource": "unknown",
+      "authorityVerifiedAt": null,
       "deployedSlot": null
     }
   },
