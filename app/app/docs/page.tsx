@@ -536,11 +536,13 @@ export default function DocsPage() {
                   <p className="mt-1 text-sm leading-6 text-muted-foreground">
                     The programs hold the vaults, and code can be wrong. The
                     programs are currently upgradable: their upgrade authority
-                    can deploy changed logic. The latest repository evidence is
-                    dated 2026-09-04 and records one single-key authority; no
-                    multisig, timelock, or current authority state is
-                    independently attested. Immutability applies to basket
-                    parameters, not program code.
+                    can deploy changed logic. A finalized read-only devnet RPC
+                    audit on 2026-09-19 confirmed that all three program upgrade
+                    authorities and the whitelist configuration authority remain
+                    the same single wallet. No multisig or timelock is active.
+                    Immutability applies to basket parameters, not program code,
+                    and authority reads do not prove deployed bytes match this
+                    source tree.
                   </p>
                 </li>
                 <li className="border-l border-border/60 pl-4">

@@ -116,10 +116,10 @@ Partial completion evidence (repository-local, 2026-09-19):
 - `docs/upgrade-governance-policy.md` fixes the production target at an autonomous, hardware-wallet-backed 2-of-3 vault with independent Protocol Maintainer, Security and Incident Lead, and Operations and Release Lead roles. It defines one 48-hour on-chain delay for normal and emergency upgrades, plus announcement and incident evidence; there is no unilateral bypass.
 - All three BPF upgrade authorities and the separate `WhitelistConfig.authority` target the governance vault. Basket parameters remain immutable and redemption remains permissionless, oracle-free, backend-independent, whitelist-independent, and unpausable.
 - Manifest v2 can represent unknown, single-key, multisig, and immutable authority models, verification source, threshold, signer count, time lock, rehearsal, and per-program authority evidence without converting operator declarations into RPC proof.
-- The app, agent guide, agent markdown route, and release documentation disclose the current boundary: the last repository evidence is dated 2026-09-04, shows a single-key devnet authority, and is not a fresh governance attestation.
+- A finalized read-only devnet RPC audit on 2026-09-19 confirms that all three BPF upgrade authorities and `WhitelistConfig.authority` remain the same single wallet, with no pending whitelist successor. The app, agent guide, agent markdown route, and release documentation disclose this current single-key boundary. The audit does not prove source-to-ELF identity, multisig threshold, or a time lock.
 - The local rehearsal tooling is intentionally loopback-only and uses disposable authority keys. Passing it proves CLI transfer/rollback mechanics, not a Squads threshold or production time lock.
 
-**Still open:** Create the actual autonomous multisig, approve the exact signer and vault public keys, run and publish the full 2-of-3 delayed rehearsal, transfer all three program authorities and the whitelist authority, then verify them from fresh RPC state. Until that evidence exists, the acceptance criterion is not met and BAS-006 remains partial.
+**Still open:** Create the actual autonomous multisig, approve the exact signer and vault public keys, run and publish the full 2-of-3 delayed rehearsal, transfer all three program authorities and the whitelist authority, then publish post-transfer RPC proof. Until that evidence exists, the acceptance criterion is not met and BAS-006 remains partial.
 
 ### BAS-007 — Reproducible program attestation
 

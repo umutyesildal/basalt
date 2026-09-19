@@ -42,7 +42,7 @@ const RISKS: { title: string; body: string }[] = [
   },
   {
     title: "Upgrade governance risk",
-    body: "Basket parameters are immutable, but the programs remain upgradable. The latest repository evidence is dated 2026-09-04 and records one single-key devnet authority; no multisig, timelock, or current authority state is independently attested. The target 2-of-3 policy has not yet been activated.",
+    body: "Basket parameters are immutable, but the programs remain upgradable. A finalized read-only devnet RPC audit on 2026-09-19 confirmed that all three program upgrade authorities and the separate whitelist configuration authority remain one wallet. No multisig or timelock is active, and the target 2-of-3 policy has not yet been activated.",
   },
   {
     title: "Price tracking and depeg",

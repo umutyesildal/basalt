@@ -1,6 +1,6 @@
 # Basalt current state — 2026-09-18
 
-> Snapshot of the current `main` repository state, the deployed web app, and read-only Solana devnet checks. BAS-002, BAS-003, and BAS-004 policy, code, and test evidence described below is repository-local; hosted CI and the documented upgrade/deployment gates remain authoritative for release status. Dynamic values may change after this date.
+> Snapshot of the current `main` repository state and deployed web app, with a 2026-09-19 governance addendum. BAS-002, BAS-003, and BAS-004 policy, code, and test evidence described below is repository-local; hosted CI and the documented upgrade/deployment gates remain authoritative for release status. Dynamic values may change after this date.
 
 ## Executive status
 
@@ -68,7 +68,7 @@ Verified automated total for the repaired working tree: **804 = 208 Rust + 596 b
 1. The working tree fixes management-fee crank grief with exact remainder carry, but the deployed devnet basket program still requires an upgrade and existing-account smoke test. BAS-004 arithmetic hardening is complete locally, but it still needs the normal release/upgrade evidence before being treated as deployed security status.
 2. The interim Token-2022 policy is extension-free and fail-closed, with exact raw source/destination delta checks for seed and mint. Instruction-level extension, adversarial-hook, and full ProgramTest/LiteSVM coverage remain open under BAS-016; official mainnet xStocks are not admitted.
 3. Zap-in now uses wallet/quote-bound raw `post - pre` snapshots with min-out validation and partial-leg recovery; Zap-out remains quote-only with no frontend execution path.
-4. The latest repository evidence (2026-09-04) records one single-wallet upgrade authority and no multisig/time lock. BAS-006 now defines the target 2-of-3 governance policy and honest disclosure, but no fresh RPC attestation or authority transfer exists; the one-hot-wallet mainnet blocker remains.
+4. A finalized read-only devnet RPC audit on 2026-09-19 confirms that all three program upgrade authorities and the separate whitelist configuration authority remain the same single wallet, with no pending whitelist successor. BAS-006 defines the target 2-of-3 governance policy and honest disclosure, but no multisig/time lock or authority transfer exists; the single-key mainnet blocker remains. See `devnet-governance-audit-2026-09-19.md`.
 5. Mock and synthetic data are not labeled consistently across all surfaces.
 6. Price integration still targets legacy Jupiter Price v6.
 7. Dependency audit still reports transitive vulnerabilities requiring triage and controlled upgrades.

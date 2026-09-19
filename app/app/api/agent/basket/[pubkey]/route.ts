@@ -374,7 +374,7 @@ function renderBasketMarkdown(
     `- Source: \`${source}\`${asOf ? ` · asOf ${formatAsOf(asOf)}` : ""} — read-only indexer data; the backend never signs transactions.`,
   );
   out.push(
-    "- Status: Basalt is live on Solana devnet. The latest repository evidence is dated 2026-09-04 and records one single-key upgrade authority; no multisig, timelock, or current authority state is independently attested. Declared program IDs are not governance proof. Figures are informational, not investment advice. Basalt runs strategy baskets — not an ETF, not a fund.",
+    "- Status: Basalt is live on Solana devnet. A finalized read-only RPC audit on 2026-09-19 confirmed that all three program upgrade authorities and the separate whitelist configuration authority remain one wallet; no multisig or timelock is active. Authority reads do not prove deployed bytes match this source tree. Figures are informational, not investment advice. Basalt runs strategy baskets — not an ETF, not a fund.",
   );
   out.push(
     `- More: JSON detail at \`/api/v1/baskets/${pubkey}\` on the API base · reading guide at \`/basalt-agent-guide.md\` · basket page at \`/basket/${pubkey}\`.`,

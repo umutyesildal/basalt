@@ -105,8 +105,9 @@ legal review, or the mainnet go/no-go gate.
 - [ ] Move all three program upgrade authorities and `WhitelistConfig.authority` to the verified governance vault.
 - [x] Fix the target at an autonomous, hardware-wallet-backed 2-of-3 signer set with independent Protocol Maintainer, Security and Incident Lead, and Operations and Release Lead roles.
 - [x] Require one 48-hour on-chain time lock and announcement for normal and emergency upgrades; emergencies still require 2-of-3, a public incident ID, and a postmortem within 24 hours. No unilateral bypass exists.
-- [x] Display program IDs, upgradeability, the dated single-key evidence, and the absence of a verified multisig/time lock.
-- [ ] Publish fresh RPC, threshold, signer, time-lock, rehearsal, transaction, ProgramData, slot, and ELF evidence.
+- [x] Display program IDs, upgradeability, the finalized 2026-09-19 single-key RPC evidence, and the absence of a verified multisig/time lock.
+- [x] Publish current ProgramData addresses, deploy slots, program upgrade authorities, and `WhitelistConfig.authority` from finalized devnet RPC reads.
+- [ ] Publish post-transfer RPC, threshold, signer, time-lock, rehearsal, transaction, and ELF-to-source evidence.
 - Track a separate decision for eventually making programs immutable.
 
 The canonical decision and completion checklist are in

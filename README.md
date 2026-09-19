@@ -2,7 +2,7 @@
 
 > "Create an index. Own your thesis." — Onchain strategy baskets powered by xStocks.
 > V0 spec: `docs/basalt-v0-spec.md` (normative product constraints). Documentation map: `docs/README.md`. Current backlog: `docs/implementation-backlog.md`. Brand: `brand.md`.
-> Current state: **Working devnet beta, not mainnet-ready. Real create/mint/redeem and read-only indexing are verified; current constituent assets are project mock mints and some deployed surfaces use labeled/demo datasets.** Verified 2026-09-19 working tree: clean root/app/backend installs pass, 208 Rust + 596 backend tests pass, and the app produces a 21-route production build. Full snapshot: `docs/current-state-2026-09-18.md`.
+> Current state: **Working devnet beta, not mainnet-ready. Real create/mint/redeem and read-only indexing are verified; current constituent assets are project mock mints and some deployed surfaces use labeled/demo datasets.** Verified 2026-09-19 working tree: clean root/app/backend installs pass, 208 Rust + 596 backend tests pass, and the app produces a 21-route production build. A finalized 2026-09-19 RPC audit confirms that all three program upgrade authorities and the whitelist configuration authority remain one wallet; no multisig or time lock is active. Full snapshot: `docs/current-state-2026-09-18.md`; governance evidence: `docs/devnet-governance-audit-2026-09-19.md`.
 > **Won: Superteam Germany "Road to Colosseum" Ideathon (2026-09-14)** — top-10 of 38 submissions, $3k USDG pool. Submission: `docs/ideathon-submission-2026-09.md`. Live demo: https://basalt-coral.vercel.app/explore. Current implementation order: `docs/implementation-backlog.md`.
 
 ## Verification commands
@@ -16,9 +16,9 @@ npm --prefix backend test -- --run          # 596 TS tests in the 2026-09-19 wor
 npm --prefix app run build                  # 21 routes in the 2026-09-19 clean-build snapshot
 ```
 
-## Devnet live (2026-09-04)
+## Devnet live (historical flow proof from 2026-09-04)
 
-- Deployed at declared IDs: `whitelist` `FRavMcYQb2FVAHbbG6fGieQHdKk1UrQqgKsAAXTPRQeS`, `basket_factory` `3hzoPep9JKgTmzLT6CNW5x3EN7WNYDevM6KHVM7pLgMF`, `basket` `6Q43vFh4aqGxzvtU2vQwJX9PmX3skfYsGWZdA3fwJB9k`.
+- Deployed at declared IDs: `whitelist` `FRavMcYQb2FVAHbbG6fGieQHdKk1UrQqgKsAAXTPRQeS`, `basket_factory` `3hzoPep9JKgTmzLT6CNW5x3EN7WNYDevM6KHVM7pLgMF`, `basket` `6Q43vFh4aqGxzvtU2vQwJX9PmX3skfYsGWZdA3fwJB9k`. A finalized read-only RPC audit on 2026-09-19 reconfirmed all three accounts and their shared single-key upgrade authority; see `docs/devnet-governance-audit-2026-09-19.md`.
 - Historical 2026-09-04 devnet evidence records 12 mock xStocks and one live basket (the then-deployed mocks used `ScaledUiAmountConfig` multiplier 1.0). Current BAS-002 scripts intentionally create extension-free Token-2022 mocks and reject extension-bearing mints; official mainnet xStocks remain unsupported pending the audited upgrade and hook-aware transfer path. The recorded basket lifecycle still reconciles exactly (38 confirmed transactions; see `docs/devnet-live-2026-09-04.md`).
 - Transaction-size limit (resolved): `create_basket` / `mint_in_kind` / `redeem_in_kind` compile offline to v0 messages ≤ 1232 B for n = 2..10 constituents; n ≥ 4 routes through one address-lookup table. Proof: `npm run proof:txsize` (`scripts/checkTxSize.ts`).
 
@@ -94,7 +94,7 @@ For local (non-devnet) development, `demo-seed` seeds the local Postgres so page
 
 ## Current work
 
-Use `docs/current-state-2026-09-18.md` for verified status and `docs/implementation-backlog.md` for implementation order. The interim BAS-002 boundary is now extension-free and fail-closed, with exact raw source/destination delta checks for seed and mint; official mainnet xStocks remain unsupported until the audited dependency and hook-aware transfer path is complete. BAS-003 Zap-in delta accounting and BAS-004 checked arithmetic are complete in the working tree. BAS-006 now has a canonical 2-of-3 target in `docs/upgrade-governance-policy.md`, but the real authority transfer and fresh RPC evidence remain open; instruction-level coverage under BAS-016, attestation, data-truth, and legal gates also remain open before an independent audit and any mainnet decision. `plan.md` is retained as the historical implementation-wave log.
+Use `docs/current-state-2026-09-18.md` for verified status and `docs/implementation-backlog.md` for implementation order. The interim BAS-002 boundary is now extension-free and fail-closed, with exact raw source/destination delta checks for seed and mint; official mainnet xStocks remain unsupported until the audited dependency and hook-aware transfer path is complete. BAS-003 Zap-in delta accounting and BAS-004 checked arithmetic are complete in the working tree. BAS-006 now has a canonical 2-of-3 target in `docs/upgrade-governance-policy.md`; the fresh 2026-09-19 RPC evidence confirms the current single-key blocker, while the real multisig/time-lock activation and authority transfer remain open. Instruction-level coverage under BAS-016, deployed-ELF attestation, data-truth, and legal gates also remain open before an independent audit and any mainnet decision. `plan.md` is retained as the historical implementation-wave log.
 
 ## Scripts
 

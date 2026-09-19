@@ -71,6 +71,13 @@ mainnet release, an operator must verify program data, upgrade authorities, and
 the deployed slot against the selected RPC, then publish the generated JSON
 with the release artifacts.
 
+The finalized read-only audit in
+`docs/devnet-governance-audit-2026-09-19.md` records the current devnet
+ProgramData addresses, deploy slots, program upgrade authorities, and separate
+whitelist configuration authority. It confirms the current single-key
+governance risk, but it is not an ELF-to-source attestation and does not turn
+operator-declared manifest fields into verifier-produced evidence.
+
 For the policy, ceremony sequence, and evidence required to close the
 single-key upgrade risk, see `docs/upgrade-governance-policy.md`. The
 loopback-only `scripts/rehearse-governance-localnet.sh` proves transfer,

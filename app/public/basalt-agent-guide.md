@@ -12,7 +12,7 @@ How an AI agent reads Basalt: list baskets, read NAV and holdings exactly, inter
 
 Basalt is **live on Solana devnet (since 2026-09-04)** and nowhere else. Three programs are deployed at declared IDs; one basket is verified end-to-end on-chain (mint, redeem, management fee; full evidence in `docs/devnet-live-2026-09-04.md` in the repo). Consequences for agents:
 
-- Governance is not yet production-safe: the latest repository evidence is dated 2026-09-04 and records one single-key upgrade authority. No multisig, timelock, or current authority state is independently attested. Declared program IDs are not proof of deployed bytes or governance. The target 2-of-3 policy is documented, but the authority transfer remains a mainnet blocker.
+- Governance is not production-safe: a finalized read-only RPC audit on 2026-09-19 confirmed that all three program upgrade authorities and the separate whitelist configuration authority remain the same single wallet, with no pending whitelist successor. No multisig or timelock is active. Declared program IDs and authority reads do not prove deployed bytes match this source tree. The target 2-of-3 policy is documented, but the authority transfer remains a mainnet blocker.
 - xStock tokens reachable today are **repo-issued devnet mocks** (12 whitelisted mints, `TSLAx`…`SPYx`). Jupiter can never quote them — treat `price_source: "mock:*"` whitelist rows as zap-unavailable.
 - Transaction sizing is resolved: `create_basket` / `mint_in_kind` / `redeem_in_kind` compile offline to version-0 messages ≤ 1232 B for 2–10 constituents; n ≥ 4 routes through one address-lookup table. Reproduce with `npm run proof:txsize` at the repo root (`scripts/checkTxSize.ts`).
 - Never present devnet figures as mainnet state.

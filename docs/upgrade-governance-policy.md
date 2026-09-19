@@ -12,18 +12,23 @@ timelock currently controls the deployed programs.
 
 ## Current verified boundary
 
-The latest repository evidence was captured on 2026-09-04 and recorded one
-single-key upgrade authority for all three devnet programs. That evidence is
-dated, not a fresh RPC attestation. No multisig address, vault address,
-threshold, signer public keys, timelock configuration, or successful authority
-transfer has been independently verified for the current deployment.
+A finalized, read-only devnet RPC audit on 2026-09-19 confirmed that all three
+programs are executable under the Upgradeable Loader and share the single-key
+upgrade authority `y72KA263br7MtZw7BqC2dx5QYCBUciJGzShE8BRSwRE`. The separate
+`WhitelistConfig.authority` is the same key and has no pending successor. The
+full addresses, ProgramData accounts, slots, commands, and limitations are in
+`docs/devnet-governance-audit-2026-09-19.md`.
 
-Until fresh RPC evidence is published:
+No multisig address, vault address, threshold, signer public keys, timelock
+configuration, or successful authority transfer has been independently
+verified for the current deployment.
+
+Until post-transfer RPC evidence is published:
 
 - treat the programs as upgradeable under a single-key authority;
 - treat the whitelist authority as a separate privileged single-key role;
 - treat program IDs shown by the app as declared addresses, not proof of the
-  current program bytes or governance configuration; and
+  deployed program bytes or a production-safe governance configuration; and
 - do not describe BAS-006 as complete or Basalt as mainnet-ready.
 
 Basket state remains immutable after creation. This upgradeability disclosure
