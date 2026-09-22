@@ -13,9 +13,8 @@ import {
 } from "@/components/shell/wallet-picker";
 
 /**
- * Wallet gate for the top of the Create wizard. The steps stay browsable, but
- * while no wallet is connected this quiet banner sits above the stepper
- * (muted surface, single primary action) — deploying signs a create_basket
+ * Wallet gate after the disconnected Review summary and legal terms. The
+ * steps stay browsable; deploying signs a create_basket
  * transaction from the creator's wallet. The single "Connect wallet" button
  * opens the exact picker menu the header control uses (same flow, same
  * glyphs), so there is one connect affordance per surface.
@@ -41,22 +40,22 @@ export function WalletGateBanner({ className }: { className?: string }) {
       role="note"
       aria-label="Wallet not connected"
       className={
-        "flex flex-wrap items-center gap-3 rounded-xl border border-border bg-muted/50 p-3 " +
+        "flex flex-col items-stretch gap-3 rounded-xl border border-border bg-muted/50 p-4 sm:flex-row sm:items-center " +
         (className ?? "")
       }
     >
-      <Wallet className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+      <Wallet className="hidden size-4 shrink-0 text-muted-foreground sm:block" aria-hidden="true" />
       <div className="min-w-0 flex-1">
-        <p className="text-sm font-medium">Connect a wallet to deploy</p>
+        <p className="text-sm font-medium">Ready to deploy?</p>
         <p className="text-xs leading-5 text-muted-foreground">
-          Deploying signs a create_basket transaction from your wallet. Browse
-          the steps freely — connect before you reach Deploy.
+          Connect to check token balances and sign the transaction.
         </p>
       </div>
-      <div ref={containerRef} className="relative shrink-0">
+      <div ref={containerRef} className="relative w-full shrink-0 sm:w-auto">
         <Button
           type="button"
           size="sm"
+          className="w-full sm:w-auto"
           aria-haspopup="menu"
           aria-expanded={open}
           aria-controls={menuId}

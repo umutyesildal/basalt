@@ -42,6 +42,10 @@ export function TemplateStrip({
     () => CREATE_TEMPLATES.map((template) => ({ template, resolved: resolveTemplate(template, rows) })),
     [rows],
   );
+  const available = useMemo(
+    () => resolutions.filter(({ resolved }) => resolved.unavailable.length === 0),
+    [resolutions],
+  );
 
   // Derived selection — exact (mint, weight) equality against each template.
   const activeId = useMemo(() => {
@@ -49,12 +53,15 @@ export function TemplateStrip({
     const signature = (list: readonly { mint: string; weightBps: number }[]) =>
       list.map((c) => `${c.mint}:${c.weightBps}`).sort().join("|");
     const current = signature(constituents);
-    for (const { template, resolved } of resolutions) {
-      if (resolved.unavailable.length > 0) continue;
+    for (const { template, resolved } of available) {
       if (signature(resolved.drafts) === current) return template.id;
     }
     return null;
-  }, [constituents, resolutions]);
+  }, [constituents, available]);
+
+  // A row of unavailable presets is a dead end. Start directly with the
+  // eligible asset picker when this whitelist cannot support a preset.
+  if (available.length === 0) return null;
 
   return (
     <section aria-label="Start from template" className="flex flex-col gap-2">
@@ -82,8 +89,7 @@ export function TemplateStrip({
           <BlankCard />
         </button>
 
-        {resolutions.map(({ template, resolved }) => {
-          const unavailable = resolved.unavailable.length > 0;
+        {available.map(({ template, resolved }) => {
           const active = activeId === template.id;
           return (
             <button
@@ -91,18 +97,11 @@ export function TemplateStrip({
               type="button"
               aria-pressed={active}
               aria-label={`Use template ${template.name}`}
-              disabled={unavailable}
-              title={
-                unavailable
-                  ? `Not Active in the whitelist: ${resolved.unavailable.join(", ")}`
-                  : undefined
-              }
               onClick={() => onApply(template, resolved.drafts)}
               className={cn(
                 "flex w-[220px] shrink-0 flex-col rounded-lg border p-3 text-left transition-colors",
                 "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50",
                 active ? "border-primary/60 bg-primary/5" : "border-border hover:bg-muted/50",
-                unavailable && "cursor-not-allowed opacity-50",
               )}
             >
               <span className="flex items-start justify-between gap-2">
@@ -148,7 +147,7 @@ function BlankCard() {
     <>
       <span className="text-sm font-medium">Blank</span>
       <span className="mt-0.5 block text-xs leading-5 text-muted-foreground">
-        No template — pick every xStock yourself.
+        Choose your own basket assets.
       </span>
     </>
   );

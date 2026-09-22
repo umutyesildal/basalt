@@ -305,11 +305,15 @@ Local workflow evidence (2026-09-18):
 
 ### BAS-023 — Wallet-late create wizard
 
-- [ ] Allow pre-review steps without a wallet.
+- [x] Allow the four-task Choose → Set up → Start → Review flow and final basket summary without a wallet (2026-09-23 UX pass).
 - [ ] Persist a versioned draft.
-- [ ] Revalidate network and balances at Deploy.
+- [x] Check wallet connection and creator token balances at Deploy; transaction simulation remains before signing (2026-09-22 UX pass).
 
 **Acceptance:** Users can reach review before connecting.
+
+Remaining: versioned draft persistence and an explicit wrong-network check remain open; this UX pass does not claim the full onboarding item is complete.
+
+2026-09-23 owner decision: default fees are zero, the USD target is optional and blank by default, the seed step makes per-token deposits explicit, and transaction byte estimates are absent from the user flow. Required legal acknowledgments are in Review; the program validation remains unchanged.
 
 ### BAS-024 — Human/raw amount system
 
@@ -318,6 +322,8 @@ Local workflow evidence (2026-09-18):
 - [ ] Max, rounding, and balance preview.
 
 **Acceptance:** Users enter normal token amounts while transactions use exact raw units.
+
+2026-09-22 UX pass: create weights/fees now display percentages, while transaction arguments remain exact integer bps. Seed inputs already use human token units with exact raw parsing; a shared cross-flow amount system and Max behavior remain open.
 
 ### BAS-025 — Devnet onboarding
 
@@ -344,6 +350,14 @@ Local workflow evidence (2026-09-18):
 - [ ] Finalize issuer, fee, and risk copy.
 
 **Acceptance:** UI consistently uses approved strategy-basket language.
+
+### BAS-034 — Direct-RPC redeem fallback
+
+- [ ] Read basket supply, constituent vault balances, and user share balance from RPC when indexed basket data are unavailable or stale.
+- [ ] Build and preview `redeem_in_kind` from verified on-chain accounts without a price feed, backend, or whitelist status check.
+- [ ] Test indexer outage, stale snapshots, paused mints, raw Token-2022 precision, and a fresh redeem after direct-RPC fallback.
+
+**Acceptance:** The app can submit an in-kind redemption through RPC during an indexer outage, with an honest raw-token preview. Until then, the redeem page must say that its current preview needs indexed supply and vault balances even though the on-chain instruction is permissionless and oracle-free.
 
 ## P2 — Charts, accessibility, and social
 
@@ -377,6 +391,15 @@ Local workflow evidence (2026-09-18):
 **Dependency:** BAS-019/020 and the data-integrity policy
 **Acceptance:** Every live feed claim carries chain/database provenance.
 
+### BAS-033 — Publish retrievable basket metadata
+
+- [ ] Publish creator name/thesis JSON to content-addressed storage before deployment.
+- [ ] Verify the published content against the immutable on-chain metadata hash.
+- [ ] Have the indexer resolve and cache verified metadata; show address fallback and source state when unavailable.
+- [ ] Test a fresh creator, a second browser, and an indexer restart; avoid implying that a hash alone stores display text.
+
+**Acceptance:** A created basket's name and thesis are visible to another user and independently verifiable from its on-chain hash. Until this is complete, create Review discloses that public metadata publishing is unavailable.
+
 ## P3 — Controlled growth
 
 ### BAS-031 — Mainnet pilot controls
@@ -403,7 +426,7 @@ Local workflow evidence (2026-09-18):
 3. BAS-016 locks all P0 protocol fixes at instruction level.
 4. BAS-009/010/011/019/020 repair data and trust layers.
 5. BAS-012/013/006/007/008 complete mainnet gates.
-6. BAS-023–029 improve conversion and quality.
+6. BAS-023–029, BAS-033, and BAS-034 improve conversion, metadata truth, redeem availability, and quality.
 7. BAS-031 pilot, then BAS-030/032 and public growth.
 
 ## Completion evidence template

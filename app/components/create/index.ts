@@ -1,5 +1,4 @@
 export { Stepper, type CreateStep } from "./stepper";
-export { SummaryRail, type StepValidity, type SummaryState } from "./summary-rail";
 export { CreatePreviewCard, CreatePreviewCollapsible, type CreatePreviewProps } from "./create-preview";
 export { MintPicker } from "./mint-picker";
 export { TemplateStrip } from "./template-strip";

@@ -46,6 +46,7 @@ export function BasketPageTradeRail({
         <div className="flex flex-col gap-2 p-4">
           <Button
             render={<Link href={buyHref} />}
+            className="hidden lg:inline-flex"
             variant={buyActive ? "secondary" : "default"}
             aria-current={buyActive ? "page" : undefined}
             title="Open the mint form — deposit the underlying xStocks in-kind or zap in with USDC"
@@ -54,6 +55,7 @@ export function BasketPageTradeRail({
           </Button>
           <Button
             render={<Link href={redeemHref} />}
+            className="hidden lg:inline-flex"
             variant={redeemActive ? "secondary" : "outline"}
             aria-current={redeemActive ? "page" : undefined}
             title="Open the redeem form — burn shares, receive every underlying pro-rata"
@@ -72,7 +74,9 @@ export function BasketPageTradeRail({
           >
             Clone this basket
           </Button>
-          <div className="border-t border-border pt-2">
+          <details className="border-t border-border pt-2 text-xs text-muted-foreground">
+            <summary className="cursor-pointer font-medium">Protocol details · oracle-free redemption</summary>
+            <p className="mt-2 leading-5">Redemption is permissionless and oracle-free; it does not depend on price data, an active whitelist, or the backend.</p>
             <AccrueCrankButton
               basket={detail.pubkey}
               factory={detail.factory}
@@ -83,10 +87,7 @@ export function BasketPageTradeRail({
               secondsSinceAccrual={secondsSinceAccrual}
               variant="ghost"
             />
-          </div>
-          <p className="text-[11px] leading-relaxed text-muted-foreground">
-            Redeem is permissionless and oracle-free — works over any RPC.
-          </p>
+          </details>
         </div>
       </div>
     </aside>

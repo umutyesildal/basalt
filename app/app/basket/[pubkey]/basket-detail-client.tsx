@@ -38,8 +38,7 @@ import { BasketPageTheses } from "@/components/basket/basket-page-theses";
 import { BasketPageTradeRail } from "@/components/basket/basket-page-trade-rail";
 import { IconCopyButton as CopyButton } from "@/components/ui/copy-button";
 import { ChangeValue } from "@/components/stocks/change-value";
-import { formatAsOf, formatTokenAmount, formatUsd, truncateAddress } from "@/lib/format";
-import { formatRawShares6 } from "@/components/basket/basket-math";
+import { formatAsOf, formatBpsAsPercent, formatUsd, truncateAddress } from "@/lib/format";
 
 type SectionTab = "about" | "history" | "risk" | "thesis";
 
@@ -194,7 +193,7 @@ export default function BasketDetailClient({
     detail.constituents.forEach((mint, i) => {
       const ticker = mintTickers.get(mint) ?? truncateAddress(mint, 4, 4);
       const bps = weights[i];
-      parts.push(bps !== undefined ? `${ticker} ${Math.round(bps / 100)}` : ticker);
+      parts.push(bps !== undefined ? `${ticker} ${formatBpsAsPercent(bps)}` : ticker);
     });
     if (parts.length === 0) return null;
     const shown = parts.slice(0, MAX_COMPOSITION_PARTS).join(" · ");
@@ -206,6 +205,10 @@ export default function BasketDetailClient({
   const name = useMemo(() => {
     const n = metaObj(detail?.metadata_json)?.name;
     return typeof n === "string" && n.trim() ? n.trim() : null;
+  }, [detail]);
+  const creatorThesis = useMemo(() => {
+    const description = metaObj(detail?.metadata_json)?.description;
+    return typeof description === "string" && description.trim() ? description.trim() : null;
   }, [detail]);
 
   const headline = name ?? composition ?? truncateAddress(pubkey, 6, 6);
@@ -249,20 +252,17 @@ export default function BasketDetailClient({
             <h1 className="font-display text-3xl font-semibold tracking-tight" title={detail.pubkey}>
               {headline}
             </h1>
-            {name && composition ? (
-              <p className="font-mono text-xs tabular-nums text-muted-foreground">{composition}</p>
-            ) : null}
-            <div className="flex flex-wrap items-center gap-2 font-mono text-[11px] tabular-nums text-muted-foreground">
-              <span className="whitespace-nowrap">
-                {truncateAddress(detail.pubkey, 6, 6)} · creator{" "}
-                {truncateAddress(detail.creator, 4, 4)} · created {formatAsOf(detail.created_at)}
-              </span>
-              <CopyButton value={detail.pubkey} label="Copy basket address" showCopiedText={false} />
-            </div>
+            {creatorThesis ? <p className="max-w-2xl text-sm leading-6 text-muted-foreground">{creatorThesis}</p> : null}
+            <p className="text-xs leading-5 text-muted-foreground">Devnet · project mock tokens, not issuer-backed xStocks · LEGAL_REVIEW_REQUIRED.</p>
+          </div>
+
+          <div className="grid grid-cols-2 gap-3 lg:hidden" aria-label="Basket actions">
+            <Button render={<Link href={`/basket/${detail.pubkey}/buy`} />}>Buy shares</Button>
+            <Button render={<Link href={`/basket/${detail.pubkey}/redeem`} />} variant="outline">Redeem shares</Button>
           </div>
 
           {/* metric strip */}
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
             <Card className="h-full">
               <CardHeader className="pb-2">
                 <CardDescription>Share price</CardDescription>
@@ -273,7 +273,7 @@ export default function BasketDetailClient({
             </Card>
             <Card className="h-full">
               <CardHeader className="pb-2">
-                <CardDescription>AUM</CardDescription>
+                <CardDescription>Reference value</CardDescription>
                 <CardTitle className="font-mono text-2xl tabular-nums">
                   {nav !== null ? formatUsd(nav, { maximumFractionDigits: 0 }) : "—"}
                 </CardTitle>
@@ -287,31 +287,26 @@ export default function BasketDetailClient({
                 </CardTitle>
               </CardHeader>
             </Card>
-            {vsSpy !== null ? (
-              <Card className="h-full">
-                <CardHeader className="pb-2">
-                  <CardDescription>vs SPY 24h</CardDescription>
-                  <CardTitle className="font-mono text-2xl tabular-nums">
-                    {vsSpy >= 0 ? "+" : ""}
-                    {vsSpy.toFixed(2)}%
-                  </CardTitle>
-                </CardHeader>
-              </Card>
-            ) : (
-              <Card className="h-full">
-                <CardHeader className="pb-2">
-                  <CardDescription>Share supply</CardDescription>
-                  <CardTitle className="font-mono text-2xl tabular-nums">
-                    {supply !== null && /^\d+$/.test(supply.trim())
-                      ? formatTokenAmount(Number(formatRawShares6(BigInt(supply.trim()))), {
-                          maximumFractionDigits: 0,
-                        })
-                      : "—"}
-                  </CardTitle>
-                </CardHeader>
-              </Card>
-            )}
+            <Card className="h-full">
+              <CardHeader className="pb-2">
+                <CardDescription>Assets</CardDescription>
+                <CardTitle className="font-mono text-2xl tabular-nums">{detail.constituents.length}</CardTitle>
+              </CardHeader>
+            </Card>
           </div>
+          <p className="text-xs leading-5 text-muted-foreground">
+            Price and performance: {detail.nav?.source ?? detail.source ?? "source unavailable"} · {asOf ? `as of ${formatAsOf(asOf)}` : "timestamp unavailable"}. Reference data may be delayed.
+          </p>
+          <details className="text-xs text-muted-foreground">
+            <summary className="cursor-pointer font-medium">Advanced details — basket identity and supply</summary>
+            <div className="mt-3 flex flex-wrap items-center gap-2 font-mono">
+              <span>Basket {detail.pubkey}</span>
+              <CopyButton value={detail.pubkey} label="Copy basket address" showCopiedText={false} />
+            </div>
+            <p className="mt-1 font-mono">Creator {detail.creator} · created {formatAsOf(detail.created_at)}</p>
+            <p className="mt-1 font-mono">Raw share supply {supply ?? "unavailable"}</p>
+            {vsSpy !== null ? <p className="mt-1 font-mono">24h comparison with SPY: {vsSpy >= 0 ? "+" : ""}{vsSpy.toFixed(2)}%</p> : null}
+          </details>
 
           {/* tabbed sections + sticky trade rail */}
           <div className="flex flex-col gap-8 lg:grid lg:grid-cols-[minmax(0,1fr)_15rem] lg:gap-10">
@@ -377,7 +372,7 @@ function DetailSkeleton() {
         <Skeleton className="h-4 w-full max-w-xl" />
       </div>
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        {["Share price", "AUM", "24h", "Supply"].map((label) => (
+        {["Share price", "Reference value", "24h", "Supply"].map((label) => (
           <div key={label} className="rounded-xl border border-border bg-card p-5">
             <Skeleton className="h-3 w-16" />
             <Skeleton className="mt-2 h-7 w-24" />

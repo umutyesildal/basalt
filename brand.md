@@ -1,57 +1,39 @@
 # Brand — Basalt
 
-Onchain strategy baskets powered by xStocks. "Create an index. Own your thesis."
+Basalt is an onchain strategy basket application. “Create an index. Own your thesis.”
 
-_Last updated 2026-09-12 (project renamed **FolioX → Basalt**; identity is the **BASALT MARK** — hexagonal basalt columns, per `docs/design-basalt-v1.md`, which supersedes the FOUNDRY MARK of the NEON FOUNDRY pass and completes the retirement of the 2026-09-03 Roman layer). Token system inherited unchanged from `docs/design-cyberpunk-yellow-v1.md` §2–4. Supersedes Mineral Desk (2026-09-01). Telemetry: **off**._
+_Last updated 2026-09-22. The Basalt name and three-column mark supersede the historical FolioX, Roman, and Foundry identities. The electric-yellow system in `docs/design-cyberpunk-yellow-v1.md` supplies the color tokens; `docs/design-basalt-v1.md` defines the mark. Telemetry remains off._
 
-## BASALT identity (owner decision 2026-09-12)
+## Identity
 
-The laurel/Pantheon/roman-numeral identity is fully retired; the FOUNDRY MARK is superseded. The product name is **Basalt** — basalt cools into hexagonal columns locked side by side (the Giant's Causeway); a basket locks real xStocks into one immutable formation held as a single token. Columns = constituents, column heights = weights, one formation = one token.
+- **Name:** Basalt, capitalized in prose. “BASALT” is reserved for graphic wordmarks.
+- **Mark:** the three hexagonal columns on a shared baseline in `app/components/shell/site-header.tsx`. Reuse its geometry for favicon, social image, and video. Columns represent constituents and their target allocations.
+- **Wordmark:** the mark plus a yellow “B” and foreground “asalt” in Chakra Petch. The quiet “· xStocks baskets” suffix may accompany the header wordmark, but must not imply the current devnet assets are issuer-backed.
+- **Canvas:** near-black industrial surfaces in dark mode. Electric yellow `#FCEE0A` is the primary action, focus, and key state accent. Light mode uses the darker yellow fill and text tokens from `app/app/globals.css` to keep contrast. Use semantic tokens in components, rather than hardcoded hex.
+- **Data:** cyan, magenta, green, and violet are chart-series colors only. They do not decorate product chrome. Muted gray may represent a benchmark; source and as-of time must accompany financial data.
+- **Typography:** Chakra Petch (`--font-display`) for wordmark, headings, and hero numbers; Geist for body and controls; Geist Mono for compact labels, prices, percentages, and addresses. Keep critical mobile text readable.
+- **Motifs:** causeway tessellation, stacked allocation bars, hexagon and plus details, and zero-padded step numbers. Avoid laurel, Roman, Foundry, photos, decorative gradients, and faux browser chrome.
 
-- **Canvas + one loud color** (inherited, unchanged): dark industrial near-black with **electric yellow** (`--primary`, #FCEE0A) used with discipline — primary buttons, focus rings, key CTAs, hero accents. Neon cyan/magenta/green/violet live **only inside data** (charts, deltas, avatars), never on chrome.
-- **Display font: Chakra Petch** (weights 500/600/700, `next/font/google` as `--font-display`, `.font-display`/`.text-display` utilities) — wordmark, page/section headings, hero stat numerals.
-- **Geist Mono terminal labels**: every uppercase micro-label, eyebrow, numeral and price is mono — tracked, quiet, terminal-style. Zero-padded numerals `01`–`06`.
-- **BASALT MARK (the logo)** — canonical geometry in `site-header.tsx` `LogoMark`, spec `docs/design-basalt-v1.md` §2: three hexagonal columns of descending height on a shared baseline (viewBox 0 0 24 24, stroke-width 1.7, miter). Reads as basalt columns, as index weights rendered as column heights, and as an ascending stack. Filled `#FCEE0A` renditions (favicon / apple-icon / OG) add cap-facet seams at ≥100px sizes.
-- **Wordmark rule**: mark + `B` in `text-primary`, `asalt` in foreground, Chakra Petch; the `· xStocks baskets` suffix stays Geist Mono-adjacent quiet.
-- **Motifs**: line-art terminal geometry — the hero watermark is a **causeway tessellation** (seven-hexagon honeycomb = columns seen top-down, `page.tsx`), plus stacked weight-bars, hexagon + plus, `//` chip decorations, terminal-prompt window. No photos, no engravings, no laurel geometry.
-- **Home order ("proof beats process", 2026-09-12)**: hero → live proof band (verified trades + top baskets previews) → CREATE · MINT · SHARE steps → SAME EXPOSURE rails ledger → intent cards (Browse baskets / Follow top traders / Open the feed / Build your own).
-- **Rule**: the BASALT identity appears on Home + wordmark + stepper numerals; utility pages follow the base system. Baskets are never called "ETFs" in product copy.
+## Product hierarchy
 
-## Direction
+The first basket journey has four tasks: choose assets → set a **100%** allocation and optional fees → choose owned tokens to deposit → review immutable terms and legal acknowledgments. Connect a wallet only to check balances and deploy. Default fees are zero; USD is an optional reference estimate, never a prefilled spend. Keep the exact 10,000-bps total, fee caps, integer rounding, raw Token-2022 transfers, and on-chain checks in transaction logic and accessible technical details. The main controls say “Balance to 100%,” not “Normalize to 10,000.” Do not show transaction byte estimates in the main flow.
 
-**Monochrome base + electric yellow layer.** Classic shadcn look: near-black canvas, grayscale everything — with the yellow accent layer and ONE exception: chart DATA may use the neon palette. No decorative gradients, no site footer, minimal prose everywhere.
+Keep each decision screen scannable: one task heading, one actionable validation message, and short visible copy. Optional fee controls and the USD amount calculator open on demand; full legal explanations remain accessible behind each required checkbox. Repeated zero-fee explanations, duplicated wallet instructions, and raw protocol mechanics do not belong in the default view. A creator receives **one display basket share** at genesis; the 1,000,000 raw units are not a million user-facing shares.
 
-## Palette (applied in `app/app/globals.css`)
+The basket first view explains its thesis, constituent allocation, sourced/as-of reference price or performance when available, entry/exit/annual fees, key risks, and buy/redeem actions. Raw amounts, mint addresses, drift arithmetic, fee formulas, and operator data belong in clearly labeled advanced details that remain keyboard accessible.
 
-| Role | Dark | Light |
-|---|---|---|
-| background | `0 0% 3.9%` | `0 0% 100%` |
-| card | `0 0% 7%` | white |
-| primary / primary-foreground | white 98% / near-black 9% | near-black / white |
-| border / muted / accent | neutral grays | neutral grays |
-| destructive | muted red — **errors only** | muted red |
+Redemption copy says that basket shares are exchanged for proportional underlying tokens. The exit fee is charged **in shares**; the fee shares go to fee recipients, and the remaining shares are burned to determine the tokens returned. Show actual quantities and the effective fee before signing. “Oracle-free” and “permissionless” describe protocol behavior in advanced information; there is no oracle fee.
 
-**Chart data colors (`--chart-1..5`, "ethereal" per user decision 2026-09-03):** soft sage-mint `hsl(150 30% 70%)` · soft rose `hsl(350 35% 72%)` · powder blue `hsl(215 35% 72%)` · sand `hsl(40 30% 68%)` · lavender `hsl(265 30% 74%)` (dark mode; light slightly deeper). Benchmarks render as **muted gray dashed**. Series strokes 1.5px, fills ≤6% opacity. Up/down direction coloring on 24h changes uses these tokens — red is reserved for errors on chrome.
+## Truth and legal voice
 
-## Typography — Geist + Geist Mono
+Use short, factual sentences and direct action labels. Call the product a “strategy basket,” “index basket,” “onchain equity basket,” or “xStocks-backed strategy token” only where the backing claim is substantiated. Never call it a registered ETF, fund, guaranteed return, safe investment, financial advice, or managed money.
 
-Geist for UI copy; **Geist Mono for every number, address, bps, raw/scaled value** (`font-mono tabular-nums`). Wired via `next/font/google` in `app/app/layout.tsx` (`--font-sans`, `--font-mono`). Never swap to `<link>` tags.
+Current devnet basket constituents are **project mock Token-2022 mints**, not official issuer-backed xStocks. Label devnet, mock, demo, and reference values at the point of use, including in charts, basket detail, share images, and video. A real token balance is not proof of issuer backing. Do not fabricate NAV, holdings, price, performance, or a live-data timestamp; show an honest unavailable state when the source fails. Avoid “live AUM” for an estimated reference NAV.
 
-## Layout rules
+Keep the legal acknowledgments in create and the legal page. `LEGAL_REVIEW_REQUIRED` remains a release requirement in `AGENTS.md` and `docs/basalt-v0-spec.md`, including jurisdiction, issuer-instrument, fee, and risk review. UI review chips were removed by the owner; their absence is not legal approval. Redemption must remain accessible regardless of a mint pause, backend outage, or price-feed outage.
 
-- Pages fill the viewport (`flex min-h-screen flex-col` shell, `flex-1` main). **No site footer** (removed by owner decision).
-- Cards: canonical padding system in `components/ui/card.tsx` (Header `p-5 pb-3`, Content `p-5 pt-0`, `first:pt-5` headerless).
-- Tables: h-11 rows, hover `bg-muted/40`, right-aligned tabular numerics.
-- Range/toggle controls: plain text buttons (active = foreground + medium), never boxed pill wrappers.
+## Interaction checks
 
-## Tone and voice
+Primary actions and focus rings use the yellow token with accessible contrast. Desktop and mobile create, detail, buy, and redeem flows must support keyboard focus, visible errors, at least 44×44 px touch targets, reduced motion, and honest loading/empty states. Use the existing Bklit-derived chart components and meaningful text summaries. Keep primary information out of tiny micro-labels.
 
-Short, factual, number-forward. One sentence per idea; details live one click deeper. Say what an action does, not what it feels like. Compliant vocabulary only: **strategy basket / index basket / onchain equity basket / xStocks-backed strategy token** — never "ETF", "fund", "guaranteed", "safe", "financial advice" (hard legal ban, see AGENTS.md §1). No hype words, no exclamation marks, no emojis.
-
-**Legal review markers:** `LEGAL_REVIEW_REQUIRED` chips were removed from the UI at owner request (2026-09-03); the review items live in the backlog (`plan.md`) — the wizard's legal-checkbox step and `/legal` page remain functional and must not be deleted. Counsel review is still required before any mainnet launch.
-
-## Do / Don't
-
-**Do:** tokens only (no hardcoded hex); `ChangeValue` helper for 24h coloring; FreshnessBadge for source/as-of; honest empty states ("not indexed" chips); demo data clearly marked (`demo-seed`).
-
-**Don't:** gradients/neon/marquee/faux chrome (on the cyberpunk-yellow branch the sanctioned exceptions are the electric-yellow accents and the `.glow-primary`/`.text-glow`/`.hairline-primary` utilities, used sparingly); fabricated numbers; `transition-all`; per-component token overrides; projected-yield or performance-promise language; more than one accent on chrome (base: none — red is errors only; cyberpunk-yellow branch: exactly one — electric yellow).
+Historical palette and type choices from the 2026-09-01 Mineral Desk pass and 2026-09-03 intermediate directions are superseded by this Basalt identity.

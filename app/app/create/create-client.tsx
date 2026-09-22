@@ -14,20 +14,16 @@ import {
   DeployPanel,
   FeesEditor,
   LegalCheckboxes,
-  LegalReviewTag,
   MintPicker,
   SeedPreview,
   Stepper,
-  SummaryRail,
   TemplateStrip,
   WalletGateBanner,
   WeightsEditor,
-  formatRawAsTokenUnits,
   type CreateTemplate,
-  type StepValidity,
 } from "@/components/create";
 import { ENTRY_FEE_CAP_BPS, EXIT_FEE_CAP_BPS, MANAGEMENT_FEE_CAP_BPS } from "@/lib/create-basket";
-import { truncateAddress } from "@/lib/format";
+import { formatBpsAsPercent, truncateAddress } from "@/lib/format";
 import {
   equalWeights,
   tickerFromRow,
@@ -39,7 +35,8 @@ import { sha256Hex } from "@/lib/create-basket";
 import { apiFetch, apiQuery } from "@/lib/api-client";
 import { fetchBasketDetail, type BasketDetail } from "@/components/basket/basket-api";
 
-const STEPS = ["Select", "Weights", "Fees", "Seed", "Legal", "Deploy"] as const;
+const STEPS = ["Choose", "Set up", "Start", "Review"] as const;
+const STEP_HEADINGS = ["Choose assets", "Set your mix", "Add starting tokens", "Review basket"] as const;
 
 type WhitelistStatus = "loading" | "ready" | "error" | "empty";
 type PriceStatus = "idle" | "loading" | "ready" | "unavailable";
@@ -74,8 +71,8 @@ function cloneSourceName(detail: BasketDetail): string | null {
 }
 
 /**
- * Create wizard — six steps, each blocking Next on its validation, with a
- * persistent summary rail. Mirrors basket_factory::create_basket validations
+ * Create wizard — four decisions, with legal acknowledgments in final review.
+ * Mirrors basket_factory::create_basket validations
  * client-side; the program re-validates everything on-chain.
  *
  * `?clone=<pubkey>` (from the basket page's "Clone this basket") pre-fills
@@ -99,9 +96,10 @@ export default function CreateClient() {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [constituents, setConstituents] = useState<ConstituentDraft[]>([]);
-  const [entryFeeBps, setEntryFeeBps] = useState(100);
-  const [exitFeeBps, setExitFeeBps] = useState(50);
-  const [managementFeeBps, setManagementFeeBps] = useState(200);
+  const [entryFeeBps, setEntryFeeBps] = useState(0);
+  const [exitFeeBps, setExitFeeBps] = useState(0);
+  const [managementFeeBps, setManagementFeeBps] = useState(0);
+  const [feesExpanded, setFeesExpanded] = useState(false);
   const [legal, setLegal] = useState<LegalAcknowledgments>({
     notAdvice: false,
     jurisdiction: false,
@@ -109,13 +107,13 @@ export default function CreateClient() {
     creatorNotAdviser: false,
   });
 
-  const [budgetUsd, setBudgetUsd] = useState("1000");
+  const [budgetUsd, setBudgetUsd] = useState("");
   const [priceStatus, setPriceStatus] = useState<PriceStatus>("idle");
   const [priceSource, setPriceSource] = useState<string | null>(null);
   const [priceAsOf, setPriceAsOf] = useState<string | null>(null);
 
   const [nonce, setNonce] = useState(() => Date.now());
-  const [metadataHashHex, setMetadataHashHex] = useState<string | null>(null);
+  const [metadataHashState, setMetadataHashState] = useState<{ source: string; hex: string } | null>(null);
 
   // ---- clone state ----
   const [cloneStatus, setCloneStatus] = useState<CloneStatus>("idle");
@@ -206,6 +204,11 @@ export default function CreateClient() {
       setEntryFeeBps(Math.min(cloneDetail.entry_fee_bps, ENTRY_FEE_CAP_BPS));
       setExitFeeBps(Math.min(cloneDetail.exit_fee_bps, EXIT_FEE_CAP_BPS));
       setManagementFeeBps(Math.min(cloneDetail.management_fee_bps, MANAGEMENT_FEE_CAP_BPS));
+      setFeesExpanded(
+        cloneDetail.entry_fee_bps > 0 ||
+        cloneDetail.exit_fee_bps > 0 ||
+        cloneDetail.management_fee_bps > 0,
+      );
       setStep(0);
     }
     setCloneBanner({
@@ -237,6 +240,9 @@ export default function CreateClient() {
     }
     let cancelled = false;
     setPriceStatus("loading");
+    setPriceSource(null);
+    setPriceAsOf(null);
+    setConstituents((prev) => prev.map((c) => ({ ...c, priceRef: null })));
     void (async () => {
       try {
         const res = await apiQuery(
@@ -246,21 +252,26 @@ export default function CreateClient() {
         );
         if (!res.ok) throw new Error(`prices/compare responded ${res.status}`);
         const payload = (await res.json()) as {
-          data?: { ticker: string; mint: string; jupiter: number | null }[];
+          data?: { ticker: string; mint: string; jupiter: number | null; source?: string }[];
           ts?: string;
         };
         if (cancelled) return;
-        const byMint = new Map((payload.data ?? []).map((row) => [row.mint, row.jupiter]));
+        const byMint = new Map((payload.data ?? []).map((row) => [row.mint, row]));
         setConstituents((prev) =>
           prev.map((c) =>
-            byMint.has(c.mint) ? { ...c, priceRef: byMint.get(c.mint) ?? null } : c,
+            byMint.has(c.mint) ? { ...c, priceRef: byMint.get(c.mint)?.jupiter ?? null } : c,
           ),
         );
-        setPriceSource("backend /prices/compare (jupiter reference)");
+        const sources = Array.from(new Set((payload.data ?? []).map((row) => row.source ?? "unavailable")));
+        setPriceSource(`Reference price · ${sources.join(" / ")}`);
         setPriceAsOf(payload.ts ?? null);
         setPriceStatus("ready");
       } catch {
-        if (!cancelled) setPriceStatus("unavailable");
+        if (!cancelled) {
+          setPriceStatus("unavailable");
+          setPriceSource(null);
+          setPriceAsOf(null);
+        }
       }
     })();
     return () => {
@@ -310,6 +321,11 @@ export default function CreateClient() {
       setEntryFeeBps(template.fees.entryFeeBps);
       setExitFeeBps(template.fees.exitFeeBps);
       setManagementFeeBps(template.fees.managementFeeBps);
+      setFeesExpanded(
+        template.fees.entryFeeBps > 0 ||
+        template.fees.exitFeeBps > 0 ||
+        template.fees.managementFeeBps > 0,
+      );
     },
     [],
   );
@@ -319,10 +335,12 @@ export default function CreateClient() {
     if (!Number.isFinite(budget) || budget <= 0) return;
     setConstituents((prev) =>
       prev.map((c) => {
-        if (!c.priceRef || !Number.isFinite(c.priceRef)) return c;
+        if (!c.priceRef || !Number.isFinite(c.priceRef) || c.priceRef <= 0) return c;
         const usd = (budget * c.weightBps) / 10_000;
         const raw = Math.floor((usd / c.priceRef) * 10 ** c.decimals);
-        return { ...c, seedRaw: raw > 0 ? BigInt(raw) : 0n };
+        return Number.isSafeInteger(raw) && raw > 0
+          ? { ...c, seedRaw: BigInt(raw) }
+          : c;
       }),
     );
   }, [budgetUsd]);
@@ -347,11 +365,12 @@ export default function CreateClient() {
     };
     return JSON.stringify(blob, null, 2);
   }, [name, description, constituents, entryFeeBps, exitFeeBps, managementFeeBps]);
+  const metadataHashHex = metadataHashState?.source === metadataJson ? metadataHashState.hex : null;
 
   useEffect(() => {
     let cancelled = false;
     void sha256Hex(metadataJson).then((hex) => {
-      if (!cancelled) setMetadataHashHex(hex);
+      if (!cancelled) setMetadataHashState({ source: metadataJson, hex });
     });
     return () => {
       cancelled = true;
@@ -361,7 +380,7 @@ export default function CreateClient() {
   // ---- per-step validation (mirrors the program's checks) ----
   const count = constituents.length;
   const weightSum = constituents.reduce((acc, c) => acc + c.weightBps, 0);
-  const validity: StepValidity = {
+  const validity = {
     selection: count >= 2 && count <= 20,
     weights: count >= 2 && count <= 20 && weightSum === 10_000,
     fees:
@@ -372,7 +391,7 @@ export default function CreateClient() {
     legal:
       legal.notAdvice && legal.jurisdiction && legal.structuredInstrument && legal.creatorNotAdviser,
   };
-  const stepValid = [validity.selection, validity.weights, validity.fees, validity.seed, validity.legal, true];
+  const stepValid = [validity.selection, validity.weights && validity.fees, validity.seed, true];
 
   let validThrough = 0;
   for (let i = 0; i < stepValid.length; i += 1) {
@@ -380,28 +399,10 @@ export default function CreateClient() {
     else break;
   }
 
-  const nextBlockedReason =
-    step === 0
-      ? validity.selection
-        ? null
-        : "Select between 2 and 20 Active xStocks to continue."
-      : step === 1
-        ? validity.weights
-          ? null
-          : "Weights must sum to exactly 10,000 bps."
-        : step === 2
-          ? validity.fees
-            ? null
-            : "Fees must stay within the caps (300/100/300 bps)."
-            : step === 3
-              ? validity.seed
-                ? null
-                : "Every token needs a seed amount greater than zero."
-            : step === 4
-              ? validity.legal
-                ? null
-                : "All four acknowledgments are required before deploy."
-              : null;
+  const feesSummary =
+    entryFeeBps === 0 && exitFeeBps === 0 && managementFeeBps === 0
+      ? "No fees"
+      : `${formatBpsAsPercent(entryFeeBps)} entry · ${formatBpsAsPercent(exitFeeBps)} exit · ${formatBpsAsPercent(managementFeeBps)}/year`;
 
   const handleSendTransaction = useCallback(
     (transaction: VersionedTransaction, conn: Connection): Promise<TransactionSignature> =>
@@ -430,16 +431,21 @@ export default function CreateClient() {
       <div className="flex flex-wrap items-baseline justify-between gap-2">
         <div>
           <h1 className="font-display text-3xl font-semibold tracking-tight">Create a strategy basket</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Six steps, each gated. The deployed basket is immutable.
-          </p>
         </div>
-        <LegalReviewTag />
       </div>
 
-      <div className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1fr)_300px]">
+      <div className="mt-4 grid gap-6 lg:grid-cols-[minmax(0,1fr)_300px]">
         <div className="min-w-0">
-          {!connected && <WalletGateBanner className="mb-4" />}
+          <div className="mb-4 rounded-lg border border-border bg-muted/40 px-3 py-2 text-xs leading-5 text-muted-foreground">
+            <p>Devnet demo · Project mock tokens and prices · Not live xStocks. LEGAL_REVIEW_REQUIRED.</p>
+            <details className="mt-1">
+              <summary className="cursor-pointer underline underline-offset-2">About demo data</summary>
+              <p className="mt-1">
+                These are not issuer-backed xStocks or live investment data.
+                {whitelistSource ? ` Asset source: ${whitelistSource}.` : ""}
+              </p>
+            </details>
+          </div>
 
           {cloneStatus === "loading" ? (
             <div role="status" className="mb-4 rounded-lg border border-border bg-muted/40 px-4 py-3">
@@ -487,19 +493,11 @@ export default function CreateClient() {
 
           {/* Mobile: the live preview rides along inside the step flow as a
               collapsed summary (desktop equivalent lives in the right rail). */}
-          <CreatePreviewCollapsible {...previewProps} className="mt-3" />
-
-          {count >= 4 && (
-            <p className="mt-3 rounded-lg border border-border/60 bg-muted/40 px-4 py-3 text-xs leading-5 text-muted-foreground">
-              Longer baskets are fully supported: their transaction is packed with an on-chain
-              address lookup table, so the first deploy also creates that table (1–2 one-time
-              wallet approvals). Bigger transactions can cost a little more in fees.
-            </p>
-          )}
+          {count >= 2 && <CreatePreviewCollapsible {...previewProps} className="mt-3" />}
 
           <section className="mt-5 rounded-lg border border-border bg-card p-5" aria-label={`Step ${step + 1}: ${STEPS[step]}`}>
             <h2 className="font-display mb-4 text-lg font-medium">
-              {step + 1}. {STEPS[step]}
+              {STEP_HEADINGS[step]}
             </h2>
 
             {step === 0 && (
@@ -533,26 +531,36 @@ export default function CreateClient() {
             )}
 
             {step === 1 && (
-              <WeightsEditor
-                constituents={constituents}
-                onChange={setConstituents}
-              />
+              <div className="space-y-8">
+                <WeightsEditor constituents={constituents} onChange={setConstituents} />
+                <section className="border-t border-border pt-6" aria-label="Basket fees">
+                  <button
+                    type="button"
+                    aria-expanded={feesExpanded}
+                    aria-controls="create-fees"
+                    onClick={() => setFeesExpanded((value) => !value)}
+                    className="flex w-full items-center justify-between gap-3 rounded-sm text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+                  >
+                    <span className="text-base font-medium">Fees <span className="text-sm font-normal text-muted-foreground">(optional)</span></span>
+                    <span className="text-right font-mono text-xs text-muted-foreground">{feesSummary} <span aria-hidden="true">{feesExpanded ? "−" : "+"}</span></span>
+                  </button>
+                  <div id="create-fees" className={feesExpanded ? "mt-5" : "hidden"}>
+                    <FeesEditor
+                      entryFeeBps={entryFeeBps}
+                      exitFeeBps={exitFeeBps}
+                      managementFeeBps={managementFeeBps}
+                      onChange={(key, value) => {
+                        if (key === "entry") setEntryFeeBps(value);
+                        else if (key === "exit") setExitFeeBps(value);
+                        else setManagementFeeBps(value);
+                      }}
+                    />
+                  </div>
+                </section>
+              </div>
             )}
 
             {step === 2 && (
-              <FeesEditor
-                entryFeeBps={entryFeeBps}
-                exitFeeBps={exitFeeBps}
-                managementFeeBps={managementFeeBps}
-                onChange={(key, value) => {
-                  if (key === "entry") setEntryFeeBps(value);
-                  else if (key === "exit") setExitFeeBps(value);
-                  else setManagementFeeBps(value);
-                }}
-              />
-            )}
-
-            {step === 3 && (
               <SeedPreview
                 constituents={constituents}
                 budgetUsd={budgetUsd}
@@ -569,15 +577,10 @@ export default function CreateClient() {
               />
             )}
 
-            {step === 4 && (
-              <LegalCheckboxes
-                legal={legal}
-                onChange={(key, value) => setLegal((prev) => ({ ...prev, [key]: value }))}
-              />
-            )}
-
-            {step === 5 && (
+            {step === 3 && (
               <DeployPanel
+                basketName={name}
+                basketThesis={description}
                 constituents={constituents}
                 entryFeeBps={entryFeeBps}
                 exitFeeBps={exitFeeBps}
@@ -590,9 +593,20 @@ export default function CreateClient() {
                 connection={connection}
                 sendTransaction={handleSendTransaction}
                 onNonceRegenerate={() => setNonce(Date.now())}
-              />
+                legalAccepted={validity.legal}
+              >
+                <section className="border-t border-border pt-5" aria-label="Required acknowledgments">
+                  <h3 className="mb-3 text-base font-medium">Before you deploy</h3>
+                  <LegalCheckboxes
+                    legal={legal}
+                    onChange={(key, value) => setLegal((prev) => ({ ...prev, [key]: value }))}
+                  />
+                </section>
+              </DeployPanel>
             )}
           </section>
+
+          {!connected && step === 3 && <WalletGateBanner className="mt-4" />}
 
           <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
             <Button
@@ -603,80 +617,27 @@ export default function CreateClient() {
             >
               Back
             </Button>
-            {step < 5 && (
-              <div className="flex flex-col items-end gap-1">
-                {nextBlockedReason && (
-                  <p className="text-xs text-muted-foreground" aria-live="polite">
-                    {nextBlockedReason}
-                  </p>
-                )}
+            {step < STEPS.length - 1 && (
+              <div>
                 <Button
                   type="button"
-                  onClick={() => setStep((s) => Math.min(5, s + 1))}
-                  disabled={!stepValid[step] || !connected}
+                  onClick={() => setStep((s) => Math.min(STEPS.length - 1, s + 1))}
+                  disabled={!stepValid[step]}
                 >
                   Next
                 </Button>
-                {!connected && (
-                  <p className="text-xs text-muted-foreground" aria-live="polite">
-                    Connect your wallet to continue
-                  </p>
-                )}
               </div>
             )}
           </div>
         </div>
 
-        {/* Right rail: live preview card (desktop only — mobile gets the
-            collapsed block above) above the persistent summary rail. The
-            wrapper is sticky so both follow the scroll on lg+; below lg the
-            grid collapses to one column and the rail stacks under the wizard
-            as before. */}
-        <div className="flex flex-col gap-4 self-start lg:sticky lg:top-20">
+        {/* One live preview on desktop; mobile can open the compact preview above the form. */}
+        <div className="self-start lg:sticky lg:top-20">
           <div className="hidden lg:block">
             <CreatePreviewCard {...previewProps} />
           </div>
-          <SummaryRail
-            summary={{
-              step,
-              stepCount: STEPS.length,
-              basketName: name,
-              constituentCount: count,
-              weightSum,
-              entryFeeBps,
-              exitFeeBps,
-              managementFeeBps,
-              seedTotalUsd: validity.seed
-                ? Number.isFinite(Number(budgetUsd)) && Number(budgetUsd) > 0
-                  ? Number(budgetUsd)
-                  : null
-                : null,
-              seedRawTotal:
-                count > 0
-                  ? constituents
-                      .map(
-                        (c) =>
-                          `${c.ticker} ${formatRawAsTokenUnits(c.seedRaw, c.decimals)}`,
-                      )
-                      .join(" + ")
-                  : null,
-              legalAccepted: validity.legal,
-              walletAddress: publicKey?.toBase58() ?? null,
-              nonce: String(nonce),
-              metadataHashShort: metadataHashHex
-                ? truncateAddress(metadataHashHex, 8, 6)
-                : null,
-            }}
-            validity={validity}
-          />
         </div>
       </div>
-      <div className="mt-4 lg:hidden">
-        <p className="text-xs text-muted-foreground">
-          {whitelistSource ? `whitelist source: ${whitelistSource}` : ""}
-        </p>
-      </div>
-
     </div>
   );
 }

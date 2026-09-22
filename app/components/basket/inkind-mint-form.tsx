@@ -444,8 +444,7 @@ export function InKindMintForm({
       <CardHeader className="pb-3">
         <CardTitle>Deposit amounts</CardTitle>
         <CardDescription className="text-xs">
-          Raw base units per constituent — deposits must track current vault ratios within the 1%
-          tolerance.
+          Enter raw token units. Deposits must match current vault ratios (within 1%).
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -466,7 +465,7 @@ export function InKindMintForm({
                     className="w-24 shrink-0 truncate font-mono text-xs tabular-nums"
                     title={mint}
                   >
-                    {truncateAddress(mint, 6, 6)}
+                    {tickers?.get(mint) ?? truncateAddress(mint, 6, 6)}
                   </label>
                   <div className="flex items-center gap-1.5">
                     <input
@@ -533,13 +532,15 @@ export function InKindMintForm({
         ) : null}
 
         {showFaucetHint ? (
-          <p className="rounded-xl border border-border/60 bg-muted/40 p-2.5 text-xs leading-5 text-muted-foreground">
-            Devnet test tokens: run{" "}
-            <code className="break-all rounded-md bg-background px-1 py-0.5 font-mono text-[11px]">
+          <details className="rounded-xl border border-border/60 bg-muted/40 p-2.5 text-xs leading-5 text-muted-foreground">
+            <summary className="cursor-pointer font-medium text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+              Need devnet test tokens?
+            </summary>
+            <p className="mt-2">Run the project faucet, then refresh balances.</p>
+            <code className="mt-1 block break-all rounded-md bg-background px-1 py-0.5 font-mono text-[11px]">
               npx tsx scripts/faucet.ts --to {publicKey?.toBase58() ?? "<YOUR_WALLET>"}
-            </code>{" "}
-            in the repo, then Refresh balances.
-          </p>
+            </code>
+          </details>
         ) : null}
 
         {/* live weight-check report — thin per-leg bar + one line */}
@@ -593,7 +594,7 @@ export function InKindMintForm({
             setup, when it applies, is disclosed separately below). */}
         {check?.ok ? (
           <TradeFeePreview
-            label="Fee preview · 1 transaction"
+            label="Fee preview"
             rows={[
               {
                 label: "Gross shares",
@@ -653,9 +654,9 @@ export function InKindMintForm({
                   : "Preparing your basket account… one-time setup"}
               </>
             ) : prewarm.status === "failed" ? (
-              "One-time setup will be requested with your first trade — every trade after that is a single click."
-            ) : (
-              "One-time setup for this basket: you may approve 1–2 setup transactions; every trade after this is a single click."
+                "One-time setup will be requested with your first trade."
+              ) : (
+                "One-time setup for this basket: approve 1–2 setup transactions."
             )}
           </p>
         ) : null}
@@ -664,7 +665,7 @@ export function InKindMintForm({
           open={open}
           onClose={close}
           title={`Buy ${name ?? "basket"}`}
-          description="One press: we check the transaction on-chain first, then your wallet opens for a single approval."
+          description="Review the amounts and fees, then approve the transaction in your wallet."
           accounts={[...(createAccounts ?? []), ...(expectedAccounts ?? [])]}
           summary={
             <TxSummaryCard>

@@ -4,7 +4,6 @@ import { Check, Minus } from "lucide-react";
 
 import { EmptyState, ErrorState } from "@/components/states";
 import { Badge } from "@/components/ui/badge";
-import { truncateAddress } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { TextField } from "./field";
 import { tickerFromRow, type WhitelistRow } from "./types";
@@ -49,7 +48,7 @@ export function MintPicker({
           ))}
         </div>
         <p className="text-xs text-muted-foreground">
-          Whitelist source decides what can enter a basket — loading it first.
+          Loading the assets available for new baskets.
         </p>
       </div>
     );
@@ -61,7 +60,7 @@ export function MintPicker({
         title="Whitelist unavailable"
         message={
           error ??
-          "The whitelist API did not respond. Baskets can only contain whitelisted mints."
+          "The available assets could not be loaded. Try again."
         }
         onRetry={onRetry}
       />
@@ -73,8 +72,8 @@ export function MintPicker({
       <div className="flex flex-col gap-4">
         <EmptyState
           chip="NOT INDEXED"
-          title="No mints whitelisted yet"
-          description="The whitelist API responded but returned zero mints — nothing can be selected until the whitelist authority adds xStocks."
+          title="No basket assets available yet"
+          description="No eligible assets have been added for new baskets yet."
         />
         {/* B11 — skeleton mint-card tiles keep the wizard stage from collapsing
             to a void while the whitelist is empty. */}
@@ -84,7 +83,7 @@ export function MintPicker({
           ))}
         </div>
         <p className="font-mono text-[11px] uppercase tracking-[0.22em] text-muted-foreground/80">
-          Layout preview — selectable xStock tiles
+          Layout preview — selectable asset tiles
         </p>
       </div>
     );
@@ -116,10 +115,12 @@ export function MintPicker({
       {activeRows.length === 0 ? (
         <EmptyState
           title="No Active mints"
-          description="Whitelisted mints exist but none are Active. Paused mints cannot enter new baskets."
+          description="Assets are listed, but none are currently available for new baskets."
         />
       ) : (
-        <ul className="grid gap-2 sm:grid-cols-2" aria-label="Selectable xStocks">
+        <div>
+          <p className="mb-2 text-xs font-medium text-muted-foreground">Eligible tokens</p>
+          <ul className="grid gap-2 sm:grid-cols-2" aria-label="Eligible basket tokens">
           {activeRows.map((row) => {
             const selected = selectedMints.includes(row.mint);
             const disabled = !selected && allSelected;
@@ -129,7 +130,9 @@ export function MintPicker({
                   type="button"
                   role="checkbox"
                   aria-checked={selected}
+                  aria-label={`${tickerFromRow(row)}${selected ? ", selected" : ""}`}
                   disabled={disabled}
+                  title={row.mint}
                   onClick={() => onToggle(row.mint)}
                   className={cn(
                     "flex w-full items-start justify-between gap-3 rounded-lg border p-3 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50",
@@ -139,13 +142,8 @@ export function MintPicker({
                     disabled && "cursor-not-allowed opacity-50",
                   )}
                 >
-                  <span className="min-w-0">
-                    <span className="block font-mono text-sm font-medium">
-                      {tickerFromRow(row)}
-                    </span>
-                    <span className="mt-0.5 block truncate font-mono text-xs text-muted-foreground" title={row.mint}>
-                      {truncateAddress(row.mint, 10, 8)}
-                    </span>
+                  <span className="min-w-0 font-mono text-sm font-medium">
+                    {tickerFromRow(row)}
                   </span>
                   <span
                     aria-hidden="true"
@@ -160,13 +158,14 @@ export function MintPicker({
               </li>
             );
           })}
-        </ul>
+          </ul>
+        </div>
       )}
 
       {pausedRows.length > 0 && (
         <div>
           <p className="text-xs text-muted-foreground">
-            Paused — cannot enter new baskets (redeem is unaffected):
+            Unavailable for new baskets (existing holders can still redeem):
           </p>
           <ul className="mt-1 flex flex-wrap gap-1.5">
             {pausedRows.map((row) => (
@@ -187,11 +186,10 @@ export function MintPicker({
 
       <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
         <span>
-          Selected{" "}
+          Choose 2–{maxSelected} assets · {" "}
           <span className="font-mono tabular-nums text-foreground">
-            {selectedMints.length} / {maxSelected}
-          </span>{" "}
-          · need 2-{maxSelected}
+            {selectedMints.length} selected
+          </span>
         </span>
       </div>
     </div>

@@ -6,7 +6,7 @@ import CreateClient from "./create-client";
 export const metadata: Metadata = {
   title: "Create — Basalt",
   description:
-    "Six-step wizard for deploying an immutable onchain strategy basket from whitelisted xStocks.",
+    "Create an immutable onchain strategy basket from eligible tokens. Devnet sample mints are mock assets, not issuer-backed xStocks.",
 };
 
 /**

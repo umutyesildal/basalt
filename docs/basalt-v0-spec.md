@@ -602,8 +602,7 @@ app/
       redeem/
         page.tsx          // Redeem: shares input → proportional out preview (raw + scaled + USD) + exit fee + warning "irreversible, oracle-free"
   create/
-    page.tsx              // Wizard (6 steps, Stepper):
-                          // 1 Select xStocks (whitelist fetch, 2-20) → 2 Set weights (slider, sum 10k, preset Equal/MarketCap) → 3 Set fees (caps shown, 90/10 split explainer) → 4 Preview seed deposit (calc seed amounts from weights + $1000 example) → 5 Risk/Legal (checkboxes: not ETF, jurisdiction, xStocks instrument, creator not adviser) → 6 Deploy (tx: create_basket atomic seed, metadata upload to IPFS first)
+    page.tsx              // Four tasks in current UI: Choose eligible assets (2-20) → Set up exact 100% allocation and optional fees → Start with owned constituent tokens → Review immutable terms and legal acknowledgments, then connect wallet and deploy. Protocol arguments remain integer bps/raw units. Retrievable metadata publishing before deploy remains an unmet requirement (BAS-033), disclosed in the UI.
   creator/
     [pubkey]/
       page.tsx            // Creator profile: baskets, total AUM, fees earned (on-chain + indexer), rank, follow
@@ -622,10 +621,10 @@ brand.md                  // written by brand-design skill
 ```
 
 **Wizard validations (frontend mirrors on-chain):**
-- Steps 1-2 block `Next` until `2≤len≤20`, weights sum 10_000, each mint whitelisted Active.
-- Step 3 caps: entry 0-300, exit 0-100, mgmt 0-300.
-- Step 4 preview: given example $1000 USDC, backend `/quotes/zap-in` preview seed amounts; but `create_basket` still requires in-kind seed raw amounts — zap preview is UX only.
-- Step 5 legal checkboxes required; `Deploy` disabled until checked `LEGAL_REVIEW_REQUIRED`.
+- Choose blocks `Next` until `2≤len≤20` and each mint is whitelisted Active.
+- Set up blocks `Next` until displayed allocations total 100% (submitted integer weights sum 10_000 bps); fee caps stay entry 0-300, exit 0-100, mgmt 0-300 bps/year.
+- Start requires a positive raw amount for every constituent. An optional USD target uses labeled reference prices to calculate editable in-kind amounts; there is no automatic USDC purchase or prefilled spend.
+- Review stays available without a wallet. Four legal checkboxes are required before the deploy action (`LEGAL_REVIEW_REQUIRED`); wallet, balance, simulation and signing checks happen at deploy. The on-chain factory still validates every input and transfers seed tokens atomically.
 - Detail page drift = `actual_weight = scaled_i / Σ scaled *10000` vs `target_weights_bps` progress bar.
 
 ---

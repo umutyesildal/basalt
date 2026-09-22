@@ -889,7 +889,7 @@ export function ZapInForm({
       <CardHeader className="pb-3">
         <CardTitle>Zap USDC</CardTitle>
         <CardDescription className="text-xs">
-          Split USDC across the target weights via Jupiter, then mint in-kind with what arrives.
+          Swap USDC for target tokens, then mint with what arrives.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -1001,7 +1001,7 @@ export function ZapInForm({
           }
           footer={
             quote
-              ? "Quote estimate from the backend's Jupiter legs — the closing mint validates on-chain."
+              ? "Jupiter quote estimate; the closing mint validates on-chain."
               : undefined
           }
         />
@@ -1021,9 +1021,6 @@ export function ZapInForm({
                   · fees only — market impact at execution
                 </span>
               ) : null}
-            </p>
-            <p className="pt-0.5 text-[11px] leading-4 text-muted-foreground">
-              shown upfront — nothing to discover later
             </p>
           </div>
         ) : null}

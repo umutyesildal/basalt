@@ -1,116 +1,79 @@
 # Product and UX improvement plan
 
-## Current strengths
+_Updated 2026-09-23. This is the durable UX contract for Basalt. The owner decision at the top of `plan.md` records the current four-task create flow; `AGENTS.md` and `docs/basalt-v0-spec.md` govern protocol and legal boundaries. Earlier issue IDs remain useful backlog references._
 
-- Clear value proposition: “Create an index. Own your thesis.”
-- Distinct visual identity rather than a generic crypto dashboard.
-- Strong navigation and basket-detail information architecture.
-- Transaction flows include simulation, pending, submitted, confirmed, retry, and Explorer states.
-- On-chain proof areas expose vaults, share mint, and program IDs.
-- Permissionless, oracle-free redemption is explained correctly.
-- Skeleton, empty, and error states are generally strong.
+## Journey and content contract
 
-## UX-001 — Require wallet only at deployment
+A visitor follows four tasks: **Choose** eligible assets and an optional name/thesis; **Set up** target allocations and optional fees; **Start** with owned constituent tokens; **Review** immutable terms and complete required legal acknowledgments. Review is reachable without a wallet. Deploy then asks for a wallet, reads current seed balances, validates transaction arguments, and simulates before signing; the program enforces the active whitelist and fee/weight limits. Explicit wrong-network messaging and versioned draft persistence remain backlog items. An unavailable price source does not silently become a reference value.
 
-**Current issue:** Create says users can browse steps freely, but Next is disabled while disconnected.
+Fees start at zero. The seed task has no prefilled USD spend; the optional target-value helper uses clearly labeled reference prices to calculate editable token amounts. It is not a USDC purchase. The mobile seed view keeps each token amount visible without horizontal scrolling. One live preview is enough; a duplicate status/summary rail and estimated transaction byte count are not user decisions. Larger baskets explain only the possible extra wallet approval at transaction time.
 
-**Target behavior:**
+**Content hierarchy, 2026-09-23:** The four tasks are the navigation; do not restate them in a page subtitle and a second numbered heading. Keep one visible devnet/mock source notice. Put optional fee controls and the USD amount calculator behind clearly named disclosures, while always showing their current values and keeping estimates marked as reference values. Show fee impact examples when a rate is above zero; zero needs no repeated explanatory paragraph. The four legal checkboxes remain required and initially unchecked, with short statements beside them and their full explanations in accessible disclosures. Review still shows the actual deposit, immutable terms, metadata publishing limitation, and the creator's **one basket share** (1,000,000 raw units at six decimals). Remove repeated wallet and validation sentences where the same state is already visible next to the action.
 
-- Constituents, weights, fees, seed preview, and risk/legal steps work without a wallet.
-- Persist a schema-versioned local draft.
-- Require wallet only for balance checks, ATA discovery, and Deploy review.
-- Revalidate network, balances, and constituents after connection.
+Name and thesis are currently committed only as a local JSON hash sent on-chain; retrievable metadata publication is not implemented. State this on review and treat publishing/verification as an open product requirement. Do not imply that a hash alone makes the name or thesis available to other users.
 
-**Acceptance:** A new user can reach deployment review without a wallet; Deploy clearly explains the wallet/network requirement.
+Main-flow allocation controls display percentages and a visible **100%** total. Display and input rounding must map exactly to integer bps at the UI boundary; the submitted weights still total **10,000 bps** and pass on-chain validation. The correction action is “Balance to 100%.” Fee controls display entry, exit, and annual management rates as percentages, with caps of **3% / 1% / 3% per year**. The 90% creator / 10% treasury fee split is protocol-wide, not a configurable basket term. Keep raw bps available in advanced transaction details where useful.
 
-## UX-002 — Human-readable amount entry
+## UX-001 — Wallet at transaction time
 
-- Human token amount is the primary input.
-- Raw base units appear in an advanced/detail row.
-- One exact string/BigInt utility handles decimals and multipliers.
-- Max, balance, rounding, and exact submitted raw amount are shown together.
-- Never parse economic amounts through JavaScript `number`.
+- Allow constituents, allocation, fees, seed preview, legal terms, and review while disconnected.
+- Persist a schema-versioned draft without implying saved amounts are still spendable.
+- Check wallet, network, token accounts, balances, and active mints at deploy; explain each unavailable or failed state.
+- Keep review readable on desktop and mobile, with a concise transaction summary.
+
+**Acceptance:** a new visitor reaches review without connecting; an invalid balance or disconnected wallet prevents submission with a clear next step.
+
+## UX-002 — Exact human amount entry
+
+- Make human token amounts the primary seed input and show balance, maximum, rounding, and exact submitted raw amount in advanced details.
+- Explain that creation deposits each constituent token from the creator wallet in one transaction; optional USD estimates are reference values only.
+- Use exact string/BigInt conversion for raw Token-2022 units. Never parse economic amounts through JavaScript `number`.
+- Keep seed transfers atomic with basket creation and retain 2–20 active constituents, immutable metadata, capped fees, and legal acknowledgments.
 
 ## UX-003 — First devnet success
 
-Target: a new user completes a real devnet transaction in 5–10 minutes.
+Give a new user a clear devnet path: network detection, devnet SOL funding help, mock constituent acquisition, minimal basket template, simulation and network fee review, then confirmation links to Explorer and Portfolio. Label project mock mints as mock throughout; official issuer-backed xStocks are not currently supported by the extension-free V0 policy.
 
-1. Detect network state.
-2. Link or guide to a devnet SOL faucet when needed.
-3. Provide one clear path to acquire mock constituents.
-4. Offer a minimal basket template.
-5. Show simulation, network fee, and instruction summary.
-6. After confirmation, link to Explorer and Portfolio.
+## UX-004 — Data and backing truth
 
-## UX-004 — Mock/demo trust language
-
-Apply `data-integrity-and-demo-policy.md` everywhere:
-
-- persistent environment/backing banner on basket detail,
-- Reference NAV instead of AUM,
-- visible demo mark on each marquee ticker,
-- devnet/mock mark on share images and OG output,
-- wording that does not imply issuer backing merely because a Token-2022 balance is real.
+Follow `docs/data-integrity-and-demo-policy.md`: persistent devnet/mock backing context on basket detail; “Reference NAV” for estimates; source and as-of time beside price/performance; demo labels in charts, social previews, OG, share images, and launch video. A real devnet balance does not imply issuer backing. If a source fails, render unavailable or stale states instead of invented data.
 
 ## UX-005 — Zap review and recovery
 
-- List constituent, route, min-out, slippage, and estimated fee per leg.
-- Keep the sequential/non-atomic warning beside the CTA.
-- Track pending/confirmed/failed per leg.
-- Open mint review only from actual balance deltas.
-- On partial failure, offer Retry remaining legs, Keep tokens, and Switch to in-kind mint.
-- Display quote expiry and refresh stale quotes.
+Show each sequential swap leg, route, minimum output, slippage, estimated fees, and quote expiry beside the action. Explain that the swaps and mint are not atomic. Derive mint review from actual balance deltas. On partial failure offer retry remaining legs, keep tokens, or switch to in-kind mint. This is periphery; in-kind mint/redeem remains the core path.
 
-## UX-006 — Basket-detail decision support
+## UX-006 — Basket detail decision view
 
-Use one hierarchy:
+The first reading order is:
 
-1. Identity plus environment/backing.
-2. Reference NAV/share price plus freshness.
-3. Target versus actual allocation and drift.
-4. Fee schedule and user impact.
-5. Vault proof and raw/scaled accounting.
-6. Issuer, multiplier, corporate-action, and risk context.
-7. Buy/redeem action rail.
+1. Basket name and thesis, with devnet/mock backing label.
+2. Understandable target allocation and available actual allocation.
+3. Sourced and timestamped reference NAV/share price or performance, when available.
+4. Entry, exit, and annual management fees in percentages, with short user-impact explanations.
+5. Key instrument, depeg, contract, multiplier, and drift risks.
+6. Buy and redeem actions.
 
-Reduce duplicate KPI cards and keep primary risks/actions above the fold.
+Put raw/scaled units, addresses and copy controls, drift arithmetic, fee formulas, and operator proof in a clearly labeled, keyboard-accessible advanced section. Keep the data available. Do not describe current project mock mints as real issuer-backed xStocks.
 
-## UX-007 — Honest stock and market charts
+## UX-007 — Redeem understanding and accuracy
 
-- Do not render candlestick/volume charts without real OHLCV.
-- Explain normalize-to-100 comparisons in the tooltip.
-- Mark simulated xStock series in the legend and plot.
-- Brush/range controls must change the real x-domain; placeholder `return null` is not acceptable.
-- Charts require an accessible name, text summary, and keyboard-operable range control.
+Explain: the user gives up basket shares and receives proportional underlying tokens. The **exit fee is a portion of the entered shares**; the remainder is burned, and the returned raw token amounts are floored pro-rata against vault balances after management-fee accrual. Preview the actual fee rate and share quantity, each token quantity, network cost, and irreversible transaction consequences before signing. Source fresh chain balances for transaction review.
 
-## UX-008 — Turn social into a real product
+“Permissionless” and “oracle-free” are protocol properties in advanced information. There is **no oracle fee**. Never add a whitelist, backend, price, jurisdiction, or pause gate to on-chain redemption. Buy copy separately identifies entry fee; annual management fees dilute share supply.
 
-Keep every demo social entry labeled until live data is complete. The real version prioritizes thesis-to-basket/event linkage, creator track record, verified trade history, shareable deep links, follow/watchlist, and useful activity notifications.
+Distinguish protocol availability from this app's current transaction builder: the on-chain redeem instruction does not need the indexer, but the present UI uses indexed supply and vault balances for its preview. If those data are unavailable, show one clear unavailable state with Retry and do not imply this page can submit through raw RPC alone. Direct RPC fallback remains a separate implementation requirement.
 
-Do not add automatic copy trading or return promises.
+## UX-008 — Honest charts and social
 
-## UX-009 — Legal language and terminology
+Do not render OHLCV, performance, or holdings without a real identified source. Explain normalized comparisons, label simulated series, and make range controls functional and keyboard operable. Social demo entries remain labeled until backed by live data. Avoid automatic copy-trading and return promises.
 
-- Replace the `ETFs` navigation label unless product/legal explicitly approves it.
-- Never use fund, registered ETF, safe, guaranteed, or “we manage”.
-- Show xStocks issuer/structured-instrument context on basket and legal pages.
-- Geo-compliance may gate onboarding/access, but never on-chain or UI redemption.
+## UX-009 — Legal and sharing
 
-## UX-010 — Metadata and sharing
+Use only permitted “strategy basket” vocabulary; do not use ETF, fund, safe, guaranteed return, or managed-money claims. Preserve risk/legal acknowledgments and `LEGAL_REVIEW_REQUIRED` release work. Explain that issuer-backed xStocks are structured instruments rather than direct equity ownership, when that claim applies; current mock tokens must be labeled separately. Jurisdiction checks may affect onboarding, but redemption remains available. Canonical URLs and social images must reflect environment and mark devnet/mock assets visibly.
 
-- Derive canonical URL from environment; production metadata must not use `localhost:3000`.
-- OG/Twitter images include basket identity, constituents, reference timestamp, and devnet/mock badge.
-- Test sitemap, robots, and canonical URLs per environment.
+## Accessibility and verification
 
-## Accessibility and mobile
-
-- Minimum 44×44 px touch targets.
-- Respect `prefers-reduced-motion`.
-- Add chart summaries and focusable controls.
-- Link form errors with `aria-describedby`.
-- Remove blanket `touch-action: none`; apply it only during active gestures.
-- Do not use 11 px text for critical information.
-- Keyboard-only create/buy/redeem smoke tests are release gates.
+Use at least 44×44 px touch targets, readable critical text, reduced motion, linked form errors, visible focus, text chart summaries, and keyboard-operable advanced details. Review create, basket detail, buy, and redeem at desktop and mobile widths. Test percent↔bps exactness, fee formatting/caps, review without wallet, deployment balance validation, redeem fee math, and stale/unavailable source states. Run the touched app typecheck/build and relevant tests before rendering a new video from canonical `main`. Inspect final frames and text for Basalt, the mark, yellow accent, percentages, devnet/mock truth, and absence of invented fees.
 
 ## Success metrics
 
@@ -119,10 +82,9 @@ Do not add automatic copy trading or return promises.
 | Landing → Explore | CTA click-through |
 | Explore → Basket | Detail open rate |
 | Basket → Wallet connect | Intent conversion |
-| Create start → Review | Wizard completion |
-| Review → Confirmed create | On-chain success |
+| Create start → Review | Completion, including disconnected users |
+| Review → Confirmed create | On-chain success and failure class |
 | Buy/redeem start → Confirmed | Completion and failure class |
-| First visit → First devnet tx | Time and drop-off step |
-| Creator thesis → Share/open | Organic distribution and return visits |
+| First visit → First devnet transaction | Time and drop-off step |
 
-Do not collect raw wallet addresses as analytics PII. Use privacy-preserving pseudonymous event IDs when analytics are required.
+Do not collect raw wallet addresses as analytics PII. Use privacy-preserving pseudonymous event IDs if analytics are introduced.

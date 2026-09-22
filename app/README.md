@@ -9,7 +9,7 @@ Current status: **working devnet frontend** — 21 generated route entries, wall
 - `app/basket/[pubkey]/` — detail: NAV chart, drift table (target/actual), protocol-wide creator/treasury fee split, oracle-free redeem explainer, action rail
 - `app/basket/[pubkey]/buy/` — In-Kind (exact BigInt 1%-tolerance weight validation, limiting-leg named) | Zap USDC (Jupiter legs + provenance + non-atomic warning); full simulate → review → sign state machine
 - `app/basket/[pubkey]/redeem/` — pro-rata floor preview (raw + scaled + labeled USD estimate), irreversible/oracle-free copy, quiet accrue crank
-- `app/create/` — 6-step wizard: 2–20 Active mints → exact 10,000 bps → fee caps 300/100/300 → seed preview → 4 legal checkboxes (`LEGAL_REVIEW_REQUIRED`) → account-level deploy review modal
+- `app/create/` — four tasks: choose 2–20 eligible assets → set exact 100% allocation and optional fees (caps 3%/1%/3% per year) → enter owned constituent-token deposits → review immutable terms and four legal acknowledgments (`LEGAL_REVIEW_REQUIRED`); wallet, balance and simulation checks stay at deploy
 - `app/creator/[pubkey]/`, `app/portfolio/`, `app/legal/` — honest empty/wallet-gated states, no fabricated numbers
 - `app/market/`, `app/stock/[ticker]/`, `app/providers/` — Bklit-derived chart and provider surfaces; the stock page currently uses one fit-domain area chart and Market retains the local Brush adapter
 
@@ -30,3 +30,4 @@ Current status: **working devnet frontend** — 21 generated route entries, wall
 - The BAS-001 management-fee fix is locally verified but still needs a basket-program upgrade and existing-account devnet smoke test.
 - Zap-in received-token accounting now uses wallet/quote-bound raw `post - pre` deltas, validates Jupiter minimum output, and blocks unsafe partial retries. Mock devnet still has no Jupiter routes for the local constituent mints.
 - Playwright/wallet E2E coverage, consistent mock/demo labeling, and final legal review remain release blockers.
+- Basket name/thesis metadata is hashed but not yet published to retrievable storage; public basket display may fall back to an address (BAS-033).

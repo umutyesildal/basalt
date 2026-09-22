@@ -1,5 +1,44 @@
 # Basalt Implementation Plan
 
+## 2026-09-22 — Product, UX, and launch video correction plan
+
+### 2026-09-23 owner decision on creating a basket
+
+The original work sequence below identified real defects but treated the six-step wizard as fixed. The product flow is now four user tasks: **Choose** (name, thesis, eligible assets), **Set up** (allocation and optional fees), **Start** (the tokens deposited into the vault), and **Review** (immutable terms, risks, required legal acknowledgments, then wallet connection and signing). The final review is reachable while disconnected. Default fees are zero; there is no prefilled $1,000 deposit. A reference-USD helper may calculate token amounts only after the user chooses a target value, and each token amount remains editable. Current devnet uses mock mints and reference prices, never a live equity purchase.
+
+The 2026-09-23 content-density review keeps this four-task structure and removes repeated copy: the active step has one heading; optional fees and the USD calculator open on demand; zero-fee examples do not repeat zero; legal acknowledgments remain required but their full explanations are expandable. Review shows the actual one basket share minted at genesis (1,000,000 base units with six decimals), not a million display shares. Devnet/mock status and the metadata publication gap remain visible. The app must distinguish oracle-free on-chain redemption from any indexed data that its current preview still needs.
+
+Keep packet size, address lookup tables, bps, raw token amounts, and account addresses out of the main decision flow. If a larger basket requires extra wallet setup, explain that consequence at deployment without byte counts. Preserve exact 10,000-bps allocation, program fee caps, atomic per-token seed, immutable metadata hash, required legal checks, and all existing on-chain validation. The name/thesis JSON is currently hashed locally but not published to retrievable storage; tell creators that public display may fall back to an address and track metadata publishing as an open product limitation. Render the launch video only after the four-task UI and docs are verified.
+
+**Decision:** Improve the real Basalt product experience and its source documents first, then regenerate the launch video from the updated `main` app. The previous FolioX video was made from the stale `master` scaffold and is not evidence of the current Basalt product. This section is the next UX work package; the older material below remains historical. `docs/implementation-backlog.md` remains the operational queue and `docs/basalt-v0-spec.md` remains the protocol constraint.
+
+### Goal and scope
+
+Make the first basket journey understandable without protocol vocabulary: choose a basket idea, allocate 100%, see the actual amount and fees, review, then deploy. Make basket detail answer what the basket contains, what it costs, and what action the user can take. Present redemption as receiving underlying assets for burned shares, with the real exit fee disclosed plainly. Use the Basalt name, mark, and electric yellow consistently. Preserve the on-chain rules and honest devnet/mock disclosures.
+
+### Observed in current `main` at `8d4a5f9`
+
+- Basalt naming and the yellow token already exist (`brand.md`, `docs/design-basalt-v1.md`, `app/app/globals.css`). This is a targeted consistency and hierarchy pass, not a rebrand from scratch. Older brand sections still contain superseded white/Geist and branch-specific language; reconcile them with the current Basalt identity when the docs are edited.
+- The six-step create wizard works, has templates, sliders, a live preview, and wallet transactions. Yet `app/components/create/weights-editor.tsx` shows `10,000 bps`, raw bps inputs, “Normalize to 10,000,” and “MarketCap-ish”; `app/components/create/fees-editor.tsx` leads with bps. The create route blocks `Next` until a wallet connects, even before review (`app/app/create/create-client.tsx`), which is already tracked as BAS-023.
+- Basket detail has About/History/Risk/Thesis tabs and a trade rail. The About tab adds a technical holdings table with raw/scaled units, addresses, and fee arithmetic to the initial decision view (`app/components/basket/basket-page-about.tsx`). The trade rail puts a permissionless/oracle-free implementation sentence in prominent product copy.
+- The redeem route shows a real exit fee; “oracle-free” is a property of the protocol, not an extra “oracle fee.” No literal “Redeem oracle fee” label was found in current `main`. The video wording and current UI copy need separate review.
+
+### Work sequence
+
+1. **Source truth and content map.** Start from the `main` worktree and reconcile `brand.md`, `docs/design-basalt-v1.md`, `docs/product-ux-improvement-plan.md`, and `docs/implementation-backlog.md` with the approved UX. Use Basalt consistently in new user-facing copy. Keep historical FolioX filenames and dated evidence explicitly historical. Preserve `LEGAL_REVIEW_REQUIRED` and the documented legal vocabulary.
+2. **Create flow.** Prototype a simpler selection-to-review journey on desktop and mobile. Show weights and their sum as percentages (`100%`); keep exact integer bps only in state, metadata, and transaction construction. Convert at the UI boundary, define rounding so displayed allocations and committed bps match, and retain the 10,000-bps program validation. Replace “Normalize to 10,000” with a plain `Balance to 100%` action; remove or properly explain “MarketCap-ish.” Display fee inputs as `1%`, `0.5%`, `2%/year` with caps in percentages. Let users reach review before wallet connection (BAS-023). Make seed amounts human-readable and verify raw conversion and balances at deploy (BAS-024). Keep templates, clone behavior, active whitelist, 2–20 assets, fee caps, immutable metadata, and legal acknowledgments.
+3. **Basket detail.** Put basket name/thesis, understandable allocation, price/performance with source and timestamp, fees, risk, and buy/redeem actions in a clear reading order. Collapse raw amounts, mint addresses, drift arithmetic, management-fee formulas, and operator controls into clearly labeled advanced details. Keep all underlying data accessible and truthful; avoid implying mock devnet assets are issuer-backed xStocks.
+4. **Redeem and fee language.** Explain in ordinary terms: the user gives up basket shares and receives proportional underlying tokens, less the disclosed exit fee in shares. Show an exact preview, token quantities, and transaction consequences before signing. Keep “permissionless/oracle-free” in advanced protocol information. Never label an oracle fee where none exists; never introduce an oracle gate. Review buy and redeem copy together so entry, exit, and annual fees are distinct.
+5. **Brand and visual pass.** Apply the existing Basalt mark, dark canvas, Chakra Petch/Geist Mono hierarchy, and `#FCEE0A` to primary actions, focus, and key states in create/detail/redeem. Check contrast, mobile touch targets, and loading/error/empty states. Keep chart colors for data and do not manufacture NAV, holdings, or performance.
+6. **Verification, then video.** Walk a new user through selection, allocations, review, wallet connection, deploy, basket detail, buy, and redeem on desktop and mobile. Test exact percent↔bps conversion, fee display, wallet-late validation, and existing transaction boundaries; run relevant app typecheck/build and tests for touched behavior. Only after the real app and docs agree, rerun `brag` against the canonical Basalt `main` app. Inspect rendered frames and copy: Basalt name, yellow accent, percentage allocations, concise detail, honest devnet/demo labels, and no invented oracle fee.
+
+### Acceptance gates
+
+- A first-time user can explain the create flow and the difference between entry, exit, and annual fees without seeing bps; the UI shows allocations totaling `100%` while the submitted transaction still totals 10,000 bps exactly.
+- Review is reachable without a wallet; signing is required only for the actual deploy/transaction. A failed or unavailable data source does not silently become a fabricated value.
+- Basket detail’s first view prioritizes composition, costs, risks, and action; technical values remain discoverable. Redeem preview matches the protocol’s pro-rata and fee math.
+- User-facing pages and the final video say Basalt, follow its yellow identity, and describe devnet/mock assets accurately. No protocol invariant, legal disclosure, or current governance limitation is hidden by the redesign.
+
 > Owner: coordinator (Codex) | Workspace: `createyouretf` | Last reviewed: 2026-09-18
 > Current phase: working devnet beta; P0 economic, Token-2022, data-truth, governance, and release hardening are tracked in `docs/implementation-backlog.md`.
 > Normative product constraints remain in `docs/basalt-v0-spec.md` and `AGENTS.md`.

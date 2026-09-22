@@ -37,7 +37,7 @@ export interface ConstituentDraft {
   priceRef?: number | null;
 }
 
-/** The four legal acknowledgments required before deploy (step 5). */
+/** The four legal acknowledgments required at Review before deploy. */
 export interface LegalAcknowledgments {
   notAdvice: boolean;
   jurisdiction: boolean;

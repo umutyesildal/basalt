@@ -8,20 +8,16 @@ export interface CreateStep {
 }
 
 /**
- * Six-step wizard stepper: a slim horizontal track of numbered circles
- * (01–06, mono — NEON FOUNDRY) joined by thin line segments that
+ * Create-flow stepper: a slim horizontal track of numbered circles
+ * joined by thin line segments that
  * fill as steps are reached. Current = filled (primary/yellow) circle with a
  * medium-weight label; done = primary-outlined circle (clickable to jump back,
  * never past validation); upcoming = muted. Labels hide below sm so mobile
  * shows the number track only.
  *
- * Dalga 2 polish: a quiet mono meta row ("STEP 02 / 06", the current label on
- * mobile where circle labels are hidden) above the track and a hairline
- * progress bar below it — the track/hairline language, nothing boxed.
+ * The nearby section heading names the current task; the progress track
+ * carries the step count without repeating that heading.
  */
-
-/** Zero-padded mono step numerals 01–06, NEON FOUNDRY (indexes 0-5 → 01-06). */
-const STEP_NUMERALS = ["01", "02", "03", "04", "05", "06"] as const;
 
 function paddedNumeral(value: number): string {
   return String(value).padStart(2, "0");
@@ -43,16 +39,7 @@ export function Stepper({
 }) {
   return (
     <nav aria-label="Create wizard steps" className={className}>
-      <div className="flex items-baseline justify-between gap-3" aria-hidden="true">
-        <span className="section-label">
-          Step {paddedNumeral(current + 1)} / {paddedNumeral(steps.length)}
-        </span>
-        {/* Circle labels are hidden below sm — repeat the current one here. */}
-        <span className="font-mono text-[10px] uppercase tracking-[0.22em] text-muted-foreground sm:hidden">
-          {steps[current]?.label}
-        </span>
-      </div>
-      <ol className="mt-2 flex w-full items-center gap-x-1 sm:gap-x-1.5">
+      <ol className="flex w-full items-center gap-x-1 sm:gap-x-1.5">
         {steps.map((step, index) => {
           const isCurrent = index === current;
           const isDone = index < current;
@@ -132,7 +119,7 @@ function StepNumber({
         state === "upcoming" && "border border-border/60 text-muted-foreground/60",
       )}
     >
-      {STEP_NUMERALS[index]}
+      {paddedNumeral(index + 1)}
     </span>
   );
 }

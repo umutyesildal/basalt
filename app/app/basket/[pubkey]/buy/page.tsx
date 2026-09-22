@@ -152,7 +152,7 @@ export default function BuyPage({ params }: { params: Promise<{ pubkey: string }
     const parts = detail.constituents.map((mint, i) => {
       const ticker = mintTickers.get(mint) ?? truncateAddress(mint, 4, 4);
       const bps = detail.weights_bps[i];
-      return bps !== undefined ? `${ticker} ${Math.round(bps / 100)}` : ticker;
+      return bps !== undefined ? `${ticker} ${formatBpsAsPercent(bps)}` : ticker;
     });
     if (parts.length === 0) return null;
     const shown = parts.slice(0, MAX_COMPOSITION_PARTS).join(" · ");
@@ -224,12 +224,9 @@ export default function BuyPage({ params }: { params: Promise<{ pubkey: string }
                 <p className="font-mono text-xs tabular-nums text-muted-foreground">{composition}</p>
               ) : null}
               <p className="text-sm text-muted-foreground">
-                Mint shares against the underlying xStocks or zap in with USDC — net of the{" "}
-                <span className="font-mono tabular-nums" title={`${detail.entry_fee_bps} bps`}>
-                  {formatBpsAsPercent(detail.entry_fee_bps)}
-                </span>{" "}
-                entry fee.
+                Entry fee: <span className="font-mono tabular-nums">{formatBpsAsPercent(detail.entry_fee_bps)}</span> in shares.
               </p>
+              <p className="text-xs leading-5 text-muted-foreground">Devnet · project mock tokens, not issuer-backed xStocks · LEGAL_REVIEW_REQUIRED.</p>
             </div>
             <FreshnessBadge
               source={detail.source}

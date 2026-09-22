@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import {
   Connection,
   PublicKey,
@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
 import { useWalletFeedback } from "@/app/providers";
 import { truncateAddress } from "@/lib/format";
+import { formatBpsAsPercent } from "@/lib/format";
 import {
   GENESIS_SHARES,
   deriveCreateBasketPdas,
@@ -33,7 +34,6 @@ import {
   explorerTxUrl,
 } from "@/lib/transactions";
 import {
-  bpsToPct,
   feesLine,
   grouped,
   SummaryRow,
@@ -46,10 +46,9 @@ import {
   updatePendingTx,
 } from "@/components/feedback/pending-tx";
 import { formatRawAsTokenUnits, type ConstituentDraft } from "./types";
-import {
-  CREATOR_FEE_SPLIT_PERCENT,
-  PROTOCOL_FEE_SPLIT_LABEL,
-} from "@/lib/protocol-policy";
+import { PROTOCOL_FEE_SPLIT_LABEL } from "@/lib/protocol-policy";
+
+const GENESIS_SHARE_DISPLAY = formatRawAsTokenUnits(BigInt(GENESIS_SHARES), 6);
 
 /** Uint8Array to lowercase hex (metadata hash display). */
 function toHex(bytes: Uint8Array): string {
@@ -75,6 +74,8 @@ const PACKET_LIMIT = 1232;
 const HIDE_TOOLTIP = "Transaction already sent — closing won't stop it";
 
 export interface DeployPanelProps {
+  basketName: string;
+  basketThesis: string;
   constituents: ConstituentDraft[];
   entryFeeBps: number;
   exitFeeBps: number;
@@ -90,10 +91,12 @@ export interface DeployPanelProps {
     connection: Connection,
   ) => Promise<TransactionSignature>;
   onNonceRegenerate: () => void;
+  legalAccepted: boolean;
+  children?: ReactNode;
 }
 
 /**
- * Step 6 — ONE press. The primary button does everything: it pre-checks the
+ * Review — ONE press. The primary button does everything: it pre-checks the
  * transaction on-chain (silent simulation through the shared retry loop), and
  * only if the check passes does the wallet open for the single approval. The
  * review modal speaks human ("You deposit / You get / Fees"); every account,
@@ -101,6 +104,8 @@ export interface DeployPanelProps {
  * Nothing about the builder or retry semantics changed — presentation only.
  */
 export function DeployPanel({
+  basketName,
+  basketThesis,
   constituents,
   entryFeeBps,
   exitFeeBps,
@@ -113,6 +118,8 @@ export function DeployPanel({
   connection,
   sendTransaction,
   onNonceRegenerate,
+  legalAccepted,
+  children,
 }: DeployPanelProps) {
   const { reportError } = useWalletFeedback();
   const [phase, setPhase] = useState<DeployPhase>("idle");
@@ -278,7 +285,7 @@ export function DeployPanel({
    * confirmation in the page-level banner registry.
    */
   const deploy = useCallback(async () => {
-    if (!args || !creator || !pda) return;
+    if (!args || !creator || !pda || !legalAccepted) return;
     setErrorMessage(null);
     setSimulationLogs([]);
     setPhase("simulating");
@@ -393,14 +400,30 @@ export function DeployPanel({
       }
       reportError(walletError.name ?? "DeployError", friendly);
     }
-  }, [args, creator, pda, buildVersionedTransaction, sendTransaction, connection, loadBalances, reportError]);
+  }, [args, creator, pda, legalAccepted, buildVersionedTransaction, sendTransaction, connection, loadBalances, reportError]);
+
+  const reviewSummary = (
+    <div className="space-y-3">
+      <TxSummaryCard>
+        <SummaryRow label="Name" value={basketName.trim() || "Untitled Basalt basket"} />
+        {basketThesis.trim() && <SummaryRow label="Thesis" value={basketThesis.trim()} />}
+        <SummaryRow label="Allocation" value={constituents.map((c) => `${c.ticker} ${formatBpsAsPercent(c.weightBps)}`).join(" · ")} />
+        <SummaryRow label="You deposit" value={constituents.map((c) => `${c.ticker} ${formatRawAsTokenUnits(c.seedRaw, c.decimals)}`).join(" · ")} />
+        <SummaryRow label="You receive" value={`${GENESIS_SHARE_DISPLAY} basket share`} />
+        <SummaryRow label="Fees" value={feesLine(entryFeeBps, exitFeeBps, managementFeeBps)} />
+      </TxSummaryCard>
+      <p className="text-xs leading-5 text-muted-foreground">
+        Tokens leave your wallet at deploy and terms stay fixed. Name and thesis are hash-only in this beta; public pages may show the basket address.
+      </p>
+    </div>
+  );
 
   if (!connected || !creator || !args || !pda) {
     return (
-      <ErrorState
-        title="Wallet not connected"
-        message="Deploying signs a create_basket transaction from your wallet. Connect a wallet with the banner at the top of the wizard, then return to this step."
-      />
+      <div className="space-y-4">
+        {reviewSummary}
+        {children}
+      </div>
     );
   }
 
@@ -414,8 +437,7 @@ export function DeployPanel({
         >
           <p className="text-base font-semibold text-primary-text">🎉 Basket created!</p>
           <p className="mt-1 text-xs text-muted-foreground">
-            {GENESIS_SHARES.toLocaleString()} genesis shares are in your wallet — you&apos;re
-            the creator and earn {CREATOR_FEE_SPLIT_PERCENT}% of fees.
+            Your starting tokens are in the basket, and you received {GENESIS_SHARE_DISPLAY} basket share.
           </p>
           <div className="mt-3 flex flex-wrap gap-2">
             <Button render={<Link href={`/basket/${pda.basket.toBase58()}`} />} size="sm">
@@ -455,7 +477,7 @@ export function DeployPanel({
     phase === "preparing-alt" ||
     phase === "awaiting-wallet" ||
     phase === "pending";
-  const blocked = validationErrors.length > 0;
+  const blocked = validationErrors.length > 0 || !legalAccepted;
 
   const busyLabel =
     phase === "simulating"
@@ -470,7 +492,7 @@ export function DeployPanel({
 
   // Human-language card inputs: whole-token deposits, integer percentages.
   const weightsLine = constituents
-    .map((c) => `${c.ticker} ${Math.round(c.weightBps / 100)}%`)
+    .map((c) => `${c.ticker} ${formatBpsAsPercent(c.weightBps)}`)
     .join(" · ");
   const depositLine = constituents
     .map((c) => `${c.ticker} ${grouped(formatRawAsTokenUnits(c.seedRaw, c.decimals))}`)
@@ -478,12 +500,10 @@ export function DeployPanel({
 
   return (
     <div className="flex flex-col gap-4">
-      <p className="text-xs leading-5 text-muted-foreground">
-        One press: we check the transaction on-chain first, then your wallet opens for a single
-        approval. The basket is immutable once deployed.
-      </p>
+      {reviewSummary}
+      {children}
 
-      {blocked && (
+      {validationErrors.length > 0 && (
         <ErrorState
           title="Inputs invalid"
           message={validationErrors.join(" ")}
@@ -491,9 +511,7 @@ export function DeployPanel({
       )}
       {overLimit && !blocked && (
         <p className="rounded-xl border border-border/60 bg-muted/40 p-2.5 text-xs leading-5 text-muted-foreground">
-          One-time setup: this basket is too large for one plain transaction (~
-          {estSize.toLocaleString()} B), so the first deploy also creates a lookup table — you may
-          approve 1–2 setup transactions, after which every deploy is a single click.
+          This basket needs a one-time setup before deployment. Your wallet may ask for an extra approval.
         </p>
       )}
 
@@ -587,7 +605,7 @@ export function DeployPanel({
                 <SummaryRow
                   label="You get"
                   emphasis
-                  value={`${GENESIS_SHARES.toLocaleString()} shares — you're the creator and earn ${CREATOR_FEE_SPLIT_PERCENT}% of fees`}
+                  value={`${GENESIS_SHARE_DISPLAY} basket share`}
                 />
                 <SummaryRow
                   label="Fees"
@@ -716,13 +734,6 @@ export function DeployPanel({
                   <dt>Vault authority</dt>
                   <dd className="break-all" title={pda.vaultAuthority.toBase58()}>
                     {pda.vaultAuthority.toBase58()}
-                  </dd>
-                  <dt>Est. tx size</dt>
-                  <dd className="break-all">
-                    ~{estSize.toLocaleString()} B
-                    {overLimit
-                      ? ` — exceeds the ${PACKET_LIMIT} B packet limit; sent through a lookup table`
-                      : ""}
                   </dd>
                   {altAddress && (
                     <>

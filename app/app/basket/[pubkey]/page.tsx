@@ -98,7 +98,7 @@ export async function generateMetadata({
     const parts = detail.constituents.map((mint, i) => {
       const ticker = tickers.get(mint) ?? truncateAddress(mint, 4, 4);
       const bps = detail.weights_bps[i];
-      return bps !== undefined ? `${ticker} ${Math.round(bps / 100)}%` : ticker;
+      return bps !== undefined ? `${ticker} ${formatBpsAsPercent(bps)}` : ticker;
     });
     const shown = parts.slice(0, MAX_COMPOSITION_PARTS).join(" · ");
     composition =
@@ -112,10 +112,10 @@ export async function generateMetadata({
   const sentences: string[] = [];
   if (name && composition) {
     sentences.push(
-      `${name} holds ${detail?.constituents.length ?? ""} xStocks (${composition}) in one Token-2022 strategy basket.`,
+      `${name} holds ${detail?.constituents.length ?? ""} whitelisted tokens (${composition}) in one Token-2022 strategy basket.`,
     );
   } else if (name) {
-    sentences.push(`${name} is a Token-2022 strategy basket of whitelisted xStocks on Solana.`);
+    sentences.push(`${name} is a Token-2022 strategy basket of whitelisted tokens on Solana.`);
   }
   if (detail) {
     sentences.push(
@@ -123,7 +123,7 @@ export async function generateMetadata({
     );
   }
   sentences.push(
-    "Mint or redeem shares against the on-chain vault in a single atomic transaction — method and risks are protocol-level and identical for every basket.",
+    "Devnet sample mints may be mock tokens, not issuer-backed xStocks. Mint or redeem shares against the on-chain vault in a single atomic transaction. LEGAL_REVIEW_REQUIRED.",
   );
 
   const description = sentences.join(" ");
@@ -152,7 +152,10 @@ export default async function BasketPage({
     <div className="space-y-8">
       <BasketDetailClient pubkey={pubkey} />
       {detail ? (
-        <BasketPageVerify basket={detail.pubkey} shareMint={detail.share_mint} />
+        <details className="rounded-xl border border-border bg-card p-5 text-sm">
+          <summary className="cursor-pointer font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">Advanced details — verify on-chain addresses</summary>
+          <div className="mt-5"><BasketPageVerify basket={detail.pubkey} shareMint={detail.share_mint} /></div>
+        </details>
       ) : null}
     </div>
   );

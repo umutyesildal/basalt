@@ -19,6 +19,15 @@ export function parseRawInput(input: string): bigint | null {
   }
 }
 
+/** Parse a human share amount into the share mint's six raw decimal places. */
+export function parseShareAmount6(input: string): bigint | null {
+  const trimmed = input.trim();
+  if (!/^\d+(?:\.\d{0,6})?$/.test(trimmed)) return null;
+  const [whole, fraction = ""] = trimmed.split(".");
+  const value = BigInt(whole) * 1_000_000n + BigInt(fraction.padEnd(6, "0") || "0");
+  return value < 1n << 64n ? value : null;
+}
+
 export type GrossCheckError =
   | { kind: "ZeroAmount"; index: number }
   | { kind: "ZeroVault"; index: number }

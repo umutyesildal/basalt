@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { bpsToPercent } from "@/lib/format";
+import { parsePercentToBps } from "@/lib/percent";
 import { cn } from "@/lib/utils";
 import { RangeField } from "./field";
 import {
@@ -14,11 +15,8 @@ import {
 } from "./types";
 
 /**
- * Step 2 — weight sliders. Rows adjust freely: the sum may go above or below
- * 10,000 bps while you drag (no forced re-balancing). The live sum indicator
- * turns warning when the total is off, Next stays blocked until it is exactly
- * 10,000, and "Normalize to 10,000" scales the current mix proportionally as
- * a convenience.
+ * Step 2 — percent-facing weight controls backed by exact integer bps.
+ * Rows adjust freely; the total must reach 100% before the next step.
  */
 export function WeightsEditor({
   constituents,
@@ -42,13 +40,6 @@ export function WeightsEditor({
     onChange(constituents.map((c, i) => ({ ...c, weightBps: weights[i] })));
   };
 
-  const marketCapIsh = () => {
-    // Price-proportional proxy — float-adjusted market caps are not indexed in
-    // V0, so this preset is an approximation and is labeled as one.
-    const weights = constituents.map((c) => Math.max(1, c.priceRef ?? 1));
-    applyPreset(normalizeWeights(weights));
-  };
-
   return (
     <div className="flex flex-col gap-5">
       <div className="flex flex-wrap items-center gap-2">
@@ -64,19 +55,10 @@ export function WeightsEditor({
           type="button"
           variant="outline"
           size="sm"
-          onClick={marketCapIsh}
-          title="Weights proportional to reference price — an approximation; float-adjusted market caps are not indexed in V0"
-        >
-          MarketCap-ish
-        </Button>
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
           onClick={() => applyPreset(normalizeWeights(constituents.map((c) => c.weightBps)))}
-          title="Scale the current weights proportionally so they sum to exactly 10,000 bps"
+          title="Scale the current allocations proportionally to total 100%"
         >
-          Normalize to 10,000
+          Balance to 100%
         </Button>
         <span
           aria-live="polite"
@@ -85,13 +67,11 @@ export function WeightsEditor({
             valid ? "text-primary-text" : "text-destructive",
           )}
         >
-          {/* Raw bps, locale-independent (no thousands grouping): grouped
-              rendering made the integer 1666 read as "1.666" in de/tr locales. */}
-          {String(sum)} / 10,000 bps
+          {bpsToPercent(sum).toFixed(2)}% / 100%
           {!valid && (
             <span className="font-sans">
-              — {diff > 0 ? "over" : "under"} by {String(Math.abs(diff))}, adjust the
-              sliders or Normalize
+              — {diff > 0 ? "over" : "under"} by {bpsToPercent(Math.abs(diff)).toFixed(2)}%; adjust the
+              allocations or balance to 100%
             </span>
           )}
         </span>
@@ -105,13 +85,10 @@ export function WeightsEditor({
               value={constituent.weightBps}
               min={0}
               max={WEIGHTS_DENOMINATOR}
-              step={10}
+              step={1}
               onChange={(value) => setWeight(index, value)}
             >
               <span className="flex items-baseline gap-2">
-                <span className="font-mono tabular-nums text-muted-foreground">
-                  {bpsToPercent(constituent.weightBps).toFixed(2)}%
-                </span>
                 <WeightInput ticker={constituent.ticker} weight={constituent.weightBps} onCommit={(value) => setWeight(index, value)} />
               </span>
             </RangeField>
@@ -119,19 +96,13 @@ export function WeightsEditor({
         ))}
       </ul>
 
-      <p className="text-xs leading-5 text-muted-foreground">
-        Weights are immutable after deploy — they define minting proportionality
-        and the drift benchmark. The program only accepts a total of exactly
-        10,000 bps.
-      </p>
     </div>
   );
 }
 
 /**
- * Accessible number input for a single weight (bps). Editing commits live so
- * the sum indicator updates as you type; empty or partial input waits, and a
- * blur re-syncs the draft to the committed value.
+ * Accessible percent input. A blur commits at most two decimal places, so
+ * every visible value maps exactly to a program bps integer.
  */
 function WeightInput({
   ticker,
@@ -142,29 +113,39 @@ function WeightInput({
   weight: number;
   onCommit: (value: number) => void;
 }) {
-  const [draft, setDraft] = useState(String(weight));
+  const [draft, setDraft] = useState(bpsToPercent(weight).toFixed(2));
 
   useEffect(() => {
-    setDraft(String(weight));
+    setDraft(bpsToPercent(weight).toFixed(2));
   }, [weight]);
 
   return (
     <span className="flex items-baseline gap-1">
       <input
         type="text"
-        inputMode="numeric"
-        aria-label={`Weight for ${ticker} in basis points`}
+        inputMode="decimal"
+        aria-label={`Allocation for ${ticker} in percent`}
         value={draft}
         onChange={(event) => {
           const value = event.target.value;
-          if (!/^\d*$/.test(value)) return;
+          if (!/^\d{0,3}(?:\.\d{0,2})?$/.test(value)) return;
           setDraft(value);
-          if (value !== "") onCommit(Number(value));
         }}
-        onBlur={() => setDraft(String(weight))}
-        className="h-6 w-16 rounded-lg border border-input bg-background px-1.5 text-right font-mono text-xs tabular-nums outline-none transition-colors focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/40"
+        onBlur={() => {
+          const parsed = parsePercentToBps(draft);
+          if (parsed !== null) {
+            onCommit(parsed);
+            setDraft(bpsToPercent(parsed).toFixed(2));
+          } else {
+            setDraft(bpsToPercent(weight).toFixed(2));
+          }
+        }}
+        onKeyDown={(event) => {
+          if (event.key === "Enter") event.currentTarget.blur();
+        }}
+        className="h-9 w-20 rounded-lg border border-input bg-background px-2 text-right font-mono text-sm tabular-nums outline-none transition-colors focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/40"
       />
-      <span className="text-muted-foreground">bps</span>
+      <span className="text-muted-foreground">%</span>
     </span>
   );
 }

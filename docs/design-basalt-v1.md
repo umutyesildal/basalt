@@ -6,18 +6,20 @@
 > **inheriting its full token system unchanged**: near-black canvas,
 > electric-yellow `#FCEE0A` primary with discipline, Chakra Petch display,
 > Geist Mono terminal labels, neon data colors only inside charts, sharp
-> corners. Dark mode is the flagship. No IA/layout changes, no new libraries.
+> corners. Dark mode is the flagship. The 2026-09-22 UX pass updates the
+> create, detail, and redeem information hierarchy without changing the mark.
 
-## 1. Concept — "columns of real stock"
+## 1. Concept — constituent columns
 
 Basalt cools into hexagonal columns locked side by side (the Giant's
-Causeway). The product does the same: real xStocks locked into one immutable
-formation you hold as a single token.
+Causeway). The product maps immutable basket constituents into one share token.
+Current devnet constituents are project mock Token-2022 mints; never describe
+them as official issuer-backed xStocks.
 
 - **Columns = constituents.** A basket's weights render as column heights —
-  the mark IS the product diagram.
-- **One formation = one token.** Many columns, one causeway; many stocks,
-  one share token.
+  the mark is the product diagram.
+- **One formation = one token.** Many columns, one causeway; many
+  constituents, one basket share token.
 - **Palette**: charcoal near-black canvas + electric yellow (molten accent)
   — volcanic industrial, not neon soup. Everything else inherited from
   cyberpunk-yellow-v1 §2 unchanged.
@@ -80,8 +82,9 @@ cells share edges, they never overlap): center `(300,300)`; ring centers
   applies unchanged. Use: strategy basket / index basket / onchain equity
   basket / xStocks-backed strategy token.
 - Tagline: "Create an index. Own your thesis." (unchanged).
-- One-liner for hackathon/social: **"Basalt — one token, a column of real
-  stocks, on Solana."**
+- One-liner for hackathon/social: **"Basalt — create and hold an onchain
+  strategy basket on Solana."** In devnet media, add a visible “Devnet · mock
+  tokens” label; do not call mock mints real stocks or official xStocks.
 - Tone rules inherited from brand.md: short, factual, number-forward, no
   hype, no exclamation marks, no emojis.
 
@@ -104,8 +107,15 @@ names (`foliox`, `foliox_devnet` in `.env*`).
 
 ## 7. Verification
 
-1. `grep -rn "FolioX\|FOLIOX" app backend docs *.md` → only the four
-   historical artifacts above may match.
-2. `npx tsc --noEmit` and `npm run build` in `app/` → clean.
-3. Backend `npm run test -- --run` → all green (sweep touched strings only).
-4. Eyeball: favicon at 16/32px, header wordmark on dark, OG card.
+Check the header mark, favicon at 16/32px, OG image, and current create/detail/redeem routes at desktop and mobile widths. Run the app typecheck, build, and relevant behavior tests after UI changes. Historical FolioX references in dated evidence and source documents are expected; current user-facing copy must say Basalt.
+
+## 8. Product application — 2026-09-22
+
+The mark and electric yellow anchor the create, basket detail, and redeem routes. Yellow identifies the primary action and visible focus; avoid using chart colors as navigation or fee decorations. Chakra Petch heads the route and major sections; Geist carries explanatory copy; Geist Mono carries compact numerical values. Use the responsive token colors in `app/app/globals.css`, including its darker light-mode yellow.
+
+- **Create:** four tasks — Choose, Set up, Start, Review — replace the six-step/duplicate-summary layout. Target allocations and total appear as percentages, adding to **100%**. Fee fields start at zero and show percentages, with a per-year label for the annual fee. “Balance to 100%” is the plain-language correction action. The starting deposit is expressed as constituent tokens; USD is an optional sourced reference estimate. Technical bps remain in the protocol boundary and advanced transaction details. Review and required legal acknowledgments are reachable before wallet connection; deploy checks wallet and seed balances. Do not show transaction byte estimates in product copy. Explicit wrong-network messaging and retrievable metadata publishing remain open backlog items.
+- **Basket detail:** the first reading order is identity and honest backing label, composition, sourced/as-of reference price or performance when present, fee schedule, key risks, then buy/redeem actions. Keep addresses, raw/scaled amounts, drift math, and fee formulas in an accessible “Advanced details” section.
+- **Redeem:** explain the share exchange and show the actual exit fee in shares with underlying quantities before signing. Place permissionless and oracle-free mechanics in advanced protocol information. There is no oracle fee.
+- **Media:** screenshots, OG, and launch video must show the current Basalt app, its mark and yellow accent, and devnet/mock data labels. Do not substitute imagery from the historical `master` FolioX scaffold.
+
+Legal vocabulary and `LEGAL_REVIEW_REQUIRED` status follow `AGENTS.md` and `docs/basalt-v0-spec.md`. On-chain redemption remains independent of the backend, an oracle, and mint-pause status. The current UI still needs indexed supply and vault balances for its preview; BAS-034 tracks a direct-RPC fallback for indexer outages.

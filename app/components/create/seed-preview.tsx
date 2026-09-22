@@ -21,7 +21,7 @@ import {
 } from "./types";
 
 /**
- * Step 4 — seed preview. The USD example is a UX estimate computed from
+ * Start — token deposits. The optional USD example is a UX estimate computed from
  * weights and reference prices (sourced, never a quote); the actual on-chain
  * values are the raw Token-2022 amounts, which stay editable. Every raw
  * amount must be > 0 — the factory reverts on ZeroSeedAmount.
@@ -48,7 +48,7 @@ export function SeedPreview({
   const budget = Number(budgetUsd);
   const budgetUsable = Number.isFinite(budget) && budget > 0;
   const missingPrices = constituents.some(
-    (c) => c.priceRef === null || c.priceRef === undefined || !Number.isFinite(c.priceRef ?? NaN),
+    (c) => c.priceRef === null || c.priceRef === undefined || !Number.isFinite(c.priceRef) || c.priceRef <= 0,
   );
   const zeroSeeds = constituents.some((c) => c.seedRaw <= 0n);
   // Live consequence of the typed amounts: each row's estimated value is
@@ -56,60 +56,47 @@ export function SeedPreview({
   const rows = constituents.map((c) => {
     const units = Number(c.seedRaw) / 10 ** c.decimals;
     const hasPrice =
-      c.priceRef !== null && c.priceRef !== undefined && Number.isFinite(c.priceRef);
-    return { c, units, hasPrice, value: hasPrice ? units * (c.priceRef as number) : null };
+      c.priceRef !== null && c.priceRef !== undefined && Number.isFinite(c.priceRef) && c.priceRef > 0;
+    return { c, units, hasPrice, value: hasPrice && c.seedRaw > 0n ? units * (c.priceRef as number) : null };
   });
-  const totalTokens = rows.reduce((acc, r) => acc + r.units, 0);
-  const totalValue = rows.every((r) => r.value !== null)
+  const allSeeded = rows.length > 0 && !zeroSeeds;
+  const totalValue = allSeeded && rows.every((r) => r.value !== null)
     ? rows.reduce((acc, r) => acc + (r.value ?? 0), 0)
     : null;
 
   return (
     <div className="flex flex-col gap-4">
-      <div>
-        <h3 className="text-sm font-medium">How much of each token to seed the basket with</h3>
-        <p className="mt-1 text-xs leading-5 text-muted-foreground">
-          Amounts are entered in whole tokens (e.g. 2.5 shares of TSLAx).
-        </p>
-      </div>
+      <p className="text-sm text-muted-foreground">
+        Deposit tokens you own when creating the basket. This is not a USDC purchase.
+      </p>
 
-      <div className="flex flex-wrap items-end gap-3">
-        <TextField
-          label={
-            <>
-              Estimated cost{" "}
-              <span className="font-normal text-muted-foreground/60">(estimate)</span>
-            </>
-          }
-          value={budgetUsd}
-          onChange={onBudgetChange}
-          inputMode="decimal"
-          mono
-          className="w-40"
-          invalid={!budgetUsable}
-        />
-        <Button
-          type="button"
-          variant="outline"
-          size="sm"
-          onClick={onRecomputeProportional}
-          title="Recompute the token amounts proportional to your weights, using the estimated cost and current prices"
-        >
-          <RefreshCw className="size-3.5" aria-hidden="true" />
-          Recompute proportional
-        </Button>
-        <div className="ml-auto flex flex-col items-end">
-          {priceSource ? (
-            <FreshnessBadge
-              source={priceSource}
-              asOf={priceAsOf ?? undefined}
-              demo={priceStatus === "unavailable"}
-            />
-          ) : (
-            <span className="text-xs text-muted-foreground">no reference prices loaded</span>
-          )}
+      <details className="rounded-lg border border-border px-3 py-2 text-sm">
+        <summary className="cursor-pointer font-medium">Estimate amounts from a USD target <span className="font-normal text-muted-foreground">(optional)</span></summary>
+        <div className="mt-3 flex flex-wrap items-end gap-3">
+          <TextField
+            label="Target value (USD estimate)"
+            value={budgetUsd}
+            onChange={onBudgetChange}
+            inputMode="decimal"
+            mono
+            className="w-40"
+            placeholder="e.g. 1000"
+            invalid={budgetUsd.trim() !== "" && !budgetUsable}
+          />
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={onRecomputeProportional}
+            disabled={!budgetUsable || missingPrices}
+            title="Calculate token amounts from your target value and the displayed reference prices"
+          >
+            <RefreshCw className="size-3.5" aria-hidden="true" />
+            Calculate token amounts
+          </Button>
         </div>
-      </div>
+        <p className="mt-2 text-xs text-muted-foreground">Uses reference prices; you can edit every token amount.</p>
+      </details>
 
       {missingPrices && (
         <p className="flex items-start gap-2 rounded-xl border border-border/60 bg-muted/40 p-2.5 text-xs leading-5 text-muted-foreground">
@@ -120,19 +107,59 @@ export function SeedPreview({
         </p>
       )}
 
-      <div className="overflow-x-auto rounded-xl border border-border">
+      <div className="grid gap-3 md:hidden">
+        {rows.map(({ c: constituent, value }) => (
+          <div key={constituent.mint} className="rounded-xl border border-border p-3">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="font-mono text-sm font-medium">{constituent.ticker}</p>
+                <p className="text-xs text-muted-foreground">
+                  {formatBpsAsPercent(constituent.weightBps)} of basket
+                </p>
+              </div>
+              {constituent.seedRaw > 0n && (
+                <p className="text-right font-mono text-sm tabular-nums">
+                  {value !== null ? `≈ ${formatUsd(value)}` : "Estimate unavailable"}
+                </p>
+              )}
+            </div>
+            <div className="mt-3">
+              <TextField
+                label={`${constituent.ticker} amount to deposit`}
+                value={formatRawAsTokenUnits(constituent.seedRaw, constituent.decimals)}
+                onChange={(input) => {
+                  const raw = parseTokenUnitsToRaw(input, constituent.decimals);
+                  if (raw !== null) onRawChange(constituent.mint, raw);
+                }}
+                inputMode="decimal"
+                mono
+                invalid={constituent.seedRaw <= 0n}
+              />
+            </div>
+          </div>
+        ))}
+        {allSeeded && (
+          <div className="flex justify-between rounded-xl border border-border bg-muted/30 p-3 text-sm">
+            <span>Estimated total</span>
+            <span className="font-mono tabular-nums">
+              {totalValue !== null ? formatUsd(totalValue) : "Price unavailable"}
+            </span>
+          </div>
+        )}
+      </div>
+
+      <div className="hidden overflow-x-auto rounded-xl border border-border md:block">
         <Table>
           <TableHeader>
             <TableRow className="hover:bg-transparent">
               <TableHead className="text-xs">Ticker</TableHead>
               <TableHead className="text-right text-xs">Weight</TableHead>
-              <TableHead className="text-right text-xs">Estimated value</TableHead>
-              <TableHead className="text-right text-xs">Price</TableHead>
+              <TableHead className="text-right text-xs">Approx. value</TableHead>
               <TableHead className="text-xs">Amount (tokens)</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {rows.map(({ c: constituent, units, hasPrice, value }) => {
+            {rows.map(({ c: constituent, value }) => {
               return (
                 <TableRow key={constituent.mint}>
                   <TableCell className="font-mono text-xs font-medium">
@@ -140,25 +167,21 @@ export function SeedPreview({
                   </TableCell>
                   <TableCell
                     className="text-right font-mono text-xs tabular-nums"
-                    title={`${constituent.weightBps} bps raw`}
                   >
-                    {/* Percent first, locale-independent ("16.67%"); the raw
-                        bps integer sits in the tooltip — never grouped through
-                        toLocaleString, which rendered 1666 as "1.666" in
-                        dot-grouping locales. */}
+                    {/* Percent first; the integer bps value stays in state and
+                        transaction construction. */}
                     {formatBpsAsPercent(constituent.weightBps)}
                   </TableCell>
                   <TableCell className="text-right font-mono text-xs tabular-nums">
-                    {value !== null ? (
+                    {constituent.seedRaw <= 0n ? (
+                      "—"
+                    ) : value !== null ? (
                       formatUsd(value)
                     ) : priceStatus === "loading" ? (
                       "…"
                     ) : (
                       <span className="text-muted-foreground">price unavailable</span>
                     )}
-                  </TableCell>
-                  <TableCell className="text-right font-mono text-xs tabular-nums">
-                    {hasPrice ? `$${constituent.priceRef?.toFixed(2)}` : "—"}
                   </TableCell>
                   <TableCell className="w-44">
                     <TextField
@@ -177,7 +200,7 @@ export function SeedPreview({
                 </TableRow>
               );
             })}
-            {rows.length > 0 && (
+            {allSeeded && (
               <TableRow className="hover:bg-transparent">
                 <TableCell className="text-xs font-medium" colSpan={2}>
                   Total
@@ -190,9 +213,6 @@ export function SeedPreview({
                   )}
                 </TableCell>
                 <TableCell />
-                <TableCell className="font-mono text-xs tabular-nums text-muted-foreground">
-                  {totalTokens.toLocaleString(undefined, { maximumFractionDigits: 4 })} tokens
-                </TableCell>
               </TableRow>
             )}
           </TableBody>
@@ -202,16 +222,28 @@ export function SeedPreview({
       {zeroSeeds && (
         <p className="flex items-start gap-2 rounded-xl border border-border/60 bg-muted/40 p-2.5 text-xs leading-5 text-muted-foreground">
           <AlertCircle className="mt-0.5 size-3.5 shrink-0" aria-hidden="true" />
-          Every token needs a seed amount greater than zero — an empty basket
-          cannot be created.
+          Enter an amount above zero for every token.
         </p>
       )}
 
-      <p className="text-xs leading-5 text-muted-foreground">
-        These amounts are transferred to the basket vault in the same
-        transaction that creates the basket — there is no separate deposit
-        step. Exact on-chain precision is handled for you.
-      </p>
+      {priceSource && (
+        <div className="min-w-0 text-xs text-muted-foreground">
+          <FreshnessBadge
+            source={priceSource}
+            asOf={priceAsOf ?? undefined}
+            demo
+            className="flex flex-wrap overflow-visible"
+          />
+        </div>
+      )}
+      <details className="text-xs text-muted-foreground">
+        <summary className="cursor-pointer">Reference prices</summary>
+        <ul className="mt-1 space-y-1">
+          {rows.map(({ c, hasPrice }) => (
+            <li key={c.mint}>{c.ticker}: {hasPrice ? `${formatUsd(c.priceRef as number)} per token` : "unavailable"}</li>
+          ))}
+        </ul>
+      </details>
     </div>
   );
 }

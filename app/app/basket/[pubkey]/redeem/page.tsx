@@ -12,7 +12,7 @@ import {
   Skeleton,
 } from "@/components/states";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Spinner } from "@/components/ui/spinner";
 import { TxReviewModal } from "@/components/basket/tx-review-modal";
 import { ThesisShareCta } from "@/components/social/thesis-share-cta";
@@ -27,7 +27,7 @@ import {
   SummaryRow,
   TxSummaryCard,
 } from "@/components/basket/summary-card";
-import { computeRedeemPreview, formatRawShares6, parseRawInput } from "@/components/basket/basket-math";
+import { computeRedeemPreview, formatRawShares6, parseShareAmount6 } from "@/components/basket/basket-math";
 import {
   ApiError,
   fetchBasketDetail,
@@ -44,7 +44,7 @@ import {
 } from "@/lib/transactions";
 import { formatBpsAsPercent, formatUsd, scaledFromRaw, truncateAddress } from "@/lib/format";
 import { withRetryOnce } from "@/lib/rpc-retry";
-import { RPC_ENDPOINT } from "@/lib/wallet";
+import { CLUSTER, RPC_ENDPOINT } from "@/lib/wallet";
 
 const MAX_COMPOSITION_PARTS = 4;
 
@@ -169,10 +169,10 @@ export default function RedeemPage({ params }: { params: Promise<{ pubkey: strin
     return raw && /^\d+$/.test(raw.trim()) ? BigInt(raw.trim()) : null;
   }, [detail?.nav?.supply]);
 
-  const shares = parseRawInput(sharesInput);
-  // No share ATA means zero redeemable shares — treat null as 0.
+  const shares = parseShareAmount6(sharesInput);
+  // The amount and snapshot preview remain visible before wallet connection.
   const sharesExceedBalance =
-    shares !== null && (shareBalance ?? 0n) < shares;
+    connected && !shareBalanceLoading && shares !== null && (shareBalance ?? 0n) < shares;
   const preview =
     shares !== null && shares > 0n && supply !== null && !vaultBalances.some((v) => v === null)
       ? computeRedeemPreview(vaultBalances as bigint[], supply, shares, detail?.exit_fee_bps ?? 0)
@@ -196,11 +196,11 @@ export default function RedeemPage({ params }: { params: Promise<{ pubkey: strin
           const burn = shares - exitFee;
           return [
             {
-              label: `Exit fee · ${formatBpsAsPercent(detail.exit_fee_bps)}`,
-              value: `−${grouped(formatRawShares6(exitFee))} shares`,
+              label: `Exit fee (${formatBpsAsPercent(detail.exit_fee_bps)})`,
+              value: `${grouped(formatRawShares6(exitFee))} shares`,
             },
             {
-              label: "Net burned (pro-rata basis)",
+              label: "Shares exchanged for tokens",
               value: `${grouped(formatRawShares6(burn))} shares`,
               emphasis: true,
             },
@@ -222,7 +222,7 @@ export default function RedeemPage({ params }: { params: Promise<{ pubkey: strin
     const parts = detail.constituents.map((mint, i) => {
       const ticker = mintTickers.get(mint) ?? truncateAddress(mint, 4, 4);
       const bps = detail.weights_bps[i];
-      return bps !== undefined ? `${ticker} ${Math.round(bps / 100)}` : ticker;
+      return bps !== undefined ? `${ticker} ${formatBpsAsPercent(bps)}` : ticker;
     });
     if (parts.length === 0) return null;
     const shown = parts.slice(0, MAX_COMPOSITION_PARTS).join(" · ");
@@ -310,7 +310,7 @@ export default function RedeemPage({ params }: { params: Promise<{ pubkey: strin
           label: "redeem",
           successLine:
             preview !== null
-              ? `🎉 Done — −${grouped(formatRawShares6(preview.burn))} shares${name ? ` of ${name}` : ""}`
+              ? `Done — ${grouped(formatRawShares6(parsed))} shares redeemed${name ? ` from ${name}` : ""}`
               : "🎉 Done",
           actionHref: "/portfolio",
           actionLabel: "View Portfolio",
@@ -351,16 +351,30 @@ export default function RedeemPage({ params }: { params: Promise<{ pubkey: strin
       ) : null}
 
       {status === "not-found" ? (
-        <EmptyState
-          chip="NOT INDEXED"
-          title="This basket is not indexed"
-          description="There is nothing to redeem here — the backend has no basket at this address. The on-chain redeem instruction works over any RPC without the indexer."
-          action={
-            <Button render={<Link href="/explore" />} size="sm">
-              Back to explore
-            </Button>
-          }
-        />
+        <>
+          <EmptyState
+            chip="NOT INDEXED"
+            title="Basket details unavailable"
+            description="This page needs indexed basket details to prepare a redemption. Try again after indexing completes."
+            action={
+              <div className="flex flex-wrap gap-2">
+                <Button size="sm" variant="outline" onClick={retry}>Retry</Button>
+                <Button render={<Link href="/explore" />} size="sm">
+                  Back to explore
+                </Button>
+              </div>
+            }
+          />
+          <details className="rounded-xl border border-border bg-muted/20 p-4 text-xs text-muted-foreground">
+            <summary className="cursor-pointer font-medium text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+              On-chain protocol behavior
+            </summary>
+            <p className="mt-2 leading-5">
+              The on-chain instruction is permissionless and oracle-free; it does not require a price oracle,
+              whitelist status, or backend account. This page still needs indexed basket details to prepare a transaction.
+            </p>
+          </details>
+        </>
       ) : null}
 
       {status === "error" ? (
@@ -387,12 +401,16 @@ export default function RedeemPage({ params }: { params: Promise<{ pubkey: strin
                 <p className="font-mono text-xs tabular-nums text-muted-foreground">{composition}</p>
               ) : null}
               <p className="text-sm text-muted-foreground">
-                Burn shares, receive every underlying pro-rata — exit fee{" "}
-                <span className="font-mono tabular-nums" title={`${detail.exit_fee_bps} bps`}>
-                  {formatBpsAsPercent(detail.exit_fee_bps)}
-                </span>
-                .
+                Receive each underlying token pro rata. Exit fee: {" "}
+                <span className="font-mono tabular-nums">{formatBpsAsPercent(detail.exit_fee_bps)}</span> of shares.
               </p>
+              {CLUSTER === "devnet" || CLUSTER === "localnet" ? (
+                <p className="text-xs text-muted-foreground">
+                  {CLUSTER === "devnet"
+                    ? "Devnet · project mock tokens, not issuer-backed xStocks · LEGAL_REVIEW_REQUIRED."
+                    : "Localnet · test tokens, not issuer-backed xStocks · LEGAL_REVIEW_REQUIRED."}
+                </p>
+              ) : null}
             </div>
             <FreshnessBadge
               source={detail.source}
@@ -401,49 +419,32 @@ export default function RedeemPage({ params }: { params: Promise<{ pubkey: strin
           </div>
 
           {accrualStale ? (
-            <div className="flex flex-wrap items-center gap-3 rounded-xl border border-border bg-muted/30 p-3 text-xs text-muted-foreground">
-              <span>
-                Management fee last accrued{" "}
-                {secondsSinceAccrual !== null ? Math.floor(secondsSinceAccrual / 3600) : "?"}h ago —
-                run the crank first to keep the preview accurate.
-              </span>
-              <AccrueCrankButton
-                basket={detail.pubkey}
-                factory={detail.factory}
-                creator={detail.creator}
-                treasury={detail.treasury}
-                shareMint={detail.share_mint}
-                constituents={detail.constituents}
-                secondsSinceAccrual={secondsSinceAccrual}
-                variant="ghost"
-                quiet
-              />
-            </div>
+            <p className="rounded-xl border border-border bg-muted/30 p-3 text-xs text-muted-foreground">
+              Fee accrual is pending; displayed token amounts use the last indexed snapshot and may change before signing.
+            </p>
           ) : null}
 
           <Card>
             <CardHeader className="pb-3">
-              <CardTitle>Shares to burn</CardTitle>
-              <CardDescription className="text-xs">
-                Raw base units (share mint has 6 decimals).
-              </CardDescription>
+              <CardTitle>Redeem shares</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex flex-wrap items-center gap-4">
                 <div className="flex flex-col gap-1">
                   <label htmlFor="redeem-shares" className="text-xs font-medium text-muted-foreground">
-                    Shares (raw)
+                    Basket shares
                   </label>
                   <div className="flex items-center gap-1.5">
                     <input
                       id="redeem-shares"
-                      inputMode="numeric"
+                      inputMode="decimal"
                       autoComplete="off"
-                      placeholder="e.g. 1000000"
+                      placeholder="e.g. 1.5"
                       value={sharesInput}
                       onChange={(e) => setSharesInput(e.target.value)}
-                      aria-invalid={sharesExceedBalance}
-                      className="h-9 w-44 rounded-lg border border-border bg-background px-3 font-mono text-sm tabular-nums outline-none placeholder:font-sans placeholder:text-muted-foreground focus:border-ring sm:w-56"
+                      aria-invalid={sharesExceedBalance || (sharesInput.trim() !== "" && shares === null)}
+                      aria-describedby="redeem-amount-help"
+                      className="h-11 w-44 rounded-lg border border-border bg-background px-3 font-mono text-sm tabular-nums outline-none placeholder:font-sans placeholder:text-muted-foreground focus:border-ring sm:w-56"
                     />
                     <HalfMaxButtons
                       connected={connected}
@@ -454,19 +455,24 @@ export default function RedeemPage({ params }: { params: Promise<{ pubkey: strin
                         if (shareBalance === null || shareBalance <= 0n) return;
                         const raw = kind === "max" ? shareBalance : halfOfRaw(shareBalance);
                         if (raw <= 0n) return;
-                        setSharesInput(raw.toString());
+                        setSharesInput(formatRawShares6(raw));
                       }}
                     />
                   </div>
+                  <span id="redeem-amount-help" className="text-[11px] text-muted-foreground">
+                    Up to six decimal places.
+                  </span>
                 </div>
                 <div className="flex flex-col gap-1">
                   <span className="text-xs text-muted-foreground">Balance</span>
                   <span className="flex items-center gap-2 font-mono text-sm tabular-nums">
                     {connected
-                      ? shareBalance === null
-                        ? "no share ATA"
-                        : `${formatRawShares6(shareBalance)} · ${shareBalance} raw`
-                      : "connect a wallet"}
+                      ? shareBalanceLoading
+                        ? "Loading…"
+                        : shareBalance === null
+                          ? "No basket shares found"
+                          : `${grouped(formatRawShares6(shareBalance))} shares`
+                      : "Connect to see your balance"}
                   </span>
                 </div>
               </div>
@@ -477,17 +483,24 @@ export default function RedeemPage({ params }: { params: Promise<{ pubkey: strin
                   top of an error. */}
               <TradeFeePreview
                 rows={feePreviewRows}
-                footer="Exit fee is taken in shares; the remainder is burned pro-rata against the vault."
+                label="Share breakdown"
+                footer="Fee shares go to recipients; the rest are burned."
               />
 
               {sharesExceedBalance ? (
                 <p role="alert" className="text-xs text-destructive">
-                  Shares exceed your balance — the program would reject with InsufficientShares.
+                  This is more than the basket shares in your wallet.
+                </p>
+              ) : null}
+              {sharesInput.trim() !== "" && shares === null ? (
+                <p role="alert" className="text-xs text-destructive">
+                  Enter a valid share amount with up to six decimal places.
                 </p>
               ) : null}
 
               {preview && holdingsAligned ? (
                 <div className="space-y-3">
+                  <h2 className="text-sm font-medium">Tokens you receive</h2>
                   <ul className="divide-y divide-border overflow-hidden rounded-xl border border-border">
                     {detail.constituents.map((mint, i) => {
                       const holding = holdingsAligned[i];
@@ -499,58 +512,99 @@ export default function RedeemPage({ params }: { params: Promise<{ pubkey: strin
                           key={mint}
                           className="flex min-h-11 flex-wrap items-center gap-x-4 gap-y-1 px-3 py-1"
                         >
-                          <span
-                            className="w-24 shrink-0 truncate font-mono text-xs tabular-nums"
-                            title={mint}
-                          >
-                            {truncateAddress(mint, 6, 6)}
+                          <span className="min-w-0 flex-1 truncate font-mono text-xs tabular-nums" title={mint}>
+                            {mintTickers.get(mint) ?? truncateAddress(mint, 6, 6)}
                           </span>
-                          <span className="font-mono text-xs tabular-nums">
+                          <span className="font-mono text-sm tabular-nums">
                             {scaledFromRaw(out, multiplier, decimals)}
-                          </span>
-                          <span className="ml-auto font-mono text-xs tabular-nums text-muted-foreground">
-                            {out} raw
                           </span>
                         </li>
                       );
                     })}
                   </ul>
                   <dl className="grid gap-1 font-mono text-xs tabular-nums text-muted-foreground">
-                    <div className="flex justify-between gap-4">
-                      <dt title={`${detail.exit_fee_bps} bps`}>
-                        exit fee · {formatBpsAsPercent(detail.exit_fee_bps)}
-                      </dt>
-                      <dd>{grouped(formatRawShares6(preview.exitFee))} shares</dd>
-                    </div>
-                    <div className="flex justify-between gap-4">
-                      <dt>burned</dt>
-                      <dd>{grouped(formatRawShares6(preview.burn))} shares</dd>
-                    </div>
                     {usdEstimate !== null ? (
                       <div className="flex justify-between gap-4">
-                        <dt>NAV reference estimate</dt>
+                        <dt>Indexed NAV estimate (not cash)</dt>
                         <dd>≈ {formatUsd(usdEstimate)}</dd>
                       </div>
                     ) : null}
                   </dl>
                   <p className="text-xs text-muted-foreground">
-                    From the last indexed snapshot — the program re-validates on-chain; USD is a NAV
-                    estimate, not a quote.
+                    {accrualStale
+                      ? "Preview uses indexed balances; fee accrual is overdue, so supply may change before signing."
+                      : "Preview uses the last indexed balances; amounts may change before signing."}{" "}
+                    NAV is a reference estimate, not a cash quote.
                   </p>
                 </div>
               ) : shares !== null && shares > 0n && (supply === null || vaultBalances.some((v) => v === null)) ? (
                 <EmptyState
                   chip="NO SNAPSHOT"
                   title="Preview unavailable"
-                  description="This basket has no complete holdings snapshot yet, so the pro-rata preview can't be computed. The on-chain instruction itself still works."
+                  description="This page needs indexed supply and complete vault balances to calculate the preview and prepare a transaction."
+                  action={
+                    <Button size="sm" variant="outline" onClick={retry}>Retry snapshot</Button>
+                  }
                 />
               ) : null}
             </CardContent>
           </Card>
 
           <p className="text-xs text-muted-foreground">
-            Permissionless and oracle-free. Irreversible once confirmed.
+            A confirmed redemption is irreversible. Token values can move. LEGAL_REVIEW_REQUIRED.
           </p>
+
+          <details className="rounded-xl border border-border bg-muted/20 p-4 text-xs text-muted-foreground">
+            <summary className="cursor-pointer font-medium text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+              Protocol details · permissionless, oracle-free redemption
+            </summary>
+            <div className="mt-3 space-y-3 leading-5">
+              <p>
+                On-chain redemption is permissionless and oracle-free. The program does not require a price
+                oracle, whitelist status, or backend account. This page currently needs indexed supply and
+                vault balances to prepare its preview and transaction.
+              </p>
+              <p>
+                Of the shares entered, the exit-fee shares are transferred to fee recipients and
+                the remaining shares are burned. Each token amount is rounded down from its vault
+                balance × burned shares ÷ total supply, after any management fee accrual.
+              </p>
+              {preview ? (
+                <p className="font-mono tabular-nums">
+                  Raw shares: {shares?.toString()} entered · {preview.exitFee.toString()} fee · {preview.burn.toString()} burned.
+                </p>
+              ) : null}
+              {preview ? (
+                <ul className="space-y-1 font-mono tabular-nums">
+                  {detail.constituents.map((mint, i) => (
+                    <li key={mint} className="break-all">
+                      {mint}: {preview.outs[i]?.toString() ?? "0"} raw token units
+                    </li>
+                  ))}
+                </ul>
+              ) : null}
+              {accrualStale ? (
+                <div className="flex flex-wrap items-center gap-2">
+                  <span>Management fee last accrued {secondsSinceAccrual !== null ? Math.floor(secondsSinceAccrual / 3600) : "?"}h ago.</span>
+                  <AccrueCrankButton
+                    basket={detail.pubkey}
+                    factory={detail.factory}
+                    creator={detail.creator}
+                    treasury={detail.treasury}
+                    shareMint={detail.share_mint}
+                    constituents={detail.constituents}
+                    secondsSinceAccrual={secondsSinceAccrual}
+                    variant="ghost"
+                    quiet
+                  />
+                </div>
+              ) : null}
+              <p>
+                Where issuer-backed xStocks are used, they are structured instruments, not direct equity
+                ownership. This transaction returns tokens, not company shares. LEGAL_REVIEW_REQUIRED.
+              </p>
+            </div>
+          </details>
 
           <div className="flex flex-wrap items-center gap-3">
             <Button
@@ -566,11 +620,11 @@ export default function RedeemPage({ params }: { params: Promise<{ pubkey: strin
                 !connected
                   ? "Connect a wallet to redeem"
                   : shares === null || shares <= 0n
-                    ? "Enter the number of shares to burn"
+                    ? "Enter the number of basket shares to redeem"
                     : sharesExceedBalance
                       ? "Shares exceed your balance"
                       : preview === null
-                        ? "No complete holdings snapshot — the pro-rata preview cannot be computed"
+                        ? "No complete holdings snapshot — the token preview cannot be computed"
                         : undefined
               }
               data-testid="redeem-trigger"
@@ -602,9 +656,9 @@ export default function RedeemPage({ params }: { params: Promise<{ pubkey: strin
                     : "Preparing your basket account… one-time setup"}
                 </>
               ) : prewarm.status === "failed" ? (
-                "One-time setup will be requested with your first trade — every trade after that is a single click."
+                "One-time setup will be requested with your first trade."
               ) : (
-                "One-time setup for this basket: you may approve 1–2 setup transactions; every trade after this is a single click."
+                "One-time setup for this basket: approve 1–2 setup transactions."
               )}
             </p>
           ) : null}
@@ -613,18 +667,26 @@ export default function RedeemPage({ params }: { params: Promise<{ pubkey: strin
             open={open}
             onClose={close}
             title={`Redeem ${name ?? "basket"}`}
-            description="One press: we check the transaction on-chain first, then your wallet opens for a single approval."
+            description="Review the shares and token estimates, then approve the irreversible transaction in your wallet."
             accounts={expectedAccounts ?? []}
             summary={
               preview && detail ? (
                 <TxSummaryCard>
                   <SummaryRow
-                    label="You burn"
+                    label="Shares leaving your wallet"
                     emphasis
-                    value={`${grouped(formatRawShares6(preview.burn))} shares → your proportional slice of every stock`}
+                    value={`${grouped(formatRawShares6(shares ?? 0n))} shares`}
                   />
                   <SummaryRow
-                    label="You receive"
+                    label="Exit fee"
+                    value={`${grouped(formatRawShares6(preview.exitFee))} shares (${bpsToPct(detail.exit_fee_bps)})`}
+                  />
+                  <SummaryRow
+                    label="Shares burned for tokens"
+                    value={`${grouped(formatRawShares6(preview.burn))} shares`}
+                  />
+                  <SummaryRow
+                    label="Estimated tokens received"
                     value={detail.constituents
                       .map((mint, i) => {
                         const holding = holdingsAligned[i];
@@ -639,11 +701,9 @@ export default function RedeemPage({ params }: { params: Promise<{ pubkey: strin
                       })
                       .join(" · ")}
                   />
-                  <SummaryRow
-                    label="Fees"
-                    muted
-                    value={`${bpsToPct(detail.exit_fee_bps)} exit`}
-                  />
+                  <p className="mt-2 text-xs text-muted-foreground">
+                    Snapshot estimate; token quantities may change before execution.
+                  </p>
                 </TxSummaryCard>
               ) : undefined
             }
@@ -656,9 +716,9 @@ export default function RedeemPage({ params }: { params: Promise<{ pubkey: strin
             successLine={
               preview !== null ? (
                 <>
-                  🎉 Done —{" "}
+                  Done —{" "}
                   <span className="text-[hsl(var(--status-positive))]">
-                    −{grouped(formatRawShares6(preview.burn))} shares
+                    {grouped(formatRawShares6(shares ?? 0n))} shares redeemed
                   </span>
                   {name ? ` of ${name}` : ""}
                 </>

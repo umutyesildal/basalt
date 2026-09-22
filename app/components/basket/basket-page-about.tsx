@@ -39,20 +39,6 @@ import { PROTOCOL_FEE_SPLIT_LABEL } from "@/lib/protocol-policy";
  * All figures are API-driven; missing values render as em dashes.
  */
 
-/** metadata_json may arrive as object or JSON text — parse defensively. */
-function metaObj(mj: unknown): Record<string, unknown> | null {
-  if (!mj) return null;
-  let obj: unknown = mj;
-  if (typeof mj === "string") {
-    try {
-      obj = JSON.parse(mj);
-    } catch {
-      return null;
-    }
-  }
-  return obj && typeof obj === "object" ? (obj as Record<string, unknown>) : null;
-}
-
 function sliceColor(index: number): string {
   return `hsl(var(--chart-${(index % 5) + 1}))`;
 }
@@ -72,7 +58,7 @@ export function BasketPageAbout({
         const bps = weights[i];
         if (bps === undefined || bps <= 0) return null;
         const ticker = mintTickers.get(mint) ?? truncateAddress(mint, 4, 4);
-        return { label: ticker, value: bps, color: sliceColor(i) };
+        return { label: ticker, value: bps / 100, color: sliceColor(i) };
       })
       .filter((slice): slice is { label: string; value: number; color: string } => slice !== null);
   }, [detail.constituents, mintTickers, weights]);
@@ -98,12 +84,6 @@ export function BasketPageAbout({
   }, [detail]);
 
   const driftActual = detail.drift?.actualWeightsBps ?? null;
-  const metadata = metaObj(detail.metadata_json);
-  const metadataDescription =
-    typeof metadata?.description === "string" && metadata.description.trim()
-      ? metadata.description.trim()
-      : null;
-
   const lastAccrualSeconds = numericToNumber(detail.last_fee_accrual_ts ?? null);
 
   return (
@@ -113,9 +93,8 @@ export function BasketPageAbout({
         <BasketSectionHeader
           eyebrow="Allocation"
           title="Composition"
-          note="target weights · immutable on-chain"
+          note="Fixed targets; holdings can drift"
         />
-
         <div className="grid gap-6 md:grid-cols-[auto_minmax(0,1fr)] md:gap-10">
           <div className="justify-self-center">
             {donutData.length > 0 ? (
@@ -129,7 +108,7 @@ export function BasketPageAbout({
                     showGlow={false}
                   />
                 ))}
-                <PieCenter>
+                <PieCenter defaultLabel="Allocated" suffix="%">
                   {({ isHovered, data }) =>
                     isHovered ? (
                       <span className="font-mono text-sm tabular-nums text-foreground">
@@ -159,17 +138,6 @@ export function BasketPageAbout({
           </div>
 
           <div className="min-w-0 space-y-1">
-            {/* basket share mint — the token itself */}
-            <div className="flex items-center justify-between gap-3 border-b border-border pb-2">
-              <div className="min-w-0">
-                <p className="font-mono text-xs font-medium text-foreground">Basket share token</p>
-                <p className="truncate font-mono text-[11px] tabular-nums text-muted-foreground" title={detail.share_mint}>
-                  {truncateAddress(detail.share_mint, 10, 8)} · Token-2022
-                </p>
-              </div>
-              <CopyButton value={detail.share_mint} label="Copy basket share mint" />
-            </div>
-
             <ul className="divide-y divide-border/60">
               {detail.constituents.map((mint, i) => {
                 const ticker = mintTickers.get(mint) ?? truncateAddress(mint, 4, 4);
@@ -183,33 +151,46 @@ export function BasketPageAbout({
                         style={{ backgroundColor: sliceColor(i) }}
                       />
                       <span className="font-mono text-xs font-medium text-foreground">{ticker}</span>
-                      <span
-                        className="truncate font-mono text-[11px] tabular-nums text-muted-foreground"
-                        title={mint}
-                      >
-                        {truncateAddress(mint, 6, 6)}
-                      </span>
                     </div>
                     <div className="flex shrink-0 items-center gap-2">
                       <span className="font-mono text-xs tabular-nums text-foreground">
                         {target !== undefined ? formatBpsAsPercent(target) : "—"}
                       </span>
-                      <CopyButton value={mint} label={`Copy ${ticker} mint`} />
                     </div>
                   </li>
                 );
               })}
             </ul>
 
-            {metadataDescription ? (
-              <p className="pt-3 text-sm leading-6 text-muted-foreground">{metadataDescription}</p>
-            ) : null}
           </div>
         </div>
       </section>
 
-      {/* vault holdings — compact mono table */}
-      <section aria-label="Holdings" className="py-10">
+      <section aria-label="Costs and risks" className="py-8">
+        <BasketSectionHeader eyebrow="Before you act" title="Key risks" note="Full details in the Risk tab" />
+        <p className="text-sm leading-6 text-muted-foreground">
+          Prices can diverge from equity references; weights do not rebalance. Contract and upgrade risks remain.
+        </p>
+      </section>
+
+      {/* operator values remain available without crowding the decision view */}
+      <details className="group py-8">
+        <summary className="cursor-pointer text-sm font-medium text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+          Advanced details — addresses and vault accounting
+        </summary>
+        <div className="mt-5 flex items-center justify-between gap-3 border-b border-border pb-3 text-xs">
+          <span>Basket share mint · Token-2022 · {truncateAddress(detail.share_mint, 10, 8)}</span>
+          <CopyButton value={detail.share_mint} label="Copy basket share mint" />
+        </div>
+        <ul className="divide-y divide-border/60">
+          {detail.constituents.map((mint) => (
+            <li key={mint} className="flex items-center justify-between gap-2 py-2 font-mono text-xs">
+              <span>{mintTickers.get(mint) ?? truncateAddress(mint, 4, 4)} · {truncateAddress(mint, 8, 8)}</span>
+              <CopyButton value={mint} label={`Copy ${mintTickers.get(mint) ?? "asset"} mint`} />
+            </li>
+          ))}
+        </ul>
+      <section aria-label="Holdings" className="pt-8">
         <BasketSectionHeader
           eyebrow="Target vs actual"
           title="Vault holdings"
@@ -295,6 +276,7 @@ export function BasketPageAbout({
           </CardContent>
         </Card>
       </section>
+      </details>
 
       {/* fees — spec §6 math, one visually quiet card */}
       <section aria-label="Fees" className="pt-10">
@@ -332,7 +314,9 @@ export function BasketPageAbout({
                 </p>
               </div>
             </div>
-            <p className="font-mono text-[11px] leading-5 text-muted-foreground">
+            <details className="text-[11px] leading-5 text-muted-foreground">
+              <summary className="cursor-pointer font-medium">Advanced details — fee calculation</summary>
+              <p className="mt-2 font-mono">
               Management accrues on-chain as share dilution:{" "}
               <span className="whitespace-nowrap">(supply × rate × elapsed + stored remainder)</span> ÷{" "}
               <span className="whitespace-nowrap">(10,000 × seconds per year)</span>, minted{" "}
@@ -341,7 +325,8 @@ export function BasketPageAbout({
               Each checkpoint uses the then-current supply; newly minted fee shares therefore
               make later intervals compound slightly. Entry is one-time on mint (cap 3.00%), exit
               on redeem (cap 1.00%). Weights and fees are immutable on-chain.
-            </p>
+              </p>
+            </details>
             {lastAccrualSeconds !== null && lastAccrualSeconds > 0 ? (
               <p className="font-mono text-[11px] tabular-nums text-muted-foreground">
                 Last fee accrual {formatAsOf(lastAccrualSeconds * 1000)}

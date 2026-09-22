@@ -65,10 +65,10 @@ Owner-approved information architecture (2026-09-03):
 - `/stocks` — provider-grouped grid of tokenized stocks (live price, 24h, sparkline) → `/stock/[ticker]` detail (one clean chart, ethereal series colors, fitY-domain)
 - `/etfs` — pure tokenized-ETF listing (grid, sort, clickable cards)
 - `/explore` — **Baskets** flagship: grid-only cards (name-first — "Tech Duo", composition + price + 24h + vs-SPY), whole card clickable
-- `/create` — 6-step wizard (wallet-gated Next, working slim sliders, over-10k allowed with exact-10k deploy gate, plain-language seed step with live value preview)
+- `/create` — four tasks: choose assets, set a 100% allocation and optional fees, enter owned constituent-token deposits, then review legal terms and connect a wallet to deploy; devnet mock/reference values are labeled
 - `/basket/[pubkey]` + buy/redeem — transaction surfaces; `/portfolio`, `/creator/[pubkey]`, `/legal`
 
-Design language: the **BASALT identity** — hexagonal-column mark, dark industrial canvas, disciplined electric-yellow accent, Chakra Petch display, and Geist Mono labels — with chart-only data colors. No site footer; LEGAL_REVIEW_REQUIRED chips are absent from the chrome while the wizard legal step and `/legal` remain functional. Charts use locally vendored Bklit-derived sources; Brush is a documented local adapter.
+Design language: the **BASALT identity** — hexagonal-column mark, dark industrial canvas, disciplined electric-yellow accent, Chakra Petch display, and Geist Mono labels — with chart-only data colors. No site footer; `LEGAL_REVIEW_REQUIRED` remains in the create disclosure and `/legal` until counsel replaces placeholder copy. Charts use locally vendored Bklit-derived sources; Brush is a documented local adapter.
 
 ## Social trading (V0.2 — fomo.family-inspired, not a clone)
 

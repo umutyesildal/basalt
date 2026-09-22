@@ -5,6 +5,7 @@
 > Documentation map: `docs/README.md` | Current verified state: `docs/current-state-2026-09-18.md` | Operational backlog: `docs/implementation-backlog.md` | Spec: `docs/basalt-v0-spec.md` | Prompt: `foliox_build_prompt.md` (historical name)
 > Brand: **BASALT identity** (owner decision 2026-09-12: project renamed FolioX → Basalt; hexagonal basalt columns mark per `docs/design-basalt-v1.md`, electric-yellow token system per `docs/design-cyberpunk-yellow-v1.md`, Chakra Petch display, Geist Mono labels — Roman layer fully retired). Telemetry off. Legal-review chips removed from UI (backlog).
 > Audit snapshot (2026-09-19, current working tree): **real devnet create/mint/redeem and read-only indexer verified; assets are project mock mints, some deployed home/social surfaces use `NEXT_PUBLIC_HOME_DEMO=1`, and the product is not mainnet-ready. Clean root/app/backend installs pass; 208 Rust + 596 backend tests passed; the app produced a 21-route production build.** BAS-001 fee-grief is fixed locally but awaits a devnet upgrade/smoke. BAS-002 remains extension-free and fail-closed, BAS-003 Zap-in delta accounting is complete, BAS-004 checked arithmetic is complete locally, and BAS-005 fixes the V0 fee split at 90/10 with then-current-supply compounding disclosed; official xStocks remain unsupported pending audited dependency and hook-aware transfer work. BAS-006 defines the target 2-of-3 policy in `docs/upgrade-governance-policy.md`, but the actual authority transfer and fresh RPC evidence remain open. Instruction-level extension/adversarial-hook coverage remains open under BAS-016; data truth labels and reproducible deployment attestation also remain open. Counts/details later in this file may be historical; `docs/current-state-2026-09-18.md` prevails.
+> Create UX decision (2026-09-23): **Choose → Set up → Start → Review** is the current four-task UI. Fees default to zero, owned constituent-token deposits have no prefilled USD amount, legal acknowledgments remain required at Review, and wallet/balance/signing checks occur at Deploy. Optional fees, the reference-USD calculator, and full legal explanations use accessible disclosure so the default view stays concise; required facts remain visible at the decision point. Genesis mints 1,000,000 raw units at six decimals, displayed as **one basket share**. Earlier six-step and wallet-gated descriptions in dated sections below are historical. Name/thesis JSON is hashed locally but is not yet published as retrievable metadata; the UI discloses this limitation.
 
 ---
 
@@ -43,7 +44,7 @@ If you are tempted to add `admin_withdraw`, `pause_redeem`, `oracle check`, or `
 |-------|------|-------|
 | **Solana programs** | Anchor 0.30.1, `anchor-spl` 0.30.1, `spl-token-2022` 3.0.5 | 3 programs: `whitelist`, `basket_factory`, `basket`; V0 Zap is client-side Jupiter periphery, not a separate program |
 | **Backend** | Node 20, TypeScript 5.4, PostgreSQL 15, Redis, BullMQ, `pg`, `ioredis`, `@solana/web3.js` 1.98 | Indexer is convenience only |
-| **Frontend** | Next.js 15, React 19, Tailwind 3.4, `shadcn/ui` + local Bklit-derived chart components, `@solana/wallet-adapter`, `@solana/spl-token` | App Router, 21-route production build, 6-step wizard; stock page currently uses one fit-domain area chart |
+| **Frontend** | Next.js 15, React 19, Tailwind 3.4, `shadcn/ui` + local Bklit-derived chart components, `@solana/wallet-adapter`, `@solana/spl-token` | App Router, 21-route production build, four-task create flow; stock page currently uses one fit-domain area chart |
 | **Tokens** | SPL Token-2022 | Raw for transfers, scaled for display |
 | **Oracles/prices** | Legacy Jupiter Price v6 adapter (reference NAV only; BAS-011 migration pending) | Never gates redeem |
 | **Zap** | Jupiter Swap API (quote → swap) | Sequential swaps + `mint_in_kind` in V0 |
@@ -100,7 +101,7 @@ basket         = "6Q43vFh4aqGxzvtU2vQwJX9PmX3skfYsGWZdA3fwJB9k" # programs/baske
 │   ├── app/basket/[pubkey]/page.tsx        # detail: NAV, sharePrice, drift, fees, holders
 │   ├── app/basket/[pubkey]/buy/page.tsx    # zap vs in-kind tabs
 │   ├── app/basket/[pubkey]/redeem/page.tsx # burn input, pro-rata preview
-│   ├── app/create/page.tsx     # 6-step wizard (select → weights → fees → seed → legal → deploy)
+│   ├── app/create/page.tsx     # 4 tasks (choose → set up → start → review/deploy)
 │   ├── app/portfolio/page.tsx  # wallet positions
 │   ├── app/legal/page.tsx      # disclosures LEGAL_REVIEW_REQUIRED
 │   ├── components/BasketCard.tsx
@@ -254,7 +255,7 @@ app/
   etfs/page.tsx           # pure tokenized-ETF listing grid (sort, clickable cards); education comparison lives on Home
   explore/page.tsx        # "Baskets" flagship: grid-only cards — name-first (metadata_json), composition + price + 24h + vs-SPY; whole card links to /basket/[pubkey]; search + sort; honest NOT INDEXED state
   basket/[pubkey]/page.tsx  # detail (honest NOT INDEXED until indexed); buy/page.tsx (In-Kind exact-validation + Zap provenance tabs); redeem/page.tsx (pro-rata floor preview, oracle-free)
-  create/page.tsx         # 6-step wizard: wallet gate banner top + Next disabled until connected; native slim RangeField sliders; weights editable freely but Next/deploy requires exactly 10k (+ Normalize button); fees = 3 slim rows + worked example; seed step in whole-token language with live estimated value; legal-checkbox step functional
+  create/page.tsx         # 4-task flow: choose assets, set allocation and optional fees, enter owned seed tokens, review immutable terms and legal acknowledgments; wallet/balance/signing checks at deploy; percentages in UI with exact 10k bps on-chain
   portfolio/page.tsx      # wallet-gated positions (indexer-fed)
   creator/[pubkey]/page.tsx # "Creator <truncated>" header, indexer-fed stats or honest empty
   legal/page.tsx          # disclosure document (linked from wizard checkboxes)
