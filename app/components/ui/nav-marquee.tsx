@@ -49,7 +49,7 @@ import { CHANGE_DOWN_CLASS, CHANGE_UP_CLASS } from "@/components/stocks/change-v
 import "@/components/ui/motion.css";
 import { SkeletonShimmer } from "@/components/ui/skeleton-shimmer";
 import { isDemoMode } from "@/lib/demo-mode";
-import { formatUsd, truncateAddress } from "@/lib/format";
+import { formatTokenAmount, truncateAddress } from "@/lib/format";
 import { fetchBasketLeaderboard, type BasketLeaderboardEntry } from "@/lib/social-api";
 import { cn } from "@/lib/utils";
 
@@ -166,8 +166,7 @@ function buildLoopCells(entries: BasketLeaderboardEntry[]): BasketLeaderboardEnt
  * address); the basket pubkey stays on the title attribute.
  */
 function TickerCell({ entry }: { entry: BasketLeaderboardEntry }) {
-  // Same BigInt-safe NAV parse as the leaderboard row.
-  const nav = entry.nav.trim() === "" ? NaN : Number(entry.nav);
+  const aum = entry.aum.trim() === "" ? NaN : Number(entry.aum);
   const label =
     entry.symbol?.trim() || entry.basketName?.trim() || truncateAddress(entry.basket, 6, 4);
   const hasChange = Number.isFinite(entry.returnPct);
@@ -180,7 +179,7 @@ function TickerCell({ entry }: { entry: BasketLeaderboardEntry }) {
           {label}
         </span>
         <span className="font-mono text-[11px] tabular-nums text-foreground/80">
-          {Number.isFinite(nav) ? formatUsd(nav) : "—"}
+          {Number.isFinite(aum) ? `AUM $${formatTokenAmount(aum)}` : "AUM —"}
         </span>
         {/* Direction colors are the change-value.tsx constants — the one
             place direction styling is defined (house rule). */}
@@ -278,6 +277,19 @@ function TickerBand({ cells, loading }: { cells: BasketLeaderboardEntry[]; loadi
         aria-label="Top baskets ticker"
       >
         <div aria-hidden="true" className="h-9" />
+      </div>
+    );
+  }
+  if (cells.length === 1) {
+    const entry = cells[0];
+    const label = entry.symbol?.trim() || entry.basketName?.trim() || "Strategy basket";
+    const aum = Number(entry.aum);
+    return (
+      <div className="basalt-marquee flex h-9 items-center gap-3 overflow-hidden border-b border-border/40 bg-background px-4 font-mono text-[11px]" role="region" aria-label="Indexed basket summary">
+        <span className="shrink-0 text-primary">BASKET</span>
+        <span className="truncate text-foreground">{label}</span>
+        <span className="shrink-0 text-muted-foreground">{Number.isFinite(aum) ? `AUM $${formatTokenAmount(aum)}` : "AUM unavailable"}</span>
+        <span className="ml-auto hidden shrink-0 text-muted-foreground sm:inline">1 indexed basket</span>
       </div>
     );
   }

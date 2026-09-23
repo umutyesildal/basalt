@@ -15,32 +15,40 @@
  */
 
 import { SectionHeader } from "@/components/ui/section-header";
+import { CLUSTER } from "@/lib/wallet";
+
+const DEVNET_PREVIEW = CLUSTER === "devnet" || CLUSTER === "localnet";
 
 const ROWS = [
   {
     dimension: "Settlement",
     traditional: "T+1 · broker rails",
     tokenized: "Seconds · on-chain",
+    devnet: "Devnet tx · on-chain",
   },
   {
     dimension: "Access",
     traditional: "Broker account · market hours",
     tokenized: "Any wallet · 24/7",
+    devnet: "Any wallet · devnet",
   },
   {
     dimension: "Ownership",
     traditional: "Street name, at the broker",
     tokenized: "The token is the share",
+    devnet: "Basket token · mock assets",
   },
   {
     dimension: "Transferability",
     traditional: "Only the broker moves it",
     tokenized: "Wallet to wallet",
+    devnet: "Wallet to wallet",
   },
   {
     dimension: "Transparency",
     traditional: "NAV once a day",
     tokenized: "Verifiable on-chain, anytime",
+    devnet: "Devnet ledger is public",
   },
 ] as const;
 
@@ -94,8 +102,12 @@ export function LedgerSection() {
           id="ledger-heading"
           size="display"
           index={2}
-          label="SAME EXPOSURE. DIFFERENT RAILS."
-          lead="What changes is how you hold it."
+          label={DEVNET_PREVIEW ? "DEVNET PREVIEW · SAMPLE TOKENS" : "SAME EXPOSURE. DIFFERENT RAILS."}
+          lead={
+            DEVNET_PREVIEW
+              ? "Project-created mock tokens demonstrate the flow; they are not real xStocks exposure."
+              : "What changes is how you hold it."
+          }
         />
 
         {/* Column headers — the Tokenized side carries the 2px primary
@@ -116,7 +128,7 @@ export function LedgerSection() {
               key={row.dimension}
               dimension={row.dimension}
               traditional={row.traditional}
-              tokenized={row.tokenized}
+              tokenized={DEVNET_PREVIEW ? row.devnet : row.tokenized}
             />
           ))}
         </ul>

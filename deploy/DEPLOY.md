@@ -154,6 +154,27 @@ docker compose logs -f backend   # Look for "[db] schema applied" and indexer li
 4. Test: https://basalt-coral.vercel.app/explore should now load data from the
    live backend.
 
+### Current devnet release path (2026-09-23)
+
+The `basalt` Vercel project is not connected to Git. A push to `main` alone
+does not update `basalt-coral.vercel.app`. Deploy from the canonical `main`
+worktree's `app/` directory after pushing and passing `npm run typecheck` and
+`npm run build`:
+
+```bash
+cd /Users/umutyesildal/orca/workspaces/createyouretf/createyouretf/app
+vercel deploy --prod --yes --scope yesildaladams-projects
+```
+
+Production uses the stable devnet API at
+`https://basalt.178.104.34.252.sslip.io`, `NEXT_PUBLIC_CLUSTER=devnet`, and
+`NEXT_PUBLIC_HOME_DEMO=0`. The site reads indexed devnet data; project mock
+tokens and reference prices must remain labeled as such. Check
+`/api/v1/health` on the API, then open `/create` and `/explore` on the public
+alias to confirm both assets and baskets load. Before enabling automatic Git
+deployments, set the Vercel project root to `app/` and confirm the production
+branch is `main`.
+
 ## 7. Maintenance commands
 
 ```bash

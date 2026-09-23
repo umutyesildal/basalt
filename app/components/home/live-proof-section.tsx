@@ -94,7 +94,6 @@ import {
   formatRelativeTime,
   formatTokenAmount,
   formatUsd,
-  truncateAddress,
 } from "@/lib/format";
 import {
   fetchBasketLeaderboard,
@@ -102,12 +101,14 @@ import {
   type BasketLeaderboardEntry,
   type TradeFeedItem,
 } from "@/lib/social-api";
+import { CLUSTER } from "@/lib/wallet";
 
 /**
  * Demo overlay switch — read once at module scope so Next inlines it at
  * build time and the real-data branch is dead code when the flag is off.
  */
 const DEMO = process.env.NEXT_PUBLIC_HOME_DEMO === "1";
+const DEVNET_PREVIEW = CLUSTER === "devnet" || CLUSTER === "localnet";
 
 /** Silent poll cadence — previews stay fresh without a refresh button. */
 const POLL_MS = 60_000;
@@ -578,7 +579,7 @@ function BasketRow({ entry, index }: { entry: BasketLeaderboardEntry; index: num
   // re-animate — only an actual reorder at this rank does.
   useSwapFade(rowRef, entry.basket);
   const positive = entry.returnPct >= 0;
-  const nav = entry.nav.trim() === "" ? NaN : Number(entry.nav);
+  const aum = entry.aum.trim() === "" ? NaN : Number(entry.aum);
   return (
     <div
       ref={rowRef}
@@ -601,7 +602,7 @@ function BasketRow({ entry, index }: { entry: BasketLeaderboardEntry; index: num
             title={entry.basket}
             className="min-w-0 truncate text-sm font-medium text-foreground underline decoration-foreground/30 underline-offset-4 hover:decoration-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
           >
-            {entry.basketName ?? truncateAddress(entry.basket, 6, 4)}
+            {entry.basketName ?? "Strategy basket"}
           </Link>
         </span>
         <span
@@ -613,7 +614,7 @@ function BasketRow({ entry, index }: { entry: BasketLeaderboardEntry; index: num
         </span>
       </div>
       <p className="mt-1 truncate font-mono text-[11px] tabular-nums text-muted-foreground">
-        NAV {Number.isFinite(nav) ? formatUsd(nav) : "—"} ·{" "}
+        AUM {Number.isFinite(aum) ? `$${formatTokenAmount(aum)}` : "—"} ·{" "}
         {entry.holders} {entry.holders === 1 ? "holder" : "holders"}
       </p>
     </div>
@@ -780,11 +781,19 @@ export function LiveProofSection() {
           id="proof-heading"
           size="eyebrow"
           index={1}
-          label={DEMO ? "DEMO PREVIEW" : "VERIFIED ACTIVITY"}
+          label={
+            DEMO
+              ? "DEMO PREVIEW"
+              : DEVNET_PREVIEW
+                ? "INDEXED DEVNET ACTIVITY"
+                : "VERIFIED ACTIVITY"
+          }
           lead={
             DEMO
               ? "Illustrative basket and trade examples — not live activity."
-              : "What people are building and trading right now."
+              : DEVNET_PREVIEW
+                ? "Recent indexed basket transactions from Solana devnet."
+                : "What people are building and trading right now."
           }
           right={DEMO ? <DemoChip /> : undefined}
         />

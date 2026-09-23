@@ -2,6 +2,10 @@ import Link from "next/link";
 
 import { SectionReveal } from "@/components/home/section-reveal";
 import { SectionHeader } from "@/components/ui/section-header";
+import { CLUSTER } from "@/lib/wallet";
+
+const DEVNET_PREVIEW = CLUSTER === "devnet" || CLUSTER === "localnet";
+const DEMO = process.env.NEXT_PUBLIC_HOME_DEMO === "1";
 
 /**
  * Intent cards — replace the deleted asset-class gateway with a
@@ -17,10 +21,30 @@ import { SectionHeader } from "@/components/ui/section-header";
  */
 
 const CARDS = [
-  { label: "Browse baskets", line: "Weighted, on-chain, live", href: "/explore" },
-  { label: "Follow top traders", line: "Estimated ROI, real wallets", href: "/leaderboard" },
-  { label: "Open the feed", line: "Every trade, verified on-chain", href: "/feed" },
-  { label: "Build your own", line: "Pick the stocks, set the weights", href: "/create" },
+  {
+    label: "Browse baskets",
+    line: "Weighted, on-chain, live",
+    devnetLine: DEMO ? "Devnet preview · sample baskets" : "Devnet · project mock tokens",
+    href: "/explore",
+  },
+  {
+    label: "Follow top traders",
+    line: "Estimated ROI, real wallets",
+    devnetLine: DEMO ? "Sample profiles · demo performance" : "Devnet profiles · test activity",
+    href: "/leaderboard",
+  },
+  {
+    label: "Open the feed",
+    line: "Every trade, verified on-chain",
+    devnetLine: DEMO ? "Sample activity · not live trades" : "Devnet events · public ledger",
+    href: "/feed",
+  },
+  {
+    label: "Build your own",
+    line: "Pick the stocks, set the weights",
+    devnetLine: "Choose mock tokens, set weights",
+    href: "/create",
+  },
 ] as const;
 
 export function IntentCards() {
@@ -47,7 +71,7 @@ export function IntentCards() {
               >
                 <span className="section-label">{card.label}</span>
                 <span className="text-sm leading-5 text-foreground">
-                  {card.line}
+                  {DEVNET_PREVIEW ? card.devnetLine : card.line}
                 </span>
                 <span
                   aria-hidden="true"

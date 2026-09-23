@@ -1,10 +1,12 @@
 import { Fragment } from "react";
 
+import { CLUSTER } from "@/lib/wallet";
+
 /**
  * MintFlow — the narrow blueprint strip between the hero and the live-proof
  * section (wave UI-1, 2026-09-15; patterned on the Stax mint_flow diagram,
- * docs/stax-analiz/05-stax-vs-basalt-gorsel-farklar.md §5.9): four mono
- * micro-label nodes — USDC → VAULT → XSTOCKS → BASKET TOKEN — joined by
+ * docs/stax-analiz/05-stax-vs-basalt-gorsel-farklar.md §5.9): mono
+ * micro-label nodes joined by
  * faint 1px hairlines with a `→` head, plus a single honest caption line.
  *
  * HONESTY RULE: the caption credits ONLY the in-kind path. Per
@@ -21,7 +23,10 @@ import { Fragment } from "react";
  * by TradeFeePreview. Yellow stays on the hairlines only, at low opacity.
  */
 
-const NODES = ["USDC", "VAULT", "XSTOCKS", "BASKET TOKEN"] as const;
+const DEVNET_PREVIEW = CLUSTER === "devnet" || CLUSTER === "localnet";
+const NODES = DEVNET_PREVIEW
+  ? (["MOCK TOKENS", "DEVNET VAULT", "BASKET TOKEN"] as const)
+  : (["XSTOCKS", "VAULT", "BASKET TOKEN"] as const);
 
 function FlowConnector() {
   return (
@@ -47,7 +52,9 @@ export function MintFlow() {
           ))}
         </div>
         <p className="mt-2.5 font-mono text-[11px] leading-4 text-muted-foreground">
-          in-kind mint settles in one transaction
+          {DEVNET_PREVIEW
+            ? "devnet preview · project mock tokens · in-kind mint settles in one transaction"
+            : "in-kind mint settles in one transaction"}
         </p>
       </div>
     </section>

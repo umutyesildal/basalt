@@ -1,5 +1,10 @@
 import Link from "next/link";
 
+import { CLUSTER } from "@/lib/wallet";
+
+const DEVNET_PREVIEW = CLUSTER === "devnet" || CLUSTER === "localnet";
+const DEMO = process.env.NEXT_PUBLIC_HOME_DEMO === "1";
+
 /**
  * Steps strip — PICK · OWN · SHARE, the user-outcome steps.
  *
@@ -107,18 +112,25 @@ const STEPS = [
   {
     numeral: "01",
     copy: "Browse baskets, pick your stocks and weights.",
+    devnetCopy: DEMO
+      ? "Explore sample baskets or create one with mock tokens and weights."
+      : "Choose project mock tokens and set their weights.",
     href: "/create",
     Motif: WeightBarsMotif,
   },
   {
     numeral: "02",
     copy: "Hold your basket in your wallet — redeemable anytime.",
+    devnetCopy: "Hold a devnet basket token; redemption is available anytime.",
     href: "/explore",
     Motif: HexPlusMotif,
   },
   {
     numeral: "03",
     copy: "Post your thesis, build a following, climb the board.",
+    devnetCopy: DEMO
+      ? "Preview how sample creators and activity appear."
+      : "Share your basket thesis with the community.",
     href: "/leaderboard",
     Motif: PromptMotif,
   },
@@ -134,7 +146,11 @@ export function StepsStrip() {
           the live-proof grid above carries the headline register. */}
       <p className="section-label">PICK · OWN · SHARE</p>
       <p className="mt-2 text-sm text-muted-foreground">
-        From pick to proof — every move lands on-chain.
+        {DEVNET_PREVIEW
+          ? DEMO
+            ? "Try the flow with sample data on Solana devnet; these are not real xStocks."
+            : "Build with project-created mock tokens on Solana devnet."
+          : "Build your basket, hold shares in your wallet, and share your thesis."}
       </p>
 
       {/* Same hairline-left column language as the old flow section,
@@ -159,7 +175,7 @@ export function StepsStrip() {
                 {step.numeral}
               </span>
               <span className="mt-3 block max-w-xs text-sm leading-5 text-muted-foreground">
-                {step.copy}
+                {DEVNET_PREVIEW ? step.devnetCopy : step.copy}
               </span>
             </Link>
           </li>
