@@ -614,7 +614,7 @@ function BasketRow({ entry, index }: { entry: BasketLeaderboardEntry; index: num
         </span>
       </div>
       <p className="mt-1 truncate font-mono text-[11px] tabular-nums text-muted-foreground">
-        AUM {Number.isFinite(aum) ? `$${formatTokenAmount(aum)}` : "—"} ·{" "}
+        {DEVNET_PREVIEW ? "Est. value" : "AUM"} {Number.isFinite(aum) ? `$${formatTokenAmount(aum)}` : "—"} ·{" "}
         {entry.holders} {entry.holders === 1 ? "holder" : "holders"}
       </p>
     </div>

@@ -52,6 +52,7 @@ import { isDemoMode } from "@/lib/demo-mode";
 import { formatTokenAmount, truncateAddress } from "@/lib/format";
 import { fetchBasketLeaderboard, type BasketLeaderboardEntry } from "@/lib/social-api";
 import { cn } from "@/lib/utils";
+import { CLUSTER } from "@/lib/wallet";
 
 /**
  * Demo overlay switch — read once at module scope so Next inlines it at
@@ -59,6 +60,7 @@ import { cn } from "@/lib/utils";
  * (same pattern as live-proof-section).
  */
 const DEMO = isDemoMode();
+const DEVNET_PREVIEW = CLUSTER === "devnet" || CLUSTER === "localnet";
 
 /** Silent poll cadence — matches the home live-proof band. */
 const POLL_MS = 60_000;
@@ -286,9 +288,9 @@ function TickerBand({ cells, loading }: { cells: BasketLeaderboardEntry[]; loadi
     const aum = Number(entry.aum);
     return (
       <div className="basalt-marquee flex h-9 items-center gap-3 overflow-hidden border-b border-border/40 bg-background px-4 font-mono text-[11px]" role="region" aria-label="Indexed basket summary">
-        <span className="shrink-0 text-primary">BASKET</span>
+        <span className="shrink-0 text-primary">{DEVNET_PREVIEW ? "DEVNET MOCK" : "BASKET"}</span>
         <span className="truncate text-foreground">{label}</span>
-        <span className="shrink-0 text-muted-foreground">{Number.isFinite(aum) ? `AUM $${formatTokenAmount(aum)}` : "AUM unavailable"}</span>
+        <span className="shrink-0 text-muted-foreground">{Number.isFinite(aum) ? `${DEVNET_PREVIEW ? "Est. value" : "AUM"} $${formatTokenAmount(aum)}` : "Value unavailable"}</span>
         <span className="ml-auto hidden shrink-0 text-muted-foreground sm:inline">1 indexed basket</span>
       </div>
     );
