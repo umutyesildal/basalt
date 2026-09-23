@@ -14,7 +14,10 @@ import type { WeightBarConstituent } from "@/components/basket/weight-bar";
 import { prettyTicker, truncateAddress } from "@/lib/format";
 import { apiFetch } from "@/lib/api-client";
 import { categoryOf, compareBasketCategories } from "@/lib/categories";
+import { CLUSTER } from "@/lib/wallet";
 import { cn } from "@/lib/utils";
+
+const DEVNET_PREVIEW = CLUSTER === "devnet" || CLUSTER === "localnet";
 
 /** Numeric field as served by the indexer: Postgres numeric serialized as text. */
 type Numeric = string | number | null | undefined;
@@ -457,11 +460,20 @@ export default function ExploreClient() {
         <div className="space-y-1.5">
           <h1 className="font-display text-3xl font-semibold">Baskets</h1>
           <p className="max-w-2xl text-sm leading-6 text-muted-foreground">
-            Community-made strategy baskets — every creator and every return is on-chain.
+            Explore basket composition, fees, NAV estimates and benchmark comparisons.
           </p>
         </div>
         <Button render={<Link href="/create" />}>Create basket</Button>
       </div>
+
+      {DEVNET_PREVIEW ? (
+        <aside className="rounded-lg border border-primary/25 bg-primary/5 px-4 py-3 text-sm leading-6 text-muted-foreground">
+          <span className="mr-2 rounded border border-primary/30 px-1.5 py-0.5 font-mono text-[10px] uppercase tracking-wide text-foreground">
+            Devnet preview
+          </span>
+          Baskets use project-created mock tokens. Prices and returns are reference estimates, not live xStocks data.
+        </aside>
+      ) : null}
 
       {status === "loading" ? (
         <div
@@ -641,6 +653,7 @@ export default function ExploreClient() {
                       weights={weightSlices && weightSlices.length > 0 ? weightSlices : undefined}
                       price={num(b.share_price)}
                       aum={num(b.nav)}
+                      devnetPreview={DEVNET_PREVIEW}
                       return24h={change}
                       return30d={r30}
                       compare={compare}

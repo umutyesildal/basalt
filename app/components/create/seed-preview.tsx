@@ -67,7 +67,12 @@ export function SeedPreview({
   return (
     <div className="flex flex-col gap-4">
       <p className="text-sm text-muted-foreground">
-        Deposit tokens you own when creating the basket. This is not a USDC purchase.
+        Add the amount of each token you would put into the basket. You can review
+        your plan now; deployment requires these devnet tokens in your wallet.
+      </p>
+      <p className="text-xs leading-5 text-muted-foreground">
+        Basalt does not provide a public demo-token faucet yet. Entering an amount
+        does not give you tokens or make a USDC purchase.
       </p>
 
       <details className="rounded-lg border border-border px-3 py-2 text-sm">

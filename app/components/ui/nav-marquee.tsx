@@ -208,14 +208,20 @@ function TickerCell({ entry }: { entry: BasketLeaderboardEntry }) {
 function TickerCopy({
   cells,
   duplicate = false,
+  reserveDemoLabel = false,
 }: {
   cells: BasketLeaderboardEntry[];
   duplicate?: boolean;
+  reserveDemoLabel?: boolean;
 }) {
   return (
     <ul
       aria-hidden={duplicate || undefined}
-      className={cn("flex items-center", duplicate && "basalt-marquee-copy-alt")}
+      className={cn(
+        "flex items-center",
+        duplicate && "basalt-marquee-copy-alt",
+        reserveDemoLabel && "pl-16",
+      )}
     >
       {cells.map((entry, index) => (
         <TickerCell key={index} entry={entry} />
@@ -281,17 +287,22 @@ function TickerBand({ cells, loading }: { cells: BasketLeaderboardEntry[]; loadi
   const loopCells = buildLoopCells(cells);
   return (
     <div
-      className="basalt-marquee overflow-hidden border-b border-border/40 bg-background"
+      className="basalt-marquee relative overflow-hidden border-b border-border/40 bg-background"
       role="region"
-      aria-label="Top baskets ticker"
+      aria-label={DEMO ? "Demo basket ticker" : "Top baskets ticker"}
     >
       <div
         className="basalt-marquee-track flex h-9 w-max items-center"
         style={{ animationDuration: `${duration}s` }}
       >
-        <TickerCopy cells={loopCells} />
-        <TickerCopy cells={loopCells} duplicate />
+        <TickerCopy cells={loopCells} reserveDemoLabel={DEMO} />
+        <TickerCopy cells={loopCells} duplicate reserveDemoLabel={DEMO} />
       </div>
+      {DEMO ? (
+        <span className="pointer-events-none absolute left-2 top-1/2 z-10 -translate-y-1/2 rounded border border-border bg-background px-1.5 py-0.5 font-mono text-[9px] uppercase tracking-wide text-muted-foreground">
+          demo
+        </span>
+      ) : null}
     </div>
   );
 }

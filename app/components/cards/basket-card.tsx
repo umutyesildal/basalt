@@ -24,10 +24,9 @@ import { cn } from "@/lib/utils";
  * beside it (owner feedback round 2 — no "24h" caption, the number only;
  * hidden when the price is missing), AUM, and a bottom zone carrying the
  * 30d cell plus the optional gray vs-SPY comparison, closed by the trust
- * signature line ("NAV priced from live market data" — Stax §5.11; only
- * rendered when the card actually shows a NAV). Cells exist only when the
- * indexer actually carries the figure. The whole card is one link; nothing
- * interactive lives inside.
+ * provenance line (NAV estimate, with an explicit devnet/mock qualifier when
+ * applicable). Cells exist only when the indexer actually carries the
+ * figure. The whole card is one link; nothing interactive lives inside.
  */
 export interface BasketCardCompare {
   label: string;
@@ -55,6 +54,8 @@ export interface BasketCardProps {
   price: number | null;
   /** Basket AUM; always shown for baskets (em dash when not indexed). */
   aum: number | null;
+  /** True when the visible indexer data describes devnet/localnet mock tokens. */
+  devnetPreview?: boolean;
   return24h?: number | null;
   return30d?: number | null;
   /** vs-SPY comparison — only passed by the page when benchmark data exists. */
@@ -70,6 +71,7 @@ export function BasketCard({
   weights,
   price,
   aum,
+  devnetPreview = false,
   return24h = null,
   return30d = null,
   compare = null,
@@ -147,12 +149,9 @@ export function BasketCard({
         AUM {aum !== null ? formatUsd(aum, { maximumFractionDigits: 0 }) : "—"}
       </span>
 
-      {/* Bottom zone: the 30d/vs-SPY footer (when any figure exists) closed
-          by the trust signature line (docs/stax-analiz/05 §5.11 — Stax's
-          "Priced by … oracles" bottom line, in our NAV voice). The claim is
-          only rendered when the card actually shows a NAV: an unindexed
-          basket never carries it. The 24h figure keeps its owner-frozen spot
-          beside the price — the signature line does not duplicate it. */}
+      {/* Bottom zone: the 30d/vs-SPY footer (when any figure exists) and a
+          concise NAV provenance line. Do not imply mock-token valuations are
+          live xStocks NAV. */}
       {hasFooter || !unavailable ? (
         <div className="mt-auto pt-4">
           {hasFooter ? (
@@ -179,7 +178,7 @@ export function BasketCard({
                 MICRO_LABEL_CLASS,
               )}
             >
-              NAV priced from live market data
+              {devnetPreview ? "Devnet · mock tokens · reference NAV" : "NAV estimate"}
             </span>
           ) : null}
         </div>

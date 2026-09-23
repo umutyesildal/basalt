@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { Check, Minus } from "lucide-react";
 
 import { EmptyState, ErrorState } from "@/components/states";
@@ -38,6 +39,9 @@ export function MintPicker({
   onDescriptionChange: (description: string) => void;
   onRetry: () => void;
 }) {
+  const [search, setSearch] = useState("");
+  const [showAll, setShowAll] = useState(false);
+
   if (status === "loading") {
     return (
       <div className="flex flex-col gap-4">
@@ -92,6 +96,16 @@ export function MintPicker({
   const activeRows = rows.filter((row) => row.status === "Active");
   const pausedRows = rows.filter((row) => row.status !== "Active");
   const allSelected = selectedMints.length >= maxSelected;
+  const normalizedSearch = search.trim().toLowerCase();
+  const matchingRows = activeRows
+    .filter((row) =>
+      tickerFromRow(row).toLowerCase().includes(normalizedSearch),
+    )
+    .sort((a, b) => {
+      const selectedOrder = Number(selectedMints.includes(b.mint)) - Number(selectedMints.includes(a.mint));
+      return selectedOrder || tickerFromRow(a).localeCompare(tickerFromRow(b));
+    });
+  const visibleRows = normalizedSearch || showAll ? matchingRows : matchingRows.slice(0, 8);
 
   return (
     <div className="flex flex-col gap-4">
@@ -119,9 +133,24 @@ export function MintPicker({
         />
       ) : (
         <div>
-          <p className="mb-2 text-xs font-medium text-muted-foreground">Eligible tokens</p>
+          <div className="mb-3 flex flex-wrap items-end justify-between gap-3">
+            <div>
+              <p className="text-sm font-medium">Choose at least two tokens</p>
+              <p className="mt-0.5 text-xs text-muted-foreground">Selected tokens stay at the top. You can change them later.</p>
+            </div>
+            <label className="flex w-full flex-col gap-1 text-xs text-muted-foreground sm:w-56">
+              Search tokens
+              <input
+                type="search"
+                value={search}
+                onChange={(event) => setSearch(event.target.value)}
+                placeholder="Search by ticker"
+                className="h-10 w-full rounded-lg border border-border bg-background px-3 text-sm text-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+              />
+            </label>
+          </div>
           <ul className="grid gap-2 sm:grid-cols-2" aria-label="Eligible basket tokens">
-          {activeRows.map((row) => {
+          {visibleRows.map((row) => {
             const selected = selectedMints.includes(row.mint);
             const disabled = !selected && allSelected;
             return (
@@ -159,6 +188,25 @@ export function MintPicker({
             );
           })}
           </ul>
+          {matchingRows.length === 0 ? (
+            <p className="mt-3 text-sm text-muted-foreground">No matching tokens. Try another ticker.</p>
+          ) : !normalizedSearch && !showAll && matchingRows.length > visibleRows.length ? (
+            <button
+              type="button"
+              onClick={() => setShowAll(true)}
+              className="mt-3 text-sm font-medium text-primary underline underline-offset-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+            >
+              Show all {activeRows.length} tokens
+            </button>
+          ) : !normalizedSearch && showAll && activeRows.length > 8 ? (
+            <button
+              type="button"
+              onClick={() => setShowAll(false)}
+              className="mt-3 text-sm font-medium text-primary underline underline-offset-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+            >
+              Show fewer tokens
+            </button>
+          ) : null}
         </div>
       )}
 

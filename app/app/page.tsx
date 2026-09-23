@@ -5,6 +5,9 @@ import { LedgerSection } from "@/components/home/ledger-section";
 import { LiveProofSection } from "@/components/home/live-proof-section";
 import { MintFlow } from "@/components/home/mint-flow";
 import { SectionReveal } from "@/components/home/section-reveal";
+import { CLUSTER } from "@/lib/wallet";
+
+const DEVNET_PREVIEW = CLUSTER === "devnet" || CLUSTER === "localnet";
 
 /**
  * Landing — NEON FOUNDRY hero (cyberpunk-yellow restyle, 2026-09-12; was the
@@ -105,7 +108,7 @@ export default function LandingPage() {
               <span aria-hidden="true" className="leading-none text-primary">
                 //
               </span>
-              Onchain strategy baskets · xStocks
+              {DEVNET_PREVIEW ? "Onchain strategy baskets · devnet preview" : "Onchain strategy baskets · xStocks"}
               <span aria-hidden="true" className="leading-none text-primary">
                 //
               </span>
@@ -122,8 +125,9 @@ export default function LandingPage() {
             Create an index. Own your thesis.
           </h1>
           <p className="mt-5 max-w-xl text-base leading-7 text-muted-foreground md:text-lg md:leading-8">
-            Tokenized baskets of xStocks — immutable weights, capped fees,
-            permissionless redemption. Follow the traders behind them.
+            {DEVNET_PREVIEW
+              ? "Try basket creation on Solana devnet with project-created mock tokens and reference prices. Explore the flow before issuer-backed xStocks are available."
+              : "Tokenized baskets of xStocks — immutable weights, capped fees, permissionless redemption. Follow the traders behind them."}
           </p>
           <div className="mt-10 flex flex-wrap items-center justify-center gap-3">
             <Link

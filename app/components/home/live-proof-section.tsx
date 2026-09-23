@@ -647,7 +647,7 @@ function BasketsRows({ items }: { items: BasketLeaderboardEntry[] }) {
 function DemoTradesColumn() {
   return (
     <div>
-      <ColumnHeaderLink label="LATEST TRADES" href="/feed" />
+      <ColumnHeaderLink label="SAMPLE TRADES" href="/feed" />
       <TradeRows items={DEMO_TRADES} />
     </div>
   );
@@ -656,7 +656,7 @@ function DemoTradesColumn() {
 function DemoBasketsColumn() {
   return (
     <div>
-      <ColumnHeaderLink label="TOP BASKETS" href="/leaderboard" />
+      <ColumnHeaderLink label="SAMPLE BASKETS" href="/leaderboard" />
       {/* Row parity (owner feedback, 2026-09-12, footprint-locked
           2026-09-14): the full basket dataset stays available for the demo,
           but the preview surfaces only PREVIEW_ROW_COUNT rows so the two
@@ -780,8 +780,12 @@ export function LiveProofSection() {
           id="proof-heading"
           size="eyebrow"
           index={1}
-          label="VERIFIED ACTIVITY"
-          lead="What people are building and trading right now."
+          label={DEMO ? "DEMO PREVIEW" : "VERIFIED ACTIVITY"}
+          lead={
+            DEMO
+              ? "Illustrative basket and trade examples — not live activity."
+              : "What people are building and trading right now."
+          }
           right={DEMO ? <DemoChip /> : undefined}
         />
         {/* Equal columns (owner feedback, 2026-09-14): same grid cell per
