@@ -154,12 +154,12 @@ docker compose logs -f backend   # Look for "[db] schema applied" and indexer li
 4. Test: https://basalt-coral.vercel.app/explore should now load data from the
    live backend.
 
-### Current devnet release path (2026-09-23)
+### Current concept and devnet release path (2026-09-24)
 
 The `basalt` Vercel project is not connected to Git. A push to `main` alone
 does not update `basalt-coral.vercel.app`. Deploy from the canonical `main`
-worktree's `app/` directory after pushing and passing `npm run typecheck` and
-`npm run build`:
+worktree's `app/` directory after passing `npm run typecheck`,
+`npx tsx --test tests/*.test.ts`, and `npm run build`:
 
 ```bash
 cd /Users/umutyesildal/orca/workspaces/createyouretf/createyouretf/app
@@ -168,10 +168,13 @@ vercel deploy --prod --yes --scope yesildaladams-projects
 
 Production uses the stable devnet API at
 `https://basalt.178.104.34.252.sslip.io`, `NEXT_PUBLIC_CLUSTER=devnet`, and
-`NEXT_PUBLIC_HOME_DEMO=0`. The site reads indexed devnet data; project mock
+`NEXT_PUBLIC_HOME_DEMO=0`. The primary `/create` and `/preview?d=...` concept
+flow is client-side and needs no backend or wallet; `/create/onchain` and the
+separate onchain basket section still use indexed devnet data. Project mock
 tokens and reference prices must remain labeled as such. Check
-`/api/v1/health` on the API, then open `/create` and `/explore` on the public
-alias to confirm both assets and baskets load. Before enabling automatic Git
+`/api/v1/health` on the API, then create a $10 concept preview and reopen its
+link in a fresh browser tab. Confirm the `/explore` sample gallery and onchain
+section both load. Before enabling automatic Git
 deployments, set the Vercel project root to `app/` and confirm the production
 branch is `main`.
 

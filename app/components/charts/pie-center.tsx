@@ -77,7 +77,7 @@ export function PieCenter({
   }
 
   // If custom render function or node is provided, use it
-  if (children && hoveredData) {
+  if (children) {
     return (
       <div
         className={cn(
@@ -92,7 +92,7 @@ export function PieCenter({
               value: displayValue,
               label: displayLabel,
               isHovered: effectiveHoveredIndex !== null,
-              data: hoveredData,
+              data: hoveredData ?? { label: defaultLabel, value: totalValue },
             })
           : children}
       </div>

@@ -6,8 +6,8 @@
 > **inheriting its full token system unchanged**: near-black canvas,
 > electric-yellow `#FCEE0A` primary with discipline, Chakra Petch display,
 > Geist Mono terminal labels, neon data colors only inside charts, sharp
-> corners. Dark mode is the flagship. The 2026-09-22 UX pass updates the
-> create, detail, and redeem information hierarchy without changing the mark.
+> corners. Dark mode is the flagship. The 2026-09-23 hackathon pass makes a
+> wallet-free concept preview the public entry point without changing the mark.
 
 ## 1. Concept — constituent columns
 
@@ -54,7 +54,7 @@ All other renditions reuse the same 24×24 relative geometry.
 | Header wordmark | `site-header.tsx` | stroke mark (currentColor) + `B` in `text-primary`, `asalt` in foreground, Chakra Petch |
 | Favicon | `app/app/icon.svg` | **filled** columns `#FCEE0A` on `#0A0A0B` rx 4, 1.2× centered scale, no seams (fills read at 16px) |
 | Apple touch icon | `app/app/apple-icon.tsx` | filled columns + **cap-facet seams** (`#0A0A0B` 0.55-unit lines at each bevel base y 3.7/10.7/15.7) |
-| OG image | `app/app/opengraph-image.tsx` | filled columns + seams at 220px, wordmark `BASALT`, yellow badge `XSTOCKS STRATEGY BASKETS · SOLANA`, yellow corner ticks, hairline grid |
+| OG image | `app/app/opengraph-image.tsx` | filled columns + seams at 220px, wordmark `BASALT`, yellow concept basket badge, yellow corner ticks, hairline grid |
 
 Seam rule: the cap-facet seam appears only where the mark renders ≥100px;
 below that it is visual noise.
@@ -62,12 +62,10 @@ below that it is visual noise.
 ## 4. Causeway tessellation (ambient motif)
 
 Seven pointy-top hexagons (R 68, honeycomb cluster) = columns seen top-down.
-Used as the hero watermark (inline SVG in `app/app/page.tsx`): white strokes
-at 7% opacity, square node dots on cell centers, straight connector traces
-between centers, heavy top fade + radial text scrim. Replaces the retired
-concentric-hexagon "circuit blueprint". Section motifs elsewhere
-(flow-section step 02 hexagon+plus, `//` chips, zero-padded mono numerals)
-stay as-is — already consistent with Basalt.
+The original seven-cell watermark remains a valid decorative motif, but the
+hackathon home now uses a quieter grid and one allocation preview card. Keep
+the mark as the primary visual identity and the composition chart as the
+product illustration.
 
 Reference cluster (600×600 viewBox, center cell at 300,300, R 68, ring at
 √3·R ≈ 117.8 along the edge-normal directions 0°/60°/…/300° — pointy-top
@@ -81,10 +79,11 @@ cells share edges, they never overlap): center `(300,300)`; ring centers
   standing AGENTS §1 legal ban on ETF/fund/guaranteed/safe/advice language
   applies unchanged. Use: strategy basket / index basket / onchain equity
   basket / xStocks-backed strategy token.
-- Tagline: "Create an index. Own your thesis." (unchanged).
-- One-liner for hackathon/social: **"Basalt — create and hold an onchain
-  strategy basket on Solana."** In devnet media, add a visible “Devnet · mock
-  tokens” label; do not call mock mints real stocks or official xStocks.
+- Public concept headline: “Build a stock basket. Make it yours.” Explain
+  the mix as an idea using stocks and ETFs, and label the result “Concept preview.”
+- The historical on-chain tagline “Create an index. Own your thesis.” remains
+  available on transaction-specific surfaces. Do not call a concept basket a
+  deployed token or claim mock mints are official xStocks.
 - Tone rules inherited from brand.md: short, factual, number-forward, no
   hype, no exclamation marks, no emojis.
 
@@ -98,7 +97,9 @@ leading B).
 Unchanged (inherited from cyberpunk-yellow-v1): all color tokens in
 `app/app/globals.css`, Chakra Petch/Geist/Geist Mono typography, layout
 rules, component rules, `.bg-grid`/`.glow-primary`/`.text-glow`/
-`.hairline-primary` utilities, home page order ("proof beats process").
+`.hairline-primary` utilities. The former “proof beats process” home ordering
+is historical; the concept home leads with the Create action and a clear
+three-step explanation.
 
 Historical artifacts intentionally NOT renamed: `foliox_build_prompt.md`
 (original prompt), `docs/devnet-live-2026-09-04.md` (dated evidence pack),
@@ -119,3 +120,9 @@ The mark and electric yellow anchor the create, basket detail, and redeem routes
 - **Media:** screenshots, OG, and launch video must show the current Basalt app, its mark and yellow accent, and devnet/mock data labels. Do not substitute imagery from the historical `master` FolioX scaffold.
 
 Legal vocabulary and `LEGAL_REVIEW_REQUIRED` status follow `AGENTS.md` and `docs/basalt-v0-spec.md`. On-chain redemption remains independent of the backend, an oracle, and mint-pause status. The current UI still needs indexed supply and vault balances for its preview; BAS-034 tracks a direct-RPC fallback for indexer outages.
+
+## 9. Public concept experience — 2026-09-23
+
+The primary `/create` route is a wallet-free, English concept builder. Show three visible idea templates and one custom action without horizontal scrolling, then the familiar allocation chart, a default $1,000 illustrative amount with $10/$100/$1,000 shortcuts, optional plainly explained fees, and one visual review. “Create preview” produces a bounded shareable link. A concept preview never claims token balances, minted shares, transactions, AUM, or return history. `/create/onchain` retains the transaction checks and required acknowledgments described above.
+
+The landing page, Explore sample gallery, Feed, Leaderboard, and concept creator profiles use one consistent set of illustrative basket identities. Use one quiet provenance label per concept page; never pair sample activity with a real devnet wallet or basket address. Keep composition, thesis, and fee impact in the first detail view; keep sourced on-chain accounting in accessible detail on actual basket pages. Header wallet/network controls appear only on on-chain routes. Stocks and ETFs keep their existing presentation. Market volume must name a traded instrument and its unit.

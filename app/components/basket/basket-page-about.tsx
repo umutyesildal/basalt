@@ -93,7 +93,6 @@ export function BasketPageAbout({
         <BasketSectionHeader
           eyebrow="Allocation"
           title="Composition"
-          note="Fixed targets; holdings can drift"
         />
         <div className="grid gap-6 md:grid-cols-[auto_minmax(0,1fr)] md:gap-10">
           <div className="justify-self-center">
@@ -166,13 +165,65 @@ export function BasketPageAbout({
         </div>
       </section>
 
-      <section aria-label="Costs and risks" className="py-8">
-        <BasketSectionHeader eyebrow="Before you act" title="Key risks" note="Full details in the Risk tab" />
-        <p className="text-sm leading-6 text-muted-foreground">
-          Prices can diverge from equity references; weights do not rebalance. Contract and upgrade risks remain.
-        </p>
+      {/* fees — spec §6 math, one visually quiet card */}
+      <section aria-label="Fees" className="pt-10">
+        <BasketSectionHeader
+          eyebrow="What it costs"
+          title="Fees"
+        />
+        <Card>
+          <CardContent className="flex flex-col gap-3 p-5 first:pt-5">
+            <div className="flex flex-wrap items-baseline gap-x-6 gap-y-2">
+              <div>
+                <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-muted-foreground">
+                  Management
+                </p>
+                <p className="font-mono text-xl tabular-nums text-foreground">
+                  {formatBpsAsPercent(detail.management_fee_bps)}
+                  <span className="text-sm text-muted-foreground">/yr</span>
+                </p>
+                <p className="mt-1 max-w-48 text-xs leading-5 text-muted-foreground">An annual charge paid through new basket shares.</p>
+              </div>
+              <div>
+                <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-muted-foreground">
+                  Entry
+                </p>
+                <p className="font-mono text-xl tabular-nums text-foreground">
+                  {formatBpsAsPercent(detail.entry_fee_bps)}
+                </p>
+                <p className="mt-1 max-w-48 text-xs leading-5 text-muted-foreground">Charged when someone adds to this basket.</p>
+              </div>
+              <div>
+                <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-muted-foreground">
+                  Exit
+                </p>
+                <p className="font-mono text-xl tabular-nums text-foreground">
+                  {formatBpsAsPercent(detail.exit_fee_bps)}
+                </p>
+                <p className="mt-1 max-w-48 text-xs leading-5 text-muted-foreground">Charged when someone exits this basket.</p>
+              </div>
+            </div>
+            <details className="text-[11px] leading-5 text-muted-foreground">
+              <summary className="cursor-pointer font-medium">Advanced details — fee calculation</summary>
+              <p className="mt-2 font-mono">
+              Management accrues on-chain as share dilution:{" "}
+              <span className="whitespace-nowrap">(supply × rate × elapsed + stored remainder)</span> ÷{" "}
+              <span className="whitespace-nowrap">(10,000 × seconds per year)</span>, minted{" "}
+              {PROTOCOL_FEE_SPLIT_LABEL} by the permissionless{" "}
+              <span className="font-mono">accrue_management_fee</span> crank — capped at 3.00%/yr.
+              Each checkpoint uses the then-current supply; newly minted fee shares therefore
+              make later intervals compound slightly. Entry is one-time on mint (cap 3.00%), exit
+              on redeem (cap 1.00%). Weights and fees are immutable on-chain.
+              </p>
+            </details>
+            {lastAccrualSeconds !== null && lastAccrualSeconds > 0 ? (
+              <p className="font-mono text-[11px] tabular-nums text-muted-foreground">
+                Last fee accrual {formatAsOf(lastAccrualSeconds * 1000)}
+              </p>
+            ) : null}
+          </CardContent>
+        </Card>
       </section>
-
       {/* operator values remain available without crowding the decision view */}
       <details className="group py-8">
         <summary className="cursor-pointer text-sm font-medium text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
@@ -278,63 +329,6 @@ export function BasketPageAbout({
       </section>
       </details>
 
-      {/* fees — spec §6 math, one visually quiet card */}
-      <section aria-label="Fees" className="pt-10">
-        <BasketSectionHeader
-          eyebrow="Paid in shares"
-          title="Fees"
-          note={PROTOCOL_FEE_SPLIT_LABEL}
-        />
-        <Card>
-          <CardContent className="flex flex-col gap-3 p-5 first:pt-5">
-            <div className="flex flex-wrap items-baseline gap-x-6 gap-y-2">
-              <div>
-                <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-muted-foreground">
-                  Management
-                </p>
-                <p className="font-mono text-xl tabular-nums text-foreground">
-                  {formatBpsAsPercent(detail.management_fee_bps)}
-                  <span className="text-sm text-muted-foreground">/yr</span>
-                </p>
-              </div>
-              <div>
-                <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-muted-foreground">
-                  Entry
-                </p>
-                <p className="font-mono text-xl tabular-nums text-foreground">
-                  {formatBpsAsPercent(detail.entry_fee_bps)}
-                </p>
-              </div>
-              <div>
-                <p className="font-mono text-[10px] uppercase tracking-[0.22em] text-muted-foreground">
-                  Exit
-                </p>
-                <p className="font-mono text-xl tabular-nums text-foreground">
-                  {formatBpsAsPercent(detail.exit_fee_bps)}
-                </p>
-              </div>
-            </div>
-            <details className="text-[11px] leading-5 text-muted-foreground">
-              <summary className="cursor-pointer font-medium">Advanced details — fee calculation</summary>
-              <p className="mt-2 font-mono">
-              Management accrues on-chain as share dilution:{" "}
-              <span className="whitespace-nowrap">(supply × rate × elapsed + stored remainder)</span> ÷{" "}
-              <span className="whitespace-nowrap">(10,000 × seconds per year)</span>, minted{" "}
-              {PROTOCOL_FEE_SPLIT_LABEL} by the permissionless{" "}
-              <span className="font-mono">accrue_management_fee</span> crank — capped at 3.00%/yr.
-              Each checkpoint uses the then-current supply; newly minted fee shares therefore
-              make later intervals compound slightly. Entry is one-time on mint (cap 3.00%), exit
-              on redeem (cap 1.00%). Weights and fees are immutable on-chain.
-              </p>
-            </details>
-            {lastAccrualSeconds !== null && lastAccrualSeconds > 0 ? (
-              <p className="font-mono text-[11px] tabular-nums text-muted-foreground">
-                Last fee accrual {formatAsOf(lastAccrualSeconds * 1000)}
-              </p>
-            ) : null}
-          </CardContent>
-        </Card>
-      </section>
     </div>
   );
 }

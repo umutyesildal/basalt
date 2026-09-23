@@ -28,6 +28,7 @@ import { EquityCurveChart } from "@/components/social/equity-curve-chart";
 import { isDemoMode } from "@/lib/demo-mode";
 import { getDemoCreator } from "@/lib/demo-creator";
 import { DemoCreatorProfile } from "@/components/social/demo-creator-profile";
+import { CONCEPT_BASKETS, conceptBasketHref, getConceptCreator, type ConceptCreator } from "@/lib/concept-samples";
 
 interface CreatorStats {
   basket_count?: string | number | null;
@@ -75,6 +76,9 @@ export default function CreatorPage() {
   const params = useParams<{ pubkey: string }>();
   const pubkeyParam = typeof params?.pubkey === "string" ? params.pubkey : "";
 
+  const conceptCreator = getConceptCreator(pubkeyParam);
+  if (conceptCreator) return <ConceptCreatorProfile creator={conceptCreator} />;
+
   // demo overlay gate — zero network (2026-09-12): demo-wallet-1..7 are not
   // base58, so they must resolve before any PublicKey validation or fetching;
   // the profile renders from the pure local demo dataset (lib/demo-creator).
@@ -84,6 +88,48 @@ export default function CreatorPage() {
   }
 
   return <CreatorPageReal />;
+}
+
+function ConceptCreatorProfile({ creator }: { creator: ConceptCreator }) {
+  const baskets = CONCEPT_BASKETS.filter((basket) => basket.creatorId === creator.id);
+  return (
+    <div className="mx-auto max-w-4xl space-y-9 pb-16">
+      <Link href="/feed" className="text-sm text-muted-foreground underline-offset-4 hover:text-foreground hover:underline">← Back to ideas</Link>
+      <section className="rounded-xl border border-border bg-card p-6 sm:p-8">
+        <span className="font-mono text-xs uppercase tracking-[0.16em] text-primary">Concept preview</span>
+        <div className="mt-5 flex items-start gap-4">
+          <div className="flex size-16 shrink-0 items-center justify-center overflow-hidden rounded-full border border-border bg-muted font-display text-xl font-semibold">
+            {creator.avatarUrl ? <img src={creator.avatarUrl} alt="" className="size-full object-cover" /> : creator.displayName.slice(0, 1)}
+          </div>
+          <div>
+            <h1 className="font-display text-3xl font-semibold">{creator.displayName}</h1>
+            <p className="mt-0.5 font-mono text-xs text-muted-foreground">@{creator.handle}</p>
+            <p className="mt-4 max-w-xl text-sm leading-6 text-muted-foreground">{creator.bio}</p>
+          </div>
+        </div>
+        <p className="mt-5 text-xs leading-5 text-muted-foreground">Sample profile. These concept previews are not deployed baskets and generate no onchain activity or creator fees.</p>
+      </section>
+      <section aria-labelledby="concept-creator-baskets">
+        <h2 id="concept-creator-baskets" className="font-display text-2xl font-semibold">Basket ideas</h2>
+        <div className="mt-4 grid gap-3 sm:grid-cols-2">
+          {baskets.map((basket) => (
+            <Link key={basket.id} href={conceptBasketHref(basket)} className="group rounded-xl border border-border bg-card p-5 transition-colors hover:border-primary/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50">
+              <span className="font-mono text-xs uppercase tracking-wide text-muted-foreground">{basket.symbol} · {basket.assets.length} assets</span>
+              <h3 className="mt-3 font-display text-lg font-semibold group-hover:text-primary">{basket.name}</h3>
+              <p className="mt-2 text-sm leading-6 text-muted-foreground">{basket.thesis}</p>
+              <span className="mt-5 inline-block text-sm font-medium">View preview →</span>
+            </Link>
+          ))}
+        </div>
+      </section>
+      <Link
+        href="/create"
+        className="inline-flex min-h-11 items-center rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+      >
+        Build your own basket idea
+      </Link>
+    </div>
+  );
 }
 
 /**
@@ -633,7 +679,7 @@ function CreatorPageReal() {
             </Card>
             <Card className="h-full">
               <CardHeader className="pb-2">
-                <CardDescription>Total AUM (indexed)</CardDescription>
+                <CardDescription>Indexed reference value</CardDescription>
                 <CardTitle className="font-mono text-2xl tabular-nums">
                   {creatorStats ? (() => {
                     const aum = numeric(creatorStats.total_aum);
@@ -654,6 +700,10 @@ function CreatorPageReal() {
               </CardHeader>
             </Card>
           </div>
+
+          <p className="-mt-4 pb-6 text-xs leading-5 text-muted-foreground">
+            Onchain creator fees may accrue when protocol fees are generated under a basket’s disclosed terms. The V0 split is 90% to the creator and 10% to the treasury; previews and follows generate no fees.
+          </p>
 
           <section aria-labelledby="creator-baskets" className="pb-8">
             <div className="flex flex-col gap-2 sm:flex-row sm:items-baseline sm:justify-between">

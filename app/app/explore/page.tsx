@@ -7,7 +7,7 @@ export const metadata: Metadata = {
   // plain string here would render "Baskets — Basalt · Basalt".
   title: { absolute: "Basalt | Baskets" },
   description:
-    "Community-made strategy baskets: who created each one, AUM, share price, holders, and performance vs the SPY benchmark.",
+    "Explore curated stock basket ideas, review their composition, and create a basket of your own.",
 };
 
 export default function BasketsPage() {

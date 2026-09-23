@@ -1,180 +1,94 @@
 import Link from "next/link";
 
-import { IntentCards } from "@/components/home/intent-cards";
-import { LedgerSection } from "@/components/home/ledger-section";
-import { LiveProofSection } from "@/components/home/live-proof-section";
-import { MintFlow } from "@/components/home/mint-flow";
-import { SectionReveal } from "@/components/home/section-reveal";
-import { CLUSTER } from "@/lib/wallet";
+const previewMix = [
+  { symbol: "NVDA", weight: "40%", color: "#FCEE0A" },
+  { symbol: "AAPL", weight: "32%", color: "#D7D3C6" },
+  { symbol: "MSFT", weight: "28%", color: "#77766F" },
+] as const;
 
-const DEVNET_PREVIEW = CLUSTER === "devnet" || CLUSTER === "localnet";
-
-/**
- * Landing — NEON FOUNDRY hero (cyberpunk-yellow restyle, 2026-09-12; was the
- * roman-empire redesign of 2026-09-03): yellow mono chip flanked by mono
- * `//` terminal decorations, Chakra Petch headline with a soft primary
- * glow, one subline, two CTAs — over a faint engineering grid, with an
- * inline-SVG "circuit blueprint" (concentric hexagons, node squares,
- * straight connector traces) ghosted BEHIND the hero copy as a
- * barely-visible watermark.
- *
- * "Proof beats process" reorder (NEON FOUNDRY, 2026-09-12): the hero's
- * subline now points at the traders, and the very next thing on the page
- * is LIVE PROOF — the LiveProofSection's two polled columns (latest
- * trades + all-time top baskets, straight from the social API)
- * — before any process talk. The three-step flow merged INTO the
- * live-proof section (2026-09-12): its StepsStrip — now PICK · OWN ·
- * SHARE, user-outcome verbs instead of program operations (owner: the
- * product being sold isn't mint itself) — renders below the proof grid.
- * Then the Ledger rails comparison (traditional vs tokenized), and
- * the IntentCards gateway (which absorbs the deleted closing navigation
- * strip). No footer, no photography. `.bg-grid` appears on the hero
- * section only — one grid per page.
- *
- * Wave-2 polish (2026-09-14): hero type scale kept (6xl→7xl display, the
- * README "full 6xl rhythm") with the subline lifted one step (md:text-lg)
- * and one extra beat of space before the CTA row; below-fold sections fade
- * up once via SectionReveal (~180ms, reduced-motion + no-JS safe — the
- * hero itself gains no motion).
- *
- * Wave UI-1 (2026-09-15): a mono fee badge joins the hero chip on a
- * wrap-safe row — honest wording only ("fees creator-set · capped
- * on-chain"); per-basket fees are creator-set and validated against the
- * on-chain caps in lib/create-basket.ts (entry 300 / exit 100 / management
- * 300 bps), so NO fixed "0.25%"-style rate is claimed. Directly below the
- * hero, a quiet MintFlow strip sketches the mint path with an in-kind-only
- * settlement caption (see components/home/mint-flow.tsx for the honesty
- * rule). Composition, grid, watermark and glow untouched.
- */
 export default function LandingPage() {
   return (
-    <div className="mx-auto w-full">
-      <section className="bg-grid relative w-full overflow-hidden">
-        {/* Watermark — inline-SVG "causeway blueprint" (BASALT,
-            2026-09-12). A honeycomb tessellation of seven hexagon outlines
-            — basalt columns seen top-down (design-basalt-v1 §4) — with
-            square node dots seated on the cell centers and straight
-            connector traces between them, all stroked white at 7% opacity
-            over the near-black canvas. Pushed low (top 62%) so the lower
-            cells emerge below the CTA cluster, and a heavy top fade keeps
-            the headline zone pure background — the causeway is revealed
-            progressively downward. A soft radial scrim behind the text
-            block guarantees contrast. */}
-        <div aria-hidden="true" className="pointer-events-none absolute inset-0">
-          <svg
-            aria-hidden="true"
-            viewBox="0 0 600 600"
-            fill="none"
-            stroke="white"
-            strokeWidth={2}
-            preserveAspectRatio="xMidYMid slice"
-            className="absolute left-1/2 top-[62%] w-[94%] max-w-[1100px] -translate-x-1/2 -translate-y-1/2 select-none opacity-[0.07]"
-          >
-            {/* causeway tessellation — seven pointy-top hexagon cells,
-                edge-adjacent (columns seen top-down) */}
-            <path d="M300 232 L241.1 266 L241.1 334 L300 368 L358.9 334 L358.9 266 Z" />
-            <path d="M417.8 232 L358.9 266 L358.9 334 L417.8 368 L476.7 334 L476.7 266 Z" />
-            <path d="M358.9 130 L300 164 L300 232 L358.9 266 L417.8 232 L417.8 164 Z" />
-            <path d="M241.1 130 L182.2 164 L182.2 232 L241.1 266 L300 232 L300 164 Z" />
-            <path d="M182.2 232 L123.3 266 L123.3 334 L182.2 368 L241.1 334 L241.1 266 Z" />
-            <path d="M241.1 334 L182.2 368 L182.2 436 L241.1 470 L300 436 L300 368 Z" />
-            <path d="M358.9 334 L300 368 L300 436 L358.9 470 L417.8 436 L417.8 368 Z" />
-            {/* straight connector traces between cell centers */}
-            <line x1="300" y1="300" x2="417.8" y2="300" />
-            <line x1="300" y1="300" x2="241.1" y2="402" />
-            <line x1="241.1" y1="198" x2="358.9" y2="402" />
-            <line x1="358.9" y1="198" x2="241.1" y2="402" />
-            {/* square node dots seated on the cell centers */}
-            <rect x="294" y="294" width="12" height="12" />
-            <rect x="411.8" y="294" width="12" height="12" />
-            <rect x="352.9" y="192" width="12" height="12" />
-            <rect x="235.1" y="192" width="12" height="12" />
-            <rect x="176.2" y="294" width="12" height="12" />
-            <rect x="235.1" y="396" width="12" height="12" />
-            <rect x="352.9" y="396" width="12" height="12" />
-          </svg>
-          <div className="absolute inset-0 bg-[linear-gradient(to_bottom,hsl(var(--background))_0%,hsl(var(--background))_36%,transparent_64%,transparent_74%,hsl(var(--background))_100%)]" />
-          <div className="absolute inset-0 bg-[linear-gradient(to_right,hsl(var(--background))_0%,transparent_18%,transparent_82%,hsl(var(--background))_100%)]" />
-          {/* Text-zone scrim — blurred-edge radial behind eyebrow + headline
-              + CTAs only; invisible at the edges, /55 at the core. */}
-          <div className="absolute inset-0 bg-[radial-gradient(ellipse_62%_48%_at_50%_34%,hsl(var(--background)/0.55)_0%,hsl(var(--background)/0.3)_55%,transparent_78%)]" />
-        </div>
-        <div className="relative z-10 mx-auto flex max-w-3xl flex-col items-center px-4 pb-20 pt-24 text-center sm:px-6 md:pt-32">
-          {/* Chip + fee badge (wave UI-1, 2026-09-15) share one wrap-safe
-              row so they stack cleanly under <sm. The badge claims no fixed
-              rate — caps live on-chain per lib/create-basket.ts. */}
-          <div className="flex flex-wrap items-center justify-center gap-2.5">
-            <p className="inline-flex items-center gap-2.5 rounded-md border border-primary/40 bg-accent/30 px-3.5 py-1 font-mono text-xs tracking-wide text-primary-text">
-              <span aria-hidden="true" className="leading-none text-primary">
-                //
-              </span>
-              {DEVNET_PREVIEW ? "Onchain strategy baskets · devnet preview" : "Onchain strategy baskets · xStocks"}
-              <span aria-hidden="true" className="leading-none text-primary">
-                //
-              </span>
+    <div className="space-y-20 pb-16 md:space-y-28">
+      <section className="bg-grid relative overflow-hidden rounded-2xl border border-border/50">
+        <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(90deg,hsl(var(--background))_5%,hsl(var(--background)/0.82)_55%,hsl(var(--background)/0.28)_100%)]" />
+        <div className="relative grid gap-12 px-6 py-16 sm:px-10 md:grid-cols-[minmax(0,1fr)_320px] md:items-center md:gap-8 md:py-24 lg:px-14">
+          <div className="max-w-2xl">
+            <span className="font-mono text-xs uppercase tracking-[0.18em] text-primary">Concept preview</span>
+            <h1 className="mt-5 max-w-2xl font-display text-5xl font-semibold leading-[1.05] tracking-tight sm:text-6xl lg:text-7xl">
+              Build your basket idea.
+              <br />
+              <span className="text-primary">Share your thesis.</span>
+            </h1>
+            <p className="mt-6 max-w-xl text-base leading-7 text-muted-foreground md:text-lg">
+              Choose stocks and ETFs, set your mix, and share your idea. Explore other creators without connecting a wallet.
             </p>
-            <p className="rounded-md border border-border/40 bg-card/50 px-3 py-1 font-mono text-xs tracking-wide text-muted-foreground">
-              fees creator-set{" "}
-              <span aria-hidden="true" className="text-primary">
-                ·
-              </span>{" "}
-              capped on-chain
-            </p>
+            <div className="mt-9 flex flex-wrap gap-3">
+              <Link
+                href="/create"
+                className="inline-flex min-h-11 items-center justify-center rounded-lg bg-primary px-6 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+              >
+                Build a basket idea <span aria-hidden="true" className="ml-3">↗</span>
+              </Link>
+              <Link
+                href="/explore"
+                className="inline-flex min-h-11 items-center justify-center rounded-lg border border-border bg-card/80 px-6 text-sm font-medium transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+              >
+                Explore ideas
+              </Link>
+            </div>
           </div>
-          <h1 className="text-display text-glow mt-6 text-balance text-6xl leading-[1.08] md:text-7xl">
-            Create an index. Own your thesis.
-          </h1>
-          <p className="mt-5 max-w-xl text-base leading-7 text-muted-foreground md:text-lg md:leading-8">
-            {DEVNET_PREVIEW
-              ? "Try basket creation on Solana devnet with project-created mock tokens and reference prices. Explore the flow before issuer-backed xStocks are available."
-              : "Tokenized baskets of xStocks — immutable weights, capped fees, permissionless redemption. Follow the traders behind them."}
-          </p>
-          <div className="mt-10 flex flex-wrap items-center justify-center gap-3">
-            <Link
-              href="/create"
-              className="glow-primary inline-flex h-10 items-center rounded-xl bg-primary px-5 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
-            >
-              Create an index
-            </Link>
-            <Link
-              href="/explore"
-              className="inline-flex h-10 items-center rounded-xl border border-border bg-transparent px-5 text-sm font-medium transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
-            >
-              Explore baskets
-            </Link>
+
+          <div className="rounded-xl border border-border bg-card/95 p-5 shadow-2xl shadow-black/10" aria-label="Example basket allocation: NVDA 40%, AAPL 32%, MSFT 28%">
+            <div className="flex items-center justify-between gap-3">
+              <span className="font-mono text-[11px] uppercase tracking-[0.16em] text-muted-foreground">Your basket</span>
+              <span className="rounded border border-primary/40 px-2 py-1 font-mono text-[10px] uppercase tracking-wide text-primary">Preview</span>
+            </div>
+            <h2 className="mt-4 font-display text-xl font-semibold">Your idea, at a glance</h2>
+            <div className="mx-auto my-7 flex size-40 items-center justify-center rounded-full" style={{ background: "conic-gradient(#FCEE0A 0% 40%, #D7D3C6 40% 72%, #77766F 72% 100%)" }}>
+              <div className="flex size-28 flex-col items-center justify-center rounded-full bg-card">
+                <span className="font-display text-2xl font-semibold">3</span>
+                <span className="font-mono text-[10px] uppercase tracking-wide text-muted-foreground">assets</span>
+              </div>
+            </div>
+            <ul className="divide-y divide-border/70">
+              {previewMix.map((asset) => (
+                <li key={asset.symbol} className="flex items-center justify-between py-2 text-sm">
+                  <span className="flex items-center gap-2.5"><span className="size-2 rounded-full" style={{ backgroundColor: asset.color }} />{asset.symbol}</span>
+                  <span className="font-mono tabular-nums">{asset.weight}</span>
+                </li>
+              ))}
+            </ul>
           </div>
         </div>
       </section>
 
-      {/* Mint flow strip (wave UI-1, 2026-09-15) — the quiet blueprint
-          bridge between hero and proof. Its caption credits the in-kind
-          path ONLY (zap-USDC is sequential in V0); see mint-flow.tsx. */}
-      <SectionReveal>
-        <MintFlow />
-      </SectionReveal>
-
-      {/* Live proof + steps — real trades and real returns from the social
-          API, before any process talk ("proof beats process", NEON FOUNDRY
-          2026-09-12). The PICK · OWN · SHARE steps strip lives inside this
-          section, below its grid (merged 2026-09-12; replaces the old
-          standalone Flow section). Each section fades up once on first
-          scroll into view (SectionReveal, wave-2). Section eyebrows carry
-          the Stax-style editorial index ("> 01 —", SectionHeader index
-          prop, stax-inspired wave 1): 01 proof · 02 ledger · 03 intents. */}
-      <SectionReveal>
-        <LiveProofSection />
-      </SectionReveal>
-
-      {/* Ledger — same exposure, different rails. No card, no cell borders. */}
-      <SectionReveal>
-        <LedgerSection />
-      </SectionReveal>
-
-      {/* Intent cards — the closing gateway; the old asset-class strip became
-          intent routing (browse / follow / feed / build), NEON FOUNDRY 2026-09-12. */}
-      <SectionReveal>
-        <IntentCards />
-      </SectionReveal>
+      <section aria-labelledby="how-it-works" className="mx-auto max-w-5xl">
+        <div className="max-w-xl">
+          <span className="font-mono text-xs uppercase tracking-[0.18em] text-primary">A simple way to start</span>
+          <h2 id="how-it-works" className="mt-3 font-display text-3xl font-semibold sm:text-4xl">Build it. Share it. Find your people.</h2>
+        </div>
+        <div className="mt-9 grid gap-3 md:grid-cols-3">
+          {[
+            ["01", "Shape your thesis", "Start with a theme or choose your own stocks and ETFs."],
+            ["02", "Build your mix", "Set clear weights and make your point of view easy to see."],
+            ["03", "Share and discover", "Share your preview and explore other creators. Following an onchain creator requires a wallet."],
+          ].map(([number, title, body]) => (
+            <div key={number} className="rounded-xl border border-border bg-card p-6">
+              <span className="font-mono text-xs text-primary">{number}</span>
+              <h3 className="mt-6 font-display text-lg font-semibold">{title}</h3>
+              <p className="mt-2 text-sm leading-6 text-muted-foreground">{body}</p>
+            </div>
+          ))}
+        </div>
+        <p className="mt-5 text-xs text-muted-foreground">Concept previews show ideas only. Creating a preview does not buy assets or deploy a basket.</p>
+        <div className="mt-7 flex flex-col gap-4 rounded-xl border border-border bg-card p-6 sm:flex-row sm:items-center sm:justify-between">
+          <div className="max-w-2xl">
+            <h3 className="font-display text-xl font-semibold">Take your idea onchain</h3>
+            <p className="mt-2 text-sm leading-6 text-muted-foreground">A deployed basket can earn creator fees when people use it. You set the rates within protocol limits; 90% of generated fee shares go to the creator and 10% to the treasury. This Devnet path uses mock tokens and has no real earnings.</p>
+          </div>
+          <Link href="/create/onchain" className="inline-flex min-h-11 shrink-0 items-center justify-center rounded-lg border border-border px-5 text-sm font-medium hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50">Explore onchain creation</Link>
+        </div>
+      </section>
     </div>
   );
 }

@@ -93,13 +93,6 @@ function fixtureRows(): Record<string, unknown>[] {
   });
 }
 
-function fixtureVolume(): { date: Date; volume: number }[] {
-  return Array.from({ length: 30 }, (_, i) => ({
-    date: new Date(Date.UTC(2026, 6, 30) + i * 86_400_000),
-    volume: Math.round((6_200_000 + 1_800_000 * Math.sin(i / 2.6) + 900_000 * Math.cos(i / 1.3)) / 10_000) * 10_000,
-  }));
-}
-
 function buildNormalizedRows(data: OverviewSeries[]): {
   rows: Record<string, unknown>[];
   series: MarketSeriesMeta[];
@@ -182,11 +175,12 @@ export default async function MarketPage({
     const built = buildNormalizedRows(liveSeries);
     rows = built.rows;
     series = built.series;
-    const benchmark =
-      liveSeries.find((o) => o.symbol === "^IXIC" && (o.candles?.length ?? 0) >= 2) ??
-      liveSeries.find((o) => (o.candles?.length ?? 0) >= 2);
-    volume = (benchmark?.candles ?? []).slice(-30).map((c) => ({ date: new Date(c.ts), volume: c.volume }));
-    volumeLabel = benchmark ? (benchmark.symbol === "^IXIC" ? "^IXIC" : benchmark.symbol) : "Benchmark";
+    const qqq = liveSeries.find((o) => o.symbol === "QQQ");
+    volume = (qqq?.candles ?? [])
+      .filter((c) => Number.isFinite(c.volume) && c.volume > 0)
+      .slice(-30)
+      .map((c) => ({ date: new Date(c.ts), volume: c.volume }));
+    volumeLabel = "QQQ";
     asOf = Math.max(...liveSeries.map((o) => o.candles[o.candles.length - 1]?.ts ?? 0));
     changes = liveSeries
       .filter((o) => (o.candles?.length ?? 0) >= 2)
@@ -200,8 +194,11 @@ export default async function MarketPage({
       dashed: key === "IXIC",
       lineOnly: key === "DIA",
     }));
-    volume = fixtureVolume();
-    volumeLabel = "^IXIC (fixture)";
+    // The price comparison has a clearly labeled visual fixture when the API
+    // is unavailable. Trading volume is intentionally omitted: sample bars
+    // would read like observed market activity.
+    volume = [];
+    volumeLabel = "QQQ";
     asOf = Date.UTC(2026, 7, 28);
     changes = series.map((s) => {
       const values = rows.map((r) => Number(r[s.key]));

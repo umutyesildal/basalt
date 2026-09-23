@@ -1,8 +1,8 @@
 # Basalt — xStocks Strategy Baskets on Solana
 
-> "Create an index. Own your thesis." — Onchain strategy baskets powered by xStocks.
+> "Build your basket idea. Share your thesis." — a wallet-free concept preview with an optional devnet basket path.
 > V0 spec: `docs/basalt-v0-spec.md` (normative product constraints). Documentation map: `docs/README.md`. Current backlog: `docs/implementation-backlog.md`. Brand: `brand.md`.
-> Current state: **Working devnet beta, not mainnet-ready. Real create/mint/redeem and read-only indexing are verified; current constituent assets are project mock mints and some deployed surfaces use labeled/demo datasets.** Verified 2026-09-19 working tree: clean root/app/backend installs pass, 208 Rust + 596 backend tests pass, and the app produces a 21-route production build. A finalized 2026-09-19 RPC audit confirms that all three program upgrade authorities and the whitelist configuration authority remain one wallet; no multisig or time lock is active. Full snapshot: `docs/current-state-2026-09-18.md`; governance evidence: `docs/devnet-governance-audit-2026-09-19.md`.
+> Current state: **The public first-run flow is a wallet-free concept preview.** It creates a validated, shareable URL; it does not buy tokens, deploy a basket, or earn creator fees. The separate `/create/onchain` path retains the working devnet beta with project mock mints, real create/mint/redeem transactions, and indexing. It is not mainnet-ready. The dated 2026-09-19 verification snapshot recorded 208 Rust + 596 backend tests and a 21-route build; the 2026-09-24 concept release built 23 routes and passed its app typecheck and concept integrity test. A 2026-09-19 RPC audit confirms that program upgrade and whitelist authorities remain one wallet; no multisig or time lock is active. Full snapshot: `docs/current-state-2026-09-18.md`; governance evidence: `docs/devnet-governance-audit-2026-09-19.md`.
 > **Won: Superteam Germany "Road to Colosseum" Ideathon (2026-09-14)** — top-10 of 38 submissions, $3k USDG pool. Submission: `docs/ideathon-submission-2026-09.md`. Live demo: https://basalt-coral.vercel.app/explore. Current implementation order: `docs/implementation-backlog.md`.
 
 ## Verification commands
@@ -13,7 +13,8 @@ npm --prefix backend install                # once (backend has its own lockfile
 npm --prefix backend run build              # strict NodeNext, no suppressions
 npm --prefix backend test -- --run          # 596 TS tests in the 2026-09-19 working tree
 (cd app && npx tsc --noEmit --incremental false)   # 0 errors
-npm --prefix app run build                  # 21 routes in the 2026-09-19 clean-build snapshot
+npm --prefix app run build                  # 23 routes in the 2026-09-24 concept release
+(cd app && npx tsx --test tests/*.test.ts) # concept preview and sample integrity
 ```
 
 ## Devnet live (historical flow proof from 2026-09-04)
@@ -57,22 +58,24 @@ See `docs/basalt-v0-spec.md` §2-6 for account model, instruction args, mint/red
 
 Indexer listens for `BasketCreated/Minted/Redeemed/FeeAccrued` (Borsh decoders), upserts `baskets`/`events`/`creator_stats`, syncs `vault_holdings` (raw + multiplier + scaled), NAV engine snapshots `nav_snapshots` + refreshes `basket_rankings`, fee crank emits **unsigned** `accrue_management_fee` transactions. REST `/api/v1` implements the spec §8-9 routes with honest empty/error states (`NOT_INDEXED`, `DB_UNAVAILABLE`, `QUOTE_UNAVAILABLE`) — no fabricated production-looking data. Zap quotes proxy Jupiter; provenance + sequential/non-atomic warning included.
 
-## Frontend (real — 21-route production build, new IA)
+## Frontend (concept-first experience plus devnet transactions)
 
 Owner-approved information architecture (2026-09-03):
 
-- `/` Home — NEON FOUNDRY hero + **live proof band** (friendly sentence-style preview of the latest verified trades + top baskets, polled live from the social API) + **CREATE · MINT · SHARE** three-step flow + **SAME EXPOSURE** traditional-vs-tokenized ledger comparison at the full 6xl rhythm + intent cards (Browse baskets / Follow top traders / Open the feed / Build your own)
+- `/` Home — basket idea, shareable thesis, and an explicit path to optional onchain creation
 - `/stocks` — provider-grouped grid of tokenized stocks (live price, 24h, sparkline) → `/stock/[ticker]` detail (one clean chart, ethereal series colors, fitY-domain)
 - `/etfs` — pure tokenized-ETF listing (grid, sort, clickable cards)
-- `/explore` — **Baskets** flagship: grid-only cards (name-first — "Tech Duo", composition + price + 24h + vs-SPY), whole card clickable
-- `/create` — four tasks: choose assets, set a 100% allocation and optional fees, enter owned constituent-token deposits, then review legal terms and connect a wallet to deploy; devnet mock/reference values are labeled
+- `/explore` — always-available concept basket gallery above a separate indexed devnet basket section
+- `/create` — wallet-free basket idea builder: pick a template or assets, set the mix, choose an illustrative $10/$100/$1,000 amount, optionally set fees, and create a shareable preview
+- `/preview?d=...` — versioned, validated URL with only basket name, optional thesis, symbols, weights, example amount, and fees; no account or backend storage
+- `/create/onchain` — separate transaction wizard with wallet, balances, legal review, and unchanged onchain validation before deployment
 - `/basket/[pubkey]` + buy/redeem — transaction surfaces; `/portfolio`, `/creator/[pubkey]`, `/legal`
 
 Design language: the **BASALT identity** — hexagonal-column mark, dark industrial canvas, disciplined electric-yellow accent, Chakra Petch display, and Geist Mono labels — with chart-only data colors. No site footer; `LEGAL_REVIEW_REQUIRED` remains in the create disclosure and `/legal` until counsel replaces placeholder copy. Charts use locally vendored Bklit-derived sources; Brush is a documented local adapter.
 
 ## Social trading (V0.2 — fomo.family-inspired, not a clone)
 
-Every basket trade already settles on-chain, so the feed shows **verified activity, not claims**: the indexer's per-wallet `events` ledger (Minted/Redeemed) now backs `/feed` (All / Following / Theses tabs), per-wallet trade history, and an estimated-ROI leaderboard (7d/30d/All; anti-sybil eligibility — ≥2 mints, first trade ≥7 days old, live value > 0, public profile). On top of the "what":
+The concept gallery, feed, and creator discovery share one labeled sample dataset. Sample basket ideas and activity are illustrative, with no invented onchain trades, balances, or returns. Separate onchain sections use indexed devnet activity; wallet-authenticated following and social writes remain available there. Creator fee shares can accrue only for a separately deployed basket when protocol fees are generated (V0 split: 90% creator, 10% treasury). Concept previews and follows generate no fees. The underlying social backend also supports:
 
 - **Thesis posts** — trade-linked reasoning attached to a basket; the on-chain outcome stays attached for free
 - **Social profiles** — optional handle/avatar/bio over a wallet pubkey (`profiles`), follow/unfollow, per-wallet equity curve (`user_value_snapshots`, ~5m snapshotter)

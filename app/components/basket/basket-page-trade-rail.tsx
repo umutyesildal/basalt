@@ -69,7 +69,7 @@ export function BasketPageTradeRail({
               on this surface (NEON FOUNDRY review, 2026-09-12). */}
           <Button
             variant="outline"
-            onClick={() => router.push(`/create?clone=${encodeURIComponent(detail.pubkey)}`)}
+            onClick={() => router.push(`/create/onchain?clone=${encodeURIComponent(detail.pubkey)}`)}
             title="Start the create wizard pre-filled with this basket's constituents, weights and fees"
           >
             Clone this basket

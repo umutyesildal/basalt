@@ -1,8 +1,20 @@
 # Product and UX improvement plan
 
-_Updated 2026-09-23. This is the durable UX contract for Basalt. The owner decision at the top of `plan.md` records the current four-task create flow; `AGENTS.md` and `docs/basalt-v0-spec.md` govern protocol and legal boundaries. Earlier issue IDs remain useful backlog references._
+_Updated 2026-09-23. The current hackathon presentation decision below takes precedence for public navigation and copy. The transaction-focused UX items that follow remain the contract for `/create/onchain` and actual basket actions. `AGENTS.md` and `docs/basalt-v0-spec.md` govern protocol and legal boundaries._
 
-## Journey and content contract
+## Hackathon concept journey — current public default
+
+The public `/create` flow is in English and needs no wallet or API. It offers Mega-Cap Tech, Index Core, Motion, and a custom option in one non-scrolling choice row; users set a 100% mix, optionally set fees, and choose an illustrative starting amount. The amount defaults to $1,000 with $10/$100/$1,000 shortcuts. Review reuses the live composition preview and ends in a validated, shareable `/preview?d=...` link. A concept preview is not an asset purchase, deployed basket, or transaction. The existing devnet creator workflow is preserved at `/create/onchain` with its deposit and legal gates.
+
+Explore leads with a coherent gallery of sample basket ideas regardless of backend availability. Feed, leaderboard, sample creator pages, and the gallery use the same example identities and basket definitions; sample activity never claims a transaction, return, AUM, or timestamp. Every sample link resolves to a concept page. Indexed on-chain information is a secondary, separately labeled surface. One quiet “Concept preview” context label per page provides provenance without repeating implementation warnings on every card.
+
+Social copy invites people to build a basket idea, share its thesis, and follow creators. Call people **creators**, not fund managers. Curated examples are unranked and do not show invented returns, AUM, trades, or earnings. A concept preview, share, or follow creates no onchain activity or fees. Only a separately deployed onchain basket can accrue creator fees when protocol fees are generated under its disclosed terms; the V0 split is 90% to the creator and 10% to the treasury. Do not promise future fees, investment returns, or automatic copy trading.
+
+The first basket view favors thesis, allocation, plain fee impact, and the next action. Raw amounts, addresses, source mechanics, and formulas remain in accessible details on the on-chain page. Stocks and ETFs are unchanged in this pass. Market volume follows the core journey and uses a traded instrument with a truthful unit; missing data does not render a flat or invented series. The Basalt mark and `#FCEE0A` remain the identity anchors.
+
+This work package ends with product and documentation verification. Video production is outside its scope.
+
+## On-chain journey and content contract
 
 A visitor follows four tasks: **Choose** eligible assets and an optional name/thesis; **Set up** target allocations and optional fees; **Start** with owned constituent tokens; **Review** immutable terms and complete required legal acknowledgments. Review is reachable without a wallet. Deploy then asks for a wallet, reads current seed balances, validates transaction arguments, and simulates before signing; the program enforces the active whitelist and fee/weight limits. Explicit wrong-network messaging and versioned draft persistence remain backlog items. An unavailable price source does not silently become a reference value.
 

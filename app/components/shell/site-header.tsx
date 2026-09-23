@@ -10,7 +10,6 @@ import { WalletButton } from "@/components/shell/wallet-button";
 import { CONTEXT_ACTIONS, PRIMARY_NAV, isRouteActive } from "@/components/shell/nav-items";
 import { useHandleFlags, writeHandleClaimed } from "@/components/social/handle-onboarding";
 import { ProfileEditorModal } from "@/components/social/profile-editor";
-import { NavMarquee } from "@/components/ui/nav-marquee";
 import { buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -131,6 +130,7 @@ function ClaimHandleChip() {
  */
 export function SiteHeader() {
   const pathname = usePathname();
+  const onchainRoute = pathname.startsWith("/create/onchain") || pathname.startsWith("/basket/") || pathname.startsWith("/portfolio");
   const [mobileOpen, setMobileOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const menuButtonRef = useRef<HTMLButtonElement | null>(null);
@@ -205,7 +205,7 @@ export function SiteHeader() {
 
         <div className="ml-auto flex items-center gap-2 sm:gap-3">
           <div className="hidden items-center gap-2 lg:flex">
-            {CONTEXT_ACTIONS.map((item, index) => (
+            {CONTEXT_ACTIONS.filter((item) => onchainRoute || item.href === "/create").map((item, index) => (
               <Link
                 key={item.href}
                 href={item.href}
@@ -221,9 +221,9 @@ export function SiteHeader() {
             ))}
           </div>
 
-          <ClaimHandleChip />
-          <NetworkIndicator className="hidden sm:inline-flex" />
-          <WalletButton />
+          {onchainRoute && <ClaimHandleChip />}
+          {onchainRoute && <NetworkIndicator className="hidden sm:inline-flex" />}
+          {onchainRoute && <WalletButton />}
 
           <button
             ref={menuButtonRef}
@@ -270,7 +270,7 @@ export function SiteHeader() {
               );
             })}
             <div aria-hidden="true" className="my-2 h-px bg-border dark:bg-border/40" />
-            {CONTEXT_ACTIONS.map((item) => (
+            {CONTEXT_ACTIONS.filter((item) => onchainRoute || item.href === "/create").map((item) => (
               <Link key={item.href} href={item.href} className={mobileLinkClasses}>
                 {item.label}
               </Link>
@@ -279,10 +279,6 @@ export function SiteHeader() {
         </nav>
       )}
 
-      {/* NAV MARQUEE: last child of the sticky header, so the ticker band
-          travels with the chrome on every page and stays flush with the
-          header's bottom border. */}
-      <NavMarquee />
     </header>
   );
 }

@@ -7,7 +7,7 @@ export const metadata: Metadata = {
   // plain string here would render "Leaderboard — Basalt · Basalt".
   title: { absolute: "Basalt | Leaderboard" },
   description:
-    "Public Basalt traders ranked by estimated portfolio return over 7 days, 30 days and all time.",
+    "Explore illustrative Basalt basket ideas and creators, with indexed onchain rankings kept separate.",
 };
 
 export default function LeaderboardPage() {

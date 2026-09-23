@@ -12,7 +12,15 @@ import { YAxis } from "@/components/charts/y-axis";
 import { ChartTooltip } from "@/components/charts/tooltip/chart-tooltip";
 import type { TooltipRow } from "@/components/charts/tooltip/tooltip-content";
 import { Badge } from "@/components/ui/badge";
-import { formatTokenAmount } from "@/lib/format";
+
+const volumeFormatter = new Intl.NumberFormat("en-US", {
+  notation: "compact",
+  maximumFractionDigits: 1,
+});
+
+function formatVolume(value: number): string {
+  return volumeFormatter.format(value);
+}
 
 export interface MarketSeriesMeta {
   key: string;
@@ -65,10 +73,10 @@ export default function MarketChart({ rows, series, volume, volumeLabel }: Marke
   const volumeTooltipRows = (point: Record<string, unknown>): TooltipRow[] => [
     {
       color: "hsl(var(--chart-3))",
-      label: "Volume",
+      label: "QQQ trading volume",
       value:
         typeof point.volume === "number"
-          ? `${formatTokenAmount(point.volume, { maximumFractionDigits: 1 })} shares`
+          ? `${formatVolume(point.volume)} shares`
           : "—",
     },
   ];
@@ -79,6 +87,7 @@ export default function MarketChart({ rows, series, volume, volumeLabel }: Marke
         <AreaChart
           data={rows}
           xDataKey="date"
+          fitYDomain
           margin={{ top: 12, right: 16, bottom: 28, left: 48 }}
           className="h-full w-full"
         >
@@ -133,30 +142,33 @@ export default function MarketChart({ rows, series, volume, volumeLabel }: Marke
 
       <div className="space-y-1">
         <div className="flex flex-wrap items-baseline justify-between gap-2">
-          <h2 className="font-display text-base font-medium">{volumeLabel} — daily volume, last 30 candles</h2>
+          <h2 className="font-display text-base font-medium">{volumeLabel} — daily trading volume, shares</h2>
           {peakVolume > 0 ? (
             <span className="font-mono text-xs tabular-nums text-muted-foreground">
-              peak {formatTokenAmount(peakVolume, { maximumFractionDigits: 1 })} shares
+              Peak {formatVolume(peakVolume)} shares
             </span>
           ) : null}
         </div>
-        <div className="h-[140px]">
-          <BarChart
-            data={volume as unknown as Record<string, unknown>[]}
-            xDataKey="date"
-            margin={{ top: 8, right: 16, bottom: 24, left: 48 }}
-            className="h-full w-full"
-          >
-            <Grid horizontal />
-            <Bar dataKey="volume" fill="hsl(var(--chart-3))" />
-            <YAxis
-              numTicks={3}
-              formatValue={(value) => formatTokenAmount(value, { maximumFractionDigits: 1 })}
-            />
-            <BarXAxis />
-            <ChartTooltip rows={volumeTooltipRows} />
-          </BarChart>
-        </div>
+        {volume.length > 0 ? (
+          <div className="h-[140px]">
+            <BarChart
+              data={volume as unknown as Record<string, unknown>[]}
+              xDataKey="date"
+              margin={{ top: 8, right: 16, bottom: 24, left: 48 }}
+              className="h-full w-full"
+            >
+              <Grid horizontal />
+              <Bar dataKey="volume" fill="hsl(var(--chart-3))" />
+              <YAxis numTicks={3} formatValue={formatVolume} />
+              <BarXAxis />
+              <ChartTooltip rows={volumeTooltipRows} />
+            </BarChart>
+          </div>
+        ) : (
+          <p className="py-8 text-sm text-muted-foreground">
+            Trading volume is unavailable for QQQ in this range.
+          </p>
+        )}
       </div>
     </div>
   );

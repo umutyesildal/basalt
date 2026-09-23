@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 
-import { ErrorState, EmptyState, FreshnessBadge, Skeleton } from "@/components/states";
+import { ErrorState, EmptyState, FreshnessBadge } from "@/components/states";
 import { Button } from "@/components/ui/button";
 // Importing the constant side-effect-loads motion.css (the keyframes' single
 // home), so the fade-up classes below always ship with this module.
@@ -16,6 +16,7 @@ import { apiFetch } from "@/lib/api-client";
 import { categoryOf, compareBasketCategories } from "@/lib/categories";
 import { CLUSTER } from "@/lib/wallet";
 import { cn } from "@/lib/utils";
+import { ConceptGallery } from "./concept-gallery";
 
 const DEVNET_PREVIEW = CLUSTER === "devnet" || CLUSTER === "localnet";
 
@@ -456,22 +457,28 @@ export default function ExploreClient() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+      <div className="space-y-1.5">
+        <h1 className="font-display text-3xl font-semibold">Stock baskets</h1>
+        <p className="max-w-2xl text-sm leading-6 text-muted-foreground">
+          Explore an idea or build a basket around your own point of view.
+        </p>
+      </div>
+
+      <ConceptGallery />
+
+      <section aria-labelledby="onchain-baskets-title" className="space-y-6 border-t border-border pt-8">
         <div className="space-y-1.5">
-          <h1 className="font-display text-3xl font-semibold">Baskets</h1>
+          <h2 id="onchain-baskets-title" className="font-display text-2xl font-semibold tracking-tight">
+            Onchain baskets
+          </h2>
           <p className="max-w-2xl text-sm leading-6 text-muted-foreground">
-            Explore basket composition, fees, NAV estimates and benchmark comparisons.
+            Baskets deployed on {CLUSTER}. Sample ideas above are available even when this list is empty.
           </p>
         </div>
-        <Button render={<Link href="/create" />}>Create basket</Button>
-      </div>
 
       {DEVNET_PREVIEW ? (
         <aside className="rounded-lg border border-primary/25 bg-primary/5 px-4 py-3 text-sm leading-6 text-muted-foreground">
-          <span className="mr-2 rounded border border-primary/30 px-1.5 py-0.5 font-mono text-[10px] uppercase tracking-wide text-foreground">
-            Devnet preview
-          </span>
-          Baskets use project-created mock tokens. Prices and returns are reference estimates, not live xStocks data.
+          Devnet uses project-created mock tokens. Price and return figures are reference estimates, not live xStocks data.
         </aside>
       ) : null}
 
@@ -506,33 +513,13 @@ export default function ExploreClient() {
         />
       ) : !hasBaskets ? (
         <EmptyState
-          chip="NOT INDEXED"
-          title="No baskets indexed yet"
-          description="The backend returns an empty list until baskets are created and indexed — nothing here is fabricated."
+          chip="NO ONCHAIN BASKETS"
+          title="No onchain baskets available"
+          description="You can still explore the curated concept baskets above or start creating your own idea."
           action={
             <Button render={<Link href="/create" />} size="sm">
-              Create the first basket
+              Create a basket
             </Button>
-          }
-          previewLabel="Layout preview — baskets grid"
-          preview={
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-              {Array.from({ length: 6 }, (_, i) => (
-                <div
-                  key={i}
-                  aria-hidden="true"
-                  className="rounded-xl border border-border/60 bg-card p-4"
-                >
-                  <div className="flex items-start justify-between gap-2">
-                    <Skeleton className="h-4 w-24" />
-                    <Skeleton className="h-3 w-10" />
-                  </div>
-                  <Skeleton className="mt-4 h-6 w-20" />
-                  <Skeleton className="mt-2 h-3 w-16" />
-                  <Skeleton className="mt-6 h-3 w-full" />
-                </div>
-              ))}
-            </div>
           }
         />
       ) : (
@@ -674,6 +661,7 @@ export default function ExploreClient() {
           </div>
         </>
       )}
+      </section>
     </div>
   );
 }

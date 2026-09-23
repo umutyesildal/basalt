@@ -11,7 +11,7 @@
 | `derived` | On-chain holdings combined with reference prices | Reference NAV · sources · as-of |
 | `mock-asset` | Project-issued devnet token with no real backing | Mock asset · no economic value |
 | `simulated` | Generated value or series, not an observation | Simulated |
-| `demo` | Static/synthetic basket or user presentation data | Demo data |
+| `demo` | Static/synthetic basket or user presentation data | Concept preview or sample activity |
 | `stale` | Data outside its freshness SLA | Stale · last successful time |
 | `unavailable` | No trustworthy data | Unavailable; never fabricate a number |
 
@@ -19,16 +19,22 @@
 
 - A mock-asset basket value is not labeled AUM; use Reference NAV or Simulated basket value.
 - Randomly jittered charts are never attributed to Yahoo, Jupiter, or “live” data.
-- Demo basket tickers never appear in global navigation without a visible DEMO label.
+- Concept basket tickers never appear as live financial metrics or verified activity.
 - `onchain-indexed` describes provenance, not issuer backing.
 - Market prices never gate mint or redeem.
 - Financial metrics require source and `asOf`.
 
 ## UI requirements
 
-### Global environment banner
+### Concept preview and environment context
 
-Every devnet page shows:
+The wallet-free `/create`, `/preview`, and sample gallery are a separate concept experience. They carry one clear “Concept preview” context label and do not claim that assets were acquired, shares minted, or a transaction recorded. Starting dollar amounts are allocation examples. Sample social activity has a page-level “Sample activity” label and no transaction signatures, fake returns, AUM, or fabricated timestamps. Preview links contain no wallet or balance data.
+
+The on-chain transaction experience remains separate at `/create/onchain` and the indexed basket routes. Its cluster, backing, and price provenance must remain visible near the actual decision or value. Hide raw protocol fields in accessible details when they are not needed for the initial decision.
+
+### Global environment banner for transaction pages
+
+Every actionable devnet transaction page shows:
 
 `DEVNET · MOCK ASSETS · NO REAL ECONOMIC VALUE`
 
@@ -36,7 +42,7 @@ If dismissible, a persistent environment badge remains in the header.
 
 ### Basket surfaces
 
-Explore, basket detail, buy, redeem, portfolio, and social/OG output show:
+On-chain basket detail, buy, redeem, portfolio, and any social/OG output that claims indexed activity show:
 
 - cluster,
 - asset-backing status,
@@ -46,7 +52,7 @@ Explore, basket detail, buy, redeem, portfolio, and social/OG output show:
 
 ### Demo mode
 
-When `NEXT_PUBLIC_HOME_DEMO=1`, home, feed, leaderboard, creator, and marquee use one shared demo-state component. Every demo card and ticker carries its own visible label. Write actions are disabled with a reason.
+Concept pages use a shared presentation catalog independent of the devnet API. A single page-level context label may cover multiple sample cards when all of them are examples. Every link from sample gallery, feed, and leaderboard must resolve to a concept preview or concept creator page. Write actions and verified-activity language are absent from sample surfaces. The legacy `NEXT_PUBLIC_HOME_DEMO` flag is not the source of truth for the primary concept experience.
 
 ## API provenance contract
 
@@ -93,6 +99,6 @@ Use the existing `/api/v1/health` route for process liveness. Add a future `/api
 
 - Screenshot tests confirm a visible label for every mock/demo metric.
 - API contract tests fail when provenance fields are missing.
-- With demo mode off, `DEMO_BASKETS` never enters the runtime path.
+- Concept samples remain visibly labeled whether or not the legacy demo flag is set; they never enter verified on-chain result sets.
 - Stale values never appear silently live.
 - Deterministic fixtures reconcile basket NAV with raw/scaled holdings.

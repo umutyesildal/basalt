@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Briefcase, Compass, Plus, Rss } from "lucide-react";
+import { Compass, Plus, Rss, Trophy } from "lucide-react";
 
 import { isRouteActive } from "@/components/shell/nav-items";
 import { cn } from "@/lib/utils";
@@ -16,9 +16,9 @@ import { cn } from "@/lib/utils";
  * control, which removes the two-navs overlap reported to the owner.
  */
 const MOBILE_NAV_ITEMS = [
-  { href: "/explore", label: "Explore", Icon: Compass },
-  { href: "/portfolio", label: "Portfolio", Icon: Briefcase },
+  { href: "/explore", label: "Baskets", Icon: Compass },
   { href: "/feed", label: "Feed", Icon: Rss },
+  { href: "/leaderboard", label: "Ideas", Icon: Trophy },
 ] as const;
 
 /**
