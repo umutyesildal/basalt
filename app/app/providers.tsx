@@ -17,7 +17,9 @@ import { PhantomWalletAdapter } from "@solana/wallet-adapter-phantom";
 import { SolflareWalletAdapter } from "@solana/wallet-adapter-solflare";
 
 import { HandleOnboarding } from "@/components/social/handle-onboarding";
-import { RPC_ENDPOINT, describeWalletError } from "@/lib/wallet";
+import { LocalLabWalletAdapter } from "@/lib/local-lab-wallet";
+import { isLocalManagedEndpoint } from "@/lib/managed-chain";
+import { CLUSTER, RPC_ENDPOINT, describeWalletError } from "@/lib/wallet";
 
 /**
  * RPC endpoint + cluster: NEXT_PUBLIC_RPC_URL overrides the endpoint;
@@ -32,7 +34,13 @@ import { RPC_ENDPOINT, describeWalletError } from "@/lib/wallet";
 export function AppProviders({ children }: { children: ReactNode }) {
   // Stable adapter instances — WalletProvider requires a memoized list.
   const wallets = useMemo(
-    () => [new PhantomWalletAdapter(), new SolflareWalletAdapter()],
+    () => [
+      new PhantomWalletAdapter(),
+      new SolflareWalletAdapter(),
+      ...(process.env.NODE_ENV === "development" && isLocalManagedEndpoint(CLUSTER, RPC_ENDPOINT)
+        ? [new LocalLabWalletAdapter("manager"), new LocalLabWalletAdapter("guardian")]
+        : []),
+    ],
     [],
   );
 
@@ -56,7 +64,7 @@ export function AppProviders({ children }: { children: ReactNode }) {
         <WalletFeedbackProvider sinkRef={feedbackSinkRef}>
           {children}
           {/* Non-modal handle-claim nudge — needs the wallet context above. */}
-          <HandleOnboarding />
+          {!(process.env.NODE_ENV === "development" && isLocalManagedEndpoint(CLUSTER, RPC_ENDPOINT)) && <HandleOnboarding />}
         </WalletFeedbackProvider>
       </WalletProvider>
     </ConnectionProvider>

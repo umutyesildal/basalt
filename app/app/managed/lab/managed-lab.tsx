@@ -7,6 +7,7 @@ import Link from "next/link";
 import { ArrowLeft, ArrowRight, RefreshCw } from "lucide-react";
 
 import { WalletGateBanner } from "@/components/create/wallet-gate";
+import { useWalletConnect } from "@/components/shell/wallet-picker";
 import { useTransactionFlow } from "@/components/basket/use-transaction-flow";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -19,6 +20,7 @@ import {
   proposalPda, shareMintPda, tokenAta, vaultAuthorityPda,
   type ManagedBasketAccount, type ManagedProposalAccount,
 } from "@/lib/managed-chain";
+import { localLabPublicKey } from "@/lib/local-lab-wallet";
 import { CLUSTER, RPC_ENDPOINT, explorerClusterQuery } from "@/lib/wallet";
 
 type LoadedBasket = {
@@ -73,7 +75,9 @@ function Row({ label, value }: { label: string; value: string }) {
 
 export function ManagedLab() {
   const { connection } = useConnection();
-  const { publicKey, connected } = useWallet();
+  const { publicKey, connected, wallets } = useWallet();
+  const { requestConnect, error: walletError } = useWalletConnect();
+  const localManagerWallet = wallets.find((entry) => entry.adapter.name === "Local test manager");
   const tx = useTransactionFlow();
   const localOnly = isLocalManagedEndpoint(CLUSTER, RPC_ENDPOINT);
   const [mode, setMode] = useState<"open" | "create">("open");
@@ -136,6 +140,7 @@ export function ManagedLab() {
       setSeedA("10");
       setSeedB("10");
       setCreateWeight("50");
+      setGuardian((current) => current || localLabPublicKey(publicKey.equals(localLabPublicKey("guardian")) ? "manager" : "guardian").toBase58());
       setSampleReady(true);
       setMode("create");
     } catch (cause) {
@@ -215,7 +220,7 @@ export function ManagedLab() {
           blockhash: blockhash.blockhash,
           lastValidBlockHeight: blockhash.lastValidBlockHeight,
         };
-      }, undefined, { onComplete: after });
+      }, undefined, { onComplete: after, sendViaConnection: true });
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : "Could not prepare this transaction.");
     }
@@ -266,6 +271,11 @@ export function ManagedLab() {
         {connected && publicKey ? <span className="font-mono text-xs text-muted-foreground">{short(publicKey)}</span> : <span className="text-xs text-muted-foreground">Wallet disconnected</span>}
       </div>
       {!connected && <WalletGateBanner />}
+      {!connected && localManagerWallet && <div className="flex flex-wrap items-center gap-3 rounded-xl border border-primary/40 bg-primary/5 p-4">
+        <div className="min-w-0 flex-1"><p className="text-sm font-medium">Try it without a wallet extension</p><p className="text-xs leading-5 text-muted-foreground">Use a disposable local test wallet in this tab. It can only sign on this local validator.</p></div>
+        <Button type="button" disabled={programReady !== true} onClick={() => requestConnect(localManagerWallet.adapter.name, true)}>Use local test wallet</Button>
+      </div>}
+      {walletError && <p role="alert" className="rounded-lg border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">{walletError.message}</p>}
       <div className="flex gap-2" role="group" aria-label="Managed basket action">
         <Button variant={mode === "open" ? "default" : "outline"} onClick={() => setMode("open")}>Open basket</Button>
         <Button variant={mode === "create" ? "default" : "outline"} onClick={() => setMode("create")}>Create basket</Button>

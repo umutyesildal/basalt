@@ -156,7 +156,7 @@ function sleepMs(ms: number): Promise<void> {
 
 export function useTransactionFlow() {
   const { connection } = useConnection();
-  const { publicKey, sendTransaction } = useWallet();
+  const { publicKey, sendTransaction, signTransaction } = useWallet();
   const [state, setState] = useState<TransactionFlowState>(INITIAL);
   // Guards against double-submits (modal buttons + crank) while in flight.
   const inFlight = useRef(false);
@@ -188,7 +188,7 @@ export function useTransactionFlow() {
     async (
       build: TransactionBuild,
       prepare?: () => Promise<unknown>,
-      options?: { onComplete?: () => void; describe?: PendingTxDescribe },
+      options?: { onComplete?: () => void; describe?: PendingTxDescribe; sendViaConnection?: boolean },
     ): Promise<boolean> => {
       if (inFlight.current) return false;
       if (!publicKey) {
@@ -351,17 +351,29 @@ export function useTransactionFlow() {
       setState((s) => ({ ...s, status: "awaiting-signature", progress: null }));
       let signature: TransactionSignature;
       try {
-        signature = await withRetry(
-          () =>
-            sendTransaction(legacy ?? prepared!.transaction, connection, {
-              // The flow already simulated clean above — skipPreflight keeps
-              // the count of simulations at ONE and removes the cluster's
-              // preflight from the 429 blast radius.
-              skipPreflight: true,
-              preflightCommitment: "confirmed",
-            }),
-          { label: "wallet send", onRetry: onRetryEvent },
-        );
+        if (options?.sendViaConnection) {
+          // Local lab wallets can have an unrelated extension network selected.
+          // Sign only in the wallet, then broadcast on the connection that just
+          // simulated this exact transaction. Never let the extension choose RPC.
+          if (!signTransaction) throw new Error("This wallet cannot sign a transaction directly.");
+          const signed = await signTransaction(legacy ?? prepared!.transaction);
+          signature = await withRetry(
+            () => connection.sendRawTransaction(signed.serialize(), { skipPreflight: true, preflightCommitment: "confirmed" }),
+            { label: "local transaction send", onRetry: onRetryEvent },
+          );
+        } else {
+          signature = await withRetry(
+            () =>
+              sendTransaction(legacy ?? prepared!.transaction, connection, {
+                // The flow already simulated clean above — skipPreflight keeps
+                // the count of simulations at ONE and removes the cluster's
+                // preflight from the 429 blast radius.
+                skipPreflight: true,
+                preflightCommitment: "confirmed",
+              }),
+            { label: "wallet send", onRetry: onRetryEvent },
+          );
+        }
       } catch (err) {
         const message = describeWalletError(
           err as { name?: string; message?: string } | null,
@@ -464,7 +476,7 @@ export function useTransactionFlow() {
       inFlight.current = false;
       return false;
     },
-    [connection, publicKey, sendTransaction, fail],
+    [connection, publicKey, sendTransaction, signTransaction, fail],
   );
 
   return { state, run, reset, connected: Boolean(publicKey) };
