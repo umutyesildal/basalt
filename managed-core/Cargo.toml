@@ -1,0 +1,15 @@
+[package]
+name = "managed-core-proof"
+version = "0.1.0"
+edition = "2021"
+publish = false
+description = "Host-side accounting and RFQ state proof for Basalt Managed Basket V2"
+
+[lib]
+name = "managed_core_proof"
+path = "src/lib.rs"
+
+[dependencies]
+
+# Keep this host-only proof independent from the repository's Anchor workspace.
+[workspace]
