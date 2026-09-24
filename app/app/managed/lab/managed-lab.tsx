@@ -322,6 +322,10 @@ export function ManagedLab() {
         <div className="min-w-0 flex-1"><p className="text-sm font-medium">Start a local test</p><p className="text-xs leading-5 text-muted-foreground">Use a disposable wallet for this validator. An extension wallet needs to use the same local network.</p></div>
         <Button type="button" disabled={programReady !== true || desiredLocalRole !== null} onClick={() => void switchLocalRole("manager")}>{desiredLocalRole === "manager" ? "Connecting…" : "Use local test wallet"}</Button>
       </div>}
+      {connected && wallet?.adapter.name === "Solflare" && localManagerWallet && <div className="flex flex-wrap items-center gap-3 rounded-xl border border-primary/40 bg-primary/5 p-4">
+        <div className="min-w-0 flex-1"><p className="text-sm font-medium">Testing with Solflare?</p><p className="text-xs leading-5 text-muted-foreground">Solflare may show a failed preview for this local-only transaction. Use the disposable test wallet to complete the lab on this validator.</p></div>
+        <Button type="button" variant="outline" disabled={programReady !== true || desiredLocalRole !== null} onClick={() => void switchLocalRole("manager")}>{desiredLocalRole === "manager" ? "Switching…" : "Use local test wallet"}</Button>
+      </div>}
       {!connected && <WalletGateBanner />}
       {connected && localRole && <div className="flex flex-wrap items-center gap-3 rounded-xl border border-border bg-card p-4">
         <div className="min-w-0 flex-1"><p className="text-sm font-medium">Local test roles</p><p className="text-xs leading-5 text-muted-foreground">Switch wallets here to propose as manager and approve as guardian.</p></div>
