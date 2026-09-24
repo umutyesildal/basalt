@@ -11,7 +11,7 @@ import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { getConceptAsset, getConceptAssetName } from "@/lib/concept-assets";
 import { type ConceptBasket } from "@/lib/concept-basket";
-import { conceptPreviewHref } from "@/lib/concept-share";
+import { conceptCopyHref, conceptPreviewHref } from "@/lib/concept-share";
 import { formatBpsAsPercent, formatUsd } from "@/lib/format";
 import { tickerColor } from "@/lib/ticker-color";
 import { cn } from "@/lib/utils";
@@ -19,6 +19,7 @@ import { cn } from "@/lib/utils";
 export default function ConceptPreviewClient({ basket }: { basket: ConceptBasket | null }) {
   const [shareUrl, setShareUrl] = useState("");
   const [shareStatus, setShareStatus] = useState("");
+  const [showFullLink, setShowFullLink] = useState(false);
 
   useEffect(() => {
     if (!basket) return;
@@ -41,12 +42,8 @@ export default function ConceptPreviewClient({ basket }: { basket: ConceptBasket
       await navigator.clipboard.writeText(shareUrl);
       setShareStatus("Link copied");
     } catch {
-      const input = document.getElementById("preview-share-link");
-      if (input instanceof HTMLInputElement) {
-        input.focus();
-        input.select();
-      }
-      setShareStatus("Select and copy the link above");
+      setShowFullLink(true);
+      setShareStatus("Select and copy the link below");
     }
   }
 
@@ -102,14 +99,14 @@ export default function ConceptPreviewClient({ basket }: { basket: ConceptBasket
             ) : null}
           </div>
         </div>
-        <Link href="/create" className={cn(buttonVariants(), "min-h-10 gap-2 self-start md:self-auto")}>
-          Build your own
+        <Link href={conceptCopyHref(basket)} className={cn(buttonVariants(), "min-h-10 gap-2 self-start md:self-auto")}>
+          Use this mix
           <ArrowUpRight aria-hidden="true" className="size-4" />
         </Link>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1.3fr)_minmax(18rem,0.7fr)]">
-        <Card>
+        <Card className="self-start">
           <CardHeader>
             <CardDescription>Composition</CardDescription>
             <CardTitle className="font-display text-xl">A clear view of the mix</CardTitle>
@@ -179,25 +176,29 @@ export default function ConceptPreviewClient({ basket }: { basket: ConceptBasket
                 <Share2 aria-hidden="true" className="size-4 text-muted-foreground" />
                 <CardTitle className="text-base">Share this idea</CardTitle>
               </div>
-              <CardDescription>Anyone with the link can open this basket preview.</CardDescription>
+              <CardDescription>Send your mix to anyone.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">
-              <label htmlFor="preview-share-link" className="sr-only">Basket preview link</label>
-              <input
-                id="preview-share-link"
-                type="url"
-                readOnly
-                value={shareUrl}
-                onFocus={(event) => event.currentTarget.select()}
-                placeholder="Preparing your share link…"
-                className="h-11 w-full min-w-0 rounded-lg border border-border bg-background px-3 font-mono text-xs text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-              />
               <Button onClick={copyShareLink} disabled={!shareUrl} className="min-h-10 w-full gap-2">
                 {shareStatus === "Link copied" ? <Check aria-hidden="true" className="size-4" /> : <Copy aria-hidden="true" className="size-4" />}
-                {shareStatus === "Link copied" ? "Link copied" : "Copy preview link"}
+                {shareStatus === "Link copied" ? "Link copied" : "Copy basket link"}
               </Button>
+              <button type="button" onClick={() => setShowFullLink((show) => !show)} aria-expanded={showFullLink} className="min-h-9 text-xs text-muted-foreground underline-offset-4 hover:text-foreground hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                {showFullLink ? "Hide full link" : "Show full link"}
+              </button>
+              {showFullLink && <>
+                <label htmlFor="preview-share-link" className="sr-only">Basket preview link</label>
+                <input
+                  id="preview-share-link"
+                  type="url"
+                  readOnly
+                  value={shareUrl}
+                  onFocus={(event) => event.currentTarget.select()}
+                  className="h-11 w-full min-w-0 rounded-lg border border-border bg-background px-3 font-mono text-xs text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                />
+              </>}
               <p aria-live="polite" className="min-h-5 text-xs leading-5 text-muted-foreground">
-                {shareStatus || "The link includes only the basket name, allocation, amount, and fees."}
+                {shareStatus || "Anyone with the link can open this basket."}
               </p>
             </CardContent>
           </Card>

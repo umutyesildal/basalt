@@ -8,7 +8,7 @@ import { ArrowLeft, ArrowRight, Check, ChevronDown, Plus, Search, X } from "luci
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { CreatePreviewDonut } from "@/components/create/create-preview-donut";
-import { CONCEPT_ASSETS, getConceptAsset } from "@/lib/concept-assets";
+import { CONCEPT_ASSETS, DISCOVERY_ASSETS, getConceptAsset } from "@/lib/concept-assets";
 import { type ConceptBasket, validateConceptBasket } from "@/lib/concept-basket";
 import { conceptPreviewHref } from "@/lib/concept-share";
 import { formatBpsAsPercent, formatUsd } from "@/lib/format";
@@ -99,18 +99,18 @@ function asBasket(
   return { v: 1, name, thesis, assets, amountUsd, fees };
 }
 
-export default function ConceptCreate() {
+export default function ConceptCreate({ initialBasket = null }: { initialBasket?: ConceptBasket | null }) {
   const router = useRouter();
-  const [step, setStep] = useState<Step>(0);
-  const [activeTemplate, setActiveTemplate] = useState<string | null>("mega-cap-tech");
-  const [assets, setAssets] = useState<SelectedAsset[]>(INITIAL_ASSETS);
+  const [step, setStep] = useState<Step>(initialBasket ? 1 : 0);
+  const [activeTemplate, setActiveTemplate] = useState<string | null>(initialBasket ? null : "mega-cap-tech");
+  const [assets, setAssets] = useState<SelectedAsset[]>(initialBasket?.assets ?? INITIAL_ASSETS);
   const [search, setSearch] = useState("");
   const [showAllAssets, setShowAllAssets] = useState(false);
-  const [amountDraft, setAmountDraft] = useState("1000");
-  const [feesOpen, setFeesOpen] = useState(false);
-  const [fees, setFees] = useState<ConceptBasket["fees"]>({ entryBps: 0, exitBps: 0, managementBps: 0 });
-  const [name, setName] = useState("Mega-Cap Tech");
-  const [thesis, setThesis] = useState("");
+  const [amountDraft, setAmountDraft] = useState(String(initialBasket?.amountUsd ?? 1000));
+  const [feesOpen, setFeesOpen] = useState(Boolean(initialBasket && Object.values(initialBasket.fees).some(Boolean)));
+  const [fees, setFees] = useState<ConceptBasket["fees"]>(initialBasket?.fees ?? { entryBps: 0, exitBps: 0, managementBps: 0 });
+  const [name, setName] = useState(initialBasket?.name ?? "Mega-Cap Tech");
+  const [thesis, setThesis] = useState(initialBasket?.thesis ?? "");
   const [shareError, setShareError] = useState<string | null>(null);
 
   const parsedAmount = amountDraft.trim() === "" ? Number.NaN : Number(amountDraft);
@@ -118,7 +118,7 @@ export default function ConceptCreate() {
   const selectedSymbols = useMemo(() => new Set(assets.map((asset) => asset.symbol)), [assets]);
   const matchingAssets = useMemo(() => {
     const query = search.trim().toLowerCase();
-    const matches = CONCEPT_ASSETS.filter((asset) =>
+    const matches = DISCOVERY_ASSETS.filter((asset) =>
       !query || asset.symbol.toLowerCase().includes(query) || asset.name.toLowerCase().includes(query) || asset.category.toLowerCase().includes(query),
     );
     return showAllAssets || query ? matches : matches.slice(0, 8);
@@ -247,7 +247,7 @@ export default function ConceptCreate() {
       </nav>
 
       <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_360px]">
-        <Card className="min-w-0">
+        <Card className="min-w-0 overflow-visible">
           <CardHeader className="border-b border-border/70 px-5 py-5 sm:px-7">
             <div className="section-label">Step {step + 1} of 4</div>
             <h2 className="font-display mt-1 text-2xl font-semibold">{stepTitle}</h2>
@@ -326,6 +326,19 @@ export default function ConceptCreate() {
                       className="min-h-11 w-full rounded-lg border border-input bg-background pl-10 pr-3 text-sm outline-none placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring"
                     />
                   </div>
+                  {!search && (
+                    <button
+                      type="button"
+                      aria-expanded={showAllAssets}
+                      onClick={() => setShowAllAssets((show) => !show)}
+                      className="flex min-h-12 w-full items-center justify-between gap-3 rounded-lg border border-primary/50 bg-primary/10 px-4 text-left text-sm font-semibold text-foreground transition-colors hover:bg-primary/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                    >
+                      <span>{showAllAssets ? "Show popular picks" : "Browse all stocks & ETFs"}</span>
+                      <span className="flex shrink-0 items-center gap-2 font-mono text-xs font-normal text-muted-foreground">
+                        {CONCEPT_ASSETS.length} assets <ArrowRight className={`size-4 text-primary-text transition-transform ${showAllAssets ? "rotate-180" : ""}`} aria-hidden="true" />
+                      </span>
+                    </button>
+                  )}
                   <div className="grid grid-cols-2 gap-2 sm:grid-cols-3" aria-label="Curated assets">
                     {matchingAssets.map((asset) => {
                       const selected = selectedSymbols.has(asset.symbol);
@@ -353,11 +366,6 @@ export default function ConceptCreate() {
                   </div>
                   {matchingAssets.length === 0 && (
                     <p className="rounded-lg border border-dashed border-border p-4 text-center text-sm text-muted-foreground">No matching assets. Try a company name or ticker.</p>
-                  )}
-                  {!search && !showAllAssets && (
-                    <button type="button" onClick={() => setShowAllAssets(true)} className="min-h-10 text-sm text-primary-text underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
-                      Browse all {CONCEPT_ASSETS.length} assets
-                    </button>
                   )}
                   <p className="text-xs leading-5 text-muted-foreground">This curated catalog is for the concept preview. Availability and prices are not checked.</p>
                 </div>
@@ -483,9 +491,9 @@ export default function ConceptCreate() {
                   </button>
                   {feesOpen && (
                     <div className="mt-4 space-y-4 rounded-xl border border-border bg-background p-4">
-                      <FeeSlider label="Entry fee" detail="Applied when basket shares are created." value={fees.entryBps} max={300} onChange={(value) => setFees((current) => ({ ...current, entryBps: value }))} />
-                      <FeeSlider label="Exit fee" detail="Applied when basket shares are redeemed." value={fees.exitBps} max={100} onChange={(value) => setFees((current) => ({ ...current, exitBps: value }))} />
-                      <FeeSlider label="Management fee" detail="Annual fee represented by new basket shares over time." value={fees.managementBps} max={300} suffix="/ year" onChange={(value) => setFees((current) => ({ ...current, managementBps: value }))} />
+                      <FeeSlider label="Entry fee" detail="Charged when someone adds assets to receive basket shares." value={fees.entryBps} max={300} onChange={(value) => setFees((current) => ({ ...current, entryBps: value }))} />
+                      <FeeSlider label="Exit fee" detail="Charged when someone redeems shares for the underlying assets." value={fees.exitBps} max={100} onChange={(value) => setFees((current) => ({ ...current, exitBps: value }))} />
+                      <FeeSlider label="Management fee" detail="An annual rate that accrues over time as new fee shares." value={fees.managementBps} max={300} suffix="/ year" onChange={(value) => setFees((current) => ({ ...current, managementBps: value }))} />
                       <p className="border-t border-border pt-3 text-xs leading-5 text-muted-foreground">These rates are part of the concept preview. The transaction flow shows the complete fee terms before deployment.</p>
                     </div>
                   )}
@@ -544,7 +552,7 @@ export default function ConceptCreate() {
               </section>
             )}
           </CardContent>
-          <div className="flex items-center justify-between gap-3 border-t border-border/70 px-5 py-4 sm:px-7">
+          <div className="sticky bottom-[calc(5rem+env(safe-area-inset-bottom))] z-20 flex items-center justify-between gap-3 rounded-b-xl border-t border-border/70 bg-card/95 px-5 py-4 shadow-[0_-12px_30px_-20px_rgba(0,0,0,0.7)] backdrop-blur sm:px-7 md:bottom-0">
             <Button type="button" variant="outline" className="min-h-11 min-w-24" disabled={step === 0} onClick={() => setStep((step - 1) as Step)}>
               <ArrowLeft className="size-4" aria-hidden="true" /> Back
             </Button>

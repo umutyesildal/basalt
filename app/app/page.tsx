@@ -64,14 +64,14 @@ export default function LandingPage() {
 
       <section aria-labelledby="how-it-works" className="mx-auto max-w-5xl">
         <div className="max-w-xl">
-          <span className="font-mono text-xs uppercase tracking-[0.18em] text-primary">A simple way to start</span>
-          <h2 id="how-it-works" className="mt-3 font-display text-3xl font-semibold sm:text-4xl">Build it. Share it. Find your people.</h2>
+          <span className="font-mono text-xs uppercase tracking-[0.18em] text-primary">How Basalt works</span>
+          <h2 id="how-it-works" className="mt-3 font-display text-3xl font-semibold sm:text-4xl">Build a mix. Make it yours.</h2>
         </div>
         <div className="mt-9 grid gap-3 md:grid-cols-3">
           {[
-            ["01", "Shape your thesis", "Start with a theme or choose your own stocks and ETFs."],
-            ["02", "Build your mix", "Set clear weights and make your point of view easy to see."],
-            ["03", "Share and discover", "Share your preview and explore other creators. Following an onchain creator requires a wallet."],
+            ["01", "Build", "Choose the stocks and set their weights."],
+            ["02", "Copy a mix", "Open someone’s basket, use its mix, then change it to fit your view."],
+            ["03", "Share", "Send your basket link. Others can use it as a starting point too."],
           ].map(([number, title, body]) => (
             <div key={number} className="rounded-xl border border-border bg-card p-6">
               <span className="font-mono text-xs text-primary">{number}</span>
@@ -80,11 +80,12 @@ export default function LandingPage() {
             </div>
           ))}
         </div>
-        <p className="mt-5 text-xs text-muted-foreground">Concept previews show ideas only. Creating a preview does not buy assets or deploy a basket.</p>
+        <p className="mt-5 text-xs text-muted-foreground">Copying a mix does not copy future trades or buy assets.</p>
         <div className="mt-7 flex flex-col gap-4 rounded-xl border border-border bg-card p-6 sm:flex-row sm:items-center sm:justify-between">
           <div className="max-w-2xl">
-            <h3 className="font-display text-xl font-semibold">Take your idea onchain</h3>
-            <p className="mt-2 text-sm leading-6 text-muted-foreground">A deployed basket can earn creator fees when people use it. You set the rates within protocol limits; 90% of generated fee shares go to the creator and 10% to the treasury. This Devnet path uses mock tokens and has no real earnings.</p>
+            <h3 className="font-display text-xl font-semibold">How creator fees work</h3>
+            <p className="mt-2 text-sm leading-6 text-muted-foreground">A preview earns nothing. If you deploy a basket, you can set optional entry, exit, and annual fees. When fees are generated, 90% of the fee shares go to the creator and 10% to the treasury.</p>
+            <p className="mt-2 text-xs text-muted-foreground">The current onchain flow uses Devnet mock tokens and has no real earnings.</p>
           </div>
           <Link href="/create/onchain" className="inline-flex min-h-11 shrink-0 items-center justify-center rounded-lg border border-border px-5 text-sm font-medium hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50">Explore onchain creation</Link>
         </div>

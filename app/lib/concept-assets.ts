@@ -52,6 +52,18 @@ export const CONCEPT_ASSETS: readonly ConceptAsset[] = [
   { symbol: "TSLA", name: "Tesla", category: "Mobility", logoUrl: logoUrl("TSLA") },
 ] as const;
 
+/** Editorial discovery order, not a claim about live trading volume. */
+const DISCOVERY_ORDER = [
+  "AAPL", "MSFT", "NVDA", "AMZN", "GOOGL", "META", "TSLA", "SPY",
+  "QQQ", "NFLX", "DIS", "JPM", "V", "WMT", "COST", "UBER",
+] as const;
+const discoveryRank = new Map<string, number>(DISCOVERY_ORDER.map((symbol, index) => [symbol, index]));
+
+export const DISCOVERY_ASSETS: readonly ConceptAsset[] = [...CONCEPT_ASSETS].sort((a, b) =>
+  (discoveryRank.get(a.symbol) ?? Number.MAX_SAFE_INTEGER) - (discoveryRank.get(b.symbol) ?? Number.MAX_SAFE_INTEGER)
+  || a.name.localeCompare(b.name),
+);
+
 const ASSETS_BY_SYMBOL = new Map(CONCEPT_ASSETS.map((asset) => [asset.symbol, asset]));
 
 export function getConceptAsset(symbol: string): ConceptAsset | undefined {
