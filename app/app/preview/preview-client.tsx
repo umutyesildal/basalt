@@ -99,14 +99,14 @@ export default function ConceptPreviewClient({ basket }: { basket: ConceptBasket
             ) : null}
           </div>
         </div>
-        <Link href={conceptCopyHref(basket)} className={cn(buttonVariants(), "min-h-10 gap-2 self-start md:self-auto")}>
+        <Link href={conceptCopyHref(basket)} className={cn(buttonVariants(), "basalt-cta min-h-10 gap-2 self-start md:self-auto")}>
           Use this mix
           <ArrowUpRight aria-hidden="true" className="size-4" />
         </Link>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1.3fr)_minmax(18rem,0.7fr)]">
-        <Card className="self-start">
+        <Card className="basalt-arrive self-start">
           <CardHeader>
             <CardDescription>Composition</CardDescription>
             <CardTitle className="font-display text-xl">A clear view of the mix</CardTitle>
@@ -155,7 +155,7 @@ export default function ConceptPreviewClient({ basket }: { basket: ConceptBasket
         </Card>
 
         <div className="space-y-6">
-          <Card>
+          <Card className="basalt-arrive basalt-arrive-later">
             <CardHeader>
               <CardDescription>Example amount</CardDescription>
               <CardTitle className="font-display text-3xl tabular-nums">{formatUsd(basket.amountUsd)}</CardTitle>

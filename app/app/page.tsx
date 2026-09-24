@@ -25,20 +25,20 @@ export default function LandingPage() {
             <div className="mt-9 flex flex-wrap gap-3">
               <Link
                 href="/create"
-                className="inline-flex min-h-11 items-center justify-center rounded-lg bg-primary px-6 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+                className="basalt-cta inline-flex min-h-11 items-center justify-center rounded-lg bg-primary px-6 text-sm font-semibold text-primary-foreground hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
               >
                 Build a basket idea <span aria-hidden="true" className="ml-3">↗</span>
               </Link>
               <Link
                 href="/explore"
-                className="inline-flex min-h-11 items-center justify-center rounded-lg border border-border bg-card/80 px-6 text-sm font-medium transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+                className="basalt-cta inline-flex min-h-11 items-center justify-center rounded-lg border border-border bg-card/80 px-6 text-sm font-medium hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
               >
                 Explore ideas
               </Link>
             </div>
           </div>
 
-          <div className="rounded-xl border border-border bg-card/95 p-5 shadow-2xl shadow-black/10" aria-label="Example basket allocation: NVDA 40%, AAPL 32%, MSFT 28%">
+          <div className="basalt-arrive rounded-xl border border-border bg-card/95 p-5 shadow-2xl shadow-black/10" aria-label="Example basket allocation: NVDA 40%, AAPL 32%, MSFT 28%">
             <div className="flex items-center justify-between gap-3">
               <span className="font-mono text-[11px] uppercase tracking-[0.16em] text-muted-foreground">Your basket</span>
               <span className="rounded border border-primary/40 px-2 py-1 font-mono text-[10px] uppercase tracking-wide text-primary">Preview</span>

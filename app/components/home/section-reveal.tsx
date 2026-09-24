@@ -6,7 +6,7 @@ import { cn } from "@/lib/utils";
 
 /**
  * SectionReveal — one-shot staggered fade-up when a home section first
- * scrolls into view (wave-2 polish, 2026-09-14): ~180ms ease-out, ≤8px
+ * scrolls into view (wave-2 polish, 2026-09-14): 200ms ease-out, ≤8px
  * travel, optional small `delay` (ms) to stagger siblings.
  *
  * OWNER FIX (2026-09-14, "anasayfada gözükmeyen bi kısım"): the previous
@@ -74,7 +74,7 @@ export function SectionReveal({
     <div
       ref={ref}
       className={cn(
-        "transition-[opacity,transform] duration-[180ms] ease-out motion-reduce:transition-none",
+        "transition-[opacity,transform] duration-200 ease-out motion-reduce:transition-none",
         hidden && "translate-y-2 opacity-0",
         className,
       )}

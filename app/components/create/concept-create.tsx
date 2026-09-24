@@ -4,6 +4,7 @@ import { useMemo, useState, type CSSProperties } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, ArrowRight, Check, ChevronDown, Plus, Search, X } from "lucide-react";
+import { motion, useReducedMotion } from "motion/react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
@@ -58,6 +59,12 @@ const STEPS = ["Choose", "Set up", "Start", "Review"] as const;
 type Step = 0 | 1 | 2 | 3;
 type SelectedAsset = ConceptBasket["assets"][number];
 
+/* Create storyboard: the step rail and sticky actions stay still.
+ * 0ms  New step content is present and usable.
+ * 200ms New step content settles 6px upward; selection feedback is immediate.
+ * The live donut has its own 200ms weight transition. */
+const STEP_ENTER_MS = 200;
+
 const INITIAL_ASSETS = TEMPLATE_OPTIONS[0].assets.map((asset) => ({ ...asset }));
 
 function equalWeights(count: number): number[] {
@@ -101,7 +108,9 @@ function asBasket(
 
 export default function ConceptCreate({ initialBasket = null }: { initialBasket?: ConceptBasket | null }) {
   const router = useRouter();
+  const reducedMotion = useReducedMotion();
   const [step, setStep] = useState<Step>(initialBasket ? 1 : 0);
+  const [hasNavigated, setHasNavigated] = useState(false);
   const [activeTemplate, setActiveTemplate] = useState<string | null>(initialBasket ? null : "mega-cap-tech");
   const [assets, setAssets] = useState<SelectedAsset[]>(initialBasket?.assets ?? INITIAL_ASSETS);
   const [search, setSearch] = useState("");
@@ -187,7 +196,12 @@ export default function ConceptCreate({ initialBasket = null }: { initialBasket?
 
   function next() {
     if (!canContinue) return;
-    if (step < 3) setStep((step + 1) as Step);
+    if (step < 3) goToStep((step + 1) as Step);
+  }
+
+  function goToStep(nextStep: Step) {
+    setHasNavigated(true);
+    setStep(nextStep);
   }
 
   function createPreview() {
@@ -234,7 +248,7 @@ export default function ConceptCreate({ initialBasket = null }: { initialBasket?
             const active = index === step;
             return (
               <li key={label} className="min-w-0">
-                <div className={`flex items-center gap-2 border-t-2 pt-3 ${active ? "border-primary" : complete ? "border-primary/55" : "border-border"}`}>
+                <div className={`flex items-center gap-2 border-t-2 pt-3 transition-colors duration-150 motion-reduce:transition-none ${active ? "border-primary" : complete ? "border-primary/55" : "border-border"}`}>
                   <span className={`flex size-6 shrink-0 items-center justify-center rounded-full font-mono text-xs ${active ? "bg-primary text-primary-foreground" : complete ? "bg-primary/15 text-foreground" : "bg-muted text-muted-foreground"}`}>
                     {complete ? <Check className="size-3.5" aria-hidden="true" /> : index + 1}
                   </span>
@@ -253,7 +267,14 @@ export default function ConceptCreate({ initialBasket = null }: { initialBasket?
             <h2 className="font-display mt-1 text-2xl font-semibold">{stepTitle}</h2>
             <p className="mt-1 text-sm text-muted-foreground">{stepDescription}</p>
           </CardHeader>
-          <CardContent className="space-y-7 px-5 py-6 sm:px-7">
+          <CardContent className="px-5 py-6 sm:px-7">
+            <motion.div
+              key={step}
+              className="space-y-7"
+              initial={!hasNavigated || reducedMotion ? false : { opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: reducedMotion ? 0 : STEP_ENTER_MS / 1000, ease: "easeOut" }}
+            >
             {step === 0 && (
               <section aria-labelledby="template-heading" className="space-y-6">
                 <div>
@@ -273,7 +294,7 @@ export default function ConceptCreate({ initialBasket = null }: { initialBasket?
                       type="button"
                       aria-pressed={activeTemplate === "custom"}
                       onClick={() => chooseTemplate("custom")}
-                      className={`group flex min-h-32 flex-col justify-between rounded-xl border p-4 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ${activeTemplate === "custom" ? "border-primary bg-primary/5" : "border-border bg-background hover:bg-muted/40"}`}
+                      className={`basalt-choice group flex min-h-32 flex-col justify-between rounded-xl border p-4 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ${activeTemplate === "custom" ? "border-primary bg-primary/5" : "border-border bg-background hover:bg-muted/40"}`}
                     >
                       <span className="flex items-center justify-between gap-2">
                         <span className="font-medium">Create your own index</span>
@@ -350,7 +371,7 @@ export default function ConceptCreate({ initialBasket = null }: { initialBasket?
                           aria-pressed={selected}
                           disabled={disabled}
                           onClick={() => toggleAsset(asset.symbol)}
-                          className={`flex min-h-12 items-center gap-2 rounded-lg border px-2.5 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 disabled:cursor-not-allowed disabled:opacity-50 ${selected ? "border-primary/60 bg-primary/5" : "border-border bg-background hover:bg-muted/40"}`}
+                          className={`basalt-choice flex min-h-12 items-center gap-2 rounded-lg border px-2.5 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 disabled:cursor-not-allowed disabled:opacity-50 ${selected ? "border-primary/60 bg-primary/5" : "border-border bg-background hover:bg-muted/40"}`}
                         >
                           <AssetLogo symbol={asset.symbol} size={28} />
                           <span className="min-w-0 flex-1">
@@ -390,7 +411,7 @@ export default function ConceptCreate({ initialBasket = null }: { initialBasket?
                   <div className="rounded-xl border border-dashed border-border p-6 text-center">
                     <p className="text-sm font-medium">Add one more asset to set your mix</p>
                     <p className="mt-1 text-xs text-muted-foreground">A basket preview needs at least two constituents.</p>
-                    <Button type="button" variant="outline" className="mt-4 min-h-11" onClick={() => setStep(0)}>Choose assets</Button>
+                    <Button type="button" variant="outline" className="mt-4 min-h-11" onClick={() => goToStep(0)}>Choose assets</Button>
                   </div>
                 ) : (
                   <>
@@ -551,9 +572,10 @@ export default function ConceptCreate({ initialBasket = null }: { initialBasket?
                 </div>
               </section>
             )}
+            </motion.div>
           </CardContent>
           <div className="sticky bottom-[calc(5rem+env(safe-area-inset-bottom))] z-20 flex items-center justify-between gap-3 rounded-b-xl border-t border-border/70 bg-card/95 px-5 py-4 shadow-[0_-12px_30px_-20px_rgba(0,0,0,0.7)] backdrop-blur sm:px-7 md:bottom-0">
-            <Button type="button" variant="outline" className="min-h-11 min-w-24" disabled={step === 0} onClick={() => setStep((step - 1) as Step)}>
+            <Button type="button" variant="outline" className="min-h-11 min-w-24" disabled={step === 0} onClick={() => goToStep((step - 1) as Step)}>
               <ArrowLeft className="size-4" aria-hidden="true" /> Back
             </Button>
             {step < 3 ? (
@@ -606,7 +628,7 @@ function TemplateCard({
       type="button"
       aria-pressed={selected}
       onClick={onSelect}
-      className={`flex min-h-32 flex-col rounded-xl border p-3.5 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 sm:p-4 ${selected ? "border-primary bg-primary/5" : "border-border bg-background hover:bg-muted/40"}`}
+      className={`basalt-choice flex min-h-32 flex-col rounded-xl border p-3.5 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 sm:p-4 ${selected ? "border-primary bg-primary/5" : "border-border bg-background hover:bg-muted/40"}`}
     >
       <span className="flex w-full items-start justify-between gap-2">
         <span className="min-w-0">
