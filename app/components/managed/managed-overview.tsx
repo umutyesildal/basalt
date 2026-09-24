@@ -1,9 +1,12 @@
 import { ArrowRight } from "lucide-react";
+import Link from "next/link";
 
 import { AllocationComparison } from "@/components/managed/allocation-comparison";
 import { TokenRoles } from "@/components/managed/token-roles";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { managedBasketExample } from "@/lib/managed-sample";
+import { isLocalManagedEndpoint } from "@/lib/managed-chain";
+import { CLUSTER, RPC_ENDPOINT } from "@/lib/wallet";
 
 function BasaltMark() {
   return (
@@ -139,6 +142,11 @@ export function ManagedOverview() {
             See an example mix
             <ArrowRight aria-hidden="true" className="size-4" />
           </a>
+          {isLocalManagedEndpoint(CLUSTER, RPC_ENDPOINT) && (
+            <Link href="/managed/lab" className="ml-4 inline-flex min-h-11 items-center text-sm font-medium text-foreground underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+              Try with a wallet
+            </Link>
+          )}
         </div>
 
         <div className="relative flex min-h-52 items-center justify-between overflow-hidden rounded-xl border border-border bg-card p-6 sm:p-8">

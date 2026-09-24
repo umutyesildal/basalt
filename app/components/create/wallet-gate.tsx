@@ -1,6 +1,6 @@
 "use client";
 
-import { useId, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { ChevronDown, Wallet } from "lucide-react";
 
@@ -24,6 +24,7 @@ export function WalletGateBanner({ className }: { className?: string }) {
   const { requestConnect } = useWalletConnect();
 
   const [open, setOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const menuId = useId();
 
@@ -33,7 +34,10 @@ export function WalletGateBanner({ className }: { className?: string }) {
     containerRef,
   });
 
-  const hasReadyWallet = wallets.some((entry) => isWalletReady(entry.readyState));
+  // Wallet extension detection happens only in the browser. Keep the first
+  // render identical to SSR so a detected wallet cannot cause hydration drift.
+  useEffect(() => setMounted(true), []);
+  const hasReadyWallet = mounted && wallets.some((entry) => isWalletReady(entry.readyState));
 
   return (
     <div
