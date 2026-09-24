@@ -16,6 +16,7 @@ import {
   type RetryEvent,
 } from "@/lib/rpc-retry";
 import { RPC_ENDPOINT, describeRpcError, describeWalletError } from "@/lib/wallet";
+import { signAndSendLocal } from "@/lib/sign-and-send-local";
 import {
   computeBudgetInstructions,
   decodeProgramError,
@@ -356,10 +357,11 @@ export function useTransactionFlow() {
           // Sign only in the wallet, then broadcast on the connection that just
           // simulated this exact transaction. Never let the extension choose RPC.
           if (!signTransaction) throw new Error("This wallet cannot sign a transaction directly.");
-          const signed = await signTransaction(legacy ?? prepared!.transaction);
-          signature = await withRetry(
-            () => connection.sendRawTransaction(signed.serialize(), { skipPreflight: true, preflightCommitment: "confirmed" }),
-            { label: "local transaction send", onRetry: onRetryEvent },
+          signature = await signAndSendLocal(
+            legacy ?? prepared!.transaction,
+            signTransaction,
+            connection,
+            onRetryEvent,
           );
         } else {
           signature = await withRetry(
