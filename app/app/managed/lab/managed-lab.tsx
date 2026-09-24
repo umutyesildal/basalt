@@ -80,22 +80,69 @@ export function ManagedLab() {
   const [basketAddress, setBasketAddress] = useState("");
   const [loaded, setLoaded] = useState<LoadedBasket | null>(null);
   const [loading, setLoading] = useState(false);
+  const [preparingSample, setPreparingSample] = useState(false);
+  const [sampleReady, setSampleReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [programReady, setProgramReady] = useState<boolean | null>(null);
 
   const [mintA, setMintA] = useState("");
   const [mintB, setMintB] = useState("");
   const [guardian, setGuardian] = useState("");
-  const [seedA, setSeedA] = useState("");
-  const [seedB, setSeedB] = useState("");
+  const [seedA, setSeedA] = useState("10");
+  const [seedB, setSeedB] = useState("10");
   const [createWeight, setCreateWeight] = useState("50");
-  const [depositA, setDepositA] = useState("");
-  const [redeemShares, setRedeemShares] = useState("");
-  const [proposedWeight, setProposedWeight] = useState("50");
+  const [depositA, setDepositA] = useState("1");
+  const [redeemShares, setRedeemShares] = useState("0.1");
+  const [proposedWeight, setProposedWeight] = useState("40");
   const [inputIndex, setInputIndex] = useState<0 | 1>(0);
-  const [maxInput, setMaxInput] = useState("");
-  const [minOutput, setMinOutput] = useState("");
-  const [fillOutput, setFillOutput] = useState("");
+  const [maxInput, setMaxInput] = useState("1");
+  const [minOutput, setMinOutput] = useState("0.75");
+  const [fillOutput, setFillOutput] = useState("0.8");
+
+  const prepareSample = useCallback(async () => {
+    if (!localOnly || !publicKey || !connected || programReady !== true) {
+      setError("Connect a wallet to the local validator first.");
+      return;
+    }
+    setPreparingSample(true);
+    setError(null);
+    try {
+      const response = await fetch("/api/managed/lab/fixture", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ wallet: publicKey.toBase58() }),
+        cache: "no-store",
+      });
+      const payload: unknown = await response.json();
+      if (!response.ok) {
+        const message = typeof payload === "object" && payload !== null && "error" in payload && typeof payload.error === "string"
+          ? payload.error : "Local sample setup failed.";
+        throw new Error(message);
+      }
+      if (!payload || typeof payload !== "object" || !("wallet" in payload) || !("tokenA" in payload) || !("tokenB" in payload) ||
+          payload.wallet !== publicKey.toBase58() || typeof payload.tokenA !== "string" || typeof payload.tokenB !== "string") {
+        throw new Error("The sample response was incomplete.");
+      }
+      const a = parseKey(payload.tokenA, "Token A"), b = parseKey(payload.tokenB, "Token B");
+      const [da, db, balanceA, balanceB] = await Promise.all([
+        localMintDecimals(connection, a), localMintDecimals(connection, b),
+        rawBalance(connection, tokenAta(publicKey, a)), rawBalance(connection, tokenAta(publicKey, b)),
+      ]);
+      if (da !== 6 || db !== 6 || balanceA < 10_000_000n || balanceB < 10_000_000n) {
+        throw new Error("The two sample tokens did not reach your wallet. Try again.");
+      }
+      setMintA(a.toBase58());
+      setMintB(b.toBase58());
+      setSeedA("10");
+      setSeedB("10");
+      setCreateWeight("50");
+      setSampleReady(true);
+      setMode("create");
+    } catch (cause) {
+      setSampleReady(false);
+      setError(cause instanceof Error ? cause.message : "Local sample setup failed.");
+    } finally { setPreparingSample(false); }
+  }, [connected, connection, localOnly, programReady, publicKey]);
 
   useEffect(() => {
     if (!localOnly) return;
@@ -225,14 +272,18 @@ export function ManagedLab() {
       </div>
 
       {mode === "create" ? <Card><CardHeader><CardTitle>Create with two mock tokens</CardTitle></CardHeader><CardContent className="space-y-5">
-        <p className="text-sm text-muted-foreground">You need both local tokens in your wallet. Creation deposits the amounts below and gives you one basket share plus the identity token. Fees are 0%.</p>
+        <div className="flex flex-col gap-3 rounded-lg border border-border bg-muted/30 p-4 sm:flex-row sm:items-center sm:justify-between">
+          <div><p className="text-sm font-medium">Start with a sample</p><p className="mt-1 text-xs leading-5 text-muted-foreground">Get two local test tokens and fill the token and amount fields automatically.</p></div>
+          <Button type="button" variant="outline" disabled={!connected || programReady !== true || preparingSample} onClick={() => void prepareSample()}>{preparingSample ? "Preparing…" : sampleReady ? "Sample ready" : "Prepare sample"}</Button>
+        </div>
+        <p className="text-sm text-muted-foreground">Creation deposits the amounts below and gives you one basket share plus the identity token. Fees are 0%.</p>
         <div className="grid gap-4 sm:grid-cols-2">
           <label className={labelClass}>Token A mint<input className={inputClass} value={mintA} onChange={(e) => setMintA(e.target.value)} placeholder="Local Token-2022 mint" /></label>
           <label className={labelClass}>Token B mint<input className={inputClass} value={mintB} onChange={(e) => setMintB(e.target.value)} placeholder="Local Token-2022 mint" /></label>
           <label className={labelClass}>Token A to deposit<input className={inputClass} inputMode="decimal" value={seedA} onChange={(e) => setSeedA(e.target.value)} placeholder="10" /></label>
           <label className={labelClass}>Token B to deposit<input className={inputClass} inputMode="decimal" value={seedB} onChange={(e) => setSeedB(e.target.value)} placeholder="10" /></label>
           <label className={labelClass}>Token A target %<input className={inputClass} inputMode="decimal" value={createWeight} onChange={(e) => setCreateWeight(e.target.value)} /></label>
-          <label className={labelClass}>Guardian wallet<input className={inputClass} value={guardian} onChange={(e) => setGuardian(e.target.value)} placeholder="A different wallet" /></label>
+          <label className={labelClass}>Guardian wallet<input className={inputClass} value={guardian} onChange={(e) => setGuardian(e.target.value)} placeholder="Another wallet you control" /><span className="text-xs font-normal leading-5 text-muted-foreground">Use a different wallet you control to approve mix changes later.</span></label>
         </div>
         <details className="text-sm text-muted-foreground"><summary className="min-h-11 cursor-pointer py-2 text-foreground">Management terms</summary><p>Only these two assets can be reweighted. The guardian must approve a trade limit, then a public notice of at least 216,000 slots passes before a fill. Share holders can redeem from the actual vault throughout. The identity token grants no management rights.</p></details>
         <Button disabled={!connected || programReady !== true || tx.state.status === "awaiting-signature" || tx.state.status === "confirming"} onClick={() => {

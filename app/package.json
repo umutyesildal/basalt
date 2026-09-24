@@ -11,6 +11,7 @@
   "dependencies": {
     "@base-ui/react": "^1.7.0",
     "@number-flow/react": "^0.6.2",
+    "@solana/spl-token": "^0.4.15",
     "@solana/wallet-adapter-phantom": "^0.9.29",
     "@solana/wallet-adapter-react": "^0.15.35",
     "@solana/wallet-adapter-solflare": "^0.6.33",
