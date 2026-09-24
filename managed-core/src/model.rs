@@ -323,7 +323,7 @@ impl ManagedBasket {
         {
             return Err(CoreError::InvalidPriceBound);
         }
-        if approval_slot >= proposal.approval_deadline_slot {
+        if approval_slot > proposal.approval_deadline_slot {
             return Err(CoreError::ApprovalDeadlinePassed);
         }
 
@@ -360,10 +360,10 @@ impl ManagedBasket {
     pub fn expire_proposal(&mut self, current_slot: u64) -> Result<(), CoreError> {
         let proposal = self.pending.as_ref().ok_or(CoreError::NoPendingProposal)?;
         if let Some(bound) = proposal.price_bound {
-            if current_slot < bound.expires_at_slot {
+            if current_slot <= bound.expires_at_slot {
                 return Err(CoreError::ProposalNotExpired);
             }
-        } else if current_slot < proposal.approval_deadline_slot {
+        } else if current_slot <= proposal.approval_deadline_slot {
             return Err(CoreError::ProposalNotExpired);
         }
         self.pending = None;
@@ -421,7 +421,7 @@ impl ManagedBasket {
         if current_slot < bound.execute_after_slot {
             return Err(CoreError::TooEarly);
         }
-        if current_slot >= bound.expires_at_slot {
+        if current_slot > bound.expires_at_slot {
             return Err(CoreError::ProposalExpired);
         }
         if fill.input_raw != bound.max_input_raw

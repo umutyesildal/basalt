@@ -2,7 +2,8 @@
 members = [
     "programs/whitelist",
     "programs/basket_factory",
-    "programs/basket"
+    "programs/basket",
+    "programs/managed_basket"
 ]
 resolver = "2"
 

@@ -265,17 +265,17 @@ fn delay_expiry_and_guardian_bound_are_enforced_without_partial_mutation() {
 }
 
 #[test]
-fn guardian_must_approve_before_deadline_and_unapproved_proposal_can_expire() {
+fn guardian_must_approve_by_deadline_and_unapproved_proposal_can_expire() {
     let (mut basket, _) = setup();
     let nonce = basket
         .propose_rebalance(MANAGER, 0, [3_000, 7_000], Asset::A, 20, 10)
         .unwrap();
     let before_late_approval = basket.clone();
 
-    // Proposal at slot 10 carries an approval deadline at slot 20. Approving
-    // at the deadline is too late; delay does not begin for unapproved terms.
+    // Proposal at slot 10 carries an inclusive approval deadline at slot 20.
+    // An unapproved proposal can expire only after that slot.
     assert_eq!(
-        basket.approve_price_bound(GUARDIAN, nonce, 20, 18, 20),
+        basket.approve_price_bound(GUARDIAN, nonce, 20, 18, 21),
         Err(CoreError::ApprovalDeadlinePassed)
     );
     assert_eq!(basket, before_late_approval);
@@ -285,8 +285,38 @@ fn guardian_must_approve_before_deadline_and_unapproved_proposal_can_expire() {
     );
     assert_eq!(basket, before_late_approval);
 
-    basket.expire_proposal(20).unwrap();
+    assert_eq!(basket.expire_proposal(20), Err(CoreError::ProposalNotExpired));
+    basket.expire_proposal(21).unwrap();
     assert!(basket.pending_proposal().is_none());
+}
+
+#[test]
+fn approval_and_fill_are_valid_on_their_final_slots() {
+    let (mut basket, mut taker) = setup();
+    let nonce = basket
+        .propose_rebalance(MANAGER, 0, [2_500, 7_500], Asset::A, 20, 10)
+        .unwrap();
+    basket
+        .approve_price_bound(GUARDIAN, nonce, 20, 18, 20)
+        .unwrap();
+    let bound = basket.pending_proposal().unwrap().price_bound.unwrap();
+    assert_eq!(bound.execute_after_slot, 30);
+    assert_eq!(bound.expires_at_slot, 50);
+    assert_eq!(basket.expire_proposal(50), Err(CoreError::ProposalNotExpired));
+    basket
+        .fill_rebalance(
+            TAKER,
+            &mut taker,
+            nonce,
+            PairFill {
+                input_asset: Asset::A,
+                input_raw: 20,
+                output_raw: 18,
+            },
+            50,
+        )
+        .unwrap();
+    assert_eq!(basket.allocation_version(), 1);
 }
 
 #[test]
@@ -306,14 +336,14 @@ fn expired_fill_and_stale_manager_version_do_not_change_state() {
                 input_raw: 20,
                 output_raw: 18,
             },
-            32,
+            33,
         ),
         Err(CoreError::ProposalExpired)
     );
     assert_eq!(basket, before_expired_fill);
     assert_eq!(taker, taker_before_expired_fill);
 
-    basket.expire_proposal(32).unwrap();
+    basket.expire_proposal(33).unwrap();
     let after_expiry = basket.clone();
     assert_eq!(
         basket.propose_rebalance(MANAGER, 9, [3_000, 7_000], Asset::A, 10, 33),

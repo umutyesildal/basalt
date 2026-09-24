@@ -1,6 +1,6 @@
 # Basalt Managed Baskets V2 — product and implementation plan
 
-> Status: architecture plan, 2026-09-24. No Managed V2 instruction is deployed or enabled by this document. This track is separate from immutable Basalt V0 and from the holder-signed migration in `basalt-rebalance-v1-draft.md`.
+> Status: architecture plan plus an isolated local prototype implementation, 2026-09-24. No Managed V2 instruction is deployed to a public cluster. This track is separate from immutable Basalt V0 and from the holder-signed migration in `basalt-rebalance-v1-draft.md`. See `managed-basket-v2-prototype-status.md` for what the current code actually supports and the remaining gates.
 >
 > Working branch: `codex/managed-baskets-v2`, created from canonical `main` at `82e9196` in a separate worktree. The pre-existing uncommitted governance/deployment verifier work in canonical `main` must stay untouched.
 >
@@ -34,7 +34,7 @@ Token-2022 supplies mint, burn, transfer and optional metadata. It does not spli
 5. Portfolio and social activity use confirmed chain state for holdings/version. The feed may say “proposed a new mix” or “updated the basket” only when the respective proposal or execution is confirmed. The backend never signs a trade and does not fabricate activity.
 6. Every real on-chain view identifies devnet/mock assets and source/time in a calm, visible way. Concept preview data stays separate from real transactions. Copy remains English; avoid “fund”, “ETF”, guaranteed earnings or a claim that creators manage a holder's wallet.
 
-Manager compensation can use an immutable V2 fee schedule and the existing 90/10 creator/treasury split, with the protocol caps enforced at creation. This needs a distinct, honest “earn when people use your strategy” explanation; no projected income or return is shown. Rebalance execution costs are disclosed separately from entry, exit and annual fees.
+Manager compensation can use an immutable V2 fee schedule and the existing 90/10 creator/treasury split, with the protocol caps enforced at creation. This needs a distinct, honest “earn when people use your strategy” explanation; no projected income or return is shown. Rebalance execution costs are disclosed separately from entry, exit and annual fees. **The first two-asset on-chain proof fixes all fees at 0%; fee accrual and creator earnings remain a later, separately tested module.**
 
 ## 3. On-chain contract and accounting invariants
 
@@ -104,8 +104,8 @@ Do **not** extract a shared V0/V2 Rust math crate at the start: V0 is live and p
 
 The working assumption is **identity-only NFT; management rights live in an explicit role account**. If an NFT transfer should also transfer the manager role and fee recipient, that changes the threat model and transaction model; decide before coding NFT issuance. The initial arithmetic/RFQ proof can omit NFT wiring, but the complete V2 creation flow includes one identity NFT.
 
-Other deliberate defaults for a testable first slice: fixed 2–3 mock assets; positive weights; fees immutable after create; 24-hour public notice (use slots/time safely, exact constant chosen in the normative spec); distinct manager and guardian; full-fill RFQ with committed price bound; no DEX CPI; no automatic execution by the backend. These are architecture defaults to verify against a working prototype, not claims that liquidity or production governance already exist.
+Other deliberate defaults for a testable first slice: fixed two mock assets; positive weights; zero fees; 24-hour public notice (use slots/time safely, exact constant chosen in the normative spec); distinct manager and guardian; full-fill RFQ with committed price bound; no DEX CPI; no automatic execution by the backend. These are architecture defaults to verify against a working prototype, not claims that liquidity or production governance already exist.
 
-## 8. Branch checkpoint (2026-09-24)
+## 8. Phase-one branch checkpoint (2026-09-24)
 
-This branch currently includes the plan, UI contract, threat/test matrix, and a standalone `managed-core/` Rust **host proof**. Its two-asset model covers live raw-balance in-kind mint, pro-rata redeem, manager proposal, guardian approval, public delay, expiry and an atomic bounded pair fill. Eight integration tests pass. The model deliberately omits fees, account ownership/signature enforcement, Token-2022 CPI, NFT issuance, indexer, API and UI wiring. Those remain the work packages above; the proof must never be presented as a deployed or security-reviewed V2 product.
+The first commit on this branch included the plan, UI contract, threat/test matrix, and a standalone `managed-core/` Rust **host proof**. Its two-asset model covers live raw-balance in-kind mint, pro-rata redeem, manager proposal, guardian approval, public delay, expiry and an atomic bounded pair fill. The model deliberately omits fees, account ownership/signature enforcement, Token-2022 CPI, NFT issuance, indexer, API and UI wiring. The subsequent prototype source and current verification status are tracked separately in `managed-basket-v2-prototype-status.md`; the host proof must never be presented as a deployed or security-reviewed V2 product.

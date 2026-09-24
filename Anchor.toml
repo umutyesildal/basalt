@@ -6,6 +6,7 @@ skip-lint = false
 whitelist = "FRavMcYQb2FVAHbbG6fGieQHdKk1UrQqgKsAAXTPRQeS"
 basket_factory = "3hzoPep9JKgTmzLT6CNW5x3EN7WNYDevM6KHVM7pLgMF"
 basket = "6Q43vFh4aqGxzvtU2vQwJX9PmX3skfYsGWZdA3fwJB9k"
+managed_basket = "CZ3eG8JutryawXTcA1h97PMrhAGuWzsrYSgssMH43cKL"
 
 [programs.devnet]
 whitelist = "FRavMcYQb2FVAHbbG6fGieQHdKk1UrQqgKsAAXTPRQeS"
