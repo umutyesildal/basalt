@@ -88,17 +88,29 @@ async function createFixture(connection: Connection, wallet: PublicKey): Promise
 export async function POST(request: NextRequest) {
   if (!localRequest(request)) return new NextResponse(null, { status: 404 });
   let wallet: PublicKey;
+  let mode: "tokens" | "sol" = "tokens";
   try {
     const body: unknown = await request.json();
     if (!body || typeof body !== "object" || typeof (body as { wallet?: unknown }).wallet !== "string") throw new Error("Missing wallet.");
     wallet = new PublicKey((body as { wallet: string }).wallet);
     if (!PublicKey.isOnCurve(wallet.toBytes())) throw new Error("Connect a regular wallet.");
+    const requestedMode = (body as { mode?: unknown }).mode;
+    if (requestedMode !== undefined && requestedMode !== "sol") throw new Error("Invalid sample mode.");
+    if (requestedMode === "sol") mode = "sol";
   } catch {
     return NextResponse.json({ error: "Connect a valid wallet first." }, { status: 400 });
   }
 
   const address = wallet.toBase58();
   const connection = new Connection(RPC_ENDPOINT, "confirmed");
+  if (mode === "sol") {
+    try {
+      if ((await connection.getBalance(wallet, "confirmed")) < 1_000_000_000) await airdrop(connection, wallet, 2_000_000_000);
+      return NextResponse.json({ wallet: address, balanceLamports: await connection.getBalance(wallet, "confirmed") }, { headers: { "Cache-Control": "no-store" } });
+    } catch (error) {
+      return NextResponse.json({ error: error instanceof Error ? error.message : "Local SOL setup failed." }, { status: 503, headers: { "Cache-Control": "no-store" } });
+    }
+  }
   const existing = fixtures.get(address);
   if (existing) {
     try {

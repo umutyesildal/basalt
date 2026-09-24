@@ -20,7 +20,7 @@ import {
   proposalPda, shareMintPda, tokenAta, vaultAuthorityPda,
   type ManagedBasketAccount, type ManagedProposalAccount,
 } from "@/lib/managed-chain";
-import { localLabPublicKey } from "@/lib/local-lab-wallet";
+import { localLabPublicKey, type LocalLabRole } from "@/lib/local-lab-wallet";
 import { CLUSTER, RPC_ENDPOINT, explorerClusterQuery } from "@/lib/wallet";
 
 type LoadedBasket = {
@@ -75,9 +75,13 @@ function Row({ label, value }: { label: string; value: string }) {
 
 export function ManagedLab() {
   const { connection } = useConnection();
-  const { publicKey, connected, wallets } = useWallet();
-  const { requestConnect, error: walletError } = useWalletConnect();
+  const { publicKey, connected, connecting, wallets, wallet, select } = useWallet();
+  const { error: walletError } = useWalletConnect();
   const localManagerWallet = wallets.find((entry) => entry.adapter.name === "Local test manager");
+  const localGuardianWallet = wallets.find((entry) => entry.adapter.name === "Local test guardian");
+  const localRole: LocalLabRole | null = wallet?.adapter.name === "Local test manager" ? "manager" : wallet?.adapter.name === "Local test guardian" ? "guardian" : null;
+  const [desiredLocalRole, setDesiredLocalRole] = useState<LocalLabRole | null>(null);
+  const [preparingLocalRole, setPreparingLocalRole] = useState(false);
   const tx = useTransactionFlow();
   const localOnly = isLocalManagedEndpoint(CLUSTER, RPC_ENDPOINT);
   const [mode, setMode] = useState<"open" | "create">("open");
@@ -102,6 +106,50 @@ export function ManagedLab() {
   const [maxInput, setMaxInput] = useState("1");
   const [minOutput, setMinOutput] = useState("0.75");
   const [fillOutput, setFillOutput] = useState("0.8");
+
+  useEffect(() => {
+    if (!desiredLocalRole) return;
+    const next = desiredLocalRole === "manager" ? localManagerWallet : localGuardianWallet;
+    if (!next) { setDesiredLocalRole(null); return; }
+    if (connected && wallet?.adapter.name === next.adapter.name) {
+      setDesiredLocalRole(null);
+      return;
+    }
+    if (connecting) return;
+    if (wallet?.adapter.name !== next.adapter.name) {
+      select(next.adapter.name);
+      return;
+    }
+    // WalletProvider attaches its connect listener in a parent effect. Defer
+    // the local adapter event until after that listener is subscribed.
+    const timer = window.setTimeout(() => {
+      void next.adapter.connect().catch((cause: unknown) => {
+        setDesiredLocalRole(null);
+        setError(cause instanceof Error ? cause.message : "Could not connect the local test wallet.");
+      });
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, [connected, connecting, desiredLocalRole, localGuardianWallet, localManagerWallet, select, wallet]);
+
+  const switchLocalRole = useCallback(async (role: LocalLabRole) => {
+    setError(null);
+    if (role === "guardian") {
+      setPreparingLocalRole(true);
+      try {
+        const guardianWallet = localLabPublicKey("guardian").toBase58();
+        const response = await fetch("/api/managed/lab/fixture", {
+          method: "POST", headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ wallet: guardianWallet, mode: "sol" }), cache: "no-store",
+        });
+        const payload = await response.json() as { wallet?: string; balanceLamports?: number; error?: string };
+        if (!response.ok || payload.wallet !== guardianWallet || !payload.balanceLamports) throw new Error(payload.error ?? "Could not fund the local guardian wallet.");
+      } catch (cause) {
+        setError(cause instanceof Error ? cause.message : "Could not fund the local guardian wallet.");
+        return;
+      } finally { setPreparingLocalRole(false); }
+    }
+    setDesiredLocalRole(role);
+  }, []);
 
   const prepareSample = useCallback(async () => {
     if (!localOnly || !publicKey || !connected || programReady !== true) {
@@ -270,10 +318,17 @@ export function ManagedLab() {
         <div><p className="text-sm font-medium">Local validator</p><p className="text-xs text-muted-foreground">{programReady === null ? "Checking program…" : programReady ? "Managed V2 program detected" : "Program unavailable — start the local validator"}</p></div>
         {connected && publicKey ? <span className="font-mono text-xs text-muted-foreground">{short(publicKey)}</span> : <span className="text-xs text-muted-foreground">Wallet disconnected</span>}
       </div>
-      {!connected && <WalletGateBanner />}
       {!connected && localManagerWallet && <div className="flex flex-wrap items-center gap-3 rounded-xl border border-primary/40 bg-primary/5 p-4">
-        <div className="min-w-0 flex-1"><p className="text-sm font-medium">Try it without a wallet extension</p><p className="text-xs leading-5 text-muted-foreground">Use a disposable local test wallet in this tab. It can only sign on this local validator.</p></div>
-        <Button type="button" disabled={programReady !== true} onClick={() => requestConnect(localManagerWallet.adapter.name, true)}>Use local test wallet</Button>
+        <div className="min-w-0 flex-1"><p className="text-sm font-medium">Start a local test</p><p className="text-xs leading-5 text-muted-foreground">Use a disposable wallet for this validator. An extension wallet needs to use the same local network.</p></div>
+        <Button type="button" disabled={programReady !== true || desiredLocalRole !== null} onClick={() => void switchLocalRole("manager")}>{desiredLocalRole === "manager" ? "Connecting…" : "Use local test wallet"}</Button>
+      </div>}
+      {!connected && <WalletGateBanner />}
+      {connected && localRole && <div className="flex flex-wrap items-center gap-3 rounded-xl border border-border bg-card p-4">
+        <div className="min-w-0 flex-1"><p className="text-sm font-medium">Local test roles</p><p className="text-xs leading-5 text-muted-foreground">Switch wallets here to propose as manager and approve as guardian.</p></div>
+        <div className="flex gap-2">
+          <Button type="button" size="sm" variant={localRole === "manager" ? "default" : "outline"} disabled={localRole === "manager" || desiredLocalRole !== null || preparingLocalRole} onClick={() => void switchLocalRole("manager")}>Manager</Button>
+          <Button type="button" size="sm" variant={localRole === "guardian" ? "default" : "outline"} disabled={localRole === "guardian" || desiredLocalRole !== null || preparingLocalRole} onClick={() => void switchLocalRole("guardian")}>{preparingLocalRole ? "Preparing…" : "Guardian"}</Button>
+        </div>
       </div>}
       {walletError && <p role="alert" className="rounded-lg border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">{walletError.message}</p>}
       <div className="flex gap-2" role="group" aria-label="Managed basket action">
@@ -370,6 +425,7 @@ export function ManagedLab() {
         </>}
       </>}
       {(error || tx.state.error) && <p role="alert" className="rounded-lg border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">{error || tx.state.error}</p>}
+      {tx.state.error && tx.state.logs.length > 0 && <details className="rounded-lg border border-border bg-card p-3 text-xs"><summary className="cursor-pointer text-sm">Simulation details</summary><pre className="mt-3 max-h-60 overflow-auto whitespace-pre-wrap break-all text-muted-foreground">{tx.state.logs.join("\n")}</pre></details>}
       {tx.state.status !== "idle" && !tx.state.error && <div role="status" className="rounded-lg border border-border bg-card p-3 text-sm"><span className="capitalize">{tx.state.status.replaceAll("-", " ")}</span>{explorer && <> · <a className="underline" href={explorer} target="_blank" rel="noreferrer">View transaction</a></>}</div>}
       <p className="text-xs leading-5 text-muted-foreground">Local mock assets only. This program has no public asset allowlist, so the lab does not submit transactions to devnet or mainnet.</p>
     </>}
