@@ -52,3 +52,68 @@
 ## Voice guardrails (for deck copy)
 
 Never: ETF, fund, guaranteed, safe, financial advice, we manage your money. Always: strategy basket, index basket, onchain equity basket, xStocks-backed strategy token. `LEGAL_REVIEW_REQUIRED` items pending counsel.
+
+## Current landscape — 2026-09-26
+
+This section supersedes the historical no-competition claims above. Basalt public previews do not buy assets; V0 uses mock devnet assets; Managed V2 is localnet-only.
+
+```json
+{
+  "landscape": {
+    "as_of": "2026-09-26",
+    "direct_competitors": [
+      {
+        "name": "Symmetry",
+        "url": "https://symmetry.fi/",
+        "status": "Resmî sayfa V3 mainnet beta diyor; işlem veya TVL bağımsız doğrulanmadı.",
+        "strength": "Çoklu varlığı tek basket token ile temsil ediyor; ağırlıklar ve otomasyon belirgin.",
+        "weakness": "Basalt açısından karşılaştırma notu: “Solana’da tek token basket” tek başına fark değil. Creator’ın gerekçesi ve remix deneyimi öne çıkmalı."
+      },
+      {
+        "name": "Chamber (eski dHEDGE)",
+        "url": "https://chamberfi.com/",
+        "status": "dhedge.org güncel Chamber ürününe yönleniyor; resmî ürün yüzeyi incelendi.",
+        "strength": "Vault oluşturma ve keşif için iki net giriş; manager ile katılımcıyı birlikte ele alıyor.",
+        "weakness": "Basalt açısından karşılaştırma notu: İki eşit CTA korunmalı. Güven söylemi yalnızca uygulanmış mekanizma ve doğrulanabilir kanıtla desteklenmeli."
+      },
+      {
+        "name": "Enzyme",
+        "url": "https://docs.enzyme.finance/getting-started/enzyme-vault",
+        "status": "Resmî dokümantasyon doğrulandı; yatırma/çekme işlemi denenmedi.",
+        "strength": "Katılım karşılığında pay tokenı ve yapılandırılabilir sahiplik/transfer kuralları anlatılıyor.",
+        "weakness": "Basalt açısından karşılaştırma notu: “Your share” dekoratif bir etiket kalmamalı: toplam pay → kişinin payı → mevcut varlıklardan oransal hak."
+      },
+      {
+        "name": "xVault",
+        "url": "https://docs.xvaultsol.com/docs/protocol/overview",
+        "status": "Yalnızca ürün dokümanı; canlı dağıtım, backing ve kullanım doğrulanmadı.",
+        "strength": "Kürasyonlu endeks vault’ları; v1’de kullanıcı basket’i kapsam dışı olarak belirtiliyor.",
+        "weakness": "Basalt açısından karşılaştırma notu: Kullanıcı/creator üretimi olası konumlandırma alanı. Dokümanı çalışan ürün veya doğrulanmış güvenlik kanıtı sayma."
+      }
+    ],
+    "substitutes": [
+      {
+        "name": "eToro CopyTrader",
+        "approach": "https://www.etoro.com/en-us/copytrader/",
+        "why_users_stay": "Kişiyi bul → portföyünü incele → kopyala; gelecekteki işlemler otomatik aynalanıyor."
+      },
+      {
+        "name": "M1 Pies",
+        "approach": "https://m1.com/invest/brokerage/",
+        "why_users_stay": "Bir pie görseli üzerinden varlık, ağırlık ve düzenleme adımlarını tek tek gösteriyor."
+      }
+    ],
+    "dead_projects": [
+      {
+        "name": "TokenSets legacy storefront",
+        "why_failed": "Bilinmiyor. Alan adı park sayfası gösteriyor; protokolün veya şirketin başarısızlık nedeni doğrulanmadı."
+      }
+    ],
+    "crowdedness": "crowded",
+    "crowdedness_scope": "Geniş sosyal yatırım ve tokenlaştırılmış portföy kategorisi; Solana stock-basket alt alanının canlı yoğunluğu belirsiz.",
+    "moat_type": "Olası creator dağıtımı ve güvenilir strateji geçmişi; henüz kanıtlanmadı.",
+    "differentiation": "Creator thesis → visible allocation → editable remix; onchain shared ownership as a separately labelled prototype.",
+    "report": "docs/competitive-landscape-2026-09-26.md"
+  }
+}
+```
