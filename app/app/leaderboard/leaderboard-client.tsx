@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 
 import { SocialAvatar } from "@/components/social/avatar";
@@ -26,8 +27,24 @@ type BoardView = "concept" | "live";
 type ConceptTab = "people" | "baskets";
 type LiveTab = "people" | "baskets";
 
-export default function LeaderboardClient() {
+export default function LeaderboardClient({
+  initialTab = "baskets",
+}: {
+  initialTab?: ConceptTab;
+}) {
+  const pathname = usePathname();
+  const router = useRouter();
   const [view, setView] = useState<BoardView>("concept");
+  const [conceptTab, setConceptTab] = useState<ConceptTab>(initialTab);
+
+  useEffect(() => {
+    setConceptTab(initialTab);
+  }, [initialTab]);
+
+  const selectConceptTab = (tab: ConceptTab) => {
+    setConceptTab(tab);
+    router.replace(tab === "people" ? pathname + "?tab=people" : pathname, { scroll: false });
+  };
 
   return (
     <div className="mx-auto w-full max-w-4xl space-y-6">
@@ -58,13 +75,12 @@ export default function LeaderboardClient() {
         </nav>
       </header>
 
-      {view === "concept" ? <ConceptBoard /> : <LiveBoard />}
+      {view === "concept" ? <ConceptBoard tab={conceptTab} onTabChange={selectConceptTab} /> : <LiveBoard />}
     </div>
   );
 }
 
-function ConceptBoard() {
-  const [tab, setTab] = useState<ConceptTab>("baskets");
+function ConceptBoard({ tab, onTabChange }: { tab: ConceptTab; onTabChange: (tab: ConceptTab) => void }) {
   return (
     <section className="space-y-4" aria-label="Concept examples">
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -72,8 +88,8 @@ function ConceptBoard() {
           Concept preview
         </p>
         <nav aria-label="Concept examples category" className="flex items-center gap-2">
-          <Button variant={tab === "baskets" ? "secondary" : "ghost"} size="sm" onClick={() => setTab("baskets")}>Baskets</Button>
-          <Button variant={tab === "people" ? "secondary" : "ghost"} size="sm" onClick={() => setTab("people")}>People</Button>
+          <Button variant={tab === "baskets" ? "secondary" : "ghost"} size="sm" onClick={() => onTabChange("baskets")}>Baskets</Button>
+          <Button variant={tab === "people" ? "secondary" : "ghost"} size="sm" onClick={() => onTabChange("people")}>People</Button>
         </nav>
       </div>
 

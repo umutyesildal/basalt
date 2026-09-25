@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Compass, Plus, Rss, Trophy } from "lucide-react";
+import { Compass, Plus, Rss, UsersRound } from "lucide-react";
 
 import { isRouteActive } from "@/components/shell/nav-items";
 import { cn } from "@/lib/utils";
@@ -18,7 +18,7 @@ import { cn } from "@/lib/utils";
 const MOBILE_NAV_ITEMS = [
   { href: "/explore", label: "Baskets", Icon: Compass },
   { href: "/feed", label: "Feed", Icon: Rss },
-  { href: "/leaderboard", label: "Ideas", Icon: Trophy },
+  { href: "/leaderboard?tab=people", label: "Creators", Icon: UsersRound },
 ] as const;
 
 /**

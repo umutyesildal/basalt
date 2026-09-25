@@ -1,6 +1,6 @@
 import { ImageResponse } from "next/og";
 
-export const alt = "Basalt — Stock Basket Concept Preview";
+export const alt = "Basalt — Stock baskets and the creators behind them";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
@@ -160,7 +160,7 @@ export default function OpengraphImage() {
             padding: "12px 26px",
           }}
         >
-          BUILD AND SHARE STOCK BASKETS
+          BUILD A MIX · DISCOVER WHO SHAPED IT
         </div>
       </div>
     ),

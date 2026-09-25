@@ -12,7 +12,7 @@ export const PRIMARY_NAV: NavItem[] = [
   { href: "/etfs", label: "ETFs" },
   { href: "/explore", label: "Baskets" },
   { href: "/feed", label: "Feed" },
-  { href: "/leaderboard", label: "Leaderboard" },
+  { href: "/leaderboard?tab=people", label: "Creators" },
 ];
 
 export const CONTEXT_ACTIONS: NavItem[] = [
@@ -22,6 +22,7 @@ export const CONTEXT_ACTIONS: NavItem[] = [
 
 /** Active-route check: exact for "/", prefix match for section routes. */
 export function isRouteActive(pathname: string, href: string): boolean {
-  if (href === "/") return pathname === "/";
-  return pathname === href || pathname.startsWith(`${href}/`);
+  const route = href.split("?")[0] ?? href;
+  if (route === "/") return pathname === "/";
+  return pathname === route || pathname.startsWith(route + "/");
 }
