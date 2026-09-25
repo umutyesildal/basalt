@@ -24,7 +24,9 @@ import { cn } from "@/lib/utils";
  * Contrast note: chart fills are mid-luminance in BOTH themes (deepened on
  * white, luminous on the near-black flagship), so label text uses
  * `text-background` — the canvas color itself — which sits on the opposite
- * end of the luminance range from every chart fill in either theme.
+ * end of the luminance range from every chart fill in either theme. Curated
+ * callers may pass `labelColor` when their explicit palette needs a different
+ * contrast value; omitted values keep this default unchanged.
  *
  * Accessibility: the strip is a single role="img" with the full composition
  * as its aria-label; per-block labels collapse under it (blocks keep hover
@@ -42,6 +44,8 @@ export interface WeightBarConstituent {
   color?: string | null;
   /** Logo URL override; defaults to the Parqet CDN via logoUrl(). */
   logoUrl?: string | null;
+  /** Optional label color for curated surfaces with explicit block colors. */
+  labelColor?: string | null;
 }
 
 export interface WeightBarProps {
@@ -122,7 +126,7 @@ function WeightBlock({
         </span>
       ) : null}
       {showSymbol ? (
-        <span className="truncate font-mono text-[9px] font-semibold uppercase leading-none tracking-wide text-background">
+        <span style={constituent.labelColor ? { color: constituent.labelColor } : undefined} className="truncate font-mono text-[9px] font-semibold uppercase leading-none tracking-wide text-background">
           {symbol}
         </span>
       ) : null}

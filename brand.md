@@ -1,8 +1,8 @@
 # Brand — Basalt
 
-Basalt helps people explore and share ideas for baskets of stocks and ETFs. Its hackathon entry point is a wallet-free concept preview; the separate devnet transaction flow remains available for technical review.
+Basalt helps people explore and share ideas for baskets of stocks and ETFs. Its two equally visible starting points are creating a basket idea and discovering the people behind other ideas. The wallet-free concept preview keeps both journeys easy to explore; the separate devnet transaction flow remains available for technical review.
 
-_Last updated 2026-09-23. The Basalt name and three-column mark supersede the historical FolioX, Roman, and Foundry identities. The electric-yellow system in `docs/design-cyberpunk-yellow-v1.md` supplies the color tokens; `docs/design-basalt-v1.md` defines the mark. Telemetry remains off._
+_Last updated 2026-09-25. The Basalt name and three-column mark supersede the historical FolioX, Roman, and Foundry identities. The electric-yellow system in `docs/design-cyberpunk-yellow-v1.md` supplies the color tokens; `docs/design-basalt-v1.md` defines the mark. Telemetry remains off._
 
 ## Identity
 
@@ -16,7 +16,11 @@ _Last updated 2026-09-23. The Basalt name and three-column mark supersede the hi
 
 ## Product hierarchy
 
-The primary basket journey has four tasks: choose an idea or assets → set a **100%** mix and optional fees → choose a starting dollar amount → review and share a concept preview. A $1,000 example is prefilled and $10/$100/$1,000 shortcuts are offered; these are preview amounts, never a purchase or deposit. No wallet, token balance, or backend is required. The separate `/create/onchain` flow retains owned-token deposits, legal acknowledgments, exact 10,000-bps total, fee caps, integer rounding, raw Token-2022 transfers, and on-chain checks. The main controls say “Balance to 100%,” not “Normalize to 10,000.”
+Basalt has two equally visible starting points. The creation path lets people choose a template or assets, set a **100%** mix and optional fees, choose an illustrative dollar amount, then review and share a concept preview. A $1,000 example is prefilled and $10/$100/$1,000 shortcuts are offered; these are preview amounts, never a purchase or deposit. No wallet, token balance, or backend is required.
+
+The discovery path lets people explore sample creators and basket ideas, inspect a thesis and current allocation, then bring that mix into their own wallet-free preview. Following a creator is a social subscription; it does not mirror future activity or buy assets. Sharing a preview makes the creator’s thesis and composition easy to inspect.
+
+The separate `/create/onchain` flow retains owned-token deposits, legal acknowledgments, exact 10,000-bps total, fee caps, integer rounding, raw Token-2022 transfers, and on-chain checks. The main controls say “Balance to 100%,” not “Normalize to 10,000.”
 
 Keep each decision screen scannable: one task heading, one actionable validation message, and short visible copy. Optional fee controls have plain explanations. The concept review reuses the live composition preview and finishes with “Create preview.” It does not show a hypothetical minted share. In the on-chain flow, required legal explanations remain accessible and a creator receives **one display basket share** at genesis; the 1,000,000 raw units are not a million user-facing shares.
 
