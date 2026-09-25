@@ -1,46 +1,45 @@
-<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Basalt · Stocklana submission</title><style>body{max-width:900px;margin:48px auto;padding:0 24px;font:16px/1.6 system-ui;background:#101011;color:#ededed}h1,h2{line-height:1.2}h1{color:#fcee0a}textarea{box-sizing:border-box;width:100%;padding:20px;background:#18181a;color:inherit;border:1px solid #444;font:15px/1.6 system-ui;resize:vertical}a{color:#fcee0a}.meta{color:#aaa}</style><h1>Basalt · Stocklana</h1><p class="meta">Updated September 25, 2026 · Ready-to-copy application fields</p><h2>Short description</h2><p class="meta">240 / 280 characters</p><textarea aria-label="Short description" rows="5" readonly>Build a basket. Discover a strategy. Basalt is the social layer for stock baskets on Solana: explore creators, remix allocations and share your thesis. Try it wallet-free, with devnet basket proofs and a separate managed-strategy prototype.</textarea><h2>Full description (Markdown)</h2><p class="meta">3417 / 5,000 characters</p><textarea aria-label="Full description" rows="40" readonly>## THE IDEA
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Basalt · Stocklana submission</title><style>body{max-width:1120px;margin:48px auto;padding:0 24px;font:16px/1.65 system-ui;background:#111216;color:#ededed}h1,h2,h3{line-height:1.2}h1{font-size:clamp(30px,5vw,52px);max-width:900px}h2{margin-top:40px}a{color:#fcee0a}p,li{max-width:84ch}.muted{color:#b4b8c4}.accent{color:#fcee0a}.table-wrap{overflow:auto}table{border-collapse:collapse;width:100%;font-size:14px}th,td{padding:16px;text-align:left;vertical-align:top;border-bottom:1px solid #373a44}th{color:#fcee0a}td{min-width:170px}textarea{box-sizing:border-box;width:100%;padding:20px;background:#191b23;color:inherit;border:1px solid #454959;border-radius:12px;font:15px/1.6 system-ui;resize:vertical}.models{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:16px}.model{padding:24px;border:1px solid #373a44;border-radius:16px}.number{font-size:28px;color:#fcee0a}.note{padding:18px 22px;border-left:3px solid #fcee0a;background:#1b1d24}</style></head><body><p class="accent">BASALT / STOCKLANA</p><h1>From a stock idea to a shared strategy.</h1><p class="muted">Research revision · September 26, 2026 · Draft revision · not submitted to the platform</p><h2>Short description</h2><p class="muted">236 / 280 characters</p><textarea aria-label="Short description" rows="5" readonly>Build a stock basket. Discover the strategy behind someone else&#x27;s. Basalt makes portfolios easy to inspect, remix and share. Our Solana prototypes demonstrate one-token basket ownership, with a separate creator-managed vault experiment.</textarea><h2>Full description</h2><p class="muted">3641 / 5,000 characters</p><textarea aria-label="Full description" rows="38" readonly>## FROM A STOCK IDEA TO A SHARED STRATEGY
 
-Stocks went on-chain. The next step is making strategies easy to build, understand and share.
+A watchlist shows the tickers. A strategy needs the weights, the reasoning and a way for someone else to use it.
 
-Basalt puts baskets and the people behind them in one place. Build your own mix, start from a creator's allocation, or explore the idea of holding a share in a creator-led strategy.
+Basalt is for people who think in baskets — a technology thesis, a broad-market core, a group of businesses they understand — and creators who want to share the thinking behind their mix.
 
-## WHAT YOU CAN TRY
+Build your own basket or discover a creator&#x27;s idea. Inspect the allocation, change what you disagree with, and share your version. The longer-term direction is to connect this social experience to tokenized ownership in creator-led baskets on Solana.
 
-**BUILD** — Choose stocks and ETFs, set a 100% allocation, and create a shareable basket preview. No wallet needed.
+## TRY THE PRODUCT
 
-**DISCOVER** — Explore sample creators, inspect their thesis and allocation, then open a mix in your own editor. Remixing a basket copies its current composition; it does not mirror future trades or buy assets.
+1. Open https://basalt-coral.vercel.app/ and choose a sample creator.
+2. Select **Use this mix**, adjust the stocks and weights, and create your own preview. Or start with **Build a basket**.
+3. Share the basket link. It carries the name, thesis and allocation, so the next person can inspect and remix the same idea.
 
-**SHARE** — Send one link that carries the basket's name, thesis and allocation. Others can inspect it and make it their own.
+The public experience is wallet-free. Creator examples are illustrative; remixing copies a composition, not future trades, and the preview does not buy assets.
 
-**MANAGED STRATEGIES** — A separate localnet prototype demonstrates shared-vault ownership. A creator proposes a change within a fixed asset pair, a distinct guardian approves it, and holders receive advance notice before an eligible fill. Shares remain claims on the vault's current holdings.
+## ONE BASKET, ONE SHARE TOKEN
 
-This is the product direction: move from following someone's ideas to transparent, creator-led baskets, with the strategy and ownership rules visible.
+The onchain engine demonstrates the ownership model: a vault holds tokens and issues basket shares. Holding 10% of the shares represents a proportional claim on each asset currently in that vault. Redemption burns shares and returns underlying tokens, subject to the basket&#x27;s fees.
 
-## BUILT, WITH EVIDENCE
+**V0 — working on devnet:** Create an immutable basket, mint shares in kind and redeem proportionally using project mock Token-2022 assets. The basket program has no redemption pause or price-oracle dependency. These are test assets, not official xStocks.
 
-- **Public demo:** https://basalt-coral.vercel.app/ — wallet-free basket creation, creator discovery, remixing and sharing.
-- **V0 devnet:** Real basket creation, in-kind minting and pro-rata redemption with project mock Token-2022 assets. Basket terms are fixed; redemption has no basket-level pause or price-oracle dependency.
-- **Managed V2 localnet:** Two-holder ownership, manager proposals, guardian approval, notice-period redemption, bounded fills and post-fill redemption have documented transaction proofs. The full-fill smoke used a separate accelerated-notice test artifact; the normal notice configuration was tested separately.
-- **Open source and reproducible evidence:** https://github.com/umutyesildal/basalt — setup instructions, automated tests and transaction-proof documents.
+**Managed V2 — separate localnet prototype:** A creator proposes a change within a fixed two-asset basket. A distinct guardian approves it, holders have a notice period, and an eligible bounded trade changes the vault&#x27;s holdings. Holders redeem against the current balances. Prototype fees are 0%; public managed vaults are not live.
 
-The public creator examples and managed preview are illustrative. Official xStocks integration, public managed vaults and automatic trade mirroring are not live. V2 prototype fees are 0%.
+V2 transaction evidence covers two holders, proposal/approval, notice-period redemption, a bounded fill and redemption after the fill. The full-fill test used an accelerated-notice artifact; the normal notice configuration was tested separately.
 
-## WHY SOLANA
+## WHY THIS APPROACH
 
-Token-2022 share tokens and program-owned vaults make a basket's ownership and redemption rules inspectable on-chain. The indexer reads confirmed state; it does not custody assets or hold keys that move them.
+Basalt puts the creator&#x27;s thesis and a usable allocation next to each other. The immediate product is a simple build–discover–remix loop; the technical work explores how that same strategy can become shared onchain ownership.
 
-V0 redemption is designed to remain available without an operator, indexer or price oracle. Token-issuer controls, network conditions and program upgrade authority still matter; this is not a claim of risk-free or unstoppable settlement.
+Solana&#x27;s Token-2022 shares and program-owned vaults let participants inspect holdings and ownership rules. The indexer reads confirmed state and cannot move assets. Token-issuer controls, network conditions, contract risks and upgrade authority still matter.
 
-## ORIGINAL WORK &amp; PROGRESS
+## EVIDENCE &amp; NEXT STEPS
 
-Basalt is an independent solo project that was already on devnet before Stocklana. It won Superteam Germany's Road-to-Colosseum Ideathon, placing in the top 10 of 38 submissions.
+Source, setup and transaction proofs: https://github.com/umutyesildal/basalt
 
-This iteration adds a wallet-free basket flow, creator-first discovery, a visual social homepage and a separate managed-basket localnet prototype. The application and programs are first-party work built with open-source tools including Anchor, Next.js and Solana libraries.
+Managed prototype status and proof links: https://github.com/umutyesildal/basalt/blob/main/docs/managed-basket-v2-prototype-status.md
 
-## WHAT'S NEXT
+Next: official xStocks compatibility and asset-admission checks, broader adversarial tests, independent review and verified multisig governance before a capped public pilot.
 
-Official xStocks compatibility and token-admission checks, broader adversarial tests, independent review and verified multisig governance before a capped public pilot.
+## TEAM &amp; ORIGINAL WORK
 
-## TEAM
+Solo full-stack Solana builder based in Germany. Basalt was already on devnet before Stocklana and won Superteam Germany&#x27;s Road-to-Colosseum Ideathon, placing in the top 10 of 38 submissions.
 
-Solo full-stack Solana builder based in Germany.</textarea><p><a href="https://basalt-coral.vercel.app/">Live demo</a> · <a href="https://github.com/umutyesildal/basalt">Source code</a> · <a href="https://hackathons.solana.com/hackathons/stocklana/submit">Stocklana form</a></p></html>
+This iteration adds wallet-free basket creation, creator discovery, a visual homepage and the Managed V2 localnet prototype. The application and programs are original work built with open-source tools including Anchor, Next.js and Solana libraries.</textarea><p><a href="https://basalt-coral.vercel.app/">Demo</a> · <a href="https://github.com/umutyesildal/basalt">Source</a> · <a href="competitive-landscape-2026-09-26.html">Research and decisions</a></p></body></html>

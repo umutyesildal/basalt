@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { ArrowDown, ArrowRight, ArrowUpRight, Check, ChevronRight, Layers3, UserRound } from "lucide-react";
+import { ArrowDown, ArrowRight, ArrowUpRight, Check, ChevronRight, Layers3 } from "lucide-react";
 import { motion, useReducedMotion } from "motion/react";
 
 import { CreatePreviewDonut } from "@/components/create/create-preview-donut";
@@ -118,7 +118,7 @@ export function HomeExperience() {
                 <span className="text-primary-text">Discover creators.</span>
               </h1>
               <p className="mt-2 max-w-md text-sm leading-5 text-muted-foreground">
-                Turn a creator’s view into a mix of your own.
+                Choose stocks, set your mix, or start with a creator’s idea.
               </p>
               <div className="mt-4 flex gap-2.5">
                 <Link
@@ -401,43 +401,79 @@ function ManagedPreview() {
 }
 
 function ManagedStoryScene({ creator }: { creator: (typeof CONCEPT_CREATORS)[number] }) {
+  const [ownedShares, setOwnedShares] = useState<10 | 25>(10);
+  const totalShares = 100;
+  const assetA = 200;
+  const assetB = 100;
+  const ownershipPercent = (ownedShares / totalShares) * 100;
+  const claimA = assetA * ownedShares / totalShares;
+  const claimB = assetB * ownedShares / totalShares;
+
   return (
-    <div aria-label="Illustration of an example creator sharing a basket with holders" className="relative isolate h-[19rem] overflow-hidden border-t border-border/70 bg-background/45 p-3 sm:h-[20rem] sm:p-4 lg:h-full lg:min-h-[20rem] lg:border-l lg:border-t-0">
-      <svg aria-hidden="true" viewBox="0 0 600 320" preserveAspectRatio="none" className="pointer-events-none absolute inset-0 size-full">
-        <path d="M154 51 C206 54 225 91 267 111" fill="none" stroke="hsl(var(--border))" strokeWidth="2" />
-        <path d="M154 51 C206 54 225 91 267 111" fill="none" stroke="hsl(var(--primary) / 0.68)" strokeWidth="2" strokeDasharray="5 7" />
-        <path d="M300 183 V276" fill="none" stroke="hsl(var(--primary) / 0.48)" strokeWidth="2" />
-      </svg>
-
-      <div className="absolute left-4 top-4 z-10 flex items-center gap-2.5 rounded-full border border-border/80 bg-card px-2.5 py-2 sm:left-6 sm:top-5">
-        <SocialAvatar wallet={creator.id} handle={creator.handle} displayName={creator.displayName} avatarUrl={creator.avatarUrl} size="md" className="!size-10 border border-border" />
-        <span className="min-w-0">
-          <span className="block truncate text-sm font-semibold">{creator.displayName}</span>
-          <span className="block text-xs text-muted-foreground">Example creator</span>
-        </span>
-      </div>
-
-      <div className="absolute left-1/2 top-[48%] z-10 w-[min(21rem,84%)] -translate-x-1/2 -translate-y-1/2">
-        <div aria-hidden="true" className="absolute inset-x-2 top-2 h-[6.25rem] translate-y-2 rounded-2xl border border-border/70 bg-card/60" />
-        <div aria-hidden="true" className="absolute inset-x-1 top-1 h-[6.25rem] translate-y-1 rounded-2xl border border-border/80 bg-card/85" />
-        <div className="relative flex h-[6.75rem] items-center justify-between gap-3 rounded-2xl border border-primary/35 bg-card px-3.5 shadow-[0_8px_24px_hsl(var(--background)/0.28)] sm:px-4">
-          <span className="flex size-11 shrink-0 items-center justify-center rounded-xl border border-primary/25 bg-primary/10 text-primary-text"><Layers3 aria-hidden="true" className="size-5" /></span>
-          <span className="min-w-0 flex-1">
-            <span className="block text-xs text-muted-foreground">Shared basket</span>
-            <span className="mt-0.5 block truncate font-display text-base font-semibold sm:text-lg">Creator-led strategy</span>
+    <div role="group" aria-label="Illustrative example of proportional basket ownership" className="relative isolate min-h-[19rem] overflow-hidden border-t border-border/70 bg-background/45 p-3 sm:min-h-[20rem] sm:p-4 lg:min-h-[20rem] lg:border-l lg:border-t-0">
+      <div className="flex min-h-11 items-center justify-between gap-2">
+        <div className="flex min-w-0 items-center gap-2.5">
+          <SocialAvatar wallet={creator.id} handle={creator.handle} displayName={creator.displayName} avatarUrl={creator.avatarUrl} size="md" className="!size-10 border border-border" />
+          <span className="min-w-0">
+            <span className="block truncate text-sm font-semibold">{creator.displayName}</span>
+            <span className="block text-xs text-muted-foreground">Example creator</span>
           </span>
         </div>
+        <span className="shrink-0 rounded-full border border-border px-2.5 py-1 font-mono text-[10px] uppercase tracking-wide text-muted-foreground">Illustrative example</span>
       </div>
 
-      <div aria-hidden="true" className="absolute inset-x-2 bottom-3 z-10 flex items-center justify-center gap-1.5 sm:gap-2">
-        {[0, 1, 2, 3, 4].map((holder) => holder === 2 ? (
-          <div key="your-share" className="flex min-h-11 items-center gap-1.5 rounded-full border border-primary/50 bg-primary/10 py-1 pl-1 pr-2.5 sm:gap-2 sm:pr-3">
-            <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-primary text-primary-foreground"><UserRound className="size-4" /></span>
-            <span className="whitespace-nowrap text-xs font-semibold text-foreground">Your share</span>
+      <div className="mt-3 grid min-h-[13rem] grid-cols-2 gap-2 sm:gap-3">
+        <div className="flex min-w-0 flex-col rounded-2xl border border-border/80 bg-card/75 p-2.5 sm:p-3">
+          <div className="flex min-h-9 items-center gap-2">
+            <span className="flex size-8 shrink-0 items-center justify-center rounded-lg border border-primary/25 bg-primary/10 text-primary-text"><Layers3 aria-hidden="true" className="size-4" /></span>
+            <span className="min-w-0">
+              <span className="block truncate text-xs font-semibold">Shared basket</span>
+              <span className="block truncate text-[10px] text-muted-foreground">Current vault assets</span>
+            </span>
           </div>
-        ) : (
-          <span key={`holder-${holder}`} className="flex size-9 shrink-0 items-center justify-center rounded-full border border-border bg-card text-muted-foreground"><UserRound className="size-4" /></span>
-        ))}
+          <div className="mt-2 space-y-1.5">
+            <div className="flex min-h-10 items-center justify-between gap-2 rounded-lg border border-border/70 bg-background/55 px-2.5">
+              <span className="font-mono text-xs font-semibold">Asset A</span>
+              <span className="font-mono text-xs tabular-nums text-muted-foreground">{assetA}</span>
+            </div>
+            <div className="flex min-h-10 items-center justify-between gap-2 rounded-lg border border-border/70 bg-background/55 px-2.5">
+              <span className="font-mono text-xs font-semibold">Asset B</span>
+              <span className="font-mono text-xs tabular-nums text-muted-foreground">{assetB}</span>
+            </div>
+          </div>
+          <p className="mt-auto pt-2 font-mono text-[10px] text-muted-foreground">{totalShares} total shares</p>
+        </div>
+
+        <div className="flex min-w-0 flex-col rounded-2xl border border-primary/35 bg-primary/[0.045] p-2.5 sm:p-3">
+          <div className="flex min-h-9 items-center justify-between gap-1.5">
+            <span className="text-xs font-semibold">Your share</span>
+            <span className="font-mono text-[10px] tabular-nums text-muted-foreground">{ownedShares} / {totalShares}</span>
+          </div>
+          <div role="img" aria-label={`${ownedShares} of ${totalShares} basket shares highlighted`} className="mt-2 grid grid-cols-10 gap-1 self-start rounded-lg border border-border/70 bg-background/60 p-2">
+            {Array.from({ length: totalShares }, (_, index) => (
+              <span key={index} className={`size-1.5 rounded-[2px] sm:size-2 ${index < ownedShares ? "bg-primary" : "bg-muted-foreground/25"}`} />
+            ))}
+          </div>
+          <div role="group" aria-label="Choose shares in the illustrative example" className="mt-2 grid grid-cols-2 gap-1.5">
+            {([10, 25] as const).map((shares) => (
+              <button
+                key={shares}
+                type="button"
+                aria-pressed={ownedShares === shares}
+                onClick={() => setOwnedShares(shares)}
+                className={`inline-flex min-h-11 items-center justify-center rounded-lg border px-1 text-[11px] font-medium tabular-nums transition-colors motion-reduce:transition-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-1 focus-visible:ring-offset-background ${ownedShares === shares ? "border-primary/65 bg-primary/10 text-foreground" : "border-border/80 bg-background/50 text-muted-foreground hover:text-foreground"}`}
+              >
+                {shares} shares
+              </button>
+            ))}
+          </div>
+          <p className="mt-2 text-[10px] leading-4 text-muted-foreground">{ownershipPercent}% of current assets</p>
+          <div aria-live="polite" className="mt-1 flex flex-wrap gap-x-2.5 gap-y-0.5 font-mono text-[11px] font-semibold tabular-nums text-foreground">
+            <span>{claimA} A</span>
+            <span>{claimB} B</span>
+            <span className="sr-only">Your portion: {claimA} units of Asset A and {claimB} units of Asset B.</span>
+          </div>
+        </div>
       </div>
     </div>
   );
