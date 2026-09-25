@@ -1,5 +1,7 @@
 # AGENTS.md — Basalt Project Context for AI Agents
 
+> **Current handoff (2026-09-25):** This file is a historical copy of `AGENTS.md`. For current instructions use the canonical `main` checkout at `/Users/umutyesildal/orca/workspaces/createyouretf/createyouretf`, then read `AGENTS.md` and `handoff.md`. Managed Basket V2 was merged and pushed to `main` at `3eeb7be`; `docs/managed-basket-v2-prototype-status.md` describes implemented behavior and boundaries. The V0 rules below apply to immutable V0. V2 is a separate localnet-only prototype; `/managed` is simulated and `/managed/lab` is the loopback transaction UI. The dated test counts and release state below are historical.
+
 > **For: Opencode, Claude Code, Codex, Cursor, any LLM agent working in this repo**
 > **Read this first before writing code.** This file carries the normative Basalt V0 constraints; it is not the source for changing deployment/test counts.
 > Documentation map: `docs/README.md` | Current verified state: `docs/current-state-2026-09-18.md` | Operational backlog: `docs/implementation-backlog.md` | Spec: `docs/basalt-v0-spec.md` | Prompt: `foliox_build_prompt.md` (historical name)

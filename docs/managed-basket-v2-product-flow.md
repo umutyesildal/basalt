@@ -1,6 +1,6 @@
 # Managed Basket V2 — UI contract
 
-> Product/UI contract for the isolated Managed V2 prototype. Managed V2 is not deployed. Immutable V0 and the public concept preview keep their current behavior.
+> Target product/UI contract for Managed V2. The current implementation on `main` is a localnet-only prototype, not a public-cluster deployment. See `managed-basket-v2-prototype-status.md` for implemented features and gaps; the states below include future UX. Immutable V0 and the public concept preview keep their current behavior.
 
 ## Product rules
 

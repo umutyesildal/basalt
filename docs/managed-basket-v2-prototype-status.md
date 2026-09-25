@@ -1,6 +1,6 @@
 # Managed Basket V2 prototype status
 
-Managed Basket V2 is a separate, opt-in experiment on `codex/managed-baskets-v2`. Immutable V0 accounts, instructions, and the wallet-free Create preview are unchanged. This branch is not a public deployment.
+Managed Basket V2 is a separate, opt-in experiment merged into canonical `main` on 2026-09-25 (`3eeb7be`). Immutable V0 accounts, instructions, and the wallet-free Create preview are unchanged. The program has been exercised on localnet only; no Managed V2 instruction is deployed to a public cluster. The former `codex/managed-baskets-v2` branch records implementation history, not the current integration target.
 
 ## What this slice contains
 

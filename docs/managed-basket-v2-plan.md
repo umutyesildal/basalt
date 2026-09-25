@@ -1,8 +1,8 @@
 # Basalt Managed Baskets V2 — product and implementation plan
 
-> Status: architecture plan plus an isolated local prototype implementation, 2026-09-24. No Managed V2 instruction is deployed to a public cluster. This track is separate from immutable Basalt V0 and from the holder-signed migration in `basalt-rebalance-v1-draft.md`. See `managed-basket-v2-prototype-status.md` for what the current code actually supports and the remaining gates.
+> Status: target architecture plus a local prototype merged into canonical `main` on 2026-09-25 (`3eeb7be`). No Managed V2 instruction is deployed to a public cluster. This track is separate from immutable Basalt V0 and from the holder-signed migration in `basalt-rebalance-v1-draft.md`. See `managed-basket-v2-prototype-status.md` for what the current code actually supports and the remaining gates; sections below also describe future behavior.
 >
-> Working branch: `codex/managed-baskets-v2`, created from canonical `main` at `82e9196` in a separate worktree. The pre-existing uncommitted governance/deployment verifier work in canonical `main` must stay untouched.
+> Implementation provenance: `codex/managed-baskets-v2` was created from `main` at `82e9196` and subsequently merged. Work from canonical `main`. Preserve the pre-existing uncommitted governance/deployment verifier work listed in `../handoff.md`.
 >
 > Companion contracts: `managed-basket-v2-product-flow.md` (English UI states and copy), `managed-basket-v2-threat-model.md` (trust boundaries and instruction-level test matrix). `managed-core/` is a host-side arithmetic/state proof only; it is not a Solana program.
 
