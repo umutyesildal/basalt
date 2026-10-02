@@ -1,6 +1,8 @@
 # Basalt documentation map
 
-- [Current hero restoration](home-hero-restoration-2026-10-02.md): calm centered stock-basket heading, gallery immediately below, lower `#build` future-fee visual, final production build and actual responsive screenshots.
+- [Current landing journeys](landing-journeys-2026-10-03.md): revised hero description, six benefit cards, creator section and investor/manager steps. The production build and recorded responsive/role checks passed; checkpoint `0ac63ae` is saved remotely, and the owner has accepted this revision and requested its push. [3 October session](session-updates-2026-10-03.md).
+
+- [Previous accepted hero restoration](home-hero-restoration-2026-10-02.md): calm centered stock-basket heading, gallery immediately below, lower `#build` future-fee visual, final production build and actual responsive screenshots.
 
 - [Current basket-cover refresh](basket-cover-refresh-2026-10-02.md): six additional original collages, ten unique mapped covers, preserved four featured assets and recognized-preview identity. File/source checks, final production build and responsive image loading checks passed.
 
@@ -15,7 +17,7 @@ This directory contains Basalt's product, protocol, security, and operations doc
 ## Source precedence
 
 1. `docs/basalt-v0-spec.md` — normative protocol and product constraints.
-2. Current evidence by scope: `current-state-2026-09-18.md` for the dated V0 deployment snapshot; `managed-basket-v2-prototype-status.md` for implemented V2; `home-hero-restoration-2026-10-02.md` for the final opening/layout, `basket-cover-refresh-2026-10-02.md` for artwork, and `session-updates-2026-10-02.md` for the revision history; `home-create-feedback-2026-10-02.md` remains evidence for retained Create controls; earlier design/performance files remain evidence for their dated scope. A UI update does not refresh chain evidence.
+2. Current evidence by scope: `current-state-2026-09-18.md` for the dated V0 deployment snapshot; `managed-basket-v2-prototype-status.md` for implemented V2; `landing-journeys-2026-10-03.md` and `session-updates-2026-10-03.md` for the accepted landing scope and recorded verification; `home-hero-restoration-2026-10-02.md` for the prior accepted opening/layout, `basket-cover-refresh-2026-10-02.md` for artwork, and `session-updates-2026-10-02.md` for the revision history; `home-create-feedback-2026-10-02.md` remains evidence for retained Create controls; earlier design/performance files remain evidence for their dated scope. A UI update does not refresh chain evidence.
 3. `docs/implementation-backlog.md` — canonical operational work queue.
 4. Topic plans — security, data integrity, product/UX, and testing/release.
 5. Dated smoke/evidence files — evidence for their capture date, not current-state declarations.
@@ -28,7 +30,9 @@ Basket counts, test counts, API versions, and deployment claims in older files a
 | Document | Purpose |
 |---|---|
 | [basket-cover-refresh-2026-10-02.md](basket-cover-refresh-2026-10-02.md) | Ten distinct covers, exact prompt record, preserved originals and scoped verification |
-| [home-hero-restoration-2026-10-02.md](home-hero-restoration-2026-10-02.md) | Final calm stock-basket opening, gallery-first order, lower creator/fee section and final evidence |
+| [landing-journeys-2026-10-03.md](landing-journeys-2026-10-03.md) | New landing benefits/role journeys, checkpoint boundary and recorded verification |
+| [session-updates-2026-10-03.md](session-updates-2026-10-03.md) | Successful checkpoint and subsequent accepted landing revision |
+| [home-hero-restoration-2026-10-02.md](home-hero-restoration-2026-10-02.md) | Previously accepted calm hero, gallery-first order and dated verification |
 | [home-create-feedback-2026-10-02.md](home-create-feedback-2026-10-02.md) | Earlier fee-first hero superseded; retained Create catalog/removal/input behavior and dated 38-test evidence |
 | [session-updates-2026-10-02.md](session-updates-2026-10-02.md) | Complete UI/copy update record, Copilot setup, file map, verification, and preserved work |
 | [design-home-discovery-2026-10-02.md](design-home-discovery-2026-10-02.md) | Earlier discovery design, reference audit, performance findings and screenshots |

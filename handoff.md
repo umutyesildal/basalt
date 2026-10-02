@@ -1,8 +1,12 @@
-# Basalt handoff, current UI update 2026-10-02
+# Basalt handoff, landing revision 2026-10-03
+
+## Current landing handoff, 2026-10-03
+
+Checkpoint `0ac63ae3675ea0dcab45d4747c7f215b110e5731` was successfully pushed to `main` with root-confirmed remote equality. The newly accepted layout keeps the calm hero/four cards, changes the body to **Or create one that fits your needs.**, removes only home status/methodology notes, and adds six benefits before the existing creator section. Investor (two steps) and manager (three steps) visual journeys follow in `#how-it-works`. Existing covers, Create improvements and truthful model labels remain. Read [the new audit](docs/landing-journeys-2026-10-03.md) and [session](docs/session-updates-2026-10-03.md). The production build and recorded responsive/role checks passed; durable evidence is linked in the audit. The owner requested a commit and push of this accepted revision to the existing `origin/main`. This source push is separate from deployment.
 
 > **Git checkpoint, 2026-10-03:** The owner requested the accepted current source, documentation and basket artwork be saved to `main` before the next landing revision. See [the checkpoint scope and validation](docs/git-checkpoint-2026-10-03.md). Earlier uncommitted/no-push statements below describe their original dated passes. Generated video output folders remain local and outside this checkpoint.
 
-## Latest owner correction: calm stock-basket discovery
+## Previous accepted correction: calm stock-basket discovery, 2026-10-02
 
 The centered hero reads **Find a stock basket / you believe in.** and the gallery follows immediately. The lower `#build` section restores **Good stock picks can come from anyone.**, one conditional future-fee paragraph, **Build your stock basket** and the annual-cap/90/10 fee-share visual. This supersedes the fee-first interpretation below while retaining all ten unique artworks and Create interaction improvements.
 

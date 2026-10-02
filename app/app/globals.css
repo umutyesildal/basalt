@@ -255,7 +255,7 @@ main:has([data-slot="site-footer"]) > *:has([data-slot="site-footer"]) {
 }
 
 
-/* Discovery-led landing, 2026-10-02. Native scrolling at every viewport. */
+/* Discovery-led landing, 2026-10-03. Native scrolling at every viewport. */
 html:has([data-home-experience]) { scroll-behavior: smooth; scroll-padding-top: 5rem; }
 body:has([data-home-experience]) main#main { max-width: 1328px; padding-top: 0; padding-bottom: 0; }
 body:has([data-home-experience]) header > div { max-width: 1328px; }
@@ -271,7 +271,6 @@ body:has([data-home-experience]) header > div { max-width: 1328px; }
 .home-text-action { display: inline-flex; align-items: center; gap: .75rem; min-height: 2.75rem; font-size: .8125rem; color: hsl(var(--foreground)); transition: color 150ms ease-out; }
 .home-text-action:hover { color: hsl(var(--primary-text)); }
 .home-experience a:focus-visible, .home-experience summary:focus-visible, .basket-story-card a:focus-visible { outline: 2px solid hsl(var(--primary-text)); outline-offset: 4px; }
-.home-status { font-size: .6875rem; line-height: 1.6; color: hsl(var(--muted-foreground)); margin-top: 1.25rem; }
 .home-discovery { padding: 1.5rem 0 5rem; }
 .home-section-heading { display: flex; justify-content: space-between; align-items: end; gap: 1.5rem; margin-bottom: 1.75rem; }
 .home-section-heading h2 { font-size: clamp(1.5rem,2.5vw,2.125rem); font-weight: 500; letter-spacing: -.035em; line-height: 1.2; margin-top: .5rem; }
@@ -305,6 +304,13 @@ body:has([data-home-experience]) header > div { max-width: 1328px; }
 .basket-story-card-compact .basket-story-content { padding: 1rem; }
 .basket-story-card-compact .basket-story-meta { margin-top: .875rem; }
 .basket-story-card-compact .basket-story-thesis, .basket-story-card-compact .basket-story-meta > span:last-child { display: none; }
+.home-benefits { padding: 5rem 0; border-top: 1px solid hsl(var(--border)); }
+.home-benefits > h2 { max-width: 48rem; margin: 0 auto 3rem; text-align: center; font-size: clamp(2rem,3.5vw,3rem); font-weight: 500; line-height: 1.2; letter-spacing: -.035em; }
+.home-benefit-grid { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 1rem; }
+.home-benefit-card { padding: 2rem; background: transparent; }
+.home-benefit-icon { width: 1.5rem; height: 1.5rem; margin-bottom: 2rem; color: hsl(var(--primary-text)); }
+.home-benefit-card h3 { font-size: 1.125rem; font-weight: 500; line-height: 1.4; margin-bottom: .5rem; }
+.home-benefit-card p { max-width: 28rem; font-size: .875rem; line-height: 1.7; color: hsl(var(--muted-foreground)); }
 .home-maker { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); align-items: center; gap: clamp(3rem,6vw,6rem); padding: 5rem 0; border-top: 1px solid hsl(var(--border)); scroll-margin-top: 5rem; }
 .home-maker-copy { min-width: 0; }
 .home-maker-copy h2 { font-size: clamp(2.25rem,4.4vw,3.75rem); font-weight: 500; line-height: 1.15; letter-spacing: -.035em; }
@@ -350,6 +356,7 @@ body:has([data-home-experience]) header > div { max-width: 1328px; }
 .home-footer > a:first-child { font-size: 1.125rem; color: hsl(var(--foreground)); }
 .home-footer > a:last-child { margin-left: auto; }
 @media (max-width: 1023px) {
+  .home-benefit-grid { grid-template-columns: repeat(2,minmax(0,1fr)); }
   .home-basket-gallery { grid-template-columns: repeat(2,minmax(0,1fr)); gap: 1.25rem; }
   .home-maker { gap: 2.5rem; }
   .maker-journey { gap: .375rem; grid-template-columns: 3rem .75rem minmax(0,1fr) .75rem 3rem; }
@@ -365,13 +372,17 @@ body:has([data-home-experience]) header > div { max-width: 1328px; }
   .home-hero-actions { margin-top: 1.5rem; }
 }
 @media (max-width: 639px) {
+  .home-benefits { padding: 3rem 0; }
+  .home-benefits > h2 { margin-bottom: 2rem; text-align: left; }
+  .home-benefit-grid { grid-template-columns: 1fr; }
+  .home-benefit-card { padding: 1.5rem; }
+  .home-benefit-icon { margin-bottom: 1.5rem; }
   .home-hero { padding: 2.75rem 0 2.5rem; }
   .home-hero h1 { font-size: clamp(2.15rem,8.8vw,3.5rem); margin: 1.25rem 0 1.5rem; }
   .home-hero-description { font-size: .9375rem; max-width: 20rem; }
   .home-hero-actions { gap: .625rem 1rem; }
   .home-primary-action { font-size: .8125rem; gap: .75rem; padding: .75rem 1rem; }
   .home-text-action { font-size: .75rem; }
-  .home-status { font-size: .625rem; }
   .home-section-heading { align-items: start; gap: .75rem; }
   .home-section-heading h2 { max-width: 15rem; }
   .home-section-heading > a { min-height: 1.25rem; margin-top: .75rem; gap: .3rem; }

@@ -1,6 +1,10 @@
 # Basalt App (Next.js 15)
 
-## Current hero restoration and ten covers, 2026-10-02
+## Current landing revision, 2026-10-03
+
+Source is saved; the production build and recorded responsive/role checks passed. The hero description is **Or create one that fits your needs.**, without a home status or home-only methodology/source note. Four featured cards retain Model price labels. Six benefits follow the gallery, then the existing creator/fee section, then **I am an investor** (two steps) and **I am a basket manager** (three steps) in `#how-it-works`. Use actual basket covers and conditional future investing/fees. [The audit](../docs/landing-journeys-2026-10-03.md) and [session](../docs/session-updates-2026-10-03.md) track final evidence. Checkpoint `0ac63ae` was pushed; the owner accepted this new layout and requested a commit and push to `origin/main`.
+
+## Previous accepted hero restoration and ten covers, 2026-10-02
 
 The final owner correction restores **Find a stock basket / you believe in.** in a calm centered hero, with **Different takes.** directly below. The creator invitation and future-fee visual sit after the gallery in `#build`. All ten sample baskets have unique covers, including matching 64/80px thumbnails on recognized previews; custom drafts stay unassigned. Catalog/removal/focus/grouped-input improvements are retained. The final production build passed and browser checks covered 320/375/768/1280px without overflow. See [the restoration audit](../docs/home-hero-restoration-2026-10-02.md) and [cover audit](../docs/basket-cover-refresh-2026-10-02.md). The earlier 38-test result is dated evidence, not a new run.
 
@@ -20,7 +24,7 @@ Read the [complete session record](../docs/session-updates-2026-10-02.md), [curr
 
 ## Current route map
 
-- `/`: centered “Find a stock basket / you believe in.” hero, immediate named-basket gallery, lower `#build` invitation with the future annual-cap and fee-share visual, then native issuer/fee details.
+- `/`, accepted revision: calm stock-basket hero and four featured cards, six benefits, lower `#build` invitation/fee visual, investor/manager journeys in `#how-it-works`, then native issuer/fee details. Home-only status and methodology/source notes are removed; Model price labels remain.
 - `/create`: four tasks to choose stocks, set weights and optional fees, try an example amount, and review/share a validated link. No wallet is required.
 - `/preview?d=...`: validated basket link, thesis, allocation, example amount, fees, “Use this mix”, and “Copy basket link”. The onchain action is disabled and labeled “Coming soon”.
 - `/create/onchain`: redirect to `/create`; earlier transaction-wizard UI remains retained source.
@@ -32,7 +36,7 @@ Read the [complete session record](../docs/session-updates-2026-10-02.md), [curr
 
 ## Shared implementation
 
-- `components/home/home-experience.tsx`: server-rendered centered stock-basket hero, immediate discovery, lower `#build` creator invitation and native xStocks/fee details. The obsolete chapter scroll hook remains removed.
+- `components/home/home-experience.tsx`: server-rendered centered hero/discovery, new benefits and role-journey composition, retained lower `#build` creator visual and native issuer/fee details. Source is saved; the production build and recorded responsive/role checks passed. The obsolete chapter scroll hook remains removed.
 - `components/home/creator-reward-visual.tsx`: lower `#build` visual with annual-rate cap, an existing Bklit horizontal stacked bar for planned management-fee shares, stock logos, original basket cover and generic people. The 90/10 split is policy, not performance or current revenue.
 - `components/basket/basket-story-card.tsx`: reusable full/compact basket cards with optimized original editorial covers, constituent logos and person links; full cards serve both landing discovery and the Baskets gallery.
 - `lib/concept-samples.ts`: shared illustrative identities, theses, allocations, and activity.

@@ -2,7 +2,7 @@
 
 Basalt helps people create, explore and share stock-basket ideas. The calm centered opening names stock baskets directly and leads into the gallery; conditional future management fees belong in the lower creator section. Public investing and fee revenue remain unavailable. The wallet-free builder keeps both journeys easy to explore. Public onchain creation currently redirects back to that builder; retained transaction code and historical devnet evidence are documented separately.
 
-_Last updated 2026-10-02. The Basalt name and three-column mark supersede the historical FolioX, Roman, and Foundry identities. The electric-yellow system in `docs/design-cyberpunk-yellow-v1.md` supplies the color tokens; `docs/design-basalt-v1.md` defines the mark. Telemetry remains off._
+_Last updated 2026-10-03. The Basalt name and three-column mark supersede the historical FolioX, Roman, and Foundry identities. The electric-yellow system in `docs/design-cyberpunk-yellow-v1.md` supplies the color tokens; `docs/design-basalt-v1.md` defines the mark. Telemetry remains off._
 
 ## Identity
 
@@ -14,7 +14,13 @@ _Last updated 2026-10-02. The Basalt name and three-column mark supersede the hi
 - **Typography:** Chakra Petch (`--font-display`) for wordmark, headings, and hero numbers; Geist for body and controls; Geist Mono for compact labels, prices, percentages, and addresses. Keep critical mobile text readable.
 - **Motifs:** causeway tessellation, stacked allocation bars, hexagon and plus details, and zero-padded step numbers. Original grainy editorial collage is now used for basket covers. Keep those expressive images inside basket discovery; avoid decorative gradients, faux browser chrome and historical Roman/Foundry motifs.
 
-## Current landing narrative, final owner correction 2026-10-02
+## Current landing direction, 2026-10-03
+
+Keep the calm centered **Find a stock basket / you believe in.** headline. Use **Or create one that fits your needs.** The four featured cards lead into six compact benefits, the existing `#build` creator/fee visual, then `#how-it-works`. Remove the home status and landing-only model source/date/methodology note; retain per-card **Model price** and truthful historical-model meaning elsewhere.
+
+Use exactly **I am an investor** for the two-step journey, and **I am a basket manager** for stock mix → thesis → management fee. Real original covers provide continuity. Investing and earnings stay conditional on launch, with no automatic copy/rebalance or performance promises. Two collapsed issuer/fee details may remain at the bottom; avoid a large FAQ. [Current scope and recorded validation](docs/landing-journeys-2026-10-03.md) supersede the composition instructions below.
+
+## Previous accepted landing narrative, 2026-10-02
 
 Use a calm centered opening: **Stock baskets, made by people**, then **Find a stock basket / you believe in.** The body is **Stock baskets built around a point of view. / Find one you like, or share your own.** Lead with **Explore baskets** to `#discover`, followed by **Create a basket** to `/create`. Keep one status: **Basket sharing is open. Investing is in development.**
 
