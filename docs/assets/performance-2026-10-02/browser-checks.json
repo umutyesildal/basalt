@@ -1,0 +1,64 @@
+{
+  "date": "2026-10-02",
+  "viewports": [
+    320,
+    375,
+    768,
+    1280
+  ],
+  "home": {
+    "featuredCards": 4,
+    "modelMetricPairs": 4,
+    "overflow": false
+  },
+  "explore": {
+    "cards": 10,
+    "modelMetricPairs": 10,
+    "overflow": false
+  },
+  "leaderboard": {
+    "rankedRows": 10,
+    "order": "7D descending",
+    "negativeReturnsIncluded": true,
+    "width320Table": 288,
+    "overflow": false
+  },
+  "people": {
+    "cards": 10,
+    "width": 320,
+    "overflow": false
+  },
+  "feed": {
+    "cards": 5,
+    "width": 320,
+    "overflow": false
+  },
+  "sampleProfile": {
+    "name": "Maya Chen",
+    "cards": 4,
+    "width": 320,
+    "overflow": false
+  },
+  "create": {
+    "width": 320,
+    "actionsWithinViewport": true,
+    "focusAfterStep": "Try an amount",
+    "ariaCurrent": "step",
+    "copyEditShareJourney": "passed",
+    "invalidCopyRecovery": "passed"
+  },
+  "preview": {
+    "modelPriceMatchesLeaderboard": true,
+    "methodologyDisclosure": "passed"
+  },
+  "console": {
+    "errors": 0,
+    "warnings": 0,
+    "scope": "final leaderboard capture"
+  },
+  "limits": [
+    "No real investment, wallet signing or production deployment performed.",
+    "Provider outage UI source-reviewed; retry/fail-closed behavior covered by regression tests.",
+    "No full screen-reader, zoom or cross-browser certification."
+  ]
+}

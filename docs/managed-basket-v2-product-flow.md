@@ -4,7 +4,7 @@
 
 ## Product rules
 
-- `/create` remains a wallet-free concept preview. `/create/onchain` is the separate transaction flow.
+- `/create` remains the wallet-free basket builder. As of 2026-10-02, `/create/onchain` redirects there. Transaction creation states below are a target contract, not a currently exposed public route.
 - Managed V2 is opt-in. Existing V0 baskets and holders never migrate automatically.
 - Each Managed basket has one identity NFT, minted to its creator. The NFT identifies the basket; the fungible Token-2022 share is the pro-rata claim on actual vault assets. The NFT grants no share or manager rights; transferring it does not transfer the manager role.
 - V2 changes weights only within its fixed asset list. Fees, constituents, treasury, and identity stay fixed.
@@ -18,14 +18,15 @@
 
 The current wallet-free preview and sharing flow remains unchanged.
 
-- Page label: **Concept preview**
-- Primary action: **Create preview**
-- Share action: **Copy preview link**
-- **Preview details:** **This preview does not create tokens or move assets.**
+- Repeated concept/preview labels were removed by owner decision on 2026-10-02.
+- Primary action: **Share basket**.
+- Share action: **Copy basket link**.
+- The landing contains one product-status sentence; shared baskets keep **Example amount** and a disabled **Coming soon** onchain action.
+- See [session updates](session-updates-2026-10-02.md) for the current public flow.
 
 Do not show a live wallet state, proposal, trade, or executed version on a concept page.
 
-### On-chain `/create/onchain` — basket type
+### Future onchain entry: basket type
 
 - Page label: **On-chain basket**
 - Choices: **Fixed basket** / **Managed basket**
@@ -137,7 +138,7 @@ Label quoted prices and impact **Estimate**, with provider and as-of time. Use c
 
 ## Acceptance scenarios
 
-1. **Desktop — concept vs on-chain:** A visitor shares a preview without a wallet; preview details say no tokens or assets move. `/create/onchain` distinguishes Fixed and Managed.
+1. **Desktop, public flow:** A visitor shares a basket idea without a wallet using “Share basket”. Example amounts and the single landing status describe the available behavior. `/create/onchain` currently redirects to `/create`. A Fixed/Managed selector is a future acceptance scenario if transaction creation is exposed again.
 2. **Desktop — creation:** Before signing, creator can inspect the fixed asset set, initial mix, roles, notice/expiry, fees, and identity NFT recipient. Managed details are accessible without obscuring the main review.
 3. **Desktop — proposal:** Holder sees actual current holdings separately from proposed targets, review details, and Redeem. Submission or guardian approval never changes the current mix.
 4. **Desktop — execution:** After confirmed fill and balance reconciliation, all holders see the same actual holdings and version, actual trade amounts, and transaction link. Their share balances are unchanged by the fill.

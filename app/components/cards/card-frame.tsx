@@ -1,6 +1,7 @@
 import { ChangeValue } from "@/components/stocks/change-value";
 import { MicroLabel, MICRO_LABEL_SCALE } from "@/components/ui/micro-label";
 import { cn } from "@/lib/utils";
+import { formatPercent, NOT_A_NUMBER_LABEL } from "@/lib/format";
 
 /**
  * Shared card frame for the /explore, /stocks and /etfs grids (Cesto-derived
@@ -70,13 +71,13 @@ export function BenchmarkDelta({
   value: number | null;
   window: "24h" | "30d";
 }) {
-  if (value === null) {
+  if (value === null || !Number.isFinite(value)) {
     return (
       <span
         className="text-muted-foreground"
-        title={`No ${win} comparison — needs both the basket ${win} return and the SPY ${win} close.`}
+        title={`No ${win} comparison. Both the basket ${win} return and the SPY ${win} close are needed.`}
       >
-        —
+        {NOT_A_NUMBER_LABEL}
       </span>
     );
   }
@@ -88,8 +89,7 @@ export function BenchmarkDelta({
         positive ? "text-foreground" : "text-muted-foreground",
       )}
     >
-      {positive ? "+" : ""}
-      {value.toFixed(2)}%
+      {formatPercent(value, { signed: true })}
     </span>
   );
 }

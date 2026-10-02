@@ -154,7 +154,7 @@ export function AssetCard({
       </div>
 
       <span className="mt-5 block font-mono text-3xl tabular-nums text-foreground">
-        {price !== null ? formatUsd(price) : "—"}
+        {formatUsd(price)}
       </span>
 
       <div className="mt-auto pt-4">

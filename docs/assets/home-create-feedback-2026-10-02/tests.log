@@ -1,0 +1,47 @@
+✔ removing assets keeps every remaining allocation positive and the total exact (1.891625ms)
+✔ redistribution retains relative allocations and handles tiny remaining weights (0.102625ms)
+✔ slider extremes leave at least one basis point for each other asset (0.15325ms)
+✔ scroll affordance stops at the end, including fractional browser dimensions (0.096ms)
+✔ live grouping preserves decimals and caret positions during middle edits (0.327292ms)
+✔ clear and boundary amounts retain existing validation, without rounding drafts (0.192458ms)
+✔ existing copied amounts keep their precision without widening new input rules (14.783541ms)
+✔ fixed quantities retain September base and use seven calendar days across a holiday (14.841083ms)
+✔ longer history does not move the model base (0.283334ms)
+✔ a weekly loss stays negative while the September model base remains fixed (0.19675ms)
+✔ one missing constituent fails only its basket without substituting zero (0.545875ms)
+✔ all ranked models share current and weekly baseline dates (0.275375ms)
+✔ prices older than four calendar days fail closed (0.203084ms)
+✔ a stale constituent excludes its own model without blocking complete models (0.211334ms)
+✔ missing anchor or seven-day history yields no model metric (0.301042ms)
+✔ non-USD, zero and malformed weights cannot produce a model (0.389167ms)
+✔ an in-progress current-day Yahoo close and future candle are excluded (0.568917ms)
+✔ today becomes eligible only after the regular close and settling buffer (1.022167ms)
+✔ Yahoo null, zero, mismatched symbol and currency are rejected (0.428125ms)
+✔ USD uses full en-US comma grouping without compact suffixes or scientific notation (15.64425ms)
+✔ plain counts and percentages group thousands while keeping their units (0.565208ms)
+✔ missing and invalid numbers share one safe placeholder (0.134375ms)
+✔ exact and rounded zero never gain positive or negative signs (0.281458ms)
+✔ small nonzero changes preserve direction without fake signed-zero returns (0.257333ms)
+✔ rounding boundaries retain real negative and positive nonzero values (0.237458ms)
+✔ grouped amount input preserves decimal editing intent (0.292333ms)
+✔ amount parsing accepts raw or correctly grouped digits without changing values (0.141917ms)
+✔ malformed grouping, exponent notation and incomplete drafts cannot become zero (0.094459ms)
+✔ non-finite numeric amount drafts never render invalid text (0.101917ms)
+✔ shared consumers fetch once and refresh five minutes after completion (1.611542ms)
+✔ an expired hidden tab refreshes immediately when it becomes visible (0.557917ms)
+✔ a still-fresh visibility event keeps the cache and the remaining expiry (0.461583ms)
+✔ network failures clear data and retry after thirty seconds (0.483167ms)
+✔ partial and unavailable payloads retry after thirty seconds (0.729ms)
+✔ manual retry bypasses a fresh cache and deduplicates while pending (0.378458ms)
+✔ unmount during an in-flight request leaves no refresh timer or browser listener (0.337ms)
+✔ a failed refresh removes previously available metrics (0.371792ms)
+Concept preview and sample integrity checks passed.
+✔ app/tests/concept-preview.test.ts (139.273417ms)
+ℹ tests 38
+ℹ suites 0
+ℹ pass 38
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 398.9995

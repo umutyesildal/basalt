@@ -559,8 +559,8 @@ function TradeRows({ items }: { items: TradeFeedItem[] }) {
 // ---------------------------------------------------------------------------
 
 /** "+X.XX%" convention — negatives already carry their own sign. */
-function formatReturnPct(pct: number): string {
-  if (!Number.isFinite(pct)) return "—";
+function formatReturnPct(pct: number | null): string {
+  if (pct === null || !Number.isFinite(pct)) return "N/A";
   return `${pct >= 0 ? "+" : ""}${pct.toFixed(2)}%`;
 }
 
@@ -578,7 +578,7 @@ function BasketRow({ entry, index }: { entry: BasketLeaderboardEntry; index: num
   // re-polls every 60s into fresh objects, and unchanged content must not
   // re-animate — only an actual reorder at this rank does.
   useSwapFade(rowRef, entry.basket);
-  const positive = entry.returnPct >= 0;
+  const positive = entry.returnPct !== null && entry.returnPct >= 0;
   const aum = entry.aum.trim() === "" ? NaN : Number(entry.aum);
   return (
     <div

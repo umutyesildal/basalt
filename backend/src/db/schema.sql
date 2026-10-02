@@ -158,6 +158,19 @@ CREATE TABLE IF NOT EXISTS position_events (
 -- worker (~every 5m) with REFRESH MATERIALIZED VIEW CONCURRENTLY (the unique
 -- index below makes CONCURRENTLY legal).
 -- ---------------------------------------------------------------------------
+-- One-time upgrade of the old total-NAV-return materialized view.
+-- This is derived data only. No CASCADE: unexpected external dependencies
+-- fail closed rather than being removed. Subsequent bootstraps keep the view.
+DO $basket_returns_migration$
+BEGIN
+  IF to_regclass('basket_rankings') IS NOT NULL THEN
+    IF position('first_day.share_price' IN pg_get_viewdef(to_regclass('basket_rankings'))) = 0 THEN
+      DROP MATERIALIZED VIEW basket_rankings;
+    END IF;
+  END IF;
+END;
+$basket_returns_migration$;
+
 CREATE MATERIALIZED VIEW IF NOT EXISTS basket_rankings AS
 SELECT
   b.pubkey,
@@ -165,21 +178,31 @@ SELECT
   b.share_mint,
   h.nav,
   h.supply,
-  h.nav / NULLIF(h.supply, 0) AS share_price,
-  (h.nav - first_day.nav) / NULLIF(first_day.nav, 0) AS return_30d,
+  h.share_price,
+  CASE WHEN h.supply > 0 AND h.nav >= 0 AND h.share_price >= 0
+         AND h.nav::text NOT IN ('NaN', 'Infinity', '-Infinity')
+         AND h.share_price::text NOT IN ('NaN', 'Infinity', '-Infinity')
+         AND h.ts <= NOW() AND h.ts >= NOW() - interval '15 minutes'
+         AND first_day.supply > 0 AND first_day.share_price > 0
+         AND first_day.share_price::text NOT IN ('NaN', 'Infinity', '-Infinity')
+       THEN (h.share_price - first_day.share_price) / NULLIF(first_day.share_price, 0)
+  END AS return_30d,
   COUNT(DISTINCT e.sig) FILTER (WHERE e.type = 'Minted') AS mint_count,
   NOW() AS refreshed_at
 FROM baskets b
 JOIN LATERAL (
-  SELECT nav, supply FROM nav_snapshots WHERE basket = b.pubkey ORDER BY ts DESC LIMIT 1
+  SELECT nav, supply, share_price, ts FROM nav_snapshots WHERE basket = b.pubkey ORDER BY ts DESC LIMIT 1
 ) h ON true
 LEFT JOIN LATERAL (
-  SELECT nav FROM nav_snapshots
-  WHERE basket = b.pubkey AND ts > NOW() - '30 days'::interval
-  ORDER BY ts ASC LIMIT 1
+  SELECT supply, share_price FROM nav_snapshots
+  WHERE basket = b.pubkey
+    AND ts <= h.ts - interval '30 days'
+    AND ts >= h.ts - interval '30 days' - interval '1 hour'
+  ORDER BY ts DESC LIMIT 1
 ) first_day ON true
 LEFT JOIN events e ON e.basket = b.pubkey
-GROUP BY b.pubkey, b.creator, b.share_mint, h.nav, h.supply, first_day.nav;
+GROUP BY b.pubkey, b.creator, b.share_mint, h.nav, h.supply, h.share_price, h.ts,
+         first_day.supply, first_day.share_price;
 
 CREATE UNIQUE INDEX IF NOT EXISTS basket_rankings_pubkey_idx ON basket_rankings(pubkey);
 CREATE INDEX IF NOT EXISTS basket_rankings_nav_idx ON basket_rankings(nav DESC);

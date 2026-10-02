@@ -3,91 +3,61 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
+import { ModelPerformanceNote } from "@/components/basket/basket-performance";
+import { BasketStoryCard } from "@/components/basket/basket-story-card";
 import { SocialAvatar } from "@/components/social/avatar";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { SectionHeading } from "@/components/ui/section-heading";
-import { CONCEPT_ACTIVITY, getConceptBasket, getConceptBasketHref, getConceptCreator } from "@/lib/concept-samples";
+import { CONCEPT_ACTIVITY, getConceptBasket, getConceptCreator } from "@/lib/concept-samples";
 import { formatRelativeTime, formatUsd, truncateAddress } from "@/lib/format";
 import { fetchFeed, type TradeFeedItem } from "@/lib/social-api";
 
-type FeedView = "concept" | "live";
-
 export default function FeedClient() {
-  const [view, setView] = useState<FeedView>("concept");
+  const [showLive, setShowLive] = useState(false);
 
   return (
-    <div className="mx-auto w-full max-w-4xl space-y-6">
+    <div className="mx-auto w-full max-w-5xl space-y-10 py-4 sm:space-y-12 sm:py-8">
       <header className="flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <SectionHeading
-            as="h1"
-            eyebrow={<span className="text-[0.7rem] font-medium leading-4 tracking-[0.22em]">IDEAS IN MOTION</span>}
-            title={<span className="text-3xl font-semibold tracking-tight">Feed</span>}
-          />
-          <p className="mt-1 max-w-xl text-sm text-muted-foreground">
-            Explore basket ideas, share your own preview, and follow onchain creators.
-          </p>
+        <div className="space-y-3">
+          <h1 className="font-display text-3xl font-semibold tracking-tight sm:text-4xl">People and their picks.</h1>
+          <p className="text-sm text-muted-foreground">Sample viewpoints</p>
         </div>
-        <nav aria-label="Feed view" className="flex flex-wrap items-center gap-2">
-          <Link
-            href="/create"
-            className="inline-flex min-h-9 items-center rounded-md bg-primary px-3 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
-          >
-            Share an idea
-          </Link>
-          <Button variant={view === "concept" ? "secondary" : "ghost"} size="sm" onClick={() => setView("concept")}>
-            Concept examples
-          </Button>
-          <Button variant={view === "live" ? "secondary" : "ghost"} size="sm" onClick={() => setView("live")}>
-            Devnet activity
-          </Button>
-        </nav>
+        <Link href="/create" className="inline-flex min-h-11 items-center rounded-md text-sm font-medium underline decoration-border underline-offset-4 hover:decoration-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2">
+          Create a basket
+        </Link>
       </header>
 
-      {view === "concept" ? <ConceptFeed /> : <LiveActivity />}
+      <ConceptFeed />
+      <ModelPerformanceNote />
+
+      <details className="border-t border-border pt-4" onToggle={(event) => setShowLive(event.currentTarget.open)}>
+        <summary className="min-h-11 cursor-pointer rounded-md py-3 text-sm text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2">Devnet activity</summary>
+        <div className="pt-5">{showLive ? <LiveActivity /> : null}</div>
+      </details>
     </div>
   );
 }
 
 function ConceptFeed() {
   return (
-    <section aria-label="Concept examples" className="space-y-3">
-      <p className="inline-flex rounded-full border border-border px-2.5 py-1 font-mono text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
-        Concept preview
-      </p>
-      <ul className="space-y-3">
+    <section aria-label="Basket viewpoints">
+      <ul className="divide-y divide-border">
         {CONCEPT_ACTIVITY.map((activity) => {
           const creator = getConceptCreator(activity.creatorId);
           const basket = getConceptBasket(activity.basketId);
           if (!creator || !basket) return null;
           return (
-            <li key={activity.id}>
-              <Card className="transition-colors hover:border-border">
-                <CardContent className="p-4 sm:p-5">
-                  <div className="flex flex-wrap items-center justify-between gap-3">
-                    <Link href={`/creator/${creator.id}`} className="flex min-w-0 items-center gap-2.5 rounded-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50">
-                      <SocialAvatar wallet={creator.id} handle={creator.handle} displayName={creator.displayName} avatarUrl={creator.avatarUrl} />
-                      <span className="min-w-0">
-                        <span className="block truncate text-sm font-medium text-foreground">{creator.displayName}</span>
-                        <span className="block truncate font-mono text-[11px] text-muted-foreground">@{creator.handle}</span>
-                      </span>
-                    </Link>
-                  </div>
-                  <div className="mt-4">
-                    <h2 className="text-base font-semibold tracking-tight">{activity.title}</h2>
-                    <p className="mt-1 text-sm leading-6 text-muted-foreground">{activity.body}</p>
-                  </div>
-                  <Link
-                    href={getConceptBasketHref(basket.id)}
-                    className="mt-4 inline-flex items-center gap-2 rounded-lg border border-border/70 bg-muted/20 px-3 py-2 text-sm font-medium transition-colors hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
-                  >
-                    <span aria-hidden="true" className="inline-flex h-7 w-7 items-center justify-center rounded-md bg-accent font-mono text-[10px] font-semibold text-accent-foreground">{basket.symbol}</span>
-                    <span>{basket.name}</span>
-                    <span aria-hidden="true" className="ml-1 text-muted-foreground">↗</span>
-                  </Link>
-                </CardContent>
-              </Card>
+            <li key={activity.id} className="grid gap-6 py-8 first:pt-0 last:pb-0 sm:grid-cols-[minmax(0,1fr)_minmax(0,20rem)] sm:gap-10 sm:py-10">
+              <article className="min-w-0 space-y-5">
+                <Link href={`/creator/${creator.id}`} className="inline-flex min-h-11 max-w-full items-center gap-3 rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2">
+                  <SocialAvatar wallet={creator.id} handle={creator.handle} displayName={creator.displayName} avatarUrl={creator.avatarUrl} size="md" />
+                  <span className="min-w-0">
+                    <span className="block truncate text-sm font-medium">{creator.displayName}</span>
+                    <span className="block truncate text-xs text-muted-foreground">@{creator.handle}</span>
+                  </span>
+                </Link>
+                <p className="max-w-prose text-lg leading-8 text-foreground">{activity.body}</p>
+              </article>
+              <div className="min-w-0"><BasketStoryCard basket={basket} compact showOwner={false} /></div>
             </li>
           );
         })}

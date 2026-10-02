@@ -1,8 +1,8 @@
 # Brand — Basalt
 
-Basalt helps people explore and share ideas for baskets of stocks and ETFs. Its two equally visible starting points are creating a basket idea and discovering the people behind other ideas. The wallet-free concept preview keeps both journeys easy to explore; the separate devnet transaction flow remains available for technical review.
+Basalt helps people create, explore and share stock-basket ideas. The calm centered opening names stock baskets directly and leads into the gallery; conditional future management fees belong in the lower creator section. Public investing and fee revenue remain unavailable. The wallet-free builder keeps both journeys easy to explore. Public onchain creation currently redirects back to that builder; retained transaction code and historical devnet evidence are documented separately.
 
-_Last updated 2026-09-25. The Basalt name and three-column mark supersede the historical FolioX, Roman, and Foundry identities. The electric-yellow system in `docs/design-cyberpunk-yellow-v1.md` supplies the color tokens; `docs/design-basalt-v1.md` defines the mark. Telemetry remains off._
+_Last updated 2026-10-02. The Basalt name and three-column mark supersede the historical FolioX, Roman, and Foundry identities. The electric-yellow system in `docs/design-cyberpunk-yellow-v1.md` supplies the color tokens; `docs/design-basalt-v1.md` defines the mark. Telemetry remains off._
 
 ## Identity
 
@@ -12,17 +12,45 @@ _Last updated 2026-09-25. The Basalt name and three-column mark supersede the hi
 - **Canvas:** near-black industrial surfaces in dark mode. Electric yellow `#FCEE0A` is the primary action, focus, and key state accent. Light mode uses the darker yellow fill and text tokens from `app/app/globals.css` to keep contrast. Use semantic tokens in components, rather than hardcoded hex.
 - **Data:** cyan, magenta, green, and violet are chart-series colors only. They do not decorate product chrome. Muted gray may represent a benchmark; source and as-of time must accompany financial data.
 - **Typography:** Chakra Petch (`--font-display`) for wordmark, headings, and hero numbers; Geist for body and controls; Geist Mono for compact labels, prices, percentages, and addresses. Keep critical mobile text readable.
-- **Motifs:** causeway tessellation, stacked allocation bars, hexagon and plus details, and zero-padded step numbers. Avoid laurel, Roman, Foundry, photos, decorative gradients, and faux browser chrome.
+- **Motifs:** causeway tessellation, stacked allocation bars, hexagon and plus details, and zero-padded step numbers. Original grainy editorial collage is now used for basket covers. Keep those expressive images inside basket discovery; avoid decorative gradients, faux browser chrome and historical Roman/Foundry motifs.
+
+## Current landing narrative, final owner correction 2026-10-02
+
+Use a calm centered opening: **Stock baskets, made by people**, then **Find a stock basket / you believe in.** The body is **Stock baskets built around a point of view. / Find one you like, or share your own.** Lead with **Explore baskets** to `#discover`, followed by **Create a basket** to `/create`. Keep one status: **Basket sharing is open. Investing is in development.**
+
+The **Different takes.** gallery follows immediately. After the gallery, `#build` pairs **Good stock picks can come from anyone.** with one paragraph: **Share your strategy in a stock basket. When investing opens, earn management fees as people back it.** Its action is **Build your stock basket**. Keep the existing creator-reward visual beside this lower invitation, with the annual cap separate from the 90/10 fee-share allocation. Fee meanings, dilution and future availability remain explicit. This is an in-page section, not a new route.
+
+All ten covers remain distinct, the original four featured artworks remain unchanged, and Create's catalog/removal/grouped-input improvements remain. [The hero restoration](docs/home-hero-restoration-2026-10-02.md) and [cover refresh](docs/basket-cover-refresh-2026-10-02.md) are the current layout/artwork evidence. Older composition records below are historical.
+
+## Previous fee-first narrative, superseded for hero/layout, 2026-10-02
+
+The large heading is **“Create stock baskets. Earn management fees.”** Its body makes earnings conditional on investing opening. The filled action says **Create a stock basket** and the secondary action explores baskets. One adjacent sentence says **“Basket sharing is open. Investing and fees are in development.”** Keep the annual management-rate cap (**up to 3%**) distinct from the **90% creator / 10% Basalt fee-share split**. Those percentages are fee allocation, never investment returns. Payment is in newly issued basket shares with holder dilution; annual management fees accrue whether prices rise or fall and are not contingent on investment gains.
+
+The stock/basket/people illustration and compact Bklit fee bar now sit in the hero, with fee information first. The lower section retains only the “Good stock picks can come from anyone.” statement and **Share your stock basket**. Preserve the four featured original covers and model metrics, native scrolling, responsive stacking and concise English without em dashes. Home focus outlines use the theme's text-grade yellow token.
+
+Create keeps all 41 available catalog entries in a bounded native scroll region, with a clickable fade that disappears at the end. Weight removal retains exact positive 10,000-bps totals; fewer than two assets blocks Continue and Add stocks returns focus to search. USD/count/percentage displays use full comma grouping, safe unavailable values and directional tiny-value labels. Grouped amount input preserves decimal intent, caret and existing copied precision without changing submitted values or protocol math.
+
+Read [the earlier home/Create audit](docs/home-create-feedback-2026-10-02.md) for its dated source map and 38-test/build evidence. The final correction places the fee visual below discovery; its Create improvements remain current.
+
+## Historical landing narrative, superseded by the home/Create owner feedback
+
+The calm hero and four named basket cards lead discovery. The lower landing now combines the creator story and action in one `#build` section. On the left, “Good stock picks can come from anyone.” has one short paragraph about sharing a strategy and earning management fees when investing opens, followed by “Build your basket” linking to `/create`. On the right, stock logos lead to an original-cover “Your basket / by you” card and generic people. A compact Bklit bar shows the planned management-fee share split: 90% to the publisher and 10% to Basalt. Keep those numbers secondary to the basket journey, with labels that identify fee shares. Native vertical scrolling remains.
+
+Feed pairs short viewpoints with visual basket cards; Managers pairs people with their baskets. The four sample names are Terminally Online, Touch Grass, No Hands and Daily Ritual. Covers are original editorial artwork with no financial meaning. On `/explore`, the Baskets gallery reuses full-cover `BasketStoryCard` cards with person links in one column on mobile, two on tablet, and four on wide screens. This browse page uses a vertical grid. Its separately identified indexed section, search, sorting, and provenance boundaries are unchanged. Show sample context once per surface and never invent returns, assets under management, rankings or fee revenue.
+
+A single line below the creator section says “Built for xStocks, tokenized stocks and ETFs on Solana.” Two native details contain the issuer-instrument explanation and planned V0 fee model: up to 3% annually, a 90/10 publisher/protocol split, paid in newly issued shares with dilution. The hero retains one status sentence: “Basket sharing is open. Investing is in development.” The latest visual and build verification is recorded in the current landing audit.
+
+Native scrolling applies at every viewport. The landing’s mobile basket row allows manual horizontal browsing; the Baskets browse page uses its one/two/four-column grid. Do not restore the retired full-screen chapter hook, timed demonstrations, donut hero or large fee panel. Use existing Card primitives, optimized images and visible keyboard focus. See [the current visual-creation audit](docs/design-home-visual-creation-2026-10-02.md) and [earlier gallery design](docs/design-home-discovery-2026-10-02.md).
 
 ## Product hierarchy
 
-Basalt has two equally visible starting points. The creation path lets people choose a template or assets, set a **100%** mix and optional fees, choose an illustrative dollar amount, then review and share a concept preview. A $1,000 example is prefilled and $10/$100/$1,000 shortcuts are offered; these are preview amounts, never a purchase or deposit. No wallet, token balance, or backend is required.
+Basalt supports discovery and creation. The creation path lets people choose a template or assets, set a **100%** mix and optional fees, choose an illustrative dollar amount, then review and share a concept preview. A $1,000 example is prefilled and $10/$100/$1,000 shortcuts are offered; these are preview amounts, never a purchase or deposit. No wallet, token balance, or backend is required.
 
 The discovery path lets people explore sample creators and basket ideas, inspect a thesis and current allocation, then bring that mix into their own wallet-free preview. Following a creator is a social subscription; it does not mirror future activity or buy assets. Sharing a preview makes the creator’s thesis and composition easy to inspect.
 
-The separate `/create/onchain` flow retains owned-token deposits, legal acknowledgments, exact 10,000-bps total, fee caps, integer rounding, raw Token-2022 transfers, and on-chain checks. The main controls say “Balance to 100%,” not “Normalize to 10,000.”
+As of 2026-10-02, `/create/onchain` redirects to `/create`. The retained transaction implementation still contains owned-token deposits, legal acknowledgments, exact 10,000-bps totals, fee caps, integer rounding, raw Token-2022 transfers, and on-chain checks. Those requirements apply if the transaction flow is exposed again. Allocation controls say “Balance to 100%.”
 
-Keep each decision screen scannable: one task heading, one actionable validation message, and short visible copy. Optional fee controls have plain explanations. The concept review reuses the live composition preview and finishes with “Create preview.” It does not show a hypothetical minted share. In the on-chain flow, required legal explanations remain accessible and a creator receives **one display basket share** at genesis; the 1,000,000 raw units are not a million user-facing shares.
+Keep each decision screen scannable: one task heading, one actionable validation message, and short visible copy. Optional fee controls have plain explanations. The concept review reuses the live composition preview and finishes with “Share basket.” It does not show a hypothetical minted share. In the on-chain flow, required legal explanations remain accessible and a creator receives **one display basket share** at genesis; the 1,000,000 raw units are not a million user-facing shares.
 
 The basket first view explains its thesis, constituent allocation, entry/exit/annual fees, risks, and buy/redeem actions. Reference price, performance, source timestamps, raw amounts, mint addresses, drift arithmetic, fee formulas, and operator data belong in clearly labeled advanced details that remain keyboard accessible.
 
@@ -30,14 +58,19 @@ Redemption copy says that basket shares are exchanged for proportional underlyin
 
 ## Truth and legal voice
 
-Use short, factual English sentences and direct action labels. “Stock Baskets” names the concept in navigation and marketing; explain that the idea uses stocks and ETFs. Reserve “onchain equity basket” and “xStocks-backed strategy token” for pages where actual backing is substantiated. Never call a concept preview a deployed basket or a completed investment, and never call the product a registered ETF, fund, guaranteed return, safe investment, financial advice, or managed money.
+Use short, natural English sentences and direct action labels. Do not use em dashes in interface copy. Give each section one main thought, usually one heading and one short paragraph. Avoid repeated disclaimers, extra context chips, and slogans that restate the heading. “Stock Baskets” names the concept in navigation and marketing; explain that the idea uses stocks and ETFs. Reserve “onchain equity basket” and “xStocks-backed strategy token” for pages where actual backing is substantiated. Never call a concept preview a deployed basket or a completed investment, and never call the product a registered ETF, fund, guaranteed return, safe investment, financial advice, or managed money.
 
-Current devnet basket constituents are **project mock Token-2022 mints**, not official issuer-backed xStocks. Concept pages use one quiet “Concept preview” context label and never present illustrative activity or allocation as on-chain execution. The on-chain transaction pages continue to identify devnet/mock assets and sourced reference values where used. A real token balance is not proof of issuer backing. Do not fabricate NAV, holdings, price, performance, or a live-data timestamp; show an honest unavailable state when the source fails. Avoid “live AUM” for an estimated reference NAV.
+Current devnet basket constituents are **project mock Token-2022 mints**, not official issuer-backed xStocks. The owner removed repeated concept/preview badges and no-purchase notices on 2026-10-02. Keep the main pages minimal, and describe outcomes through accurate action labels such as “Share basket” and “Coming soon.” Illustrative activity and allocation must never be presented as on-chain execution. The on-chain transaction pages continue to identify devnet/mock assets and sourced reference values where used. A real token balance is not proof of issuer backing. Do not fabricate NAV, holdings, price, performance, or a live-data timestamp; show an honest unavailable state when the source fails. Avoid “live AUM” for an estimated reference NAV.
 
-Keep the legal acknowledgments in `/create/onchain` and the legal page. The wallet-free concept preview has no deploy action. `LEGAL_REVIEW_REQUIRED` remains a release requirement in `AGENTS.md` and `docs/basalt-v0-spec.md`, including jurisdiction, issuer-instrument, fee, and risk review. UI review chips were removed by the owner; their absence is not legal approval. Redemption must remain accessible regardless of a mint pause, backend outage, or price-feed outage.
+Keep the legal acknowledgments in the retained transaction implementation and the legal page; the `/create/onchain` route currently redirects. The wallet-free concept preview has no deploy action. `LEGAL_REVIEW_REQUIRED` remains a release requirement in `AGENTS.md` and `docs/basalt-v0-spec.md`, including jurisdiction, issuer-instrument, fee, and risk review. UI review chips were removed by the owner; their absence is not legal approval. Redemption must remain accessible regardless of a mint pause, backend outage, or price-feed outage.
 
 ## Interaction checks
 
 Primary actions and focus rings use the yellow token with accessible contrast. Desktop and mobile create, detail, buy, and redeem flows must support keyboard focus, visible errors, at least 44×44 px touch targets, reduced motion, and honest loading/empty states. Use the existing Bklit-derived chart components and meaningful text summaries. Keep primary information out of tiny micro-labels.
 
 Historical palette and type choices from the 2026-09-01 Mineral Desk pass and 2026-09-03 intermediate directions are superseded by this Basalt identity.
+
+
+## Model metrics and weekly discovery, 2026-10-02
+
+Preserve the four featured covers and all ten unique sample identities; the opening follows the calm stock-basket discovery correction above. Keep only Model price and 7D on basket cards; use signed green/red returns and tabular numerals. The ten-basket leaderboard is a restrained artwork/name/price/return table. One source/date note and collapsed methodology explain historical models. Never imply sample profile returns are achieved investor results. People remains a leaderboard tab. Keep copy concise and avoid em dashes.

@@ -18,8 +18,73 @@ const ABBREVIATIONS = [
   { threshold: 1e6, suffix: "M" },
 ] as const;
 
-/** Non-finite values render as an em dash instead of "NaN"/"Infinity". */
-export const NOT_A_NUMBER_LABEL = "—";
+/** Missing or non-finite values never render as a misleading number. */
+export const NOT_A_NUMBER_LABEL = "--";
+
+type OptionalNumber = number | null | undefined;
+const isFiniteNumber = (value: OptionalNumber): value is number => typeof value === "number" && Number.isFinite(value);
+const displayDigits = (value: number | undefined, fallback: number) =>
+  typeof value === "number" && Number.isFinite(value) ? Math.max(0, Math.min(20, Math.trunc(value))) : fallback;
+const roundsToZero = (value: number, digits: number) => value !== 0 && Math.abs(value) < 0.5 * 10 ** -digits;
+const tinyMagnitude = (digits: number) => new Intl.NumberFormat("en-US", { maximumFractionDigits: digits }).format(10 ** -digits);
+
+/** Full, comma-grouped numbers; callers choose display precision, never K/M abbreviations. */
+export function formatNumber(
+  value: OptionalNumber,
+  options?: { locale?: string; maximumFractionDigits?: number; minimumFractionDigits?: number; signed?: boolean },
+): string {
+  if (!isFiniteNumber(value)) return NOT_A_NUMBER_LABEL;
+  const maximumFractionDigits = displayDigits(options?.maximumFractionDigits, 0);
+  const minimumFractionDigits = Math.min(displayDigits(options?.minimumFractionDigits, 0), maximumFractionDigits);
+  const normalized = value === 0 || roundsToZero(value, maximumFractionDigits) ? 0 : value;
+  const sign = options?.signed && normalized > 0 ? "+" : "";
+  return sign + new Intl.NumberFormat(options?.locale ?? "en-US", {
+    useGrouping: true, minimumFractionDigits, maximumFractionDigits,
+  }).format(normalized);
+}
+
+/** Values are percentage points, so 1 means 1%, not 100%. */
+export function formatPercent(
+  value: OptionalNumber,
+  options?: { fractionDigits?: number; signed?: boolean; tiny?: boolean },
+): string {
+  if (!isFiniteNumber(value)) return NOT_A_NUMBER_LABEL;
+  const digits = displayDigits(options?.fractionDigits, 2);
+  if (options?.tiny !== false && roundsToZero(value, digits)) {
+    return `${value < 0 ? "-" : options?.signed ? "+" : ""}<${tinyMagnitude(digits)}%`;
+  }
+  return `${formatNumber(value, { minimumFractionDigits: digits, maximumFractionDigits: digits, signed: options?.signed })}%`;
+}
+
+// Accept either raw digits or correctly grouped en-US input. The caller owns
+// business limits (>0 and <=1,000,000); editing drafts retain decimal intent.
+function amountDraft(value: string | number): { integer: string; fraction: string | undefined } | null {
+  if (typeof value === "number" && (!Number.isFinite(value) || value < 0)) return null;
+  const text = String(value).trim();
+  if (text === "") return { integer: "", fraction: undefined };
+  const [integer, fraction, extra] = text.split(".");
+  if (extra !== undefined || (fraction !== undefined && !/^\d{0,2}$/.test(fraction))) return null;
+  if (integer.includes(",") ? !/^\d{1,3}(?:,\d{3})+$/.test(integer) : !/^\d*$/.test(integer)) return null;
+  const rawInteger = integer.replace(/,/g, "");
+  if (rawInteger.length > 7) return null;
+  return { integer: rawInteger, fraction };
+}
+
+/** Preserve blank, '.', trailing decimal and fractional zeros while grouping the integer. */
+export function formatGroupedAmountInput(value: string | number): string {
+  const draft = amountDraft(value);
+  if (!draft) return "";
+  const grouped = draft.integer.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+  return draft.fraction === undefined ? grouped : `${grouped}.${draft.fraction}`;
+}
+
+/** Malformed, empty and incomplete input never silently becomes numeric zero. */
+export function parseGroupedAmountInput(value: string): number | null {
+  const draft = amountDraft(value);
+  if (!draft || !/\d/.test(draft.integer + (draft.fraction ?? ""))) return null;
+  const parsed = Number(draft.fraction === undefined ? draft.integer : `${draft.integer}.${draft.fraction}`);
+  return Number.isFinite(parsed) ? parsed : null;
+}
 
 /**
  * Display casing for a ticker derived from a whitelist price_source slug
@@ -38,10 +103,10 @@ export function prettyTicker(ticker: string): string {
  * 1_234_567 -> "1.2M").
  */
 export function formatTokenAmount(
-  value: number,
+  value: OptionalNumber,
   options?: { locale?: string; maximumFractionDigits?: number },
 ): string {
-  if (!Number.isFinite(value)) return NOT_A_NUMBER_LABEL;
+  if (!isFiniteNumber(value)) return NOT_A_NUMBER_LABEL;
   const locale = options?.locale ?? "en-US";
   const maximumFractionDigits = options?.maximumFractionDigits ?? 6;
   const abs = Math.abs(value);
@@ -49,12 +114,11 @@ export function formatTokenAmount(
     if (abs >= threshold) {
       const scaled = value / threshold;
       const digits = abs >= 10 * threshold ? 0 : 1;
-      return `${new Intl.NumberFormat(locale, {
-        maximumFractionDigits: digits,
-      }).format(scaled)}${suffix}`;
+      return `${formatNumber(scaled, { locale, maximumFractionDigits: digits })}${suffix}`;
     }
   }
-  return new Intl.NumberFormat(locale, { maximumFractionDigits }).format(value);
+  if (roundsToZero(value, maximumFractionDigits)) return `${value < 0 ? "-" : ""}<${tinyMagnitude(maximumFractionDigits)}`;
+  return formatNumber(value, { locale, maximumFractionDigits });
 }
 
 /**
@@ -63,21 +127,22 @@ export function formatTokenAmount(
  * maximumFractionDigits to override.
  */
 export function formatUsd(
-  value: number,
+  value: OptionalNumber,
   options?: { locale?: string; maximumFractionDigits?: number },
 ): string {
-  if (!Number.isFinite(value)) return NOT_A_NUMBER_LABEL;
+  if (!isFiniteNumber(value)) return NOT_A_NUMBER_LABEL;
   const locale = options?.locale ?? "en-US";
   const abs = Math.abs(value);
-  const maximumFractionDigits =
-    options?.maximumFractionDigits ?? (abs > 0 && abs < 1 ? 4 : 2);
+  const maximumFractionDigits = displayDigits(options?.maximumFractionDigits, abs > 0 && abs < 1 ? 4 : 2);
   const minimumFractionDigits = Math.min(2, maximumFractionDigits);
+  if (roundsToZero(value, maximumFractionDigits)) return `${value < 0 ? "-" : ""}<$${tinyMagnitude(maximumFractionDigits)}`;
   return new Intl.NumberFormat(locale, {
     style: "currency",
     currency: "USD",
     minimumFractionDigits,
     maximumFractionDigits,
-  }).format(value);
+    useGrouping: true,
+  }).format(value === 0 ? 0 : value);
 }
 
 /** 100 bps = 1%. On-chain values are bps; UI copy uses percent. */
@@ -99,7 +164,7 @@ export function percentToBps(percent: number): number {
  */
 export function formatBpsAsPercent(bps: number, fractionDigits = 2): string {
   if (!Number.isFinite(bps)) return NOT_A_NUMBER_LABEL;
-  return `${(bps / 100).toFixed(fractionDigits)}%`;
+  return formatPercent(bps / 100, { fractionDigits, tiny: false });
 }
 
 /**
@@ -113,9 +178,7 @@ export function formatBps(
   if (!Number.isFinite(bps)) return NOT_A_NUMBER_LABEL;
   const locale = options?.locale ?? "en-US";
   const maximumFractionDigits = options?.maximumFractionDigits ?? 2;
-  const sign = options?.signed && bps > 0 ? "+" : "";
-  const body = new Intl.NumberFormat(locale, { maximumFractionDigits }).format(bps);
-  return `${sign}${body} bps`;
+  return `${formatNumber(bps, { locale, maximumFractionDigits, signed: options?.signed })} bps`;
 }
 
 /**

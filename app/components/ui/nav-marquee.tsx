@@ -171,7 +171,8 @@ function TickerCell({ entry }: { entry: BasketLeaderboardEntry }) {
   const aum = entry.aum.trim() === "" ? NaN : Number(entry.aum);
   const label =
     entry.symbol?.trim() || entry.basketName?.trim() || truncateAddress(entry.basket, 6, 4);
-  const hasChange = Number.isFinite(entry.returnPct);
+  const returnPct = entry.returnPct;
+  const hasChange = returnPct !== null && Number.isFinite(returnPct);
   return (
     <li className="flex shrink-0 items-center">
       {/* Leading divider also stitches the copy-to-copy seam of the loop. */}
@@ -189,14 +190,14 @@ function TickerCell({ entry }: { entry: BasketLeaderboardEntry }) {
           className={cn(
             "font-mono text-[11px] tabular-nums",
             hasChange
-              ? entry.returnPct >= 0
+              ? returnPct >= 0
                 ? CHANGE_UP_CLASS
                 : CHANGE_DOWN_CLASS
               : "text-muted-foreground",
           )}
         >
           {hasChange
-            ? `${entry.returnPct >= 0 ? "+" : ""}${entry.returnPct.toFixed(2)}%`
+            ? `${returnPct >= 0 ? "+" : ""}${returnPct.toFixed(2)}%`
             : "—"}
         </span>
       </span>

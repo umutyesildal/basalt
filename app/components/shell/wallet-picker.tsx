@@ -6,6 +6,7 @@ import { WalletReadyState, type WalletName } from "@solana/wallet-adapter-base";
 
 import { useWalletFeedback } from "@/app/providers";
 import { describeWalletError } from "@/lib/wallet";
+import { scheduleAfterWalletProviderEffects } from "@/lib/wallet-connect-scheduler";
 import { cn } from "@/lib/utils";
 
 export function isWalletReady(readyState: WalletReadyState): boolean {
@@ -78,15 +79,23 @@ export function walletGlyph(name: string): ComponentType<{ className?: string }>
 export function useWalletConnect() {
   const { wallet, connect, select } = useWallet();
   const { error, clearError, reportError } = useWalletFeedback();
-  const pendingConnectRef = useRef(false);
+  const pendingConnectRef = useRef<WalletName | null>(null);
 
   useEffect(() => {
-    if (!pendingConnectRef.current || !wallet) return;
+    const pendingName = pendingConnectRef.current;
+    if (!pendingName || !wallet || wallet.adapter.name !== pendingName) return;
     if (!isWalletReady(wallet.readyState)) return;
-    pendingConnectRef.current = false;
-    connect().catch((err: unknown) => {
-      const e = err as { name?: string; message?: string };
-      reportError(e?.name ?? "WalletError", describeWalletError(e));
+
+    // WalletProviderBase subscribes to adapter events in its own passive effect.
+    // Deferring one task lets that parent effect attach before an already-authorized
+    // wallet can synchronously emit `connect`.
+    return scheduleAfterWalletProviderEffects(() => {
+      if (pendingConnectRef.current !== pendingName) return;
+      pendingConnectRef.current = null;
+      connect().catch((err: unknown) => {
+        const e = err as { name?: string; message?: string };
+        reportError(e?.name ?? "WalletError", describeWalletError(e));
+      });
     });
   }, [wallet, connect, reportError]);
 
@@ -95,12 +104,13 @@ export function useWalletConnect() {
       if (!ready) return;
       clearError();
       if (wallet?.adapter.name === name) {
+        pendingConnectRef.current = null;
         connect().catch((err: unknown) => {
           const e = err as { name?: string; message?: string };
           reportError(e?.name ?? "WalletError", describeWalletError(e));
         });
       } else {
-        pendingConnectRef.current = true;
+        pendingConnectRef.current = name;
         select(name);
       }
     },

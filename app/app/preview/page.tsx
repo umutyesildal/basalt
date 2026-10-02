@@ -12,10 +12,10 @@ export async function generateMetadata({
   const encoded = typeof params.d === "string" ? params.d : null;
   const basket = decodeConceptBasket(encoded);
   return {
-    title: { absolute: basket ? `${basket.name} preview · Basalt` : "Basket preview · Basalt" },
+    title: { absolute: basket ? `${basket.name} · Basalt` : "Stock basket · Basalt" },
     description: basket
-      ? `Review and share ${basket.name}, a concept basket of stocks and ETFs.`
-      : "Review and share a concept basket of stocks and ETFs.",
+      ? `Review and share ${basket.name}, a basket of stocks and ETFs.`
+      : "Review and share a basket of stocks and ETFs.",
   };
 }
 

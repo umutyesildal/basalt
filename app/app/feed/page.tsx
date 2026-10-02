@@ -7,7 +7,7 @@ export const metadata: Metadata = {
   // plain string here would render "Feed — Basalt · Basalt".
   title: { absolute: "Basalt | Feed" },
   description:
-    "Explore illustrative strategy basket ideas and their investment theses, with live onchain activity kept separate.",
+    "Stock picks and the stories behind them.",
 };
 
 export default function FeedPage() {

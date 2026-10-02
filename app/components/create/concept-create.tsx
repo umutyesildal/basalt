@@ -1,7 +1,6 @@
 "use client";
 
-import { useMemo, useState, type CSSProperties } from "react";
-import Link from "next/link";
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, ArrowRight, Check, ChevronDown, Plus, Search, X } from "lucide-react";
 import { motion, useReducedMotion } from "motion/react";
@@ -9,10 +8,11 @@ import { motion, useReducedMotion } from "motion/react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { CreatePreviewDonut } from "@/components/create/create-preview-donut";
-import { CONCEPT_ASSETS, DISCOVERY_ASSETS, getConceptAsset } from "@/lib/concept-assets";
+import { canScrollDown, distributeWeights, equalWeights, formatAmountEdit, initialAmountDraft, parseCreateAmount } from "@/components/create/concept-create-utils";
+import { DISCOVERY_ASSETS, getConceptAsset } from "@/lib/concept-assets";
 import { type ConceptBasket, validateConceptBasket } from "@/lib/concept-basket";
 import { conceptPreviewHref } from "@/lib/concept-share";
-import { formatBpsAsPercent, formatUsd } from "@/lib/format";
+import { formatBpsAsPercent, formatGroupedAmountInput, formatUsd, parseGroupedAmountInput } from "@/lib/format";
 
 const COLORS = [
   "hsl(var(--chart-1))",
@@ -67,31 +67,6 @@ const STEP_ENTER_MS = 200;
 
 const INITIAL_ASSETS = TEMPLATE_OPTIONS[0].assets.map((asset) => ({ ...asset }));
 
-function equalWeights(count: number): number[] {
-  if (count < 1) return [];
-  const base = Math.floor(10_000 / count);
-  const remainder = 10_000 - base * count;
-  return Array.from({ length: count }, (_, index) => base + (index < remainder ? 1 : 0));
-}
-
-/** Keep every chosen asset above zero while distributing exactly 10,000 bps. */
-function distributeWeights(weights: number[], total = 10_000): number[] {
-  if (weights.length === 0) return [];
-  const minimumTotal = weights.length;
-  const distributable = Math.max(0, total - minimumTotal);
-  const ratios = weights.map((weight) => Math.max(0, weight - 1));
-  const ratioTotal = ratios.reduce((sum, value) => sum + value, 0);
-  const source = ratioTotal > 0 ? ratios : weights.map(() => 1);
-  const sourceTotal = source.reduce((sum, value) => sum + value, 0);
-  const extras = source.map((value) => Math.floor((value / sourceTotal) * distributable));
-  let remainder = distributable - extras.reduce((sum, value) => sum + value, 0);
-  for (let index = 0; remainder > 0; index = (index + 1) % extras.length) {
-    extras[index] += 1;
-    remainder -= 1;
-  }
-  return extras.map((value) => value + 1);
-}
-
 function formatCompactPercent(bps: number): string {
   return `${(bps / 100).toFixed(2).replace(/\.00$/, "").replace(/(\.\d)0$/, "$1")}%`;
 }
@@ -114,24 +89,58 @@ export default function ConceptCreate({ initialBasket = null }: { initialBasket?
   const [activeTemplate, setActiveTemplate] = useState<string | null>(initialBasket ? null : "mega-cap-tech");
   const [assets, setAssets] = useState<SelectedAsset[]>(initialBasket?.assets ?? INITIAL_ASSETS);
   const [search, setSearch] = useState("");
-  const [showAllAssets, setShowAllAssets] = useState(false);
-  const [amountDraft, setAmountDraft] = useState(String(initialBasket?.amountUsd ?? 1000));
-  const [feesOpen, setFeesOpen] = useState(Boolean(initialBasket && Object.values(initialBasket.fees).some(Boolean)));
+  const [moreAssetsBelow, setMoreAssetsBelow] = useState(false);
+  const [amountDraft, setAmountDraft] = useState(initialAmountDraft(initialBasket?.amountUsd ?? 1000));
+  const [feesOpen, setFeesOpen] = useState(Boolean(initialBasket && (initialBasket.fees.entryBps || initialBasket.fees.exitBps)));
   const [fees, setFees] = useState<ConceptBasket["fees"]>(initialBasket?.fees ?? { entryBps: 0, exitBps: 0, managementBps: 0 });
   const [name, setName] = useState(initialBasket?.name ?? "Mega-Cap Tech");
   const [thesis, setThesis] = useState(initialBasket?.thesis ?? "");
   const [shareError, setShareError] = useState<string | null>(null);
+  const [mixStatus, setMixStatus] = useState("");
+  const stepHeadingRef = useRef<HTMLHeadingElement>(null);
+  const assetSearchRef = useRef<HTMLInputElement>(null);
+  const catalogRef = useRef<HTMLDivElement>(null);
+  const catalogContentRef = useRef<HTMLDivElement>(null);
+  const scrollButtonRef = useRef<HTMLButtonElement>(null);
+  const addStocksButtonRef = useRef<HTMLButtonElement>(null);
+  const nextStepFocusRef = useRef<"heading" | "search">("heading");
+  const nextMixFocusRef = useRef<string | null>(null);
 
-  const parsedAmount = amountDraft.trim() === "" ? Number.NaN : Number(amountDraft);
+  useEffect(() => {
+    if (!hasNavigated) return;
+    if (nextStepFocusRef.current === "search") assetSearchRef.current?.focus();
+    else stepHeadingRef.current?.focus();
+    nextStepFocusRef.current = "heading";
+  }, [step, hasNavigated]);
+
+  useEffect(() => {
+    const target = nextMixFocusRef.current;
+    if (!target || step !== 1) return;
+    nextMixFocusRef.current = null;
+    if (target === "add-stocks") addStocksButtonRef.current?.focus();
+    else document.getElementById(`weight-${target}`)?.focus();
+  }, [assets, step]);
+
+  useEffect(() => {
+    const catalog = catalogRef.current;
+    if (step !== 0 || !catalog) return;
+    catalog.scrollTop = 0;
+    updateCatalogScroll();
+    const observer = new ResizeObserver(updateCatalogScroll);
+    observer.observe(catalog);
+    if (catalogContentRef.current) observer.observe(catalogContentRef.current);
+    return () => observer.disconnect();
+  }, [step, search]);
+
+  const parsedAmount = parseCreateAmount(amountDraft, initialBasket?.amountUsd ?? 1000) ?? Number.NaN;
   const amountIsValid = Number.isFinite(parsedAmount) && parsedAmount > 0 && parsedAmount <= 1_000_000;
   const selectedSymbols = useMemo(() => new Set(assets.map((asset) => asset.symbol)), [assets]);
   const matchingAssets = useMemo(() => {
     const query = search.trim().toLowerCase();
-    const matches = DISCOVERY_ASSETS.filter((asset) =>
+    return DISCOVERY_ASSETS.filter((asset) =>
       !query || asset.symbol.toLowerCase().includes(query) || asset.name.toLowerCase().includes(query) || asset.category.toLowerCase().includes(query),
     );
-    return showAllAssets || query ? matches : matches.slice(0, 8);
-  }, [search, showAllAssets]);
+  }, [search]);
 
   const currentBasket = asBasket(name, thesis, assets, amountIsValid ? parsedAmount : 0, fees);
   const validation = validateConceptBasket(currentBasket);
@@ -154,9 +163,8 @@ export default function ConceptCreate({ initialBasket = null }: { initialBasket?
     setActiveTemplate(templateId);
     if (!template) {
       setAssets([]);
-      setName("My index");
+      setName("My stock basket");
       setSearch("");
-      setShowAllAssets(false);
       return;
     }
     setAssets(template.assets.map((asset) => ({ ...asset })));
@@ -191,7 +199,36 @@ export default function ConceptCreate({ initialBasket = null }: { initialBasket?
   }
 
   function setAmount(value: number) {
-    setAmountDraft(String(value));
+    setAmountDraft(formatGroupedAmountInput(value));
+  }
+
+  function updateCatalogScroll() {
+    const catalog = catalogRef.current;
+    if (!catalog) return;
+    const more = canScrollDown(catalog);
+    if (!more && document.activeElement === scrollButtonRef.current) catalog.focus({ preventScroll: true });
+    setMoreAssetsBelow(more);
+  }
+
+  function scrollCatalogDown() {
+    const catalog = catalogRef.current;
+    if (!catalog) return;
+    catalog.scrollBy({ top: Math.max(96, catalog.clientHeight * 0.75), behavior: reducedMotion ? "instant" : "smooth" });
+  }
+
+  function addStocks() {
+    nextStepFocusRef.current = "search";
+    setSearch("");
+    setMixStatus("");
+    goToStep(0);
+  }
+
+  function removeFromMix(symbol: string) {
+    const index = assets.findIndex((asset) => asset.symbol === symbol);
+    const remaining = assets.filter((asset) => asset.symbol !== symbol);
+    nextMixFocusRef.current = remaining.length < 2 ? "add-stocks" : remaining[Math.min(index, remaining.length - 1)].symbol;
+    setMixStatus(`${symbol} removed. ${remaining.length} ${remaining.length === 1 ? "stock" : "stocks"} remaining.`);
+    toggleAsset(symbol);
   }
 
   function next() {
@@ -213,32 +250,27 @@ export default function ConceptCreate({ initialBasket = null }: { initialBasket?
     try {
       router.push(conceptPreviewHref(validation.value));
     } catch (error) {
-      setShareError(error instanceof Error ? error.message : "This preview could not be created. Try again.");
+      setShareError(error instanceof Error ? error.message : "Could not create the link. Try again.");
     }
   }
 
-  const stepTitle = ["Choose a starting point", "Set your mix", "Choose a starting amount", "Review your basket"][step];
+  const stepTitle = ["Pick your stocks", "Set the weights", "Try an amount", "Review and share"][step];
   const stepDescription = [
     "Pick a template, then make it your own.",
-    "Shape the allocation until it reflects your idea.",
-    "See how your mix could be sized. You can adjust fees if you need to.",
-    "Give your idea a name and make sure everything feels right.",
+    "How much of each stock belongs in your basket?",
+    "See the dollar split across your stocks.",
+    "Name your basket and check the mix.",
   ][step];
 
   return (
     <div className="mx-auto w-full max-w-6xl pb-12">
       <div className="mb-8 flex flex-wrap items-center justify-between gap-4">
         <div>
-          <p className="section-label">Stock baskets</p>
-          <h1 className="font-display mt-2 text-3xl font-semibold tracking-tight sm:text-4xl">Create your basket</h1>
+          <h1 className="font-display mt-2 text-3xl font-semibold tracking-tight sm:text-4xl">Create a stock basket</h1>
           <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
-            Pick stocks and ETFs, shape the mix, then share your idea.
+            Pick your stocks. Set the mix. Share your basket.
           </p>
         </div>
-        <span className="inline-flex min-h-9 items-center gap-2 rounded-full border border-border bg-card px-3 text-xs text-muted-foreground">
-          <span className="size-1.5 rounded-full bg-primary" aria-hidden="true" />
-          Concept preview
-        </span>
       </div>
 
       <nav aria-label="Create steps" className="mb-8">
@@ -247,7 +279,7 @@ export default function ConceptCreate({ initialBasket = null }: { initialBasket?
             const complete = index < step;
             const active = index === step;
             return (
-              <li key={label} className="min-w-0">
+              <li key={label} aria-current={active ? "step" : undefined} className="min-w-0">
                 <div className={`flex items-center gap-2 border-t-2 pt-3 transition-colors duration-150 motion-reduce:transition-none ${active ? "border-primary" : complete ? "border-primary/55" : "border-border"}`}>
                   <span className={`flex size-6 shrink-0 items-center justify-center rounded-full font-mono text-xs ${active ? "bg-primary text-primary-foreground" : complete ? "bg-primary/15 text-foreground" : "bg-muted text-muted-foreground"}`}>
                     {complete ? <Check className="size-3.5" aria-hidden="true" /> : index + 1}
@@ -263,8 +295,7 @@ export default function ConceptCreate({ initialBasket = null }: { initialBasket?
       <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_360px]">
         <Card className="min-w-0 overflow-visible">
           <CardHeader className="border-b border-border/70 px-5 py-5 sm:px-7">
-            <div className="section-label">Step {step + 1} of 4</div>
-            <h2 className="font-display mt-1 text-2xl font-semibold">{stepTitle}</h2>
+            <h2 ref={stepHeadingRef} tabIndex={-1} className="font-display mt-1 scroll-mt-20 text-2xl font-semibold focus:outline-none">{stepTitle}</h2>
             <p className="mt-1 text-sm text-muted-foreground">{stepDescription}</p>
           </CardHeader>
           <CardContent className="px-5 py-6 sm:px-7">
@@ -297,7 +328,7 @@ export default function ConceptCreate({ initialBasket = null }: { initialBasket?
                       className={`basalt-choice group flex min-h-32 flex-col justify-between rounded-xl border p-4 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ${activeTemplate === "custom" ? "border-primary bg-primary/5" : "border-border bg-background hover:bg-muted/40"}`}
                     >
                       <span className="flex items-center justify-between gap-2">
-                        <span className="font-medium">Create your own index</span>
+                        <span className="font-medium">Pick your own stocks</span>
                         <span className="flex size-7 items-center justify-center rounded-full border border-border bg-muted/40 text-muted-foreground group-hover:text-foreground">
                           <Plus className="size-4" aria-hidden="true" />
                         </span>
@@ -309,7 +340,7 @@ export default function ConceptCreate({ initialBasket = null }: { initialBasket?
 
                 <div className="space-y-3 border-t border-border/70 pt-5">
                   <div className="flex flex-wrap items-baseline justify-between gap-2">
-                    <h3 className="text-sm font-medium">Your assets <span className="font-mono text-muted-foreground">{assets.length}/20</span></h3>
+                    <h3 className="text-sm font-medium">Your assets <span className="font-mono tabular-nums text-muted-foreground">{assets.length}/20</span></h3>
                     <p className="text-xs text-muted-foreground">Choose at least 2</p>
                   </div>
                   {assets.length > 0 ? (
@@ -340,6 +371,7 @@ export default function ConceptCreate({ initialBasket = null }: { initialBasket?
                     <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
                     <input
                       id="asset-search"
+                      ref={assetSearchRef}
                       type="search"
                       value={search}
                       onChange={(event) => setSearch(event.target.value)}
@@ -347,20 +379,17 @@ export default function ConceptCreate({ initialBasket = null }: { initialBasket?
                       className="min-h-11 w-full rounded-lg border border-input bg-background pl-10 pr-3 text-sm outline-none placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring"
                     />
                   </div>
-                  {!search && (
-                    <button
-                      type="button"
-                      aria-expanded={showAllAssets}
-                      onClick={() => setShowAllAssets((show) => !show)}
-                      className="flex min-h-12 w-full items-center justify-between gap-3 rounded-lg border border-primary/50 bg-primary/10 px-4 text-left text-sm font-semibold text-foreground transition-colors hover:bg-primary/15 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                    >
-                      <span>{showAllAssets ? "Show popular picks" : "Browse all stocks & ETFs"}</span>
-                      <span className="flex shrink-0 items-center gap-2 font-mono text-xs font-normal text-muted-foreground">
-                        {CONCEPT_ASSETS.length} assets <ArrowRight className={`size-4 text-primary-text transition-transform ${showAllAssets ? "rotate-180" : ""}`} aria-hidden="true" />
-                      </span>
-                    </button>
-                  )}
-                  <div className="grid grid-cols-2 gap-2 sm:grid-cols-3" aria-label="Curated assets">
+                  <div className="relative">
+                  <div
+                    id="create-asset-catalog"
+                    ref={catalogRef}
+                    role="region"
+                    aria-label="Stocks and ETFs"
+                    tabIndex={0}
+                    onScroll={updateCatalogScroll}
+                    className="max-h-72 overflow-y-auto overscroll-contain rounded-lg p-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:max-h-80"
+                  >
+                  <div ref={catalogContentRef} className="grid grid-cols-2 gap-2 sm:grid-cols-3">
                     {matchingAssets.map((asset) => {
                       const selected = selectedSymbols.has(asset.symbol);
                       const disabled = !selected && assets.length >= 20;
@@ -388,7 +417,22 @@ export default function ConceptCreate({ initialBasket = null }: { initialBasket?
                   {matchingAssets.length === 0 && (
                     <p className="rounded-lg border border-dashed border-border p-4 text-center text-sm text-muted-foreground">No matching assets. Try a company name or ticker.</p>
                   )}
-                  <p className="text-xs leading-5 text-muted-foreground">This curated catalog is for the concept preview. Availability and prices are not checked.</p>
+                  </div>
+                  {moreAssetsBelow && (
+                    <div className="pointer-events-none absolute inset-x-0 bottom-0 flex h-20 items-end justify-center rounded-b-lg bg-gradient-to-t from-card via-card/80 to-transparent pb-2">
+                      <button
+                        ref={scrollButtonRef}
+                        type="button"
+                        aria-controls="create-asset-catalog"
+                        aria-label="Scroll down to see more stocks"
+                        onClick={scrollCatalogDown}
+                        className="pointer-events-auto flex min-h-11 items-center gap-2 rounded-full border border-border bg-card px-4 text-xs font-medium shadow-sm transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                      >
+                        More stocks <ChevronDown className="size-4" aria-hidden="true" />
+                      </button>
+                    </div>
+                  )}
+                  </div>
                 </div>
               </section>
             )}
@@ -400,20 +444,25 @@ export default function ConceptCreate({ initialBasket = null }: { initialBasket?
                     <h3 id="mix-heading" className="text-sm font-medium">Set each asset’s share</h3>
                     <p className="mt-1 text-xs text-muted-foreground">Moving one allocation redistributes the rest automatically.</p>
                   </div>
-                  <Button type="button" variant="outline" size="sm" className="min-h-10" onClick={() => {
+                  <div className="flex flex-wrap gap-2">
+                  <Button ref={addStocksButtonRef} type="button" variant="outline" size="sm" className="min-h-11" onClick={addStocks}>
+                    <Plus className="size-4" aria-hidden="true" /> Add stocks
+                  </Button>
+                  <Button type="button" variant="outline" size="sm" className="min-h-11" disabled={assets.length < 2} onClick={() => {
                     setActiveTemplate(null);
                     setAssets(assets.map((asset, index) => ({ ...asset, weightBps: equalWeights(assets.length)[index] })));
                   }}>
                     Equal mix
                   </Button>
-                </div>
-                {assets.length < 2 ? (
-                  <div className="rounded-xl border border-dashed border-border p-6 text-center">
-                    <p className="text-sm font-medium">Add one more asset to set your mix</p>
-                    <p className="mt-1 text-xs text-muted-foreground">A basket preview needs at least two constituents.</p>
-                    <Button type="button" variant="outline" className="mt-4 min-h-11" onClick={() => goToStep(0)}>Choose assets</Button>
                   </div>
-                ) : (
+                </div>
+                <p role="status" className="sr-only">{mixStatus}</p>
+                {assets.length < 2 && (
+                  <p className="rounded-lg border border-border bg-muted/25 px-4 py-3 text-sm text-muted-foreground">
+                    {assets.length === 1 ? "Add one more stock to continue." : "Add at least two stocks to continue."}
+                  </p>
+                )}
+                {assets.length > 0 && (
                   <>
                     <div className="divide-y divide-border/70 rounded-xl border border-border bg-background">
                       {assets.map((asset, index) => {
@@ -422,7 +471,7 @@ export default function ConceptCreate({ initialBasket = null }: { initialBasket?
                         const max = Math.max(1, 10_000 - (assets.length - 1));
                         return (
                           <div key={asset.symbol} className="px-4 py-4 sm:px-5">
-                            <div className="mb-2 flex items-center justify-between gap-4">
+                            <div className="mb-2 grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2 sm:grid-cols-[minmax(0,1fr)_auto_auto]">
                               <div className="flex min-w-0 items-center gap-3">
                                 <AssetLogo symbol={asset.symbol} size={34} />
                                 <div className="min-w-0">
@@ -430,10 +479,18 @@ export default function ConceptCreate({ initialBasket = null }: { initialBasket?
                                   <p className="font-mono text-xs text-muted-foreground">{asset.symbol}</p>
                                 </div>
                               </div>
-                              <div className="shrink-0 text-right">
+                              <div className="order-3 col-span-2 flex items-baseline justify-between gap-2 sm:order-2 sm:col-span-1 sm:block sm:text-right">
                                 <p className="font-mono text-sm tabular-nums">{formatCompactPercent(asset.weightBps)}</p>
-                                <p className="font-mono text-xs tabular-nums text-muted-foreground">{formatUsd(dollars)}</p>
+                                <p className="whitespace-nowrap font-mono text-xs tabular-nums text-muted-foreground">{formatUsd(dollars)}</p>
                               </div>
+                              <button
+                                type="button"
+                                aria-label={`Remove ${asset.symbol} from basket`}
+                                onClick={() => removeFromMix(asset.symbol)}
+                                className="order-2 flex size-11 shrink-0 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:order-3"
+                              >
+                                <X className="size-4" aria-hidden="true" />
+                              </button>
                             </div>
                             <label className="sr-only" htmlFor={`weight-${asset.symbol}`}>Allocation for {asset.symbol}</label>
                             <input
@@ -443,8 +500,9 @@ export default function ConceptCreate({ initialBasket = null }: { initialBasket?
                               max={max}
                               step={1}
                               value={asset.weightBps}
+                              disabled={assets.length < 2}
                               onChange={(event) => setAssetWeight(index, Number(event.target.value))}
-                              className="h-11 w-full cursor-pointer accent-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                              className="h-11 w-full cursor-pointer accent-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                               aria-valuetext={formatBpsAsPercent(asset.weightBps)}
                             />
                           </div>
@@ -463,9 +521,8 @@ export default function ConceptCreate({ initialBasket = null }: { initialBasket?
             {step === 2 && (
               <section aria-labelledby="amount-heading" className="space-y-7">
                 <div>
-                  <h3 id="amount-heading" className="text-sm font-medium">How much would you start with?</h3>
-                  <p className="mt-1 text-xs leading-5 text-muted-foreground">See an illustrative dollar split across your assets. This is not a live quote.</p>
-                  <div className="mt-4 flex items-center rounded-xl border border-input bg-background px-4 focus-within:ring-2 focus-within:ring-ring">
+                  <h3 id="amount-heading" className="text-sm font-medium">Example amount</h3>
+                  <div className="mt-4 flex items-center rounded-xl border border-input bg-background px-3 focus-within:ring-2 focus-within:ring-ring sm:px-4">
                     <span className="font-mono text-lg text-muted-foreground" aria-hidden="true">$</span>
                     <label htmlFor="starting-amount" className="sr-only">Illustrative starting amount in US dollars</label>
                     <input
@@ -475,16 +532,22 @@ export default function ConceptCreate({ initialBasket = null }: { initialBasket?
                       autoComplete="off"
                       value={amountDraft}
                       onChange={(event) => {
-                        const value = event.target.value;
-                        if (/^\d{0,7}(?:\.\d{0,2})?$/.test(value)) setAmountDraft(value);
+                        const edit = formatAmountEdit(event.target.value, event.target.selectionStart);
+                        if (!edit) return;
+                        event.target.value = edit.value;
+                        event.target.setSelectionRange(edit.caret, edit.caret);
+                        setAmountDraft(edit.value);
+                      }}
+                      onPaste={(event) => {
+                        const pasted = event.clipboardData.getData("text");
+                        if (pasted.includes(",") && parseGroupedAmountInput(pasted) === null) event.preventDefault();
                       }}
                       aria-invalid={amountIsValid ? undefined : true}
-                      aria-describedby={amountIsValid ? "amount-help" : "amount-help amount-error"}
-                      className="min-h-16 w-full bg-transparent px-3 font-display text-3xl tabular-nums outline-none placeholder:text-muted-foreground"
+                      aria-describedby={amountIsValid ? undefined : "amount-error"}
+                      className={`min-h-16 min-w-0 flex-1 bg-transparent px-2 font-mono tabular-nums outline-none placeholder:text-muted-foreground ${amountDraft.length > 9 ? "text-xl" : "text-2xl"} sm:text-3xl`}
                     />
-                    <span className="font-mono text-xs uppercase tracking-wider text-muted-foreground">USD</span>
+                    <span className="hidden font-mono text-xs uppercase tracking-wider text-muted-foreground sm:block">USD</span>
                   </div>
-                  <p id="amount-help" className="mt-2 text-xs text-muted-foreground">Just a sizing example. Nothing is deposited or purchased.</p>
                   {!amountIsValid && <p id="amount-error" className="mt-1 text-xs text-destructive">Enter an amount above $0 and up to $1,000,000.</p>}
                   <div className="mt-3 grid grid-cols-3 gap-2" aria-label="Starting amount shortcuts">
                     {[10, 100, 1_000].map((value) => (
@@ -495,29 +558,31 @@ export default function ConceptCreate({ initialBasket = null }: { initialBasket?
                   </div>
                 </div>
 
-                <div className="border-t border-border/70 pt-5">
+                <div className="space-y-4 border-t border-border/70 pt-5">
+                  <FeeSlider label="Management fee" detail="A yearly fee on your basket’s value, paid in basket shares when investing opens." value={fees.managementBps} max={300} suffix="/ year" onChange={(value) => setFees((current) => ({ ...current, managementBps: value }))} />
+                  <p className="text-xs leading-5 text-muted-foreground">Future fee shares: <span className="font-mono tabular-nums">90%</span> to you, <span className="font-mono tabular-nums">10%</span> to Basalt.</p>
+                  <div className="border-t border-border/70 pt-4">
                   <button
                     type="button"
                     aria-expanded={feesOpen}
+                    aria-controls="create-secondary-fees"
                     onClick={() => setFeesOpen((open) => !open)}
                     className="flex min-h-11 w-full items-center justify-between gap-4 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                   >
                     <span>
-                      <span className="block text-sm font-medium">Optional fees</span>
-                      <span className="mt-0.5 block text-xs text-muted-foreground">Start at 0%. Set a fee only if your concept calls for one.</span>
+                      <span className="block text-sm font-medium">Entry and exit fees</span>
                     </span>
-                    <span className="flex max-w-[65%] items-center justify-end gap-2 text-right text-xs text-muted-foreground">
-                      {feeSummary(fees)} <ChevronDown className={`size-4 transition-transform motion-reduce:transition-none ${feesOpen ? "rotate-180" : ""}`} aria-hidden="true" />
+                    <span className="flex shrink-0 items-center justify-end gap-2 text-right font-mono text-xs tabular-nums text-muted-foreground">
+                      {formatCompactPercent(fees.entryBps)} / {formatCompactPercent(fees.exitBps)} <ChevronDown className={`size-4 transition-transform motion-reduce:transition-none ${feesOpen ? "rotate-180" : ""}`} aria-hidden="true" />
                     </span>
                   </button>
                   {feesOpen && (
-                    <div className="mt-4 space-y-4 rounded-xl border border-border bg-background p-4">
-                      <FeeSlider label="Entry fee" detail="Charged when someone adds assets to receive basket shares." value={fees.entryBps} max={300} onChange={(value) => setFees((current) => ({ ...current, entryBps: value }))} />
-                      <FeeSlider label="Exit fee" detail="Charged when someone redeems shares for the underlying assets." value={fees.exitBps} max={100} onChange={(value) => setFees((current) => ({ ...current, exitBps: value }))} />
-                      <FeeSlider label="Management fee" detail="An annual rate that accrues over time as new fee shares." value={fees.managementBps} max={300} suffix="/ year" onChange={(value) => setFees((current) => ({ ...current, managementBps: value }))} />
-                      <p className="border-t border-border pt-3 text-xs leading-5 text-muted-foreground">These rates are part of the concept preview. The transaction flow shows the complete fee terms before deployment.</p>
+                    <div id="create-secondary-fees" className="mt-4 space-y-4 rounded-xl border border-border bg-background p-4">
+                      <FeeSlider label="Entry fee" detail="Rate for joining the basket." value={fees.entryBps} max={300} onChange={(value) => setFees((current) => ({ ...current, entryBps: value }))} />
+                      <FeeSlider label="Exit fee" detail="Rate for leaving the basket." value={fees.exitBps} max={100} onChange={(value) => setFees((current) => ({ ...current, exitBps: value }))} />
                     </div>
                   )}
+                  </div>
                 </div>
               </section>
             )}
@@ -534,14 +599,12 @@ export default function ConceptCreate({ initialBasket = null }: { initialBasket?
                     value={name}
                     onChange={(event) => setName(event.target.value)}
                     aria-invalid={!name.trim()}
-                    aria-describedby="basket-name-hint"
-                    placeholder="e.g. The AI Infrastructure Index"
+                    placeholder="e.g. My tech basket"
                     className="min-h-12 w-full rounded-lg border border-input bg-background px-3 text-sm outline-none placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring"
                   />
-                  <p id="basket-name-hint" className="mt-1.5 text-xs text-muted-foreground">A short name helps people understand the idea at a glance.</p>
                 </div>
                 <div>
-                  <label htmlFor="basket-thesis" className="mb-1.5 block text-sm font-medium">Your thesis <span className="font-normal text-muted-foreground">(optional)</span></label>
+                  <label htmlFor="basket-thesis" className="mb-1.5 block text-sm font-medium">Why these stocks? <span className="font-normal text-muted-foreground">(optional)</span></label>
                   <textarea
                     id="basket-thesis"
                     rows={3}
@@ -551,40 +614,31 @@ export default function ConceptCreate({ initialBasket = null }: { initialBasket?
                     placeholder="What connects these companies?"
                     className="w-full resize-y rounded-lg border border-input bg-background px-3 py-2.5 text-sm leading-6 outline-none placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring"
                   />
-                  <p className="mt-1 flex justify-between gap-3 text-xs text-muted-foreground"><span>Share the point of view behind your mix.</span><span className="font-mono tabular-nums">{thesis.length}/240</span></p>
+                  <p className="mt-1 text-right font-mono text-xs tabular-nums text-muted-foreground">{thesis.length}/240</p>
                 </div>
 
                 <div className="lg:hidden">
                   <LiveSummary basket={currentBasket} />
                 </div>
 
-                <div className="grid gap-3 sm:grid-cols-2">
-                  <SummaryStat label="Starting amount" value={amountIsValid ? formatUsd(parsedAmount) : "—"} />
-                  <SummaryStat label="Fees" value={feeSummary(fees)} detail="Entry · exit · management" />
-                </div>
-
                 {!validation.ok && <p className="rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive">{validation.errors[0]}</p>}
                 {shareError && <p role="alert" className="rounded-lg border border-destructive/30 bg-destructive/5 px-3 py-2 text-sm text-destructive">{shareError}</p>}
 
-                <div className="flex items-start gap-3 rounded-lg border border-border bg-muted/25 p-3 text-xs leading-5 text-muted-foreground">
-                  <span className="mt-1 size-1.5 shrink-0 rounded-full bg-primary" aria-hidden="true" />
-                  Your preview is a shareable idea. It does not deploy a basket, buy shares or represent real investment performance.
-                </div>
               </section>
             )}
             </motion.div>
           </CardContent>
           <div className="sticky bottom-[calc(5rem+env(safe-area-inset-bottom))] z-20 flex items-center justify-between gap-3 rounded-b-xl border-t border-border/70 bg-card/95 px-5 py-4 shadow-[0_-12px_30px_-20px_rgba(0,0,0,0.7)] backdrop-blur sm:px-7 md:bottom-0">
-            <Button type="button" variant="outline" className="min-h-11 min-w-24" disabled={step === 0} onClick={() => goToStep((step - 1) as Step)}>
-              <ArrowLeft className="size-4" aria-hidden="true" /> Back
+            <Button type="button" variant="outline" className="min-h-11 min-w-0 flex-1 px-2 sm:min-w-24 sm:flex-none sm:px-2.5" disabled={step === 0} onClick={() => goToStep((step - 1) as Step)}>
+              <ArrowLeft className="hidden size-4 sm:block" aria-hidden="true" /> Back
             </Button>
             {step < 3 ? (
-              <Button type="button" className="min-h-11 min-w-32" disabled={!canContinue} onClick={next}>
-                Continue <ArrowRight className="size-4" aria-hidden="true" />
+              <Button type="button" className="min-h-11 min-w-0 flex-1 px-2 sm:min-w-32 sm:flex-none sm:px-2.5" disabled={!canContinue} onClick={next}>
+                Continue <ArrowRight className="hidden size-4 sm:block" aria-hidden="true" />
               </Button>
             ) : (
-              <Button type="button" className="min-h-11 min-w-40" disabled={!validation.ok || !amountIsValid} onClick={createPreview}>
-                Create preview <ArrowRight className="size-4" aria-hidden="true" />
+              <Button type="button" className="min-h-11 min-w-0 flex-1 px-2 sm:min-w-40 sm:flex-none sm:px-2.5" disabled={!validation.ok || !amountIsValid} onClick={createPreview}>
+                Share basket <ArrowRight className="hidden size-4 sm:block" aria-hidden="true" />
               </Button>
             )}
           </div>
@@ -592,20 +646,13 @@ export default function ConceptCreate({ initialBasket = null }: { initialBasket?
 
         <aside className="hidden lg:block lg:sticky lg:top-6" aria-label="Live basket summary">
           <LiveSummary basket={currentBasket} />
-          <p className="mt-3 px-1 text-xs leading-5 text-muted-foreground">Reference allocation only. The values above are calculated from your example amount and target mix.</p>
         </aside>
       </div>
 
       {step !== 3 && <div className="mt-5 lg:hidden">
         <LiveSummary basket={currentBasket} />
-        <p className="mt-3 px-1 text-xs leading-5 text-muted-foreground">Reference allocation only. Values use your example amount and target mix.</p>
       </div>}
 
-      <div className="mt-8 border-t border-border/70 pt-5">
-        <p className="text-sm text-muted-foreground">
-          Looking for the devnet transaction flow? <Link href="/create/onchain" className="font-medium text-primary-text underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">Open onchain create</Link>
-        </p>
-      </div>
     </div>
   );
 }
@@ -689,14 +736,12 @@ function LiveSummary({ basket }: { basket: ConceptBasket }) {
     <Card>
       <CardHeader className="flex flex-row items-start justify-between gap-3 pb-2">
         <div className="min-w-0">
-          <p className="section-label">Live preview</p>
           <h2 className="font-display mt-1 truncate text-lg font-semibold">{basket.name || "Your basket"}</h2>
         </div>
-        <span className="rounded-full border border-border px-2 py-1 font-mono text-[10px] uppercase tracking-wider text-muted-foreground">Concept</span>
       </CardHeader>
       <CardContent className="space-y-5">
         <div className="flex justify-center py-2">
-          <div role="img" aria-label={`Allocation chart with ${basket.assets.length} assets, total ${formatBpsAsPercent(total)}`}>
+          <div role="img" aria-label={`Allocation chart with ${basket.assets.length} ${basket.assets.length === 1 ? "asset" : "assets"}, total ${formatBpsAsPercent(total)}`}>
             <CreatePreviewDonut slices={chartSlices} size={176} />
           </div>
         </div>
@@ -710,7 +755,7 @@ function LiveSummary({ basket }: { basket: ConceptBasket }) {
                   <span className="size-2 shrink-0 rounded-full" style={{ backgroundColor: COLORS[index % COLORS.length] }} aria-hidden="true" />
                   <span className="min-w-0 flex-1 truncate text-xs">{info?.name ?? asset.symbol}</span>
                   <span className="shrink-0 font-mono text-xs tabular-nums text-muted-foreground">{formatCompactPercent(asset.weightBps)}</span>
-                  <span className="w-16 shrink-0 text-right font-mono text-xs tabular-nums">{formatUsd(amount)}</span>
+                  <span className="min-w-16 shrink-0 whitespace-nowrap text-right font-mono text-xs tabular-nums">{formatUsd(amount)}</span>
                 </li>
               );
             })}
@@ -719,8 +764,8 @@ function LiveSummary({ basket }: { basket: ConceptBasket }) {
           <p className="rounded-lg border border-dashed border-border px-3 py-5 text-center text-sm text-muted-foreground">Choose two or more assets to see your mix.</p>
         )}
         <div className="flex items-center justify-between border-t border-border pt-3">
-          <span className="text-xs text-muted-foreground">Starting amount</span>
-          <span className="font-mono text-sm font-medium tabular-nums">{basket.amountUsd > 0 ? formatUsd(basket.amountUsd) : "—"}</span>
+          <span className="text-xs text-muted-foreground">Example amount</span>
+          <span className="font-mono text-sm font-medium tabular-nums">{basket.amountUsd > 0 ? formatUsd(basket.amountUsd) : "Not set"}</span>
         </div>
         <div className="flex items-center justify-between border-t border-border pt-3">
           <span className="text-xs text-muted-foreground">Fees</span>
@@ -735,17 +780,7 @@ function LiveSummary({ basket }: { basket: ConceptBasket }) {
 
 function feeSummary(fees: ConceptBasket["fees"]): string {
   if (fees.entryBps === 0 && fees.exitBps === 0 && fees.managementBps === 0) return "None";
-  return `Entry ${formatCompactPercent(fees.entryBps)} · exit ${formatCompactPercent(fees.exitBps)} · mgmt ${formatCompactPercent(fees.managementBps)}/yr`;
-}
-
-function SummaryStat({ label, value, detail }: { label: string; value: string; detail?: string }) {
-  return (
-    <div className="rounded-xl border border-border bg-muted/20 p-4">
-      <p className="section-label">{label}</p>
-      <p className="mt-2 font-display text-lg font-semibold tabular-nums">{value}</p>
-      {detail ? <p className="mt-1 text-xs text-muted-foreground">{detail}</p> : null}
-    </div>
-  );
+  return `Management ${formatCompactPercent(fees.managementBps)}/yr · entry ${formatCompactPercent(fees.entryBps)} · exit ${formatCompactPercent(fees.exitBps)}`;
 }
 
 function FeeSlider({

@@ -20,6 +20,7 @@
 import type http from "http";
 import { PublicKey } from "@solana/web3.js";
 import type { PgLike } from "../db/client.js";
+import { BASKET_RETURN_CURRENT_SQL, snapshotTime } from "./basket-returns.js";
 import {
   consumeNonce,
   issueNonce,
@@ -292,13 +293,15 @@ export async function putMyProfile(
  * Static SQL for /users/:wallet/history — events ledger (the indexer already
  * attributes Minted/Redeemed to data->>'user') joined with basket names and
  * the latest at-or-before-event share price. shares/usd stay exact NUMERIC
- * strings; usdValue becomes a display number in JS (2dp) or stays null.
+ * strings. Stored share_price is USD per RAW share: multiply raw shares
+ * directly for USD value and scale once for the whole-share display price.
+ * usdValue becomes a display number in JS (2dp) or stays null.
  */
 const HISTORY_BASE_SQL = `
   SELECT h.sig, h.ts, h.trade_type, h.basket, h.basket_name,
          (h.shares_raw / ${SHARE_DECIMALS})::text AS shares,
-         h.share_price::text AS share_price,
-         (h.shares_raw * h.share_price / ${SHARE_DECIMALS})::text AS usd_value
+         (h.share_price * ${SHARE_DECIMALS})::text AS share_price,
+         (h.shares_raw * h.share_price)::text AS usd_value
   FROM (
     SELECT e.sig, e.ts, e.type AS trade_type, e.basket,
            b.metadata_json->>'name' AS basket_name,
@@ -475,7 +478,7 @@ export async function getFeed(
     SELECT 'trade'::text AS kind, s.sig AS item_key, s.ts, s.wallet,
            s.handle, s.display_name, s.avatar_url, s.basket, s.basket_name,
            s.trade_type, (s.shares_raw / ${SHARE_DECIMALS})::text AS shares,
-           (s.shares_raw * s.share_price / ${SHARE_DECIMALS})::text AS usd_value,
+           (s.shares_raw * s.share_price)::text AS usd_value,
            NULL::bigint AS post_id, NULL::text AS title, NULL::text AS body,
            NULL::bigint AS like_count, NULL::bigint AS comment_count
     FROM (${FEED_TRADES_INNER}${following ? ` AND (e.data->>'user') = ANY(${followParam}::text[])` : ""}) s`;
@@ -664,135 +667,141 @@ export async function getLeaderboard(db: PgLike, window: string): Promise<{ stat
 // --- baskets leaderboard ---------------------------------------------------------
 
 /**
- * GET /leaderboard/baskets SQL — one FULLY STATIC literal per window variant
- * (same discipline as NAV_HISTORY_* in server.ts): the validated `window` key
- * selects the literal and nothing is ever interpolated into it. Baselines:
- * 7d/30d = latest snapshot at-or-before NOW() minus the window; `all` = first
- * snapshot ever. The INNER LATERAL joins exclude baskets with no current or
- * baseline snapshot — a missing baseline is an honest exclusion, never a
- * fabricated 0%.
+ * Static per-window share-price rankings. Missing/invalid baselines and stale
+ * current snapshots are excluded in SQL. A 7d/30d baseline must precede the
+ * cutoff by at most one hour; a new basket never gets a partial 7d return.
  */
 const BASKET_LEADERBOARD_7D_SQL = `
   SELECT r.pubkey,
          b.metadata_json->>'name' AS basket_name,
          b.metadata_json->>'symbol' AS symbol,
-         r.nav::text AS nav,
-         r.mint_count,
-         cur.ts AS cur_ts,
-         base.nav::text AS base_nav,
-         ((cur.nav - base.nav) / NULLIF(base.nav, 0))::text AS roi,
+         cur.nav::text AS nav, cur.supply::text AS supply,
+         cur.share_price::text AS share_price,
+         r.mint_count, cur.ts AS cur_ts, base.ts AS baseline_ts,
+         base.share_price::text AS baseline_share_price,
+         (cur.share_price - base.share_price) / NULLIF(base.share_price, 0) AS roi,
          COALESCE(h.holders, 0) AS holders
   FROM basket_rankings r
   JOIN baskets b ON b.pubkey = r.pubkey
   JOIN LATERAL (
-    SELECT nav, ts FROM nav_snapshots WHERE basket = r.pubkey ORDER BY ts DESC LIMIT 1
+    SELECT nav, supply, share_price, ts FROM nav_snapshots WHERE basket = r.pubkey ORDER BY ts DESC LIMIT 1
   ) cur ON true
   JOIN LATERAL (
-    SELECT nav FROM nav_snapshots WHERE basket = r.pubkey
-      AND ts <= NOW() - interval '7 days' ORDER BY ts DESC LIMIT 1
+    SELECT supply, share_price, ts FROM nav_snapshots WHERE basket = r.pubkey
+      AND ts <= cur.ts - interval '7 days'
+      AND ts >= cur.ts - interval '7 days' - interval '1 hour' ORDER BY ts DESC LIMIT 1
   ) base ON true
   LEFT JOIN (
     SELECT basket, COUNT(*)::int AS holders FROM user_positions GROUP BY basket
   ) h ON h.basket = r.pubkey
-  ORDER BY roi DESC NULLS LAST
+  WHERE ${BASKET_RETURN_CURRENT_SQL}
+    AND base.supply > 0 AND base.share_price > 0 AND base.ts < cur.ts
+    AND base.share_price::text NOT IN ('NaN', 'Infinity', '-Infinity')
+  ORDER BY roi DESC NULLS LAST, r.pubkey ASC
   LIMIT 50`;
 
 const BASKET_LEADERBOARD_30D_SQL = `
   SELECT r.pubkey,
          b.metadata_json->>'name' AS basket_name,
          b.metadata_json->>'symbol' AS symbol,
-         r.nav::text AS nav,
-         r.mint_count,
-         cur.ts AS cur_ts,
-         base.nav::text AS base_nav,
-         ((cur.nav - base.nav) / NULLIF(base.nav, 0))::text AS roi,
+         cur.nav::text AS nav, cur.supply::text AS supply,
+         cur.share_price::text AS share_price,
+         r.mint_count, cur.ts AS cur_ts, base.ts AS baseline_ts,
+         base.share_price::text AS baseline_share_price,
+         (cur.share_price - base.share_price) / NULLIF(base.share_price, 0) AS roi,
          COALESCE(h.holders, 0) AS holders
   FROM basket_rankings r
   JOIN baskets b ON b.pubkey = r.pubkey
   JOIN LATERAL (
-    SELECT nav, ts FROM nav_snapshots WHERE basket = r.pubkey ORDER BY ts DESC LIMIT 1
+    SELECT nav, supply, share_price, ts FROM nav_snapshots WHERE basket = r.pubkey ORDER BY ts DESC LIMIT 1
   ) cur ON true
   JOIN LATERAL (
-    SELECT nav FROM nav_snapshots WHERE basket = r.pubkey
-      AND ts <= NOW() - interval '30 days' ORDER BY ts DESC LIMIT 1
+    SELECT supply, share_price, ts FROM nav_snapshots WHERE basket = r.pubkey
+      AND ts <= cur.ts - interval '30 days'
+      AND ts >= cur.ts - interval '30 days' - interval '1 hour' ORDER BY ts DESC LIMIT 1
   ) base ON true
   LEFT JOIN (
     SELECT basket, COUNT(*)::int AS holders FROM user_positions GROUP BY basket
   ) h ON h.basket = r.pubkey
-  ORDER BY roi DESC NULLS LAST
+  WHERE ${BASKET_RETURN_CURRENT_SQL}
+    AND base.supply > 0 AND base.share_price > 0 AND base.ts < cur.ts
+    AND base.share_price::text NOT IN ('NaN', 'Infinity', '-Infinity')
+  ORDER BY roi DESC NULLS LAST, r.pubkey ASC
   LIMIT 50`;
 
 const BASKET_LEADERBOARD_ALL_SQL = `
   SELECT r.pubkey,
          b.metadata_json->>'name' AS basket_name,
          b.metadata_json->>'symbol' AS symbol,
-         r.nav::text AS nav,
-         r.mint_count,
-         cur.ts AS cur_ts,
-         base.nav::text AS base_nav,
-         ((cur.nav - base.nav) / NULLIF(base.nav, 0))::text AS roi,
+         cur.nav::text AS nav, cur.supply::text AS supply,
+         cur.share_price::text AS share_price,
+         r.mint_count, cur.ts AS cur_ts, base.ts AS baseline_ts,
+         base.share_price::text AS baseline_share_price,
+         (cur.share_price - base.share_price) / NULLIF(base.share_price, 0) AS roi,
          COALESCE(h.holders, 0) AS holders
   FROM basket_rankings r
   JOIN baskets b ON b.pubkey = r.pubkey
   JOIN LATERAL (
-    SELECT nav, ts FROM nav_snapshots WHERE basket = r.pubkey ORDER BY ts DESC LIMIT 1
+    SELECT nav, supply, share_price, ts FROM nav_snapshots WHERE basket = r.pubkey ORDER BY ts DESC LIMIT 1
   ) cur ON true
   JOIN LATERAL (
-    SELECT nav FROM nav_snapshots WHERE basket = r.pubkey ORDER BY ts ASC LIMIT 1
+    SELECT supply, share_price, ts FROM nav_snapshots WHERE basket = r.pubkey
+    AND supply > 0 AND nav >= 0 AND share_price > 0
+    AND nav::text NOT IN ('NaN', 'Infinity', '-Infinity')
+    AND share_price::text NOT IN ('NaN', 'Infinity', '-Infinity')
+    ORDER BY ts ASC LIMIT 1
   ) base ON true
   LEFT JOIN (
     SELECT basket, COUNT(*)::int AS holders FROM user_positions GROUP BY basket
   ) h ON h.basket = r.pubkey
-  ORDER BY roi DESC NULLS LAST
+  WHERE ${BASKET_RETURN_CURRENT_SQL}
+    AND base.supply > 0 AND base.share_price > 0 AND base.ts < cur.ts
+    AND base.share_price::text NOT IN ('NaN', 'Infinity', '-Infinity')
+  ORDER BY roi DESC NULLS LAST, r.pubkey ASC
   LIMIT 50`;
 
 /**
- * GET /leaderboard/baskets?window=7d|30d|all — public read ranking baskets by
- * windowed NAV return. ROI is computed in SQL NUMERIC and mapped to a percent
- * (×100, 2dp) in JS; nav/aum stay decimal strings (aum mirrors the current
- * NAV value per the API contract); holders counts distinct user_positions;
- * asOf is the current snapshot's ts. Empty while the snapshotter has no
- * history is honest, not broken.
+ * GET /leaderboard/baskets?window=7d|30d|all. returnPct is a display percent;
+ * nav/aum are TOTAL reference NAV strings, sharePrice is USD per RAW share,
+ * and asOf belongs to that same current snapshot. Never fill missing ranks.
  */
 export async function getBasketLeaderboard(db: PgLike, window: string): Promise<{ status: number; payload: unknown }> {
   if (window !== "7d" && window !== "30d" && window !== "all") {
-    return {
-      status: 400,
-      payload: { error: { code: "INVALID_WINDOW", message: "window must be one of 7d|30d|all" } },
-    };
+    return { status: 400, payload: { error: { code: "INVALID_WINDOW", message: "window must be one of 7d|30d|all" } } };
   }
-  const sql =
-    window === "7d"
-      ? BASKET_LEADERBOARD_7D_SQL
-      : window === "30d"
-        ? BASKET_LEADERBOARD_30D_SQL
-        : BASKET_LEADERBOARD_ALL_SQL;
-  const res = await db.query(sql, []); // no params — the window selected the literal
+  const sql = window === "7d" ? BASKET_LEADERBOARD_7D_SQL
+    : window === "30d" ? BASKET_LEADERBOARD_30D_SQL : BASKET_LEADERBOARD_ALL_SQL;
+  const res = await db.query(sql, []); // no request input in SQL
   const rows = res.rows as Array<Record<string, unknown>>;
-  const items = rows.map((r) => {
-    // NB: not usdNumber() — the raw ratio needs full precision; ×100 + 2dp
-    // rounding happens here, after the conversion (contract: 0.0421 → 4.21).
-    const roiText = r.roi as string | null;
-    const ratio = roiText === null ? null : Number(roiText);
-    const navText = trimDecimals(r.nav as string);
-    return {
+  const items = rows.flatMap((r) => {
+    const ratio = typeof r.roi === "string" && r.roi.trim() !== "" ? Number(r.roi) : null;
+    const asOf = snapshotTime(r.cur_ts);
+    // SQL excludes unrankable rows; guard malformed/legacy payloads too.
+    if (ratio === null || !Number.isFinite(ratio) || asOf === null || typeof r.nav !== "string") return [];
+    const returnPct = Math.round(ratio * 10000) / 100;
+    if (!Number.isFinite(returnPct)) return [];
+    const navText = trimDecimals(r.nav);
+    return [{
       basket: r.pubkey as string,
       basketName: (r.basket_name as string | null) ?? null,
       symbol: (r.symbol as string | null) ?? null,
-      returnPct: ratio === null || !Number.isFinite(ratio) ? null : Math.round(ratio * 10000) / 100,
+      returnPct,
       nav: navText,
-      aum: navText, // contract: aum === the current NAV value
+      aum: navText,
+      sharePrice: typeof r.share_price === "string" ? trimDecimals(r.share_price) : null,
+      supply: typeof r.supply === "string" ? r.supply : null,
       holders: Number(r.holders ?? 0),
       mintCount: Number(r.mint_count ?? 0),
-      asOf: new Date(r.cur_ts as string).toISOString(),
-    };
+      asOf,
+      baselineAsOf: snapshotTime(r.baseline_ts),
+    }];
   });
   return {
     status: 200,
     payload: {
       window,
       items,
-      note: "Basket returns come from on-chain NAV snapshots (current vs window baseline; all-time = first snapshot) — never fabricated. Baskets without a baseline for the window are excluded.",
+      note: "Basket returns compare reference share-price snapshots, not total NAV. Current snapshots must be within 15 minutes; window baselines must be at/before the cutoff and within one hour. Missing, stale, or unrankable history is excluded.",
     },
   };
 }

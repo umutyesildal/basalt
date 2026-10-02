@@ -16,7 +16,14 @@ import { PublicKey } from "@solana/web3.js";
 import { comparePrices, getChartSeries, readMockWhitelistRows, TICKER_MINTS, YAHOO_MAP } from "../workers/priceCompare.js";
 import { fetchYahooSeries } from "../workers/yahooFetch.js";
 import { connectFromEnv, isPgLike, type PgLike } from "../db/client.js";
-import { computeDriftExact, computePerformanceFromBaselines, type KeyValueCache } from "../workers/navEngine.js";
+import { computeDriftExact, type KeyValueCache } from "../workers/navEngine.js";
+import {
+  BASKET_RETURN_CURRENT_SQL,
+  indexedShareReturnPct,
+  returnSnapshot,
+  snapshotIsFresh,
+  snapshotTime,
+} from "./basket-returns.js";
 import { DEVNET_FLAGSHIP_BASKET, MOCK_XSTOCKS } from "../catalog/mockStocks.js";
 import { handleZapIn, handleZapOut, type QuoteContext } from "./quotes.js";
 import { tryHandleSocialRoute } from "./social.js";
@@ -191,59 +198,67 @@ async function readJsonBody(req: http.IncomingMessage): Promise<Record<string, u
 const BASKETS_LIST_SQL = `
   SELECT r.pubkey, r.creator, r.share_mint,
          b.constituents, b.weights_bps, b.metadata_json,
-         r.nav::text AS nav, r.supply::text AS supply,
-         r.share_price::text AS share_price,
-         r.return_30d::text AS return_30d, r.mint_count, r.refreshed_at,
-         nav.ts AS nav_as_of,
-         ((r.nav - h24.nav) / NULLIF(h24.nav, 0))::text AS return_24h,
+         cur.nav::text AS nav, cur.supply::text AS supply,
+         cur.share_price::text AS share_price,
+         r.mint_count, r.refreshed_at, cur.ts AS nav_as_of,
+         NOT (cur.ts <= NOW() AND cur.ts >= NOW() - interval '15 minutes') AS stale,
+         CASE WHEN ${BASKET_RETURN_CURRENT_SQL} AND h24.supply > 0 AND h24.share_price > 0 AND h24.share_price::text NOT IN ('NaN', 'Infinity', '-Infinity')
+           THEN (cur.share_price - h24.share_price) / NULLIF(h24.share_price, 0) END AS return_24h,
+         CASE WHEN ${BASKET_RETURN_CURRENT_SQL} AND h168.supply > 0 AND h168.share_price > 0 AND h168.share_price::text NOT IN ('NaN', 'Infinity', '-Infinity')
+           THEN (cur.share_price - h168.share_price) / NULLIF(h168.share_price, 0) END AS return_7d,
+         CASE WHEN ${BASKET_RETURN_CURRENT_SQL} AND h720.supply > 0 AND h720.share_price > 0 AND h720.share_price::text NOT IN ('NaN', 'Infinity', '-Infinity')
+           THEN (cur.share_price - h720.share_price) / NULLIF(h720.share_price, 0) END AS return_30d,
          COALESCE(h.holders, 0) AS holders
   FROM basket_rankings r
   JOIN baskets b ON b.pubkey = r.pubkey
+  JOIN LATERAL (
+    SELECT nav, supply, share_price, ts FROM nav_snapshots WHERE basket = r.pubkey ORDER BY ts DESC LIMIT 1
+  ) cur ON true
   LEFT JOIN LATERAL (
-    SELECT ts FROM nav_snapshots WHERE basket = r.pubkey ORDER BY ts DESC LIMIT 1
-  ) nav ON true
-  LEFT JOIN LATERAL (
-    SELECT nav FROM nav_snapshots WHERE basket = r.pubkey
-      AND ts <= NOW() - interval '24 hours' ORDER BY ts DESC LIMIT 1
+    SELECT supply, share_price FROM nav_snapshots WHERE basket = r.pubkey
+      AND ts <= cur.ts - interval '24 hours'
+      AND ts >= cur.ts - interval '24 hours' - interval '1 hour' ORDER BY ts DESC LIMIT 1
   ) h24 ON true
   LEFT JOIN LATERAL (
-    SELECT nav FROM nav_snapshots WHERE basket = r.pubkey
-      AND ts <= NOW() - interval '7 days' ORDER BY ts DESC LIMIT 1
+    SELECT supply, share_price FROM nav_snapshots WHERE basket = r.pubkey
+      AND ts <= cur.ts - interval '7 days'
+      AND ts >= cur.ts - interval '7 days' - interval '1 hour' ORDER BY ts DESC LIMIT 1
   ) h168 ON true
+  LEFT JOIN LATERAL (
+    SELECT supply, share_price FROM nav_snapshots WHERE basket = r.pubkey
+      AND ts <= cur.ts - interval '30 days'
+      AND ts >= cur.ts - interval '30 days' - interval '1 hour' ORDER BY ts DESC LIMIT 1
+  ) h720 ON true
   LEFT JOIN (
     SELECT basket, COUNT(*)::int AS holders FROM user_positions GROUP BY basket
   ) h ON h.basket = r.pubkey
 `;
 
-/** Shared WHERE for the basket list — every dynamic value is a bound param. */
+/** Shared WHERE — every request value is bound, never interpolated. */
 const BASKETS_LIST_WHERE = `
     WHERE ($1::text IS NULL OR r.creator = $1)
-      AND ($2::numeric IS NULL OR r.nav >= $2::numeric)
+      AND ($2::numeric IS NULL OR cur.nav >= $2::numeric)
       AND ($3::text IS NULL OR r.pubkey ILIKE '%' || $3 || '%' OR r.creator ILIKE '%' || $3 || '%' OR r.share_mint ILIKE '%' || $3 || '%')`;
 
-/**
- * ONE fully static SQL string per sort key — the string executed by
- * listBaskets is always one of these literals, never assembled from input.
- * (Same text as the historical template: shared body + allowlisted ORDER BY.)
- */
+/** Static SQL per allowlisted sort. All return fields stay fractional ratios. */
 const BASKETS_LIST_SQL_BY_SORT: Record<SortKey, string> = {
   aum: `${BASKETS_LIST_SQL}${BASKETS_LIST_WHERE}
-    ORDER BY r.nav DESC NULLS LAST
+    ORDER BY cur.nav DESC NULLS LAST, r.pubkey ASC
     LIMIT $4`,
   return_24h: `${BASKETS_LIST_SQL}${BASKETS_LIST_WHERE}
-    ORDER BY (r.nav - h24.nav) / NULLIF(h24.nav, 0) DESC NULLS LAST
+    ORDER BY return_24h DESC NULLS LAST, r.pubkey ASC
     LIMIT $4`,
   return_7d: `${BASKETS_LIST_SQL}${BASKETS_LIST_WHERE}
-    ORDER BY (r.nav - h168.nav) / NULLIF(h168.nav, 0) DESC NULLS LAST
+    ORDER BY return_7d DESC NULLS LAST, r.pubkey ASC
     LIMIT $4`,
   return_30d: `${BASKETS_LIST_SQL}${BASKETS_LIST_WHERE}
-    ORDER BY r.return_30d DESC NULLS LAST
+    ORDER BY return_30d DESC NULLS LAST, r.pubkey ASC
     LIMIT $4`,
   holders: `${BASKETS_LIST_SQL}${BASKETS_LIST_WHERE}
-    ORDER BY holders DESC NULLS LAST
+    ORDER BY holders DESC NULLS LAST, r.pubkey ASC
     LIMIT $4`,
   mint_count: `${BASKETS_LIST_SQL}${BASKETS_LIST_WHERE}
-    ORDER BY r.mint_count DESC NULLS LAST
+    ORDER BY r.mint_count DESC NULLS LAST, r.pubkey ASC
     LIMIT $4`,
 };
 
@@ -282,7 +297,7 @@ export async function listBaskets(
   const data = rows.map((row) => ({
     ...row,
     source: "onchain-indexed",
-    asOf: row.nav_as_of ?? row.refreshed_at,
+    asOf: snapshotTime(row.nav_as_of),
   }));
   return {
     status: 200,
@@ -449,71 +464,102 @@ export async function navHistory(
   };
 }
 
-/** GET /baskets/:pubkey/performance — 24h/7d/30d/90d/inception from snapshots. */
-export async function basketPerformance(db: PgLike, pubkey: string): Promise<{ status: number; payload: unknown }> {
+/** GET /baskets/:pubkey/performance — reference share-price returns. */
+export async function basketPerformance(
+  db: PgLike,
+  pubkey: string,
+  now: () => Date = () => new Date(),
+): Promise<{ status: number; payload: unknown }> {
   assertPubkey(pubkey);
   const exists = await db.query("SELECT 1 FROM baskets WHERE pubkey = $1", [pubkey]);
   if (exists.rows.length === 0) {
     return { status: 404, payload: { error: { code: "NOT_INDEXED", message: `basket ${pubkey} is not indexed by this backend` } } };
   }
   const res = await db.query(
-    `SELECT
-       (SELECT nav::text FROM nav_snapshots WHERE basket = $1 ORDER BY ts DESC LIMIT 1) AS latest_nav,
-       (SELECT ts FROM nav_snapshots WHERE basket = $1 ORDER BY ts DESC LIMIT 1) AS latest_ts,
-       (SELECT nav::text FROM nav_snapshots WHERE basket = $1 AND ts <= NOW() - interval '24 hours' ORDER BY ts DESC LIMIT 1) AS b24,
-       (SELECT ts FROM nav_snapshots WHERE basket = $1 AND ts <= NOW() - interval '24 hours' ORDER BY ts DESC LIMIT 1) AS b24_ts,
-       (SELECT nav::text FROM nav_snapshots WHERE basket = $1 AND ts <= NOW() - interval '7 days' ORDER BY ts DESC LIMIT 1) AS b7d,
-       (SELECT ts FROM nav_snapshots WHERE basket = $1 AND ts <= NOW() - interval '7 days' ORDER BY ts DESC LIMIT 1) AS b7d_ts,
-       (SELECT nav::text FROM nav_snapshots WHERE basket = $1 AND ts <= NOW() - interval '30 days' ORDER BY ts DESC LIMIT 1) AS b30d,
-       (SELECT ts FROM nav_snapshots WHERE basket = $1 AND ts <= NOW() - interval '30 days' ORDER BY ts DESC LIMIT 1) AS b30d_ts,
-       (SELECT nav::text FROM nav_snapshots WHERE basket = $1 AND ts <= NOW() - interval '90 days' ORDER BY ts DESC LIMIT 1) AS b90d,
-       (SELECT ts FROM nav_snapshots WHERE basket = $1 AND ts <= NOW() - interval '90 days' ORDER BY ts DESC LIMIT 1) AS b90d_ts,
-       (SELECT nav::text FROM nav_snapshots WHERE basket = $1 ORDER BY ts ASC LIMIT 1) AS b_inception,
-       (SELECT ts FROM nav_snapshots WHERE basket = $1 ORDER BY ts ASC LIMIT 1) AS b_inception_ts`,
+    `WITH cur AS (
+       SELECT nav, supply, share_price, ts FROM nav_snapshots
+       WHERE basket = $1 ORDER BY ts DESC LIMIT 1
+     )
+     SELECT cur.nav::text AS latest_nav, cur.supply::text AS latest_supply,
+            cur.share_price::text AS latest_share_price, cur.ts AS latest_ts,
+            NOW() AS evaluated_at,
+            h24.nav::text AS b24_nav, h24.supply::text AS b24_supply,
+            h24.share_price::text AS b24_share_price, h24.ts AS b24_ts,
+            h7.nav::text AS b7d_nav, h7.supply::text AS b7d_supply,
+            h7.share_price::text AS b7d_share_price, h7.ts AS b7d_ts,
+            h30.nav::text AS b30d_nav, h30.supply::text AS b30d_supply,
+            h30.share_price::text AS b30d_share_price, h30.ts AS b30d_ts,
+            h90.nav::text AS b90d_nav, h90.supply::text AS b90d_supply,
+            h90.share_price::text AS b90d_share_price, h90.ts AS b90d_ts,
+            first.nav::text AS b_inception_nav, first.supply::text AS b_inception_supply,
+            first.share_price::text AS b_inception_share_price, first.ts AS b_inception_ts
+     FROM cur
+     LEFT JOIN LATERAL (
+       SELECT nav, supply, share_price, ts FROM nav_snapshots WHERE basket = $1
+       AND ts <= cur.ts - interval '24 hours'
+       AND ts >= cur.ts - interval '24 hours' - interval '1 hour' ORDER BY ts DESC LIMIT 1
+     ) h24 ON true
+     LEFT JOIN LATERAL (
+       SELECT nav, supply, share_price, ts FROM nav_snapshots WHERE basket = $1
+       AND ts <= cur.ts - interval '7 days'
+       AND ts >= cur.ts - interval '7 days' - interval '1 hour' ORDER BY ts DESC LIMIT 1
+     ) h7 ON true
+     LEFT JOIN LATERAL (
+       SELECT nav, supply, share_price, ts FROM nav_snapshots WHERE basket = $1
+       AND ts <= cur.ts - interval '30 days'
+       AND ts >= cur.ts - interval '30 days' - interval '1 hour' ORDER BY ts DESC LIMIT 1
+     ) h30 ON true
+     LEFT JOIN LATERAL (
+       SELECT nav, supply, share_price, ts FROM nav_snapshots WHERE basket = $1
+       AND ts <= cur.ts - interval '90 days'
+       AND ts >= cur.ts - interval '90 days' - interval '1 hour' ORDER BY ts DESC LIMIT 1
+     ) h90 ON true
+     LEFT JOIN LATERAL (
+       SELECT nav, supply, share_price, ts FROM nav_snapshots WHERE basket = $1
+       AND supply > 0 AND nav >= 0 AND share_price > 0
+       AND nav::text NOT IN ('NaN', 'Infinity', '-Infinity')
+       AND share_price::text NOT IN ('NaN', 'Infinity', '-Infinity')
+       ORDER BY ts ASC LIMIT 1
+     ) first ON true
+     `,
     [pubkey],
   );
-  const row = res.rows[0] as Record<string, unknown> | null;
-  if (!row || typeof row.latest_nav !== "string") {
-    return {
-      status: 404,
-      payload: { error: { code: "NOT_INDEXED", message: `no NAV snapshots indexed yet for ${pubkey}` } },
-    };
+  const row = res.rows[0] as Record<string, unknown> | undefined;
+  const latest = row ? returnSnapshot(row, "latest_") : null;
+  if (!row || !latest || latest.nav === null || latest.ts === null) {
+    return { status: 404, payload: { error: { code: "NOT_INDEXED", message: `no usable NAV snapshots indexed yet for ${pubkey}` } } };
   }
-  // Trust boundary: coerce every NAV to a finite NUMBER and pass only the
-  // plain decimal re-serialization onward; windows without a usable numeric
-  // baseline stay null ("insufficient data"). No raw strings flow into the
-  // window math.
-  const latestNav = Number(row.latest_nav);
-  if (!Number.isFinite(latestNav)) {
-    return {
-      status: 404,
-      payload: { error: { code: "NOT_INDEXED", message: `no NAV snapshots indexed yet for ${pubkey}` } },
-    };
-  }
-  const latest = { nav: String(latestNav), ts: typeof row.latest_ts === "string" ? row.latest_ts : "" };
-  const b24 = Number(row.b24);
-  const b7d = Number(row.b7d);
-  const b30d = Number(row.b30d);
-  const b90d = Number(row.b90d);
-  const bInception = Number(row.b_inception);
-  const finiteOrNull = (n: number): string | null => (Number.isFinite(n) ? String(n) : null);
-  const perf = computePerformanceFromBaselines(latest, [
-    { window: "24h", nav: finiteOrNull(b24), ts: typeof row.b24_ts === "string" ? row.b24_ts : null },
-    { window: "7d", nav: finiteOrNull(b7d), ts: typeof row.b7d_ts === "string" ? row.b7d_ts : null },
-    { window: "30d", nav: finiteOrNull(b30d), ts: typeof row.b30d_ts === "string" ? row.b30d_ts : null },
-    { window: "90d", nav: finiteOrNull(b90d), ts: typeof row.b90d_ts === "string" ? row.b90d_ts : null },
-    { window: "inception", nav: finiteOrNull(bInception), ts: typeof row.b_inception_ts === "string" ? row.b_inception_ts : null },
-  ]);
+  const evaluatedAt = snapshotTime(row.evaluated_at);
+  const evaluatedNow = evaluatedAt === null ? now() : new Date(evaluatedAt);
+  const periods = [
+    ["24h", "b24_", 24 * 60 * 60_000],
+    ["7d", "b7d_", 7 * 24 * 60 * 60_000],
+    ["30d", "b30d_", 30 * 24 * 60 * 60_000],
+    ["90d", "b90d_", 90 * 24 * 60 * 60_000],
+    ["inception", "b_inception_", null],
+  ] as const;
+  const windows = Object.fromEntries(periods.map(([window, prefix, duration]) => {
+    const baseline = returnSnapshot(row, prefix);
+    return [window, {
+      window,
+      pct: indexedShareReturnPct(latest, baseline, evaluatedNow, duration),
+      baselineNav: baseline.nav, // total-NAV context, not the return operand
+      baselineSharePrice: baseline.sharePrice,
+      baselineSupply: baseline.supply,
+      baselineTs: baseline.ts,
+    }];
+  }));
   return {
     status: 200,
     payload: {
       data: {
         basket: pubkey,
-        latest: perf.latest,
-        windows: perf.windows,
-        basis: "nav_snapshots — pct = (latest − baseline) / baseline, exact fixed point",
+        latest,
+        windows,
+        basis: "reference share-price return: (latest share_price - baseline share_price) / baseline share_price; pct is percent, share_price is USD per raw share unit",
         source: "onchain-indexed",
         asOf: latest.ts,
+        stale: !snapshotIsFresh(latest, evaluatedNow),
       },
     },
   };
@@ -992,7 +1038,7 @@ export function createHandler(ctx: ApiContext = { db: null }) {
             from: url.searchParams.get("from"),
             to: url.searchParams.get("to"),
           });
-        } else if (sub === "performance") out = await basketPerformance(db, pubkey);
+        } else if (sub === "performance") out = await basketPerformance(db, pubkey, ctx.now);
         else out = await basketDetail(db, pubkey);
         sendJson(res, out.status, out.payload);
       } catch (err) {

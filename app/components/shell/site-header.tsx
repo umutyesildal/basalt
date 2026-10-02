@@ -223,7 +223,7 @@ export function SiteHeader() {
 
           {onchainRoute && <ClaimHandleChip />}
           {onchainRoute && <NetworkIndicator className="hidden sm:inline-flex" />}
-          {onchainRoute && <WalletButton />}
+          <WalletButton />
 
           <button
             ref={menuButtonRef}

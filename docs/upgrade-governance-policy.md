@@ -129,10 +129,10 @@ The production sequence is:
 8. Publish the transaction signatures, configuration evidence, announcement,
    manifest, and source/artifact hashes with the release.
 
-Mainnet authority migration requires an independently reviewed ceremony
-runbook and explicit approval of the exact cluster, program IDs, signer public
-keys, multisig address, and vault address. Local tooling must fail closed for
-non-loopback RPC URLs.
+Devnet or mainnet authority migration requires the independently reviewed
+`docs/governance-ceremony-runbook.md` and explicit approval of the exact
+cluster, program IDs, signer public keys, multisig address, and vault address.
+Local rehearsal tooling must fail closed for non-loopback RPC URLs.
 
 ## Completion evidence
 
@@ -149,8 +149,8 @@ BAS-006 is complete only when one evidence package contains:
 - announcement and incident-policy URLs; and
 - UI and deployment-manifest disclosure matching those verified facts.
 
-Without that package, the honest status is “target policy defined; current
-deployment governance not independently attested.”
+Without that package, the honest status is “current single-key governance
+verified; target multisig and time lock not active.”
 
 ## Operator references
 

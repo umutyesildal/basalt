@@ -79,8 +79,9 @@ cells share edges, they never overlap): center `(300,300)`; ring centers
   standing AGENTS §1 legal ban on ETF/fund/guaranteed/safe/advice language
   applies unchanged. Use: strategy basket / index basket / onchain equity
   basket / xStocks-backed strategy token.
-- Public concept headline: “Build a stock basket. Make it yours.” Explain
-  the mix as an idea using stocks and ETFs, and label the result “Concept preview.”
+- Current landing headline: “Find a basket you believe in.” Explain xStocks as
+  tokens that track stocks and ETFs. The public creation action is “Share basket”;
+  repeated concept labels are removed. See the 2026-10-02 landing design.
 - The historical on-chain tagline “Create an index. Own your thesis.” remains
   available on transaction-specific surfaces. Do not call a concept basket a
   deployed token or claim mock mints are official xStocks.
@@ -121,8 +122,11 @@ The mark and electric yellow anchor the create, basket detail, and redeem routes
 
 Legal vocabulary and `LEGAL_REVIEW_REQUIRED` status follow `AGENTS.md` and `docs/basalt-v0-spec.md`. On-chain redemption remains independent of the backend, an oracle, and mint-pause status. The current UI still needs indexed supply and vault balances for its preview; BAS-034 tracks a direct-RPC fallback for indexer outages.
 
-## 9. Public concept experience — 2026-09-23
+## 9. Public basket experience, updated 2026-10-02
 
-The primary `/create` route is a wallet-free, English concept builder. Show three visible idea templates and one custom action without horizontal scrolling, then the familiar allocation chart, a default $1,000 illustrative amount with $10/$100/$1,000 shortcuts, optional plainly explained fees, and one visual review. “Create preview” produces a bounded shareable link. A concept preview never claims token balances, minted shares, transactions, AUM, or return history. `/create/onchain` retains the transaction checks and required acknowledgments described above.
+The primary `/create` route is a wallet-free, English concept builder. Show three visible idea templates and one custom action without horizontal scrolling, then the familiar allocation chart, a default $1,000 illustrative amount with $10/$100/$1,000 shortcuts, optional plainly explained fees, and one visual review. “Share basket” produces a bounded shareable link. A concept preview never claims token balances, minted shares, transactions, AUM, or return history. `/create/onchain` currently redirects to `/create`; transaction checks and required acknowledgments remain in retained source for future re-exposure.
 
-The landing page, Explore sample gallery, Feed, Leaderboard, and concept creator profiles use one consistent set of illustrative basket identities. Use one quiet provenance label per concept page; never pair sample activity with a real devnet wallet or basket address. Keep composition, thesis, and fee impact in the first detail view; keep sourced on-chain accounting in accessible detail on actual basket pages. Header wallet/network controls appear only on on-chain routes. Stocks and ETFs keep their existing presentation. Market volume must name a traded instrument and its unit.
+The landing page, Explore sample gallery, Feed, Leaderboard, and concept creator profiles use one consistent set of illustrative basket identities. Repeated concept badges were removed by owner decision. Use accurate example amounts and action labels, with the single product-status sentence on the landing. Never pair sample activity with a real devnet wallet or basket address. Keep composition, thesis, and fee impact in the first detail view; keep sourced on-chain accounting in accessible detail on actual basket pages. The wallet button appears across header routes; network-specific context remains tied to onchain routes. Stocks and ETFs keep their existing presentation. Market volume must name a traded instrument and its unit.
+
+
+The current homepage layout and motion are defined in [the 2026-10-02 landing design](design-home-discovery-2026-10-02.md). Earlier homepage compositions are historical.

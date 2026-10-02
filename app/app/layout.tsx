@@ -19,23 +19,23 @@ export const metadata: Metadata = {
   // TODO(roman-empire): swap for the production domain before launch.
   metadataBase: new URL("http://localhost:3000"),
   title: {
-    default: "Basalt — Stock Baskets & Creators",
+    default: "Basalt | Stock baskets on Solana",
     template: "%s · Basalt",
   },
   description:
-    "Build and share concept baskets of stocks and ETFs. Discover the people and thinking behind each mix.",
+    "Explore stock baskets built by others, or build your own with xStocks on Solana.",
   openGraph: {
-    title: "Basalt — Stock Baskets & Creators",
+    title: "Basalt | Stock baskets on Solana",
     description:
-      "Build and share concept baskets of stocks and ETFs. Discover the people and thinking behind each mix.",
+      "Explore stock baskets built by others, or build your own with xStocks on Solana.",
     type: "website",
     siteName: "Basalt",
   },
   twitter: {
     card: "summary_large_image",
-    title: "Basalt — Stock Baskets & Creators",
+    title: "Basalt | Stock baskets on Solana",
     description:
-      "Build and share concept baskets of stocks and ETFs. Discover the people and thinking behind each mix.",
+      "Explore stock baskets built by others, or build your own with xStocks on Solana.",
   },
 };
 export default function RootLayout({ children }: { children: React.ReactNode }) {

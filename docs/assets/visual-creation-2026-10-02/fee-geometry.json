@@ -1,0 +1,47 @@
+[
+  {
+    "bars": [
+      {
+        "width": 525.6,
+        "x": 0
+      },
+      {
+        "width": 58.39999999999998,
+        "x": 525.6
+      }
+    ],
+    "chartWidth": 584,
+    "documentWidth": 1280,
+    "viewport": 1280
+  },
+  {
+    "bars": [
+      {
+        "width": 309.6,
+        "x": 0
+      },
+      {
+        "width": 34.39999999999998,
+        "x": 309.6
+      }
+    ],
+    "chartWidth": 344,
+    "documentWidth": 768,
+    "viewport": 768
+  },
+  {
+    "bars": [
+      {
+        "width": 308.7,
+        "x": 0
+      },
+      {
+        "width": 34.30000000000001,
+        "x": 308.7
+      }
+    ],
+    "chartWidth": 343,
+    "documentWidth": 375,
+    "viewport": 375
+  }
+]

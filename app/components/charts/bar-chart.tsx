@@ -46,6 +46,7 @@ import { extractReferenceAreaConfigs } from "./reference-area-config";
 import { useScheduledTooltip } from "./use-scheduled-tooltip";
 import {
   buildYScalesForLines,
+  buildYScalesFromDomains,
   getPrimaryYScale,
   normalizeYAxisId,
   wrapSingleYScale,
@@ -81,6 +82,8 @@ export interface BarChartProps {
   barWidth?: number;
   /** Bar chart orientation. Default: "vertical" */
   orientation?: BarOrientation;
+  /** Exact numeric value-axis domain. Omitting it keeps automatic padded/nice bounds. */
+  valueDomain?: [number, number];
   /** Whether to stack bars instead of grouping them. Default: false */
   stacked?: boolean;
   /** Gap between stacked bar segments in pixels. Default: 0 */
@@ -156,6 +159,7 @@ interface ChartInnerProps {
   barGap: number;
   barWidthProp?: number;
   orientation: BarOrientation;
+  valueDomain?: [number, number];
   stacked: boolean;
   stackGap: number;
   squareSnap?: { squareGap: number; groupGap?: number; fit?: boolean };
@@ -186,6 +190,7 @@ const ChartCore = memo(function ChartCore({
   barGap,
   barWidthProp,
   orientation,
+  valueDomain,
   stacked,
   stackGap,
   squareSnap,
@@ -285,14 +290,21 @@ const ChartCore = memo(function ChartCore({
     const range = isHorizontal ? [0, innerWidth] : [innerHeight, 0];
     return scaleLinear({
       range,
-      domain: [0, maxValue * 1.1],
-      nice: true,
+      domain: valueDomain ?? [0, maxValue * 1.1],
+      nice: valueDomain === undefined,
     });
-  }, [innerWidth, innerHeight, maxValue, isHorizontal]);
+  }, [innerWidth, innerHeight, maxValue, isHorizontal, valueDomain]);
 
   const yScales = useMemo(() => {
     if (isHorizontal) {
       return wrapSingleYScale(valueScale);
+    }
+    if (valueDomain) {
+      const domainsByAxis: Record<string, [number, number]> = {};
+      for (const line of lines) {
+        domainsByAxis[normalizeYAxisId(line.yAxisId)] = valueDomain;
+      }
+      return buildYScalesFromDomains({ lines, innerHeight, domainsByAxis });
     }
     return buildYScalesForLines({
       lines,
@@ -311,7 +323,7 @@ const ChartCore = memo(function ChartCore({
         return [0, (max || 100) * 1.1];
       },
     });
-  }, [data, innerHeight, isHorizontal, lines, valueScale]);
+  }, [data, innerHeight, isHorizontal, lines, valueScale, valueDomain]);
 
   const primaryYScale = getPrimaryYScale(yScales, valueScale);
 
@@ -682,6 +694,7 @@ export function BarChart({
   barGap = 0.2,
   barWidth,
   orientation = "vertical",
+  valueDomain,
   stacked = false,
   stackGap = 0,
   squareSnap,
@@ -712,6 +725,7 @@ export function BarChart({
             margin={margin}
             onPhaseChange={onPhaseChange}
             orientation={orientation}
+            valueDomain={valueDomain}
             revealSignature={revealSignature}
             squareSnap={squareSnap}
             stacked={stacked}

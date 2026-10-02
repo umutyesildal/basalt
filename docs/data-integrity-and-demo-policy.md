@@ -10,8 +10,9 @@
 | `market-reference` | External provider price; not settlement truth | Reference price · provider · as-of |
 | `derived` | On-chain holdings combined with reference prices | Reference NAV · sources · as-of |
 | `mock-asset` | Project-issued devnet token with no real backing | Mock asset · no economic value |
+| `historical-model` | Fixed sample quantities valued from completed real underlying closes | Model price · 7D · shared source/date and collapsed methodology |
 | `simulated` | Generated value or series, not an observation | Simulated |
-| `demo` | Static/synthetic basket or user presentation data | Concept preview or sample activity |
+| `demo` | Static/synthetic basket or user presentation data | Accurate example/action context; shared product status where needed, per the 2026-10-02 owner decision |
 | `stale` | Data outside its freshness SLA | Stale · last successful time |
 | `unavailable` | No trustworthy data | Unavailable; never fabricate a number |
 
@@ -28,9 +29,9 @@
 
 ### Concept preview and environment context
 
-The wallet-free `/create`, `/preview`, and sample gallery are a separate concept experience. They carry one clear “Concept preview” context label and do not claim that assets were acquired, shares minted, or a transaction recorded. Starting dollar amounts are allocation examples. Sample social activity has a page-level “Sample activity” label and no transaction signatures, fake returns, AUM, or fabricated timestamps. Preview links contain no wallet or balance data.
+The wallet-free `/create`, `/preview`, and sample gallery build and share basket ideas. The owner removed repeated concept/preview and no-purchase notices on 2026-10-02. Accurate actions such as “Share basket” and “Use this mix”, example dollar amounts, and the landing's single status sentence communicate the available behavior. The shared page's onchain action is disabled and says “Coming soon”. Sample activity still has no transaction signatures, fake returns, AUM, or fabricated timestamps. Preview links contain no wallet or balance data. This copy decision does not relax provenance for financial metrics or indexed transactions.
 
-The on-chain transaction experience remains separate at `/create/onchain` and the indexed basket routes. Its cluster, backing, and price provenance must remain visible near the actual decision or value. Hide raw protocol fields in accessible details when they are not needed for the initial decision.
+The indexed basket routes retain transaction-specific context. `/create/onchain` currently redirects to `/create`; the retained creation code is not exposed at that route. Its cluster, backing, and price provenance must remain visible near the actual decision or value. Hide raw protocol fields in accessible details when they are not needed for the initial decision.
 
 ### Global environment banner for transaction pages
 
@@ -52,7 +53,7 @@ On-chain basket detail, buy, redeem, portfolio, and any social/OG output that cl
 
 ### Demo mode
 
-Concept pages use a shared presentation catalog independent of the devnet API. A single page-level context label may cover multiple sample cards when all of them are examples. Every link from sample gallery, feed, and leaderboard must resolve to a concept preview or concept creator page. Write actions and verified-activity language are absent from sample surfaces. The legacy `NEXT_PUBLIC_HOME_DEMO` flag is not the source of truth for the primary concept experience.
+Concept pages use a shared presentation catalog independent of the devnet API. The public UI no longer requires a repeated concept label on each page or card; use the accurate action and example context described above. Every link from sample gallery, feed, and leaderboard must resolve to a concept preview or concept creator page. Write actions and verified-activity language are absent from sample surfaces. The legacy `NEXT_PUBLIC_HOME_DEMO` flag is not the source of truth for the primary concept experience.
 
 ## API provenance contract
 
@@ -102,3 +103,13 @@ Use the existing `/api/v1/health` route for process liveness. Add a future `/api
 - Concept samples remain visibly labeled whether or not the legacy demo flag is set; they never enter verified on-chain result sets.
 - Stale values never appear silently live.
 - Deterministic fixtures reconcile basket NAV with raw/scaled holdings.
+
+
+## Discovery cards, 2026-10-02 revision
+
+Original basket covers and playful names are illustrative presentation, not evidence of live community participation or performance. One sample-context sentence identifies each sample surface. No percentage, price curve, AUM or earnings was added to these cards. See [the discovery audit](design-home-discovery-2026-10-02.md) for the total-NAV and synthetic-series findings that must be resolved before adding financial evidence.
+
+
+## Approved historical sample models, 2026-10-02
+
+The owner approved a separate historical-model data class for the ten curated baskets. This exception allows measured underlying-market price returns on sample cards; it does not create investor history, live basket prices, realized creator revenue or official xStocks support. Models anchor at $100 on the fixed September base close, use fixed quantities and common comparison dates, exclude dividends/fees/slippage, and fail closed for missing/stale/non-USD prices. They use the dedicated same-origin `/api/basket-performance` contract, not the legacy indexed-data provenance enum. See [the audit](product-performance-audit-2026-10-02.md).

@@ -12,7 +12,7 @@ export const PRIMARY_NAV: NavItem[] = [
   { href: "/etfs", label: "ETFs" },
   { href: "/explore", label: "Baskets" },
   { href: "/feed", label: "Feed" },
-  { href: "/leaderboard?tab=people", label: "Creators" },
+  { href: "/leaderboard", label: "Leaderboard" },
 ];
 
 export const CONTEXT_ACTIONS: NavItem[] = [

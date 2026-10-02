@@ -1,0 +1,28 @@
+✔ fixed quantities retain September base and use seven calendar days across a holiday (14.098292ms)
+✔ longer history does not move the model base (0.267375ms)
+✔ a weekly loss stays negative while the September model base remains fixed (0.197542ms)
+✔ one missing constituent fails only its basket without substituting zero (0.572209ms)
+✔ all ranked models share current and weekly baseline dates (0.265083ms)
+✔ prices older than four calendar days fail closed (0.189125ms)
+✔ a stale constituent excludes its own model without blocking complete models (0.195417ms)
+✔ missing anchor or seven-day history yields no model metric (0.209666ms)
+✔ non-USD, zero and malformed weights cannot produce a model (0.284958ms)
+✔ an in-progress current-day Yahoo close and future candle are excluded (0.49925ms)
+✔ today becomes eligible only after the regular close and settling buffer (0.975708ms)
+✔ Yahoo null, zero, mismatched symbol and currency are rejected (0.510667ms)
+✔ shared consumers fetch once and refresh five minutes after completion (1.621583ms)
+✔ an expired hidden tab refreshes immediately when it becomes visible (0.662917ms)
+✔ a still-fresh visibility event keeps the cache and the remaining expiry (0.573541ms)
+✔ network failures clear data and retry after thirty seconds (0.556875ms)
+✔ partial and unavailable payloads retry after thirty seconds (0.883583ms)
+✔ manual retry bypasses a fresh cache and deduplicates while pending (0.3995ms)
+✔ unmount during an in-flight request leaves no refresh timer or browser listener (0.365667ms)
+✔ a failed refresh removes previously available metrics (0.379375ms)
+ℹ tests 20
+ℹ suites 0
+ℹ pass 20
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 374.442375

@@ -385,11 +385,10 @@ describe("getLeaderboard", () => {
 });
 
 describe("getBasketLeaderboard", () => {
-  // Unique to the current-snapshot lateral in the baskets-leaderboard SQL
-  // (baseline laterals select nav only) — no other route's fake matches it.
-  const BASKET_LB_MATCH = "SELECT nav, ts FROM nav_snapshots";
+  // Matches the static basket-ranking query, independently of its laterals.
+  const BASKET_LB_MATCH = "baseline_share_price";
 
-  it("maps windowed NAV ROI to returnPct and preserves the payload shape", async () => {
+  it("maps share-price ROI to returnPct and preserves total NAV context", async () => {
     const db = fakeDb([
       {
         match: BASKET_LB_MATCH,

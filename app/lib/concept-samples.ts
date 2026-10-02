@@ -31,28 +31,28 @@ export const CONCEPT_CREATORS: ConceptCreator[] = [
     handle: "maya.builds",
     displayName: "Maya Chen",
     avatarUrl: conceptAvatar("maya-builds"),
-    bio: "Long-term themes, clear weights, and a thesis you can explain in one sentence.",
+    bio: "I follow the platforms and chips behind everyday tech.",
   },
   {
     id: "concept-creator-jordan",
     handle: "jordan.lee",
     displayName: "Jordan Lee",
     avatarUrl: conceptAvatar("jordan-lee"),
-    bio: "Broad market ideas with room for a small, deliberate growth tilt.",
+    bio: "I start with the market, then add a few favorites.",
   },
   {
     id: "concept-creator-riley",
     handle: "riley.parks",
     displayName: "Riley Parks",
     avatarUrl: conceptAvatar("riley-parks"),
-    bio: "I turn a point of view into a basket that is easy to inspect and share.",
+    bio: "Cars, chips and how we get around.",
   },
   {
     id: "concept-creator-alex",
     handle: "alex.morgan",
     displayName: "Alex Morgan",
     avatarUrl: conceptAvatar("alex-morgan"),
-    bio: "Quality businesses first. Every allocation has a reason to be there.",
+    bio: "I like the brands and services we use on repeat.",
   },
 ];
 
@@ -89,9 +89,9 @@ function sample(
 export const CONCEPT_BASKETS: ConceptBasketSample[] = [
   sample(
     "concept-basket-mega-cap-tech",
-    "Mega-Cap Tech",
-    "MCT",
-    "A concentrated view of the platforms and chipmakers shaping modern technology.",
+    "Terminally Online",
+    "ONLINE",
+    "Platforms, chips and the world on your screen.",
     "concept-creator-maya",
     [
       { symbol: "NVDA", name: "NVIDIA", weightBps: 2200 },
@@ -105,9 +105,9 @@ export const CONCEPT_BASKETS: ConceptBasketSample[] = [
   ),
   sample(
     "concept-basket-index-core",
-    "Index Core",
-    "CORE",
-    "A broad-market starting point with a measured tilt toward durable, large businesses.",
+    "Touch Grass",
+    "GRASS",
+    "An index at the core, with a few extra picks.",
     "concept-creator-jordan",
     [
       { symbol: "SPY", name: "S&P 500", weightBps: 4000 },
@@ -121,9 +121,9 @@ export const CONCEPT_BASKETS: ConceptBasketSample[] = [
   ),
   sample(
     "concept-basket-motion",
-    "Motion",
-    "MOVE",
-    "A thesis on the companies building the next generation of mobility and automation.",
+    "No Hands",
+    "AUTO",
+    "Cars, chips and the platforms that move them.",
     "concept-creator-riley",
     [
       { symbol: "TSLA", name: "Tesla", weightBps: 2200 },
@@ -137,9 +137,9 @@ export const CONCEPT_BASKETS: ConceptBasketSample[] = [
   ),
   sample(
     "concept-basket-quality-compounders",
-    "Quality Compounders",
-    "QUAL",
-    "Established businesses with strong brands, repeat customers, and room to keep investing.",
+    "Daily Ritual",
+    "DAILY",
+    "Brands and services people come back to.",
     "concept-creator-alex",
     [
       { symbol: "MSFT", name: "Microsoft", weightBps: 1800 },
@@ -152,7 +152,98 @@ export const CONCEPT_BASKETS: ConceptBasketSample[] = [
       { symbol: "ADBE", name: "Adobe", weightBps: 800 },
     ],
   ),
+  sample(
+    "concept-basket-chip-happens",
+    "Chip Happens",
+    "CHIPS",
+    "Chipmakers behind everyday tech and AI.",
+    "concept-creator-maya",
+    [
+      { symbol: "NVDA", name: "NVIDIA", weightBps: 3000 },
+      { symbol: "AMD", name: "AMD", weightBps: 2500 },
+      { symbol: "AVGO", name: "Broadcom", weightBps: 2000 },
+      { symbol: "TSM", name: "Taiwan Semiconductor", weightBps: 2500 },
+    ],
+  ),
+  sample(
+    "concept-basket-after-hours",
+    "After Hours",
+    "LATE",
+    "Streaming, scrolling and shopping after work.",
+    "concept-creator-maya",
+    [
+      { symbol: "NFLX", name: "Netflix", weightBps: 3500 },
+      { symbol: "META", name: "Meta", weightBps: 2500 },
+      { symbol: "AMZN", name: "Amazon", weightBps: 2500 },
+      { symbol: "GOOGL", name: "Alphabet", weightBps: 1500 },
+    ],
+  ),
+  sample(
+    "concept-basket-payday",
+    "Payday",
+    "PAYDAY",
+    "Cards, banks and the crypto economy.",
+    "concept-creator-jordan",
+    [
+      { symbol: "V", name: "Visa", weightBps: 4000 },
+      { symbol: "JPM", name: "JPMorgan Chase", weightBps: 3500 },
+      { symbol: "COIN", name: "Coinbase", weightBps: 2500 },
+    ],
+  ),
+  sample(
+    "concept-basket-offline-mode",
+    "Offline Mode",
+    "OFFLINE",
+    "Food, drinks and everyday essentials.",
+    "concept-creator-alex",
+    [
+      { symbol: "KO", name: "Coca-Cola", weightBps: 4000 },
+      { symbol: "MCD", name: "McDonald’s", weightBps: 3500 },
+      { symbol: "WMT", name: "Walmart", weightBps: 2500 },
+    ],
+  ),
+  sample(
+    "concept-basket-power-hungry",
+    "Power Hungry",
+    "POWER",
+    "Chips and cloud tools behind the AI rush.",
+    "concept-creator-maya",
+    [
+      { symbol: "NVDA", name: "NVIDIA", weightBps: 3000 },
+      { symbol: "AVGO", name: "Broadcom", weightBps: 3000 },
+      { symbol: "TSM", name: "Taiwan Semiconductor", weightBps: 2500 },
+      { symbol: "ORCL", name: "Oracle", weightBps: 1500 },
+    ],
+  ),
+  sample(
+    "concept-basket-main-character",
+    "Main Character",
+    "MAIN",
+    "Cars, chips, data and the crypto economy.",
+    "concept-creator-riley",
+    [
+      { symbol: "TSLA", name: "Tesla", weightBps: 3000 },
+      { symbol: "NVDA", name: "NVIDIA", weightBps: 2500 },
+      { symbol: "PLTR", name: "Palantir", weightBps: 2500 },
+      { symbol: "COIN", name: "Coinbase", weightBps: 2000 },
+    ],
+  ),
 ];
+
+export const FEATURED_BASKETS = CONCEPT_BASKETS.slice(0, 4);
+
+export const BASKET_STORY_COVERS: Record<string, string> = {
+  "concept-basket-mega-cap-tech": "/images/baskets/terminally-online.png",
+  "concept-basket-index-core": "/images/baskets/touch-grass.png",
+  "concept-basket-motion": "/images/baskets/no-hands.png",
+  "concept-basket-quality-compounders": "/images/baskets/daily-ritual.png",
+  "concept-basket-chip-happens": "/images/baskets/chip-happens.png",
+  "concept-basket-after-hours": "/images/baskets/after-hours.png",
+  "concept-basket-payday": "/images/baskets/payday.png",
+  "concept-basket-offline-mode": "/images/baskets/offline-mode.png",
+  "concept-basket-power-hungry": "/images/baskets/power-hungry.png",
+  "concept-basket-main-character": "/images/baskets/main-character.png",
+};
 
 /** Static example copy. No transaction claims, performance figures or timestamps. */
 export const CONCEPT_ACTIVITY: ConceptActivity[] = [
@@ -161,40 +252,40 @@ export const CONCEPT_ACTIVITY: ConceptActivity[] = [
     creatorId: "concept-creator-maya",
     basketId: "concept-basket-mega-cap-tech",
     kind: "shared",
-    title: "A technology basket with the thesis up front",
-    body: "Maya’s concept puts chipmakers and platform businesses in one easy-to-review mix.",
+    title: "Terminally Online",
+    body: "The platforms I use, plus the chips that keep them running.",
   },
   {
     id: "concept-activity-jordan-thesis",
     creatorId: "concept-creator-jordan",
     basketId: "concept-basket-index-core",
     kind: "thesis",
-    title: "Start broad, then make the tilt visible",
-    body: "Jordan keeps a broad index at the center and names each company behind the additional tilt.",
+    title: "Touch Grass",
+    body: "SPY is the core. A few tech and financial names fill out the mix.",
   },
   {
     id: "concept-activity-riley-share",
     creatorId: "concept-creator-riley",
     basketId: "concept-basket-motion",
     kind: "shared",
-    title: "Mobility is bigger than one automaker",
-    body: "Riley’s concept connects vehicle makers, software platforms, and the tools behind automation.",
+    title: "No Hands",
+    body: "Tesla and Uber, plus the chips and platforms around them.",
   },
   {
     id: "concept-activity-alex-thesis",
     creatorId: "concept-creator-alex",
     basketId: "concept-basket-quality-compounders",
     kind: "thesis",
-    title: "A quality lens built from familiar businesses",
-    body: "Alex looks for brands and customer relationships that can support steady reinvestment.",
+    title: "Daily Ritual",
+    body: "Food, payments and work tools. Businesses with a place in everyday life.",
   },
   {
     id: "concept-activity-maya-thesis",
     creatorId: "concept-creator-maya",
     basketId: "concept-basket-mega-cap-tech",
     kind: "thesis",
-    title: "Why include both chips and platforms?",
-    body: "The idea pairs the infrastructure layer with the products and services people use every day.",
+    title: "Screens need silicon",
+    body: "The apps get the attention. The chips do the work.",
   },
 ];
 

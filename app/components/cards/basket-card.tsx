@@ -139,14 +139,14 @@ export function BasketCard({
             unavailable ? "text-muted-foreground" : "text-foreground",
           )}
         >
-          {price !== null ? formatUsd(price) : "—"}
+          {formatUsd(price)}
         </span>
         {!unavailable && return24h !== null ? (
           <ChangeValue changePct={return24h} className="text-sm" />
         ) : null}
       </span>
-      <span className="mt-0.5 text-xs text-muted-foreground">
-        AUM {aum !== null ? formatUsd(aum, { maximumFractionDigits: 0 }) : "—"}
+      <span className="mt-0.5 font-mono text-xs tabular-nums text-muted-foreground">
+        AUM {formatUsd(aum, { maximumFractionDigits: 0 })}
       </span>
 
       {/* Bottom zone: the 30d/vs-SPY footer (when any figure exists) and a

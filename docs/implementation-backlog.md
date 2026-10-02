@@ -1,5 +1,7 @@
 # Basalt implementation backlog
 
+> **UI update, 2026-10-02:** The discovery landing, Feed/Managers refresh, copy cleanup, and Colosseum research are recorded in [session updates](session-updates-2026-10-02.md). `/create/onchain` redirects to `/create`; prior transaction-wizard acceptance notes describe retained implementation, not current route availability. This pass does not close protocol, provenance, legal, or deployment gates.
+
 > Canonical operational work queue. Mark an item complete only when code, tests, documentation, and evidence are finished.
 
 Statuses: `[ ]` open, `[~]` in progress, `[x]` complete, `[!]` blocked.
@@ -115,6 +117,7 @@ Completion evidence (repository-local, 2026-09-19; deployment-independent):
 
 Partial completion evidence (repository-local, 2026-09-19):
 - `docs/upgrade-governance-policy.md` fixes the production target at an autonomous, hardware-wallet-backed 2-of-3 vault with independent Protocol Maintainer, Security and Incident Lead, and Operations and Release Lead roles. It defines one 48-hour on-chain delay for normal and emergency upgrades, plus announcement and incident evidence; there is no unilateral bypass.
+- `docs/governance-ceremony-runbook.md` defines the exact authorization record, vault/config-address separation, read-only preflight, full delayed rehearsal, direct bootstrap transfers, two-step whitelist claim, abort conditions, post-state verification, and publication package. It authorizes no chain mutation without the exact approved public keys and addresses.
 - All three BPF upgrade authorities and the separate `WhitelistConfig.authority` target the governance vault. Basket parameters remain immutable and redemption remains permissionless, oracle-free, backend-independent, whitelist-independent, and unpausable.
 - Manifest v2 can represent unknown, single-key, multisig, and immutable authority models, verification source, threshold, signer count, time lock, rehearsal, and per-program authority evidence without converting operator declarations into RPC proof.
 - A finalized read-only devnet RPC audit on 2026-09-19 confirms that all three BPF upgrade authorities and `WhitelistConfig.authority` remain the same single wallet, with no pending whitelist successor. The app, agent guide, agent markdown route, and release documentation disclose this current single-key boundary. The audit does not prove source-to-ELF identity, multisig threshold, or a time lock.
@@ -345,6 +348,8 @@ Remaining: versioned draft persistence and an explicit wrong-network check remai
 
 ### BAS-027 — Terminology cleanup
 
+2026-10-02 progress: landing and the main sharing/discovery surfaces use shorter English without em dashes, remove repeated preview/concept notices, and explain xStocks and future fees directly. Navigation uses Managers while internal creator identifiers remain. Final issuer/risk copy and a whole-product prohibited-wording review remain open.
+
 - [ ] Decide the header `ETFs` label.
 - [ ] Scan prohibited wording.
 - [ ] Finalize issuer, fee, and risk copy.
@@ -439,3 +444,15 @@ Completion evidence (YYYY-MM-DD):
 - Screenshots or transaction signatures:
 - Remaining limitations:
 ~~~
+
+
+## UI re-audit follow-up, 2026-10-02
+
+See [the discovery audit](design-home-discovery-2026-10-02.md). Performance is intentionally absent from illustrative discovery cards. Existing total-NAV change calculations in `backend/src/api/server.ts` and `backend/src/api/social.ts` can be distorted by deposits/redemptions; the devnet UI labels total NAV as “NAV / share”. `priceCompare.ts` synthesizes xStock chart candles with random jitter. These findings remain open. Before adding returns to discovery, use a cash-flow-neutral verified share-price record or an explicitly labeled underlying-price reference with complete constituent coverage, common dates and source/as-of metadata. Do not reuse the synthetic xStock curve.
+
+
+## Public discovery audit update, 2026-10-02
+
+Completed locally: real-close sample-model prices/7D, ten-basket weekly leaderboard, share-price-based indexed returns, complete/fresh baselines, snapshot/units corrections, raw-share trade values, consistent SPY window selection, null-safe UI, mobile Create actions, invalid-copy recovery and keyboard step focus. Evidence: [product audit](product-performance-audit-2026-10-02.md), [indexed return/schema notes](indexed-basket-return-integrity.md).
+
+Still open: production quote-provider contract/monitoring, persisted price evidence, full accessibility testing, lightweight sample-profile bundle, and the existing investing/xStocks/governance release gates. This update does not close those protocol or deployment items.

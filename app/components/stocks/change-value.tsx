@@ -1,4 +1,5 @@
 import { cn } from "@/lib/utils";
+import { formatPercent } from "@/lib/format";
 
 /**
  * 24h change value with direction coloring.
@@ -13,21 +14,21 @@ export const CHANGE_UP_CLASS = "text-[hsl(var(--status-positive))]";
 export const CHANGE_DOWN_CLASS = "text-[hsl(var(--destructive))]";
 
 export function changeColorClass(changePct: number | null): string {
-  if (changePct === null) return "text-muted-foreground";
-  return changePct >= 0 ? CHANGE_UP_CLASS : CHANGE_DOWN_CLASS;
+  if (changePct === null || !Number.isFinite(changePct) || changePct === 0) return "text-muted-foreground";
+  return changePct > 0 ? CHANGE_UP_CLASS : CHANGE_DOWN_CLASS;
 }
 
 export function ChangeValue({
   changePct,
   className,
 }: {
-  /** Percent change; null renders an em dash in muted gray. */
+  /** Percent change; unavailable values render a muted placeholder. */
   changePct: number | null;
   className?: string;
 }) {
   return (
     <span className={cn("font-mono text-xs tabular-nums", changeColorClass(changePct), className)}>
-      {changePct !== null ? `${changePct >= 0 ? "+" : ""}${changePct.toFixed(2)}%` : "—"}
+      {formatPercent(changePct, { signed: true })}
     </span>
   );
 }

@@ -5,9 +5,9 @@ import LeaderboardClient from "./leaderboard-client";
 export const metadata: Metadata = {
   // absolute: the root layout appends "· Basalt" via its title template — a
   // plain string here would render "Leaderboard — Basalt · Basalt".
-  title: { absolute: "Basalt | Creators & ideas" },
+  title: { absolute: "Basalt | Leaderboard" },
   description:
-    "Discover sample basket ideas and the people behind them, with indexed Devnet rankings kept separate.",
+    "Ten sample stock baskets, ranked by seven-day model return.",
 };
 
 export default async function LeaderboardPage({

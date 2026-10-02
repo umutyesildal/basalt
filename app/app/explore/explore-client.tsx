@@ -101,6 +101,20 @@ function num(v: Numeric): number | null {
   return Number.isFinite(n) ? n : null;
 }
 
+/** The list API preserves fractional return ratios: 0.04 displays as 4%. */
+function returnPercent(v: Numeric): number | null {
+  const ratio = num(v);
+  const percent = ratio === null ? null : ratio * 100;
+  return percent !== null && Number.isFinite(percent) ? percent : null;
+}
+
+/** V0 shares have six decimals; API share_price is USD per raw share unit. */
+function sharePriceUsd(v: Numeric): number | null {
+  const rawUnitPrice = num(v);
+  const price = rawUnitPrice === null ? null : rawUnitPrice * 1_000_000;
+  return price !== null && Number.isFinite(price) ? price : null;
+}
+
 function asOfOf(b: BasketRow): string | null {
   return b.asOf ?? b.nav_as_of ?? b.refreshed_at ?? null;
 }
@@ -241,6 +255,15 @@ function pillClasses(active: boolean) {
 /** Basket return minus SPY return over the same window; null when either leg is missing. */
 function compareOf(basketReturn: number | null, benchValue: number | null): number | null {
   return basketReturn !== null && benchValue != null ? basketReturn - benchValue : null;
+}
+
+/** Sort and cards use one benchmark window; missing matching history stays unavailable. */
+function comparisonOf(basket: BasketRow, bench: Bench | null): BasketCardCompare | null {
+  if (!bench) return null;
+  const window = bench.d24 !== null ? "24h" : "30d";
+  const basketReturn = returnPercent(window === "24h" ? basket.return_24h : basket.return_30d);
+  const value = compareOf(basketReturn, window === "24h" ? bench.d24 : bench.d30);
+  return value === null ? null : { label: `vs SPY ${window}`, value, window };
 }
 
 export default function ExploreClient() {
@@ -423,24 +446,14 @@ export default function ExploreClient() {
       );
     });
 
-    const delta30 = (b: BasketRow): number | null => {
-      const r = num(b.return_30d);
-      return r !== null && bench?.d30 != null ? r - bench.d30 : null;
-    };
-    const delta24 = (b: BasketRow): number | null => {
-      const r = num(b.return_24h);
-      return r !== null && bench?.d24 != null ? r - bench.d24 : null;
-    };
-    const bestDelta = (b: BasketRow): number | null => delta30(b) ?? delta24(b);
-
     rows = [...rows].sort((a, b) => {
       switch (sortKey) {
         case "return_24h":
-          return (num(b.return_24h) ?? -Infinity) - (num(a.return_24h) ?? -Infinity);
+          return (returnPercent(b.return_24h) ?? -Infinity) - (returnPercent(a.return_24h) ?? -Infinity);
         case "return_30d":
-          return (num(b.return_30d) ?? -Infinity) - (num(a.return_30d) ?? -Infinity);
+          return (returnPercent(b.return_30d) ?? -Infinity) - (returnPercent(a.return_30d) ?? -Infinity);
         case "vs_spy":
-          return (bestDelta(b) ?? -Infinity) - (bestDelta(a) ?? -Infinity);
+          return (comparisonOf(b, bench)?.value ?? -Infinity) - (comparisonOf(a, bench)?.value ?? -Infinity);
         case "popular":
         default:
           // Most popular: holders first, AUM as tiebreaker.
@@ -460,7 +473,7 @@ export default function ExploreClient() {
       <div className="space-y-1.5">
         <h1 className="font-display text-3xl font-semibold">Stock baskets</h1>
         <p className="max-w-2xl text-sm leading-6 text-muted-foreground">
-          Explore an idea or build a basket around your own point of view.
+          Find a stock mix you like.
         </p>
       </div>
 
@@ -472,7 +485,7 @@ export default function ExploreClient() {
             Onchain baskets
           </h2>
           <p className="max-w-2xl text-sm leading-6 text-muted-foreground">
-            Baskets deployed on {CLUSTER}. Sample ideas above are available even when this list is empty.
+            Deployed on {CLUSTER}.
           </p>
         </div>
 
@@ -515,7 +528,7 @@ export default function ExploreClient() {
         <EmptyState
           chip="NO ONCHAIN BASKETS"
           title="No onchain baskets available"
-          description="You can still explore the curated concept baskets above or start creating your own idea."
+          description="Explore the basket ideas above or build your own."
           action={
             <Button render={<Link href="/create" />} size="sm">
               Create a basket
@@ -596,23 +609,9 @@ export default function ExploreClient() {
           ) : (
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
               {visible.map((b, index) => {
-                const change = num(b.return_24h);
-                const r30 = num(b.return_30d);
-                // Same comparison windows as before: 24h when both legs exist,
-                // else the 30d window — never a fabricated delta.
-                const compare: BasketCardCompare | null = showVs24
-                  ? {
-                      label: "vs SPY",
-                      value: compareOf(change, bench?.d24 ?? null),
-                      window: "24h",
-                    }
-                  : bench
-                    ? {
-                        label: "vs SPY 30d",
-                        value: compareOf(r30, bench.d30),
-                        window: "30d",
-                      }
-                    : null;
+                const change = returnPercent(b.return_24h);
+                const r30 = returnPercent(b.return_30d);
+                const compare = comparisonOf(b, bench);
                 const info = cardInfoByPubkey.get(b.pubkey);
                 // Weight strip slices (percent); null weights drop out — the
                 // bar needs a positive weight per block to be honest.
@@ -638,7 +637,7 @@ export default function ExploreClient() {
                       context={info?.category ?? null}
                       tickers={info?.tickers ?? []}
                       weights={weightSlices && weightSlices.length > 0 ? weightSlices : undefined}
-                      price={num(b.share_price)}
+                      price={sharePriceUsd(b.share_price)}
                       aum={num(b.nav)}
                       devnetPreview={DEVNET_PREVIEW}
                       return24h={change}

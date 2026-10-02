@@ -1,5 +1,13 @@
 # Basalt Implementation Plan
 
+> **2026-10-02 performance update:** Model prices, seven-day returns and a ten-basket leaderboard now connect the public discovery flow. The broader audit also fixes indexed return calculations and Create usability. Read [the current audit and evidence](docs/product-performance-audit-2026-10-02.md). This is local uncommitted work; investing availability is unchanged.
+
+## 2026-10-02: discovery revision completed
+
+The latest owner feedback supersedes the three-chapter layout. The landing now uses a calm hero, four named basket cards, a short community/xStocks explanation, three future-investment steps, optional fee details, and a final create CTA. Native vertical scrolling replaces the earlier three full-screen demos. Feed pairs short viewpoints with visual basket cards; Managers pairs people with their baskets. Public `/create/onchain` currently redirects to `/create`. The earlier Colosseum installation and approved sign-in remain recorded; this revision does not reinstall or reauthenticate it.
+
+See the [complete update record](docs/session-updates-2026-10-02.md), [final landing design](docs/design-home-discovery-2026-10-02.md), and [research report](docs/colosseum-comparison-2026-10-02.md). The following plans are historical or remaining release work; they do not replace current UI decisions or assert that investment and fee revenue are live. Existing protocol and release backlog items remain open according to their own evidence.
+
 ## 2026-09-22 — Product, UX, and launch video correction plan
 
 ### 2026-09-23 owner decision on creating a basket

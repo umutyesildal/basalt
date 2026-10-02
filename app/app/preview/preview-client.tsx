@@ -4,6 +4,9 @@ import Link from "next/link";
 import { ArrowLeft, ArrowUpRight, Check, Copy, Share2 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 
+import { BasketMetrics, ModelPerformanceNote } from "@/components/basket/basket-performance";
+import { BasketCover } from "@/components/basket/basket-story-card";
+import { CONCEPT_BASKETS } from "@/lib/concept-samples";
 import { PieCenter } from "@/components/charts/pie-center";
 import { PieChart } from "@/components/charts/pie-chart";
 import { PieSlice } from "@/components/charts/pie-slice";
@@ -17,6 +20,7 @@ import { tickerColor } from "@/lib/ticker-color";
 import { cn } from "@/lib/utils";
 
 export default function ConceptPreviewClient({ basket }: { basket: ConceptBasket | null }) {
+  const sample = basket ? CONCEPT_BASKETS.find((entry) => entry.name === basket.name && entry.assets.length === basket.assets.length && entry.assets.every((asset) => basket.assets.some((candidate) => candidate.symbol === asset.symbol && candidate.weightBps === asset.weightBps))) : undefined;
   const [shareUrl, setShareUrl] = useState("");
   const [shareStatus, setShareStatus] = useState("");
   const [showFullLink, setShowFullLink] = useState(false);
@@ -59,12 +63,9 @@ export default function ConceptPreviewClient({ basket }: { basket: ConceptBasket
         </Link>
         <Card>
           <CardHeader className="space-y-3">
-            <span className="w-fit rounded-md border border-border px-2 py-1 font-mono text-[11px] uppercase tracking-[0.16em] text-muted-foreground">
-              Preview unavailable
-            </span>
-            <CardTitle className="font-display text-3xl">This link needs a fresh basket preview</CardTitle>
+            <CardTitle className="font-display text-3xl">This basket link no longer works</CardTitle>
             <CardDescription className="max-w-prose text-sm leading-6">
-              The basket details are missing, incomplete, or no longer supported. Start a new preview and share its link again.
+              Create a new basket link to try again.
             </CardDescription>
           </CardHeader>
           <CardContent className="flex flex-col gap-3 sm:flex-row">
@@ -79,7 +80,7 @@ export default function ConceptPreviewClient({ basket }: { basket: ConceptBasket
   return (
     <div className="mx-auto max-w-5xl space-y-8 pb-8">
       <div className="flex flex-col gap-6 border-b border-border pb-6 md:flex-row md:items-end md:justify-between">
-        <div className="min-w-0 space-y-3">
+        <div className="min-w-0 flex-1 space-y-3">
           <Link
             href="/explore"
             className="inline-flex min-h-10 items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
@@ -87,16 +88,20 @@ export default function ConceptPreviewClient({ basket }: { basket: ConceptBasket
             <ArrowLeft aria-hidden="true" className="size-4" />
             Explore
           </Link>
-          <div>
-            <span className="inline-flex rounded-md border border-primary/30 bg-primary/10 px-2 py-1 font-mono text-[11px] font-medium uppercase tracking-[0.16em] text-foreground">
-              Concept preview
-            </span>
-            <h1 className="mt-3 break-words font-display text-3xl font-semibold tracking-tight sm:text-4xl">
-              {basket.name}
-            </h1>
-            {basket.thesis ? (
-              <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">{basket.thesis}</p>
-            ) : null}
+          <div className="flex min-w-0 items-start gap-4">
+            {sample && (
+              <div className="size-16 shrink-0 overflow-hidden rounded-lg sm:size-20 [&>.basket-story-cover]:h-full [&>.basket-story-cover]:aspect-square">
+                <BasketCover basket={sample} />
+              </div>
+            )}
+            <div className="min-w-0 flex-1">
+              <h1 className="break-words font-display text-3xl font-semibold tracking-tight sm:text-4xl">
+                {basket.name}
+              </h1>
+              {basket.thesis ? (
+                <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">{basket.thesis}</p>
+              ) : null}
+            </div>
           </div>
         </div>
         <Link href={conceptCopyHref(basket)} className={cn(buttonVariants(), "basalt-cta min-h-10 gap-2 self-start md:self-auto")}>
@@ -105,11 +110,12 @@ export default function ConceptPreviewClient({ basket }: { basket: ConceptBasket
         </Link>
       </div>
 
+      {sample && <div className="space-y-2"><div className="max-w-xs"><BasketMetrics basketId={sample.id} /></div><ModelPerformanceNote /></div>}
+
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1.3fr)_minmax(18rem,0.7fr)]">
         <Card className="basalt-arrive self-start">
           <CardHeader>
-            <CardDescription>Composition</CardDescription>
-            <CardTitle className="font-display text-xl">A clear view of the mix</CardTitle>
+            <CardTitle className="font-display text-xl">Stock mix</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="grid items-center gap-5 md:grid-cols-[220px_minmax(0,1fr)]">
@@ -158,14 +164,13 @@ export default function ConceptPreviewClient({ basket }: { basket: ConceptBasket
           <Card className="basalt-arrive basalt-arrive-later">
             <CardHeader>
               <CardDescription>Example amount</CardDescription>
-              <CardTitle className="font-display text-3xl tabular-nums">{formatUsd(basket.amountUsd)}</CardTitle>
-              <CardDescription>Illustrative allocation across the assets below.</CardDescription>
+              <CardTitle className="font-mono text-3xl tabular-nums">{formatUsd(basket.amountUsd)}</CardTitle>
             </CardHeader>
             <CardContent className="border-t border-border pt-4">
               <dl className="grid gap-3 text-sm">
-                <FeeRow label="Entry" value={basket.fees.entryBps} description="Applied when shares are created." />
-                <FeeRow label="Exit" value={basket.fees.exitBps} description="Applied when shares are redeemed." />
-                <FeeRow label="Management" value={basket.fees.managementBps} description="Annual rate, accrued over time." annual />
+                <FeeRow label="Management fee" value={basket.fees.managementBps} annual />
+                <FeeRow label="Entry fee" value={basket.fees.entryBps} />
+                <FeeRow label="Exit fee" value={basket.fees.exitBps} />
               </dl>
             </CardContent>
           </Card>
@@ -174,9 +179,8 @@ export default function ConceptPreviewClient({ basket }: { basket: ConceptBasket
             <CardHeader className="space-y-1.5">
               <div className="flex items-center gap-2">
                 <Share2 aria-hidden="true" className="size-4 text-muted-foreground" />
-                <CardTitle className="text-base">Share this idea</CardTitle>
+                <CardTitle className="text-base">Share basket</CardTitle>
               </div>
-              <CardDescription>Send your mix to anyone.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">
               <Button onClick={copyShareLink} disabled={!shareUrl} className="min-h-10 w-full gap-2">
@@ -198,30 +202,35 @@ export default function ConceptPreviewClient({ basket }: { basket: ConceptBasket
                 />
               </>}
               <p aria-live="polite" className="min-h-5 text-xs leading-5 text-muted-foreground">
-                {shareStatus || "Anyone with the link can open this basket."}
+                {shareStatus}
               </p>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="space-y-1.5">
+              <CardTitle className="text-base">Create onchain</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Button type="button" disabled className="min-h-10 w-full">Coming soon</Button>
             </CardContent>
           </Card>
         </div>
       </div>
 
-      <p className="border-t border-border pt-5 text-sm leading-6 text-muted-foreground">
-        This is a planning preview. It does not buy assets or deploy an onchain basket.
-      </p>
     </div>
   );
 }
 
-function FeeRow({ label, value, description, annual = false }: { label: string; value: number; description: string; annual?: boolean }) {
+function FeeRow({ label, value, annual = false }: { label: string; value: number; annual?: boolean }) {
   return (
     <div className="flex items-start justify-between gap-4">
       <div>
         <dt className="font-medium text-foreground">{label}</dt>
-        <dd className="mt-0.5 text-xs leading-5 text-muted-foreground">{description}</dd>
       </div>
-      <span className="shrink-0 font-mono tabular-nums text-foreground">
+      <dd className="shrink-0 font-mono tabular-nums text-foreground">
         {formatBpsAsPercent(value)}{annual ? "/yr" : ""}
-      </span>
+      </dd>
     </div>
   );
 }

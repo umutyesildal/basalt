@@ -170,8 +170,8 @@ export interface BasketLeaderboardEntry {
   /** Ticker chip; null hides the chip (basket renders by name only). */
   symbol: string | null;
   /** Window return in percent — ranked DESC server-side. */
-  returnPct: number;
-  /** Current NAV per share — BigInt-safe string, parsed at display time. */
+  returnPct: number | null;
+  /** Total basket NAV in USD, serialized as a decimal string. */
   nav: string;
   /** Basket AUM — BigInt-safe string. */
   aum: string;

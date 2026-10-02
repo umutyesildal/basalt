@@ -1,5 +1,7 @@
 # Basalt — karşılaştırma ve konumlandırma araştırması
 
+> **2 Ekim güncellemesi:** Bu tarihli araştırma korunmuştur. Resmî Colosseum Copilot kurulumu ve yeni karşılaştırma [2 Ekim raporunda](colosseum-comparison-2026-10-02.md), uygulanan UI kararları [oturum kaydında](session-updates-2026-10-02.md) yer alır. Aşağıdaki eski landing uygulaması güncel keşif odaklı tasarımın yerine geçmez.
+
 Tarih: 2026-09-26. Kapsam: Stocklana anlatımı ve ana sayfa; yatırım tavsiyesi, güvenlik denetimi veya rakiplerin zincir üstü işlemlerinin doğrulanması değildir.
 
 ## Sonuç

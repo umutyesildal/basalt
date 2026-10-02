@@ -293,10 +293,8 @@ const BarInner = memo(function BarInner({
           if (stacked && stackOffsets) {
             const offset = stackOffsets.get(i)?.get(dataKey) ?? 0;
             x = scale(offset) ?? 0;
-            barW = valuePos - x;
-            // Apply stack gap for horizontal: shift right and reduce width
-            const gapOffset = seriesIndex * stackGap;
-            x += gapOffset;
+            barW = (scale(offset + value) ?? 0) - x;
+            // Leave internal gaps without shifting the stack beyond its endpoint.
             if (!isLastSeries && stackGap > 0) {
               barW = Math.max(0, barW - stackGap);
             }

@@ -615,18 +615,18 @@ describe("server — GET routes (fake PgLike)", () => {
     const payload = out.payload as { data: Array<Record<string, unknown>>; count: number; source: string };
     expect(payload.source).toBe("onchain-indexed");
     expect(payload.data[0].source).toBe("onchain-indexed");
-    expect(payload.data[0].asOf).toBe("2026-09-01T11:59:00Z");
+    expect(payload.data[0].asOf).toBe("2026-09-01T11:59:00.000Z");
     expect(payload.data[0].nav).toBe("155000"); // decimal string — integer-safe
     expect(payload.data[0].holders).toBe(3);
     const call = db.calls[0];
     expect(call.sql).toContain("FROM basket_rankings");
-    expect(call.sql).toContain("ORDER BY r.nav DESC");
+    expect(call.sql).toContain("ORDER BY cur.nav DESC");
   });
 
   it("GET /baskets?sort=return_24h orders by the 24h window; unknown sort ⇒ 400 INVALID_SORT", async () => {
     const db = fakeDb();
     await listBaskets(db, { sort: "return_24h" });
-    expect(db.calls[0].sql).toContain("h24.nav");
+    expect(db.calls[0].sql).toContain("h24.share_price");
 
     const bad = await listBaskets(fakeDb(), { sort: "nonsense" });
     expect(bad.status).toBe(400);
@@ -707,11 +707,12 @@ describe("server — GET routes (fake PgLike)", () => {
     const db = fakeDb([
       { match: "FROM baskets WHERE pubkey", rows: [{ 1: 1 }] },
       { match: "SELECT", rows: [{
-        latest_nav: "120", latest_ts: "2026-09-01T12:00:00Z",
-        b24: "100", b24_ts: "2026-08-31T12:00:00Z",
-        b7d: "80", b7d_ts: "2026-08-25T12:00:00Z",
-        b30d: null, b30d_ts: null, b90d: null, b90d_ts: null,
-        b_inception: "60", b_inception_ts: "2026-01-01T00:00:00Z",
+        latest_nav: "120", latest_supply: "1000000", latest_share_price: "0.00012",
+        latest_ts: new Date("2026-09-01T12:00:00Z"), evaluated_at: new Date("2026-09-01T12:01:00Z"),
+        b24_nav: "100", b24_supply: "1000000", b24_share_price: "0.0001", b24_ts: "2026-08-31T12:00:00Z",
+        b7d_nav: "80", b7d_supply: "1000000", b7d_share_price: "0.00008", b7d_ts: "2026-08-25T12:00:00Z",
+        b30d_nav: null, b30d_ts: null, b90d_nav: null, b90d_ts: null,
+        b_inception_nav: "60", b_inception_supply: "1000000", b_inception_share_price: "0.00006", b_inception_ts: "2026-01-01T00:00:00Z",
       }] },
     ]);
     const out = await basketPerformance(db, BASKET);

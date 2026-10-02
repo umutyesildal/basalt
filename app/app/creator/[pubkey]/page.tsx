@@ -28,7 +28,9 @@ import { EquityCurveChart } from "@/components/social/equity-curve-chart";
 import { isDemoMode } from "@/lib/demo-mode";
 import { getDemoCreator } from "@/lib/demo-creator";
 import { DemoCreatorProfile } from "@/components/social/demo-creator-profile";
-import { CONCEPT_BASKETS, conceptBasketHref, getConceptCreator, type ConceptCreator } from "@/lib/concept-samples";
+import { BasketStoryCard } from "@/components/basket/basket-story-card";
+import { ModelPerformanceNote } from "@/components/basket/basket-performance";
+import { CONCEPT_BASKETS, getConceptCreator, type ConceptCreator } from "@/lib/concept-samples";
 
 interface CreatorStats {
   basket_count?: string | number | null;
@@ -96,37 +98,29 @@ function ConceptCreatorProfile({ creator }: { creator: ConceptCreator }) {
     <div className="mx-auto max-w-4xl space-y-9 pb-16">
       <Link href="/feed" className="text-sm text-muted-foreground underline-offset-4 hover:text-foreground hover:underline">← Back to ideas</Link>
       <section className="rounded-xl border border-border bg-card p-6 sm:p-8">
-        <span className="font-mono text-xs uppercase tracking-[0.16em] text-primary">Concept preview</span>
-        <div className="mt-5 flex items-start gap-4">
+        <div className="flex items-start gap-4">
           <div className="flex size-16 shrink-0 items-center justify-center overflow-hidden rounded-full border border-border bg-muted font-display text-xl font-semibold">
             {creator.avatarUrl ? <img src={creator.avatarUrl} alt="" className="size-full object-cover" /> : creator.displayName.slice(0, 1)}
           </div>
           <div>
             <h1 className="font-display text-3xl font-semibold">{creator.displayName}</h1>
-            <p className="mt-0.5 font-mono text-xs text-muted-foreground">@{creator.handle}</p>
+            <p className="mt-0.5 font-mono text-xs text-muted-foreground">@{creator.handle} · Sample profile</p>
             <p className="mt-4 max-w-xl text-sm leading-6 text-muted-foreground">{creator.bio}</p>
           </div>
         </div>
-        <p className="mt-5 text-xs leading-5 text-muted-foreground">Sample profile. These concept previews are not deployed baskets and generate no onchain activity or creator fees.</p>
       </section>
       <section aria-labelledby="concept-creator-baskets">
         <h2 id="concept-creator-baskets" className="font-display text-2xl font-semibold">Basket ideas</h2>
         <div className="mt-4 grid gap-3 sm:grid-cols-2">
-          {baskets.map((basket) => (
-            <Link key={basket.id} href={conceptBasketHref(basket)} className="group rounded-xl border border-border bg-card p-5 transition-colors hover:border-primary/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50">
-              <span className="font-mono text-xs uppercase tracking-wide text-muted-foreground">{basket.symbol} · {basket.assets.length} assets</span>
-              <h3 className="mt-3 font-display text-lg font-semibold group-hover:text-primary">{basket.name}</h3>
-              <p className="mt-2 text-sm leading-6 text-muted-foreground">{basket.thesis}</p>
-              <span className="mt-5 inline-block text-sm font-medium">View preview →</span>
-            </Link>
-          ))}
+          {baskets.map((basket) => <BasketStoryCard key={basket.id} basket={basket} showOwner={false} />)}
         </div>
+        <ModelPerformanceNote className="mt-4" />
       </section>
       <Link
         href="/create"
         className="inline-flex min-h-11 items-center rounded-lg bg-primary px-4 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
       >
-        Build your own basket idea
+        Build a basket
       </Link>
     </div>
   );
@@ -340,7 +334,7 @@ function CreatorPageReal() {
           : prev,
       );
       setFollowError(
-        err instanceof Error ? err.message : "The follow request failed — try again.",
+        err instanceof Error ? err.message : "Could not follow this person. Try again.",
       );
     } finally {
       setFollowBusy(false);
@@ -368,7 +362,7 @@ function CreatorPageReal() {
             </div>
           ) : profileStatus === "error" ? (
             <p className="text-sm text-muted-foreground">
-              Social profile unavailable — {profileError}
+              Profile unavailable: {profileError}
             </p>
           ) : (
             <div className="flex flex-wrap items-start justify-between gap-4">
@@ -488,7 +482,7 @@ function CreatorPageReal() {
             </span>
           </h1>
           <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
-            Baskets deployed by this wallet — stats stay empty until the indexer tracks activity.
+            Baskets built by this wallet.
           </p>
         </header>
       )}
@@ -497,7 +491,7 @@ function CreatorPageReal() {
         <ErrorState
           className="mt-8"
           title="Invalid creator address"
-          message={`"${truncateAddress(pubkeyParam || "—", 8, 6)}" is not a valid Solana public key. Creator profiles are keyed by the wallet that signed create_basket.`}
+          message={`"${truncateAddress(pubkeyParam || "N/A", 8, 6)}" is not a valid Solana public key. Creator profiles are keyed by the wallet that signed create_basket.`}
         />
       )}
 
@@ -588,7 +582,7 @@ function CreatorPageReal() {
                         {formatTokenAmount(item.shares, { maximumFractionDigits: 2 })} shares
                       </span>
                       <span className="ml-auto font-mono text-xs tabular-nums text-foreground">
-                        {item.usdValue !== null ? formatUsd(item.usdValue) : "—"}
+                        {item.usdValue !== null ? formatUsd(item.usdValue) : "N/A"}
                       </span>
                       <span className="w-20 shrink-0 text-right font-mono text-[11px] tabular-nums text-muted-foreground">
                         {formatRelativeTime(item.ts)}
@@ -637,14 +631,14 @@ function CreatorPageReal() {
           <EmptyState
             className="mt-4"
             chip="NOT INDEXED"
-            title="Creator stats appear once the indexer tracks activity"
-            description={`No baskets or fee history are indexed for ${truncateAddress(pubkeyParam, 6, 6)} yet — deploy a basket with this wallet and the profile fills in from BasketCreated events.`}
+            title="No basket activity yet"
+            description="This wallet has no indexed baskets or fee history."
             action={
               <Link
                 href="/create"
                 className="rounded-lg border border-border bg-background px-2.5 py-1.5 text-sm hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
               >
-                Open the create wizard
+                Build a basket
               </Link>
             }
           />
@@ -658,10 +652,6 @@ function CreatorPageReal() {
             message={error ?? "The creators API did not respond."}
             onRetry={() => setReloadToken((token) => token + 1)}
           />
-          <p className="mt-3 text-xs leading-5 text-muted-foreground">
-            Until the indexer responds, no creator figures are shown — an empty
-            state is preferred over a wrong number.
-          </p>
         </div>
       )}
 
@@ -683,8 +673,8 @@ function CreatorPageReal() {
                 <CardTitle className="font-mono text-2xl tabular-nums">
                   {creatorStats ? (() => {
                     const aum = numeric(creatorStats.total_aum);
-                    return aum === null ? "—" : formatUsd(aum);
-                  })() : "—"}
+                    return aum === null ? "N/A" : formatUsd(aum);
+                  })() : "N/A"}
                 </CardTitle>
               </CardHeader>
             </Card>
@@ -694,8 +684,8 @@ function CreatorPageReal() {
                 <CardTitle className="font-mono text-2xl tabular-nums">
                   {creatorStats ? (() => {
                     const fees = numeric(creatorStats.total_fees_earned);
-                    return fees === null ? "—" : formatUsd(fees);
-                  })() : "—"}
+                    return fees === null ? "N/A" : formatUsd(fees);
+                  })() : "N/A"}
                 </CardTitle>
               </CardHeader>
             </Card>
@@ -752,19 +742,19 @@ function CreatorPageReal() {
                           unavailable ? "text-muted-foreground" : "text-foreground"
                         }`}
                       >
-                        {nav === null ? "—" : formatUsd(nav)}
+                        {nav === null ? "N/A" : formatUsd(nav)}
                       </span>
                       <span className="mt-0.5 text-xs text-muted-foreground">
                         {row.share_mint
                           ? `Share mint ${truncateAddress(row.share_mint, 4, 4)}`
-                          : "Share mint —"}
+                          : "Share mint unavailable"}
                       </span>
                       <div className="mt-auto border-t border-border/60 pt-3">
                         <span className="font-mono text-[11px] uppercase tracking-wide text-muted-foreground">
                           Created
                         </span>
                         <span className="block font-mono text-xs tabular-nums">
-                          {row.created_at ? formatAsOf(row.created_at) : "—"}
+                          {row.created_at ? formatAsOf(row.created_at) : "N/A"}
                         </span>
                       </div>
                     </Link>

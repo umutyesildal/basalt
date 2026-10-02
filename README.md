@@ -1,10 +1,18 @@
 # Basalt — xStocks Strategy Baskets on Solana
 
+> **Latest owner correction, 2026-10-02:** The calm centered hero is restored: **“Find a stock basket / you believe in.”** The **Different takes.** gallery follows immediately. **Good stock picks can come from anyone.**, conditional future management fees and the annual-cap/90/10 fee-share visual now sit in the lower `#build` section. This supersedes the fee-first hero below. All ten unique covers and the Create catalog, weight-removal, focus and grouped-input improvements remain. Read [the final hero restoration](docs/home-hero-restoration-2026-10-02.md) and [cover refresh](docs/basket-cover-refresh-2026-10-02.md) for the final passing build, responsive browser checks and durable screenshots. The earlier 38-test run was not rerun; public investing and fee revenue remain unavailable.
+
+> **Previous fee-first interpretation, superseded for hero/layout, 2026-10-02:** At that revision, the opening said **“Create stock baskets. Earn management fees.”** and places the annual-rate cap and 90/10 fee-share visual beside the hero copy. The adjacent status states that investing and fees remain in development. The lower “Good stock picks” invitation stays compact. Public Create exposes all 41 catalog assets with an end-aware clickable fade, supports weight-row removal with exact positive 10,000-bps redistribution and a two-stock progression guard, and preserves focus and grouped amount editing. USD/count/percentage displays use shared comma grouping. Read [the current home/Create audit](docs/home-create-feedback-2026-10-02.md) for the five requests, precise fee meaning, final 38-test/build evidence and browser checks. That hero placement is superseded by the final owner correction above; the Create improvements and their dated verification remain valid.
+
+> **2026-10-02 performance update:** Model prices, seven-day returns and a ten-basket leaderboard now connect the public discovery flow. The broader audit also fixes indexed return calculations and Create usability. Read [the current audit and evidence](docs/product-performance-audit-2026-10-02.md). This is local uncommitted work; investing availability is unchanged.
+
+> **Previous visual-creation handoff, superseded by the owner-feedback audit, 2026-10-02:** The landing uses a calm hero and four named basket cards, followed by one visual creator invitation: stock picks become a basket others can back, with a compact future management-fee split and a direct create CTA. The repeated text steps and final CTA block are removed; xStocks and fee details remain in native disclosures. Native vertical scrolling replaces the earlier three full-screen demos. Feed pairs short viewpoints with visual basket cards; Managers pairs people with their baskets. Start with the [current design audit](docs/design-home-visual-creation-2026-10-02.md) and [session record](docs/session-updates-2026-10-02.md). Public Create shares basket ideas; investing remains in development. The visual follow-up passed production build, TypeScript and responsive browser checks; exact fee-chart geometry and screenshots are recorded in the audit. This is a working-tree UI update, not a new chain deployment.
+
 > **2026-09-25 handoff:** Managed Basket V2 code is merged into canonical `main` (`3eeb7be`). `/managed` is a simulated public explainer; `/managed/lab` is a loopback localnet transaction prototype. V2 is not publicly deployed, and creator fees, live xStocks, and extension-wallet signing remain unverified or unimplemented. Start with `AGENTS.md` and `handoff.md`, then `docs/managed-basket-v2-prototype-status.md` and `docs/managed-basket-v2-wallet-lab.md`. Earlier test counts below are dated V0/concept snapshots.
 
-> "Build your basket idea. Share your thesis." — a wallet-free concept preview with an optional devnet basket path.
+> "Build your basket idea. Share your thesis." A wallet-free basket builder and discovery experience.
 > V0 spec: `docs/basalt-v0-spec.md` (normative product constraints). Documentation map: `docs/README.md`. Current backlog: `docs/implementation-backlog.md`. Brand: `brand.md`.
-> Current state: **The public first-run flow is a wallet-free concept preview.** It creates a validated, shareable URL; it does not buy tokens, deploy a basket, or earn creator fees. The separate `/create/onchain` path retains the working devnet beta with project mock mints, real create/mint/redeem transactions, and indexing. It is not mainnet-ready. The dated 2026-09-19 verification snapshot recorded 208 Rust + 596 backend tests and a 21-route build; the 2026-09-24 concept release built 23 routes and passed its app typecheck and concept integrity test. A 2026-09-19 RPC audit confirms that program upgrade and whitelist authorities remain one wallet; no multisig or time lock is active. Full snapshot: `docs/current-state-2026-09-18.md`; governance evidence: `docs/devnet-governance-audit-2026-09-19.md`.
+> Current state: **The public first-run flow is a wallet-free concept preview.** It creates a validated, shareable URL; it does not buy tokens, deploy a basket, or earn creator fees. The `/create/onchain` path currently redirects to `/create`. Retained V0 transaction code and the indexed basket routes have historical devnet proof with project mock mints; the redirect is not a public creation or investment flow. It is not mainnet-ready. The dated 2026-09-19 verification snapshot recorded 208 Rust + 596 backend tests and a 21-route build; the 2026-09-24 concept release built 23 routes and passed its app typecheck and concept integrity test. A 2026-09-19 RPC audit confirms that program upgrade and whitelist authorities remain one wallet; no multisig or time lock is active. Full snapshot: `docs/current-state-2026-09-18.md`; governance evidence: `docs/devnet-governance-audit-2026-09-19.md`.
 > **Won: Superteam Germany "Road to Colosseum" Ideathon (2026-09-14)** — top-10 of 38 submissions, $3k USDG pool. Submission: `docs/ideathon-submission-2026-09.md`. Live demo: https://basalt-coral.vercel.app/explore. Current implementation order: `docs/implementation-backlog.md`.
 
 ## Verification commands
@@ -15,7 +23,7 @@ npm --prefix backend install                # once (backend has its own lockfile
 npm --prefix backend run build              # strict NodeNext, no suppressions
 npm --prefix backend test -- --run          # 596 TS tests in the 2026-09-19 working tree
 (cd app && npx tsc --noEmit --incremental false)   # 0 errors
-npm --prefix app run build                  # 23 routes in the 2026-09-24 concept release
+npm --prefix app run build                  # passed on 2026-10-02; 25 static pages generated
 (cd app && npx tsx --test tests/*.test.ts) # concept preview and sample integrity
 ```
 
@@ -60,24 +68,24 @@ See `docs/basalt-v0-spec.md` §2-6 for account model, instruction args, mint/red
 
 Indexer listens for `BasketCreated/Minted/Redeemed/FeeAccrued` (Borsh decoders), upserts `baskets`/`events`/`creator_stats`, syncs `vault_holdings` (raw + multiplier + scaled), NAV engine snapshots `nav_snapshots` + refreshes `basket_rankings`, fee crank emits **unsigned** `accrue_management_fee` transactions. REST `/api/v1` implements the spec §8-9 routes with honest empty/error states (`NOT_INDEXED`, `DB_UNAVAILABLE`, `QUOTE_UNAVAILABLE`) — no fabricated production-looking data. Zap quotes proxy Jupiter; provenance + sequential/non-atomic warning included.
 
-## Frontend (concept-first experience plus devnet transactions)
+## Frontend (current public experience and retained transaction surfaces)
 
-Owner-approved information architecture (2026-09-03):
+Current route map, 2026-10-02:
 
-- `/` Home — basket idea, shareable thesis, and an explicit path to optional onchain creation
+- `/` Home: centered “Find a stock basket / you believe in.” hero, immediately followed by the named basket gallery, then the lower `#build` creator invitation and future annual-cap/fee-share visual. Native scrolling, one product-status sentence and native issuer/fee details remain.
 - `/stocks` — provider-grouped grid of tokenized stocks (live price, 24h, sparkline) → `/stock/[ticker]` detail (one clean chart, ethereal series colors, fitY-domain)
 - `/etfs` — pure tokenized-ETF listing (grid, sort, clickable cards)
 - `/explore` — always-available concept basket gallery above a separate indexed devnet basket section
 - `/create` — wallet-free basket idea builder: pick a template or assets, set the mix, choose an illustrative $10/$100/$1,000 amount, optionally set fees, and create a shareable preview
 - `/preview?d=...` — versioned, validated URL with only basket name, optional thesis, symbols, weights, example amount, and fees; no account or backend storage
-- `/create/onchain` — separate transaction wizard with wallet, balances, legal review, and unchanged onchain validation before deployment
+- `/create/onchain`: redirects to `/create`; the earlier transaction wizard remains retained source, not an exposed route.
 - `/basket/[pubkey]` + buy/redeem — transaction surfaces; `/portfolio`, `/creator/[pubkey]`, `/legal`
 
 Design language: the **BASALT identity** — hexagonal-column mark, dark industrial canvas, disciplined electric-yellow accent, Chakra Petch display, and Geist Mono labels — with chart-only data colors. No site footer; `LEGAL_REVIEW_REQUIRED` remains in the create disclosure and `/legal` until counsel replaces placeholder copy. Charts use locally vendored Bklit-derived sources; Brush is a documented local adapter.
 
-## Social trading (V0.2 — fomo.family-inspired, not a clone)
+## Basket sharing and social
 
-The concept gallery, feed, and creator discovery share one labeled sample dataset. Sample basket ideas and activity are illustrative, with no invented onchain trades, balances, or returns. Separate onchain sections use indexed devnet activity; wallet-authenticated following and social writes remain available there. Creator fee shares can accrue only for a separately deployed basket when protocol fees are generated (V0 split: 90% creator, 10% treasury). Concept previews and follows generate no fees. The underlying social backend also supports:
+The basket gallery, feed, and manager discovery share one sample dataset. Repeated concept badges were removed by owner decision; accurate actions and the landing status distinguish sharing from investment. Sample basket ideas and activity are illustrative, with no invented onchain trades, balances, or returns. Separate onchain sections use indexed devnet activity; wallet-authenticated following and social writes remain available there. Creator fee shares can accrue only for a separately deployed basket when protocol fees are generated (V0 split: 90% creator, 10% treasury). Concept previews and follows generate no fees. The underlying social backend also supports:
 
 - **Thesis posts** — trade-linked reasoning attached to a basket; the on-chain outcome stays attached for free
 - **Social profiles** — optional handle/avatar/bio over a wallet pubkey (`profiles`), follow/unfollow, per-wallet equity curve (`user_value_snapshots`, ~5m snapshotter)
