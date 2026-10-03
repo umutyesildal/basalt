@@ -1,6 +1,6 @@
 # One-action devnet baskets, 2026-10-03
 
-Status: implementation and local verification complete; publication in progress. The owner tested the published devnet mint successfully and requested a simpler UI pipeline.
+Status: published and verified on the existing public Basalt website. The owner tested the published devnet mint successfully and requested a simpler UI pipeline.
 
 ## Product change
 
@@ -35,4 +35,19 @@ Unchanged creation drafts reuse a nonce keyed by owner, chain, programs, metadat
 
 ## Publication
 
-Source commit, deployment identity, final test results and screenshots will be recorded after verification. The VPS/backend/program deployment is unchanged by this frontend revision.
+- Product source: [`b5039f5063c6d183dc388112b6f3f487ceb51c3e`](https://github.com/umutyesildal/basalt/commit/b5039f5063c6d183dc388112b6f3f487ceb51c3e), pushed to `main`.
+- All four GitHub CI jobs passed: Rust, Node workspace, dependency audit and secret scan. [CI](https://github.com/umutyesildal/basalt/actions/runs/37123403331).
+- Existing Vercel project: `basalt`, `prj_qqKHz0ys2JAFFrWOVaYfPdljZFAR`, scope `yesildaladams-projects`.
+- Deployment: `dpl_3SGmPVkrWxRmAk7a1wbwqBtqUepf`, Ready, then promoted after staged HTTP/client-bundle checks.
+- Immutable URL: `https://basalt-2nwhnthfo-yesildaladams-projects.vercel.app`.
+- Public route: [Create on devnet](https://basalt-coral.vercel.app/create/onchain). `/devnet` serves the same workspace.
+- Live HTTP returned 200 and referenced the same checked UI and setup chunks. Browser hydration read the actual public basket and showed the single Add/Withdraw action with a real onchain share estimate. Disconnected controls stayed disabled. [Live screenshot](assets/devnet-single-pipeline-2026-10-03/live.png), [deployment checks](assets/devnet-single-pipeline-2026-10-03/deployment-checks.json).
+- The prior Vercel deployment `dpl_FNSeEzmNUyoK5DesY3jfcwnXmJAj` remains the rollback target. Existing public API/devnet settings are preserved. The VPS/backend/program deployment is unchanged by this frontend revision.
+
+The first staged marker assertion only examined workspace chunks; the lookup-table marker belongs to the shared transaction chunk. Inspecting the actual linked shared chunk verified it before promotion. This was a check-scope error, not a missing implementation.
+
+### Accidental temporary project and blocked cleanup
+
+The first deployment preparation failed to copy an old temporary project-link file, but the following command was still launched. Vercel created `basalt-pipeline-publish-20261003` (`prj_zsjpfBrBE2TRtAJ3cBYiRPzSaOK1`) rather than using the existing project. It has one failed deployment (`dpl_9LoBvzESrXqrvm2sPG1GuUGXpyUZ`), zero environment variables and no Git link, verified through read-only Vercel metadata. The linked existing Basalt project and production promotion above are the actual release.
+
+Automatic approval review rejected permanent deletion of that accidental project because explicit human authorization for destructive cleanup was absent. An exact cleanup approval question is pending; deletion has not occurred. No workaround is used. The temporary project does not serve the live Basalt domain.

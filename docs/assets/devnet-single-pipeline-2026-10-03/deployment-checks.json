@@ -1,0 +1,14 @@
+{
+  "deployment": "dpl_3SGmPVkrWxRmAk7a1wbwqBtqUepf",
+  "sourceCommit": "b5039f5063c6d183dc388112b6f3f487ceb51c3e",
+  "checks": {
+    "Your basket, onchain.": true,
+    "Add to basket": true,
+    "Withdraw to wallet": true,
+    "Transaction sent": true,
+    "basalt:create-draft:v1:": true,
+    "verifiedSetupReceiptBundle": true,
+    "oldReviewButtonsAbsent": true
+  },
+  "passed": true
+}
