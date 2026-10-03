@@ -1,0 +1,52 @@
+{
+  "node": {
+    "passed": 77,
+    "failed": 0,
+    "altRecoveryCases": 24
+  },
+  "vitest": {
+    "passed": 44,
+    "failed": 0,
+    "pipelineCases": 15,
+    "draftCases": 15,
+    "amountCases": 5,
+    "signedBytesCases": 9
+  },
+  "typecheck": "passed",
+  "productionBuild": "passed",
+  "wireSize": {
+    "minConstituents": 2,
+    "maxConstituents": 10,
+    "maximumPacketBytes": 1232,
+    "passed": true
+  },
+  "responsiveWidths": [
+    375,
+    768,
+    1280
+  ],
+  "horizontalOverflow": false,
+  "newOwnerSignaturePerformed": false,
+  "sourceFiles": [
+    {
+      "path": "app/components/devnet/devnet-workspace.tsx",
+      "sha256": "c75ae10a05c356982fbe39edb55d59760ec13026d33f7f4646078330a6f10a0f"
+    },
+    {
+      "path": "app/components/devnet/pipeline-state.ts",
+      "sha256": "a17eec944f0b1d288c1dc39eb8efc833d3b12cd26718938319e42ed44f7a08e2"
+    },
+    {
+      "path": "app/components/devnet/create-draft.ts",
+      "sha256": "b545e3878ed0cbdbfb8b3cf14588a2e155803d3ef2095c4617a1d82c88996c06"
+    },
+    {
+      "path": "app/lib/transactions.ts",
+      "sha256": "eeee58ac635430c6b7639cdf6bec40ea91f6b05524cc6eac19e423ba54c3b77b"
+    },
+    {
+      "path": "app/tests/alt-setup-recovery.test.ts",
+      "sha256": "91f8252395e4d62000f012b9250e9f64bb1f54562f6d4f181762a3f3127df5a1"
+    }
+  ]
+}

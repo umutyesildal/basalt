@@ -1,0 +1,37 @@
+
+No-ALT boundary: n=4 compiles to 1283B (> 1232B) — the estimateCreateBasketTxSize calibration point and the reason createBasketNeedsAlt carries the explicit n >= 4 clause.
+Basalt wire-size proof (offline) — PACKET_LIMIT = 1232 bytes
+
+  n | no-ALT wire (exact) | v0+ALT exact | headroom | static keys | ALT lookups | gate
+----+---------------------+--------------+----------+-------------+-------------+------
+  2 |                935B |        935B (create) |      297B |          20 |           0 | v0 plain
+    |                         |        898B (mint)   |          | consumer plain |             |
+    |                         |        820B (redeem) |          |             |             |
+  3 |               1109B |       1109B (create) |      123B |          24 |           0 | v0 plain
+    |                         |       1046B (mint)   |          | consumer plain |             |
+    |                         |        927B (redeem) |          |             |             |
+  4 |               1283B |        542B (create) |      690B |           3 |           1 | v0+ALT
+    |                         |        391B (mint)   |          | consumer ALT on |             |
+    |                         |        355B (redeem) |          |             |             |
+  5 |  > packet (refused) |        592B (create) |      640B |           3 |           1 | v0+ALT
+    |                         |        415B (mint)   |          | consumer ALT on |             |
+    |                         |        369B (redeem) |          |             |             |
+  6 |  > packet (refused) |        642B (create) |      590B |           3 |           1 | v0+ALT
+    |                         |        439B (mint)   |          | consumer ALT on |             |
+    |                         |        383B (redeem) |          |             |             |
+  7 |  > packet (refused) |        692B (create) |      540B |           3 |           1 | v0+ALT
+    |                         |        464B (mint)   |          | consumer ALT on |             |
+    |                         |        397B (redeem) |          |             |             |
+  8 |  > packet (refused) |        742B (create) |      490B |           3 |           1 | v0+ALT
+    |                         |        488B (mint)   |          | consumer ALT on |             |
+    |                         |        411B (redeem) |          |             |             |
+  9 |  > packet (refused) |        792B (create) |      440B |           3 |           1 | v0+ALT
+    |                         |        512B (mint)   |          | consumer ALT on |             |
+    |                         |        425B (redeem) |          |             |             |
+ 10 |  > packet (refused) |        842B (create) |      390B |           3 |           1 | v0+ALT
+    |                         |        536B (mint)   |          | consumer ALT on |             |
+    |                         |        439B (redeem) |          |             |             |
+
+Compute-budget instructions: setComputeUnitLimit(500000) + setComputeUnitPrice (first two ixs on every path) — also covered: ComputeB… / system 11111111…
+
+PASS: create_basket + mint_in_kind + redeem_in_kind compile offline to v0 messages ≤ 1232B for n = 2..10 constituents; n ≥ 4 goes through one lookup table (static keys = payer + 2 invoked program ids).

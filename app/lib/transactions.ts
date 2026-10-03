@@ -51,7 +51,7 @@ import {
 // the browser bundle uses the same module instance instead of a global.
 import { Buffer } from "buffer";
 
-import { CREATE_BASKET_COMPUTE_UNITS, buildCreateBasketInstruction, deriveCreateBasketPdas, estimateCreateBasketTxSize, type CreateBasketArgs } from "@/lib/create-basket";
+import { CREATE_BASKET_COMPUTE_UNITS, buildCreateBasketInstruction, deriveCreateBasketPdas, estimateCreateBasketTxSize, sha256Hex, type CreateBasketArgs } from "@/lib/create-basket";
 import { withRetry, withRetryOnce } from "@/lib/rpc-retry";
 
 /**
@@ -757,24 +757,70 @@ export interface EnsureCreateBasketAltResult {
   approvals: number;
 }
 
-/**
- * Module-level (per browser tab) cache of wallet-owned lookup tables, keyed
- * "user:basket" (mint/redeem) or "creator:CREATE:<addresses hash>" (create
- * wizard) → the recent slot each table derives from. Survives client-side page
- * remounts, so pressing Retry after a mid-flow failure re-derives the SAME
- * table address; ensureAltCovering then reads the on-chain table, finds full
- * coverage, and skips create/extend entirely — no new wallet approvals. A
- * stale entry is harmless: coverage is always re-verified on-chain and only
- * genuinely missing addresses are ever extended.
- */
-const ALT_CACHE = new Map<string, number>();
+/** Public setup receipts only. Private keys and signed transaction bytes are never stored. */
+interface AltSetupReceipt {
+  recentSlot: number;
+  creation?: { signature: string; lastValidBlockHeight: number };
+  pending?: { signature: string; lastValidBlockHeight: number; expectedAddresses: string[]; confirmed?: true };
+}
+const ALT_CACHE = new Map<string, AltSetupReceipt>();
 
-function altCacheKey(kind: "mint-redeem", user: string, basket: string): string;
-function altCacheKey(kind: "create", creator: string, addresses: PublicKey[]): string;
-function altCacheKey(kind: string, a: string, b: string | PublicKey[]): string {
-  return kind === "mint-redeem"
-    ? `mint-redeem:${a}:${b}`
-    : `create:${a}:${(b as PublicKey[]).map((k) => k.toBase58()).join(",")}`;
+function validAltReceipt(value: unknown): value is AltSetupReceipt {
+  if (!value || typeof value !== "object") return false;
+  const receipt = value as AltSetupReceipt;
+  if (!Number.isSafeInteger(receipt.recentSlot) || receipt.recentSlot < 0) return false;
+  const validSubmission = (submission: { signature: string; lastValidBlockHeight: number }) => Boolean(submission &&
+    /^[1-9A-HJ-NP-Za-km-z]{64,88}$/.test(submission.signature) &&
+    Number.isSafeInteger(submission.lastValidBlockHeight) && submission.lastValidBlockHeight >= 0);
+  if (receipt.creation !== undefined && !validSubmission(receipt.creation)) return false;
+  if (receipt.pending === undefined) return true;
+  return validSubmission(receipt.pending) && Array.isArray(receipt.pending.expectedAddresses) &&
+    receipt.pending.expectedAddresses.length <= 256 && receipt.pending.expectedAddresses.every(address => {
+      try { return typeof address === "string" && new PublicKey(address).toBase58() === address; } catch { return false; }
+    }) && (receipt.pending.confirmed === undefined || receipt.pending.confirmed === true);
+}
+
+function readAltReceipt(cacheKey: string): AltSetupReceipt | undefined {
+  const inMemory = ALT_CACHE.get(cacheKey);
+  if (inMemory) return inMemory;
+  try {
+    if (typeof window === "undefined") return undefined;
+    const json = window.localStorage.getItem(cacheKey);
+    if (!json) return undefined;
+    const parsed: unknown = JSON.parse(json);
+    if (!validAltReceipt(parsed)) { window.localStorage.removeItem(cacheKey); return undefined; }
+    ALT_CACHE.set(cacheKey, parsed);
+    return parsed;
+  } catch { return undefined; }
+}
+
+function writeAltReceipt(cacheKey: string, receipt: AltSetupReceipt): void {
+  ALT_CACHE.set(cacheKey, receipt);
+  try { if (typeof window !== "undefined") window.localStorage.setItem(cacheKey, JSON.stringify(receipt)); }
+  catch { /* The current tab can still resume when browser storage is disabled. */ }
+}
+
+function removeAltReceipt(cacheKey: string): void {
+  ALT_CACHE.delete(cacheKey);
+  try { if (typeof window !== "undefined") window.localStorage.removeItem(cacheKey); }
+  catch { /* No browser storage is required to send a transaction. */ }
+}
+
+async function altCacheKey(connection: Connection, kind: "create" | "mint-redeem", authority: PublicKey, addresses: PublicKey[]): Promise<string> {
+  const genesis = await withRetry(() => connection.getGenesisHash(), { label: "lookup table: identify chain" });
+  const fingerprint = await sha256Hex([kind, genesis, PROGRAMS.whitelist, PROGRAMS.factory, PROGRAMS.basket,
+    authority, ...addresses].map(String).join(":"));
+  return `basalt:alt:v2:${fingerprint}`;
+}
+
+/** Cache contents are hints. An onchain table must still match its owner, authority and active state. */
+function validateWalletAlt(table: AddressLookupTableAccount, address: PublicKey, authority: PublicKey): void {
+  if (!table.key.equals(address) || !table.state.authority?.equals(authority) || !table.isActive() ||
+    !Number.isSafeInteger(table.state.lastExtendedSlot) || table.state.lastExtendedSlot < 0 ||
+    !Number.isInteger(table.state.lastExtendedSlotStartIndex) || table.state.lastExtendedSlotStartIndex < 0 ||
+    table.state.lastExtendedSlotStartIndex > table.state.addresses.length || table.state.addresses.length > 256) {
+    throw new Error("The saved wallet setup is invalid or inactive. Retry to prepare a new setup.");
+  }
 }
 
 /**
@@ -817,7 +863,7 @@ export async function ensureCreateBasketAlt(params: {
 }): Promise<EnsureCreateBasketAltResult> {
   const { connection, creator, args, sendTransaction, onAwaitingWallet } = params;
   const addresses = deriveCreateBasketAltAddresses(creator, args);
-  const cacheKey = altCacheKey("create", creator, addresses);
+  const cacheKey = await altCacheKey(connection, "create", new PublicKey(creator), addresses);
   return ensureAltCovering({
     connection,
     authority: new PublicKey(creator),
@@ -827,8 +873,8 @@ export async function ensureCreateBasketAlt(params: {
     onProgress: params.onProgress,
     recentSlot:
       params.recentSlot ??
-      ALT_CACHE.get(cacheKey),
-    onResolved: (resolved) => ALT_CACHE.set(cacheKey, resolved),
+      readAltReceipt(cacheKey)?.recentSlot,
+    cacheKey,
   });
 }
 
@@ -852,12 +898,12 @@ async function ensureAltCovering(params: {
   sendTransaction: WalletSendTransaction;
   onAwaitingWallet?: (awaiting: boolean) => void;
   recentSlot?: number;
-  /** Called with the derivation slot once the table is verified — cache me. */
-  onResolved?: (recentSlot: number) => void;
+  /** Chain-, program-, wallet- and exact-account-scoped public receipt key. */
+  cacheKey: string;
   /** Setup progress for the UI: "Setup {step}/{total}" — one event per wallet approval. */
   onProgress?: (step: number, total: number) => void;
 }): Promise<EnsureCreateBasketAltResult> {
-  const { connection, authority, addresses, sendTransaction, onAwaitingWallet } = params;
+  const { connection, authority, addresses, sendTransaction, onAwaitingWallet, cacheKey } = params;
   const recentSlot =
     params.recentSlot ??
     (await withRetry(() => connection.getSlot("finalized"), { label: "lookup table: fetch recent slot" }));
@@ -871,12 +917,50 @@ async function ensureAltCovering(params: {
     if (!uniqueWanted.some((w) => w.equals(a))) uniqueWanted.push(a);
   }
 
-  const readTableAddresses = async (): Promise<PublicKey[]> => {
+  const readTableAddresses = async (allowMissing = false): Promise<PublicKey[]> => {
     const table = await withRetry(
       () => connection.getAddressLookupTable(lookupTableAddress),
       { label: "lookup table: read-back" },
     );
-    return table.value ? [...table.value.state.addresses] : [];
+    if (!table.value) {
+      if (allowMissing) return [];
+      throw new Error("Your saved wallet setup is still becoming available. Retry in a moment to resume it.");
+    }
+    try { validateWalletAlt(table.value, lookupTableAddress, authority); }
+    catch (error) { removeAltReceipt(cacheKey); throw error; }
+    return [...table.value.state.addresses];
+  };
+
+  const reconcilePending = async (): Promise<void> => {
+    const saved = readAltReceipt(cacheKey);
+    if (saved?.recentSlot !== recentSlot || !saved.pending) return;
+    const pending = saved.pending;
+    if (!pending.confirmed) {
+      const statuses = await withRetry(() => connection.getSignatureStatuses([pending.signature], { searchTransactionHistory: true }),
+        { label: "lookup table: recover setup submission" });
+      const status = statuses.value[0];
+      if (status?.err) {
+        if (saved.creation?.signature === pending.signature) removeAltReceipt(cacheKey);
+        else writeAltReceipt(cacheKey, { recentSlot, creation: saved.creation });
+        throw new Error("The previous wallet setup transaction failed. Retry to resume the remaining setup.");
+      }
+      if (!status || (status.confirmationStatus !== "confirmed" && status.confirmationStatus !== "finalized")) {
+        if (!status) {
+          const height = await withRetry(() => connection.getBlockHeight("confirmed"), { label: "lookup table: recover setup expiry" });
+          if (height > pending.lastValidBlockHeight) {
+            if (saved.creation?.signature === pending.signature) removeAltReceipt(cacheKey);
+            else writeAltReceipt(cacheKey, { recentSlot, creation: saved.creation });
+            throw new Error("The previous wallet setup transaction expired. Retry to resume the remaining setup.");
+          }
+        }
+        throw new Error("Your previous wallet setup is still confirming. Retry in a moment to resume it.");
+      }
+    }
+    const have = await readTableAddresses();
+    if (!pending.expectedAddresses.every(address => have.some(key => key.toBase58() === address))) {
+      throw new Error("Your previous wallet setup is still becoming available. Retry in a moment; it will resume the same setup.");
+    }
+    writeAltReceipt(cacheKey, { recentSlot, creation: saved.creation });
   };
 
   // ---- decide the management instructions BEFORE signing anything ----
@@ -884,9 +968,37 @@ async function ensureAltCovering(params: {
   // the packet limit, so first-time-on-a-basket costs ONE approval for most
   // baskets (two at most) instead of three mysterious ones.
   let createIx: TransactionInstruction | null = null;
-  const needsCreate = !(
-    await withRetry(() => connection.getAccountInfo(lookupTableAddress), { label: "lookup table: existence read" })
-  );
+  const info = await withRetry(() => connection.getAccountInfo(lookupTableAddress), { label: "lookup table: existence read" });
+  if (info && (info.executable || !info.owner.equals(AddressLookupTableProgram.programId))) {
+    removeAltReceipt(cacheKey);
+    throw new Error("The saved wallet setup has an invalid account owner. Retry to prepare a new setup.");
+  }
+  await reconcilePending();
+  const saved = readAltReceipt(cacheKey);
+  const needsCreate = !info;
+  if (needsCreate && saved?.recentSlot === recentSlot) {
+    // A submitted create can land even when its confirmation response was lost.
+    // Never charge for another table until the previous submission is resolved.
+    if (saved.creation) {
+      const statuses = await withRetry(() => connection.getSignatureStatuses([saved.creation!.signature], { searchTransactionHistory: true }),
+        { label: "lookup table: recover submitted setup" });
+      const status = statuses.value[0];
+      if (status?.err) {
+        removeAltReceipt(cacheKey);
+        throw new Error("The previous wallet setup transaction failed. Retry to prepare it again.");
+      }
+      if (!status) {
+        const height = await withRetry(() => connection.getBlockHeight("confirmed"), { label: "lookup table: recover setup expiry" });
+        if (height > saved.creation.lastValidBlockHeight) {
+          removeAltReceipt(cacheKey);
+          throw new Error("The previous wallet setup transaction expired. Retry to prepare it again.");
+        }
+      }
+      throw new Error("Your previous wallet setup is still becoming available. Retry in a moment; it will resume the same setup.");
+    }
+    removeAltReceipt(cacheKey);
+    throw new Error("The saved wallet setup is unavailable. Retry to prepare a new setup.");
+  }
   if (needsCreate) {
     const [ix, derived] = AddressLookupTableProgram.createLookupTable({
       authority,
@@ -902,17 +1014,15 @@ async function ensureAltCovering(params: {
   }
 
   const haveBefore = createIx ? [] : await readTableAddresses();
+  if (!createIx) writeAltReceipt(cacheKey, { ...readAltReceipt(cacheKey), recentSlot });
   const missing = uniqueWanted.filter((a) => !haveBefore.some((h) => h.equals(a)));
   const extendIxs: TransactionInstruction[] = [];
+  const extensionCoverage = new Map<TransactionInstruction, PublicKey[]>();
   for (let i = 0; i < missing.length; i += 20) {
-    extendIxs.push(
-      AddressLookupTableProgram.extendLookupTable({
-        payer: authority,
-        authority,
-        lookupTable: lookupTableAddress,
-        addresses: missing.slice(i, i + 20),
-      }),
-    );
+    const addresses = missing.slice(i, i + 20);
+    const ix = AddressLookupTableProgram.extendLookupTable({ payer: authority, authority, lookupTable: lookupTableAddress, addresses });
+    extendIxs.push(ix);
+    extensionCoverage.set(ix, addresses);
   }
 
   // ---- pack [create, extends...] into the fewest packet-safe transactions ----
@@ -935,10 +1045,19 @@ async function ensureAltCovering(params: {
   }
 
   let step = 0;
+  const expectedCoverage = new Set(haveBefore.map(address => address.toBase58()));
   for (const group of groups) {
+    await reconcilePending();
+    for (const ix of group) for (const address of extensionCoverage.get(ix) ?? []) expectedCoverage.add(address.toBase58());
     step += 1;
     params.onProgress?.(step, groups.length);
-    await sendWithWallet(connection, sendTransaction, group, authority, onAwaitingWallet);
+    await sendWithWallet(connection, sendTransaction, group, authority, onAwaitingWallet, (submission) => {
+      // Persist after submission, before confirmation or the next extension.
+      const creation = createIx && group.includes(createIx) ? submission : readAltReceipt(cacheKey)?.creation;
+      writeAltReceipt(cacheKey, { recentSlot, creation, pending: { ...submission, expectedAddresses: [...expectedCoverage] } });
+    });
+    const receipt = readAltReceipt(cacheKey);
+    if (receipt?.pending) writeAltReceipt(cacheKey, { ...receipt, pending: { ...receipt.pending, confirmed: true } });
   }
 
   if (createIx) {
@@ -970,7 +1089,7 @@ async function ensureAltCovering(params: {
     // (no tight loop) while the cluster converges.
     let converged: PublicKey[] | null = null;
     for (let attempt = 0; attempt < 10; attempt++) {
-      const have = await readTableAddresses();
+      const have = await readTableAddresses(true);
       if (uniqueWanted.every((a) => have.some((h) => h.equals(a)))) {
         converged = have;
         break;
@@ -978,7 +1097,7 @@ async function ensureAltCovering(params: {
       await sleepMs(750 + Math.floor(Math.random() * 750));
     }
     if (!converged) {
-      const have = await readTableAddresses();
+      const have = await readTableAddresses(true);
       const stillMissing = uniqueWanted.filter((a) => !have.some((h) => h.equals(a)));
       throw new Error(
         `lookup table ${lookupTableAddress.toBase58()} is missing ${stillMissing.length} address(es) after extension (${stillMissing
@@ -988,7 +1107,8 @@ async function ensureAltCovering(params: {
       );
     }
   }
-  params.onResolved?.(recentSlot);
+  await reconcilePending();
+  writeAltReceipt(cacheKey, { ...readAltReceipt(cacheKey), recentSlot });
   return {
     lookupTableAddress,
     created: Boolean(createIx),
@@ -1146,7 +1266,7 @@ export async function ensureMintRedeemAlt(params: {
   recentSlot?: number;
 }): Promise<EnsureCreateBasketAltResult> {
   const { connection, keys, sendTransaction, onAwaitingWallet } = params;
-  const cacheKey = altCacheKey("mint-redeem", keys.user.toBase58(), keys.basket.toBase58());
+  const cacheKey = await altCacheKey(connection, "mint-redeem", keys.user, deriveMintRedeemAltAddresses(keys));
   const result = await ensureAltCovering({
     connection,
     authority: keys.user,
@@ -1154,12 +1274,11 @@ export async function ensureMintRedeemAlt(params: {
     sendTransaction,
     onAwaitingWallet,
     onProgress: params.onProgress,
-    // A cached slot re-derives the SAME table address from a previous session
-    // in this tab; ensureAltCovering re-verifies on-chain coverage and skips
-    // creation when the table already covers everything — so Retry after a
-    // mid-flow failure never re-asks approvals for an existing table.
-    recentSlot: params.recentSlot ?? ALT_CACHE.get(cacheKey),
-    onResolved: (slot) => ALT_CACHE.set(cacheKey, slot),
+    // A public receipt survives reloads when browser storage is available.
+    // Reuse always verifies onchain owner, authority, active state and coverage;
+    // interrupted setup resumes the same table rather than purchasing another.
+    recentSlot: params.recentSlot ?? readAltReceipt(cacheKey)?.recentSlot,
+    cacheKey,
   });
   return result;
 }
@@ -1293,6 +1412,7 @@ async function sendWithWallet(
   instructions: TransactionInstruction[],
   payer: PublicKey,
   onAwaitingWallet?: (awaiting: boolean) => void,
+  onSubmitted?: (receipt: { signature: string; lastValidBlockHeight: number }) => void,
 ): Promise<TransactionSignature> {
   // Confirmed blockhash — a finalized one is already ~32 slots old, which
   // starves the confirmation window on a throttled public RPC.
@@ -1311,6 +1431,7 @@ async function sendWithWallet(
     const signature = await withRetry(() => sendTransaction(transaction, connection), {
       label: "lookup table tx: send",
     });
+    onSubmitted?.({ signature, lastValidBlockHeight });
     const confirmation = await withRetry(
       () =>
         connection.confirmTransaction(

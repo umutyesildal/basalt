@@ -1,6 +1,6 @@
 # Brand — Basalt
 
-Basalt helps people create, explore and share stock-basket ideas. The calm centered opening names stock baskets directly and leads into the gallery; conditional future management fees belong in the lower creator section. Public investing and fee revenue remain unavailable. The wallet-free builder keeps both journeys easy to explore. Public onchain creation currently redirects back to that builder; retained transaction code and historical devnet evidence are documented separately.
+Basalt helps people create, explore and share stock-basket ideas. The calm centered opening names stock baskets directly and leads into the gallery; conditional future management fees belong in the lower creator section. Public investing and fee revenue remain unavailable. The wallet-free builder keeps both journeys easy to explore. Public onchain creation uses project mock tokens on Solana devnet. The wallet workspace presents one action at a time, with a single submit button and inline preparation, wallet approval and confirmation. [Current flow](docs/devnet-single-pipeline-2026-10-03.md).
 
 _Last updated 2026-10-03. The Basalt name and three-column mark supersede the historical FolioX, Roman, and Foundry identities. The electric-yellow system in `docs/design-cyberpunk-yellow-v1.md` supplies the color tokens; `docs/design-basalt-v1.md` defines the mark. Telemetry remains off._
 
