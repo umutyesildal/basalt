@@ -1,0 +1,5 @@
+# Public source checksum, independently recomputed from the named file and commit.
+# SHA-256 of programs/managed_basket/src/token.rs:
+# acf8837ecc252eebdc25d35d3a702d3227344eb70ad23b97f51700c6cf353abc
+# Ignore only this immutable commit/path/rule/line finding; all other findings remain active.
+e0e1edce2978ae8a717ef0b87d8683bddc296b19:docs/assets/xstocks-contract-compatibility-2026-10-03/evidence-manifest.json:generic-api-key:10
