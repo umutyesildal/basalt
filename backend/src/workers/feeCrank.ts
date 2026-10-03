@@ -369,7 +369,7 @@ export function createFeeCrankFromEnv(opts: {
   let rpc: BlockhashRpc | null = opts.rpc ?? null;
   const rpcUrl = env.RPC_URL;
   if (!rpc && rpcUrl) {
-    const conn = new Connection(rpcUrl);
+    const conn = new Connection(rpcUrl, { disableRetryOnRateLimit: true });
     rpc = {
       getLatestBlockhash: () => conn.getLatestBlockhash(),
     };

@@ -75,6 +75,7 @@ function positionsDb(
         const rows = opts.sharePrice ? [{ share_price: opts.sharePrice }] : [];
         return { rows, rowCount: rows.length };
       }
+      if (sql.includes("SELECT pubkey FROM baskets WHERE pubkey = $1")) return { rows: [{ pubkey: BASKET }], rowCount: 1 };
       if (sql.includes("FROM baskets WHERE pubkey")) {
         const rows = opts.creator && opts.treasury ? [{ creator: opts.creator, treasury: opts.treasury }] : [];
         return { rows, rowCount: rows.length };
@@ -377,7 +378,7 @@ describe("positions — listener wiring", () => {
   function fakeTx(logs: string[]): ParsedTransactionWithMeta {
     return {
       transaction: { message: { instructions: [] } },
-      meta: { logMessages: logs, innerInstructions: [], slot: 42 },
+      meta: { logMessages: [`Program ${pk(99)} invoke [1]`, ...logs, `Program ${pk(99)} success`], innerInstructions: [], slot: 42 },
     } as unknown as ParsedTransactionWithMeta;
   }
 

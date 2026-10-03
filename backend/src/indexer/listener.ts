@@ -7,7 +7,8 @@
  * `Program data:` logs via the sha256("event:<Name>") discriminator matcher in
  * ./events.ts, and upserts them into the `events` table — plus a full
  * `baskets` row when a BasketCreated event carries a decodable
- * `create_basket` instruction.
+ * `create_basket` instruction. Missing older creations are recovered from the
+ * authenticated immutable Basket account before downstream event inserts.
  *
  * SAFETY: this module is strictly read-only against RPC (AGENTS.md §2 #5).
  * It never signs, never holds keys, and never blocks on-chain flows: when
@@ -23,8 +24,7 @@ import { syncIndexedBaskets } from "./holdingsSync.js";
 import {
   decodeAnchorEvent,
   decodeCreateBasketIx,
-  decodeFactoryTreasury,
-  extractProgramDataLogs,
+  extractAttributedProgramDataLogs,
   matchAnchorEvent,
   type CreateBasketArgs,
   type DecodedFolioxEvent,
@@ -33,7 +33,8 @@ import {
 import { applyPositionEvent } from "./positions.js";
 import { syncPositionsFromChain, type JsonRpcInvoker, type PositionsSyncRpc } from "./positionsSync.js";
 import { syncWhitelistedMints, type WhitelistRpc } from "./whitelistSync.js";
-import { withRpcBackoff } from "../rpc/backoff.js";
+import { createPacer, rateLimitedWarn, withRpcBackoff, type Pacer } from "../rpc/backoff.js";
+import { BasketStateDecodeError, decodeBasketState, decodeFactoryTreasuryState } from "./basketState.js";
 
 /** Minimal structural slice of @solana/web3.js Connection used here. */
 export interface SolanaRpc {
@@ -73,6 +74,10 @@ export interface IndexerConfig {
   whitelistProgramId?: string;
   /** PROGRAM_BASKET — enables the periodic vault_holdings refresh pass. */
   basketProgramId?: string;
+  /** PROGRAM_FACTORY — authenticates creation logs and recovered Basket PDAs. */
+  factoryProgramId?: string;
+  /** Minimum spacing for signature/transaction/account reads (default 400ms). */
+  transactionSpacingMs?: number;
   /**
    * vault_holdings refresh cadence override (env HOLDINGS_SYNC_INTERVAL_MS on
    * the devnet profile; schema §7 default stays 30s). Lower request pressure
@@ -122,8 +127,9 @@ const POSITIONS_SYNC_INTERVAL_MS = 120_000;
  * that burst into a gentle stream, which is what public devnet 429s on).
  */
 const STATE_SYNC_SPACING_MS = 100;
-/** Failed signatures are retried this many polls before being dropped. */
-const MAX_PROCESS_ATTEMPTS = 5;
+/** Leave public-RPC headroom for the independent NAV and state workers. */
+const TRANSACTION_SPACING_MS = 400;
+type SignatureInfo = Awaited<ReturnType<SolanaRpc["getSignaturesForAddress"]>>[number];
 
 export const DEFAULT_INDEXER_CONFIG: IndexerConfig = {
   programIds: [],
@@ -133,6 +139,7 @@ export const DEFAULT_INDEXER_CONFIG: IndexerConfig = {
   holdingsSyncIntervalMs: HOLDINGS_SYNC_INTERVAL_MS,
   positionsSyncIntervalMs: POSITIONS_SYNC_INTERVAL_MS,
   stateSyncSpacingMs: STATE_SYNC_SPACING_MS,
+  transactionSpacingMs: TRANSACTION_SPACING_MS,
 };
 
 export interface EventRow {
@@ -278,6 +285,12 @@ export class EventIndexer {
   private readonly seen = new Set<string>();
   /** Per-signature processing attempts (failed sigs are retried, not dropped). */
   private readonly attempts = new Map<string, number>();
+  /** Failed reads remain retryable even after leaving the newest-signature page. */
+  private readonly pending = new Map<string, { programId: string; info: SignatureInfo }>();
+  private readonly knownBaskets = new Set<string>();
+  private readonly factoryTreasuries = new Map<string, string>();
+  private readonly attemptedThisPoll = new Set<string>();
+  private readonly rpcPacer: Pacer;
   private lastWhitelistSyncMs = 0;
   private lastHoldingsSyncMs = 0;
   private lastPositionsSyncMs = 0;
@@ -296,11 +309,15 @@ export class EventIndexer {
     private readonly rpc: SolanaRpc,
     private readonly cfg: IndexerConfig,
     private readonly db: PgLike | null = null,
-  ) {}
+  ) {
+    this.rpcPacer = createPacer(cfg.transactionSpacingMs ?? TRANSACTION_SPACING_MS, { sleep: cfg.backoffSleep });
+  }
 
   /** Mark a signature processed, bounding the in-memory cache. */
   private markSeen(sig: string): void {
     this.seen.add(sig);
+    this.pending.delete(sig);
+    this.attempts.delete(sig);
     if (this.seen.size > this.cfg.maxSeenCache) {
       const it = this.seen.values();
       for (let i = 0; i < this.cfg.maxSeenCache / 2; i++) {
@@ -319,6 +336,7 @@ export class EventIndexer {
    */
   async pollOnce(): Promise<PollResult[]> {
     const results: PollResult[] = [];
+    this.attemptedThisPoll.clear();
     for (const programId of this.cfg.programIds) {
       results.push(await this.pollProgram(programId));
     }
@@ -397,9 +415,9 @@ export class EventIndexer {
       // returns — it never re-fires the batch (no double-fire).
       sigInfos = await withRpcBackoff(
         () =>
-          this.rpc.getSignaturesForAddress(new PublicKey(programId), {
+          this.pacedRead(() => this.rpc.getSignaturesForAddress(new PublicKey(programId), {
             limit: this.cfg.signaturesPerPoll,
-          }),
+          })),
         { logKey: "indexer:getSignaturesForAddress", sleep: this.cfg.backoffSleep },
       );
     } catch (err) {
@@ -410,7 +428,10 @@ export class EventIndexer {
     // getSignaturesForAddress returns NEWEST-first; process OLDEST-first so a
     // fresh sync lands the BasketCreated tx (which upserts the baskets row)
     // before the Minted/Redeemed/FeeAccrued txs whose rows FK-reference it.
-    for (const sigInfo of [...sigInfos].reverse()) {
+    const pending = [...this.pending.values()]
+      .filter((entry) => entry.programId === programId).map((entry) => entry.info);
+    const candidates = new Map([...pending, ...sigInfos].map((info) => [info.signature, info]));
+    for (const sigInfo of [...candidates.values()].sort((a, b) => a.slot - b.slot)) {
       if (sigInfo.err) {
         // ERR GUARD (layer 1): a transaction that failed on-chain must never
         // contribute events — count and skip; the chain-truth positions sync
@@ -418,19 +439,29 @@ export class EventIndexer {
         this.failedTxSkips++;
         continue;
       }
-      if (this.seen.has(sigInfo.signature)) continue;
+      if (this.seen.has(sigInfo.signature) || this.attemptedThisPoll.has(sigInfo.signature)) continue;
+      this.attemptedThisPoll.add(sigInfo.signature);
+      if (!this.pending.has(sigInfo.signature)) this.pending.set(sigInfo.signature, { programId, info: sigInfo });
+      // The retry ledger is bounded independently of the successful-signature cache.
+      if (this.pending.size > this.cfg.maxSeenCache) {
+        const oldest = this.pending.keys().next().value;
+        if (oldest !== undefined) {
+          this.pending.delete(oldest);
+          this.attempts.delete(oldest);
+          rateLimitedWarn("indexer:retry-capacity", "[indexer] retry ledger capacity reached; oldest pending signature awaits future history backfill");
+        }
+      }
       signaturesSeen++;
       try {
         const tx = await withRpcBackoff(
           () =>
-            this.rpc.getParsedTransaction(sigInfo.signature, {
+            this.pacedRead(() => this.rpc.getParsedTransaction(sigInfo.signature, {
               maxSupportedTransactionVersion: 0,
-            }),
+            })),
           { logKey: "indexer:getParsedTransaction", sleep: this.cfg.backoffSleep },
         );
         if (!tx?.meta?.logMessages) {
-          this.markSeen(sigInfo.signature);
-          continue;
+          throw new Error("transaction or logs temporarily unavailable");
         }
         if (tx.meta.err) {
           // ERR GUARD (layer 2): the fetched transaction itself reports a
@@ -446,26 +477,26 @@ export class EventIndexer {
           this.markSeen(sigInfo.signature);
           continue;
         }
-        const programKey = new PublicKey(programId);
         const rows: EventRow[] = [];
         // Events decoded from THIS transaction only (for the positions sync).
         const txEvents: DecodedFolioxEvent[] = [];
         let basketCreated: Extract<DecodedFolioxEvent, { type: "BasketCreated" }> | null = null;
         let createArgs: CreateBasketArgs | null = null;
+        let creationProgramId: string | null = null;
 
-        for (const payload of extractProgramDataLogs(tx.meta.logMessages)) {
+        for (const { programId: emitter, payload } of extractAttributedProgramDataLogs(tx.meta.logMessages)) {
           const type = matchAnchorEvent(payload);
-          if (!type) continue;
+          if (!type || !this.isTrustedEmitter(emitter, type)) continue;
           const event = decodeAnchorEvent(type, payload);
           if (!event) continue;
-          events.push(event);
           txEvents.push(event);
           const tsSec = sigInfo.blockTime ?? (event.type === "BasketCreated" ? event.ts : Math.floor(Date.now() / 1000));
-          const data: Record<string, unknown> = { ...event, programId };
+          const data: Record<string, unknown> = { ...event, programId: emitter };
           if (event.type === "BasketCreated") {
             basketCreated = event;
+            creationProgramId = emitter;
             // Enrich from the create_basket instruction in the same tx.
-            createArgs = await this.decodeCreateBasketFromTx(tx, programId);
+            createArgs = await this.decodeCreateBasketFromTx(tx, emitter);
             if (createArgs) data.createBasket = createArgs;
           }
           rows.push({
@@ -489,18 +520,27 @@ export class EventIndexer {
           if (
             basketCreated &&
             createArgs &&
+            creationProgramId &&
             createArgs.constituents.length === basketCreated.numConstituents
           ) {
-            const factory = await this.resolveFactory(tx, programId);
+            const factory = await this.resolveFactory(tx, creationProgramId);
             if (factory) {
-              const treasury = await this.fetchTreasury(factory);
+              const treasury = await this.fetchTreasury(factory, creationProgramId);
               if (treasury) {
                 const upsert = buildBasketUpsert(basketCreated, factory, createArgs, treasury);
                 basketUpserted = await upsertBasketFromCreation(this.db, upsert);
+                if (isPgLike(this.db)) this.rememberBasket(upsert.pubkey);
               } else {
                 console.warn(`[indexer] could not decode FactoryConfig treasury for basket ${basketCreated.basket}`);
               }
             }
+          }
+          // Old creations may be outside the bounded history page. Recover
+          // absent FK parents from authenticated current chain state, retaining
+          // the actual immutable Clock timestamps; never synthesize a creation
+          // event or increment creator_stats for this recovery path.
+          for (const basket of new Set(rows.map((row) => row.basket).filter((value): value is string => value !== null))) {
+            await this.ensureBasketExists(basket);
           }
           // Only persist downstream rows when the event insert is fresh, so
           // re-processing a signature can never double-count creator_stats.
@@ -510,6 +550,8 @@ export class EventIndexer {
             await incrementCreatorStats(this.db, basketCreated.creator);
           }
         }
+
+        events.push(...txEvents);
 
         // user_positions sync — AFTER the core upserts. The position_events
         // (sig, kind) ledger makes each write idempotent on its own, so this
@@ -527,25 +569,21 @@ export class EventIndexer {
           }
         }
       } catch (err) {
-        // Do NOT drop the signature on failure: devnet RPC 429s and FK waits
-        // on a basket row an older signature will establish both heal on
-        // retry. Track attempts and give up only after MAX_PROCESS_ATTEMPTS.
+        if (err instanceof BasketStateDecodeError) {
+          // A malformed/wrong-program account is explicit quarantine, never
+          // an invented FK parent. Transport and DB errors take the retry path.
+          console.warn(`[indexer] rejected basket state for ${sigInfo.signature}: ${err.reason}`);
+          this.markSeen(sigInfo.signature);
+          continue;
+        }
         const attempt = (this.attempts.get(sigInfo.signature) ?? 0) + 1;
         this.attempts.set(sigInfo.signature, attempt);
-        if (attempt >= MAX_PROCESS_ATTEMPTS) {
-          console.warn(
-            `[indexer] giving up on ${sigInfo.signature} after ${attempt} attempts:`,
-            err instanceof Error ? err.message : err,
-          );
-          this.markSeen(sigInfo.signature);
-          this.attempts.delete(sigInfo.signature);
-        } else {
-          console.warn(
-            `[indexer] failed to process ${sigInfo.signature} (attempt ${attempt}/${MAX_PROCESS_ATTEMPTS}, will retry):`,
-            err instanceof Error ? err.message : err,
-          );
-        }
-        continue; // leave unseen so the next poll retries it
+        rateLimitedWarn(
+          `indexer:processing:${programId}`,
+          `[indexer] failed to process ${sigInfo.signature} (attempt ${attempt}, retained for retry): ` +
+            (err instanceof Error ? err.message : String(err)),
+        );
+        continue; // transient RPC/FK/DB failures are never marked successfully seen
       }
       this.markSeen(sigInfo.signature);
       this.attempts.delete(sigInfo.signature);
@@ -590,16 +628,61 @@ export class EventIndexer {
     return null;
   }
 
-  private async fetchTreasury(factory: string): Promise<string | null> {
-    try {
-      const info = await withRpcBackoff(
-        () => this.rpc.getAccountInfo(new PublicKey(factory)),
-        { logKey: "indexer:getAccountInfo", sleep: this.cfg.backoffSleep },
-      );
-      return decodeFactoryTreasury(info?.data ?? null);
-    } catch {
-      return null;
+  private async pacedRead<T>(read: () => Promise<T>): Promise<T> {
+    await this.rpcPacer.wait();
+    return read();
+  }
+
+  private isTrustedEmitter(programId: string, type: FolioxEventType): boolean {
+    const expected = type === "BasketCreated" ? this.cfg.factoryProgramId : this.cfg.basketProgramId;
+    return expected ? programId === expected : this.cfg.programIds.includes(programId);
+  }
+
+  private rememberBasket(address: string): void {
+    this.knownBaskets.add(address);
+    if (this.knownBaskets.size > this.cfg.maxSeenCache) {
+      const oldest = this.knownBaskets.values().next().value;
+      if (oldest !== undefined) this.knownBaskets.delete(oldest);
     }
+  }
+
+  private async ensureBasketExists(address: string): Promise<void> {
+    if (!isPgLike(this.db) || this.knownBaskets.has(address)) return;
+    const existing = await this.db.query("SELECT pubkey FROM baskets WHERE pubkey = $1", [address]);
+    if (existing.rows.length > 0) {
+      this.rememberBasket(address);
+      return;
+    }
+    if (!this.cfg.basketProgramId || !this.cfg.factoryProgramId) {
+      throw new Error("basket recovery requires PROGRAM_BASKET and PROGRAM_FACTORY");
+    }
+    const info = await withRpcBackoff(
+      () => this.pacedRead(() => this.rpc.getAccountInfo(new PublicKey(address))),
+      { logKey: "indexer:getBasketAccount", sleep: this.cfg.backoffSleep },
+    );
+    if (!info) throw new Error("basket account temporarily unavailable; retained for retry");
+    const state = decodeBasketState(address, info, {
+      basket: new PublicKey(this.cfg.basketProgramId),
+      factory: new PublicKey(this.cfg.factoryProgramId),
+    });
+    const treasury = await this.fetchTreasury(state.factory, this.cfg.factoryProgramId);
+    if (treasury !== state.treasury) throw new BasketStateDecodeError("factory-treasury-mismatch", "Basket treasury differs from the canonical FactoryConfig treasury");
+    await upsertBasketFromCreation(this.db, state);
+    this.rememberBasket(address);
+    console.log(`[indexer] recovered basket from chain state: ${address}`);
+  }
+
+  private async fetchTreasury(factory: string, factoryProgramId: string): Promise<string> {
+    const cached = this.factoryTreasuries.get(factory);
+    if (cached) return cached;
+    const info = await withRpcBackoff(
+      () => this.pacedRead(() => this.rpc.getAccountInfo(new PublicKey(factory))),
+      { logKey: "indexer:getFactoryAccount", sleep: this.cfg.backoffSleep },
+    );
+    if (!info) throw new Error("FactoryConfig temporarily unavailable; retained for retry");
+    const treasury = decodeFactoryTreasuryState(factory, info, new PublicKey(factoryProgramId));
+    this.factoryTreasuries.set(factory, treasury);
+    return treasury;
   }
 
   /** Long-running poll loop. Idempotent; call stop() to end it. */
@@ -659,12 +742,14 @@ export function indexerConfigFromEnv(env: NodeJS.ProcessEnv = process.env): (Ind
     programIds,
     whitelistProgramId: env.PROGRAM_WHITELIST,
     basketProgramId: env.PROGRAM_BASKET,
+    factoryProgramId: env.PROGRAM_FACTORY,
     pollIntervalMs: Number(env.INDEXER_POLL_MS || DEFAULT_INDEXER_CONFIG.pollIntervalMs),
     signaturesPerPoll: Number(env.INDEXER_POLL_LIMIT || DEFAULT_INDEXER_CONFIG.signaturesPerPoll),
     maxSeenCache: DEFAULT_INDEXER_CONFIG.maxSeenCache,
     holdingsSyncIntervalMs: Number(env.HOLDINGS_SYNC_INTERVAL_MS || HOLDINGS_SYNC_INTERVAL_MS),
     positionsSyncIntervalMs: Number(env.POSITIONS_SYNC_MS || POSITIONS_SYNC_INTERVAL_MS),
     stateSyncSpacingMs: DEFAULT_INDEXER_CONFIG.stateSyncSpacingMs,
+    transactionSpacingMs: DEFAULT_INDEXER_CONFIG.transactionSpacingMs,
   };
 }
 
@@ -694,5 +779,5 @@ export async function createIndexerFromEnv(env: NodeJS.ProcessEnv = process.env)
     if (body.error) throw new Error(`jsonrpc ${method} failed: ${body.error.message}`);
     return body.result;
   };
-  return new EventIndexer(new Connection(cfg.rpcUrl), { ...cfg, jsonRpcInvoke }, db);
+  return new EventIndexer(new Connection(cfg.rpcUrl, { disableRetryOnRateLimit: true }), { ...cfg, jsonRpcInvoke }, db);
 }

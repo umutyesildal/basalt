@@ -171,6 +171,53 @@ export function extractProgramDataLogs(logMessages: string[]): Buffer[] {
   return out;
 }
 
+/** Attribute runtime data to the active invocation, never to user log text.
+ * A foreign nested program may emit matching Anchor bytes; its identity stays
+ * foreign so the listener can enforce the configured event emitter.
+ * Events commit only after their complete invocation ancestry succeeds. A
+ * caught CPI failure rolls back its own and nested state even when the outer
+ * transaction succeeds; failed or unfinished frames therefore discard data.
+ * Broken depth/completion sequences discard unfinished frames until a root.
+ */
+export function extractAttributedProgramDataLogs(logMessages: readonly string[]): Array<{ programId: string; payload: Buffer }> {
+  const out: Array<{ programId: string; payload: Buffer }> = [];
+  const stack: Array<{ programId: string; events: Array<{ programId: string; payload: Buffer }> }> = [];
+  const invoke = /^Program ([1-9A-HJ-NP-Za-km-z]{32,44}) invoke \[(\d+)\]$/;
+  const finish = /^Program ([1-9A-HJ-NP-Za-km-z]{32,44}) (success|failed:.*)$/;
+  for (const line of logMessages) {
+    const start = invoke.exec(line);
+    if (start) {
+      const depth = Number(start[2]);
+      if (depth === 1) stack.length = 0;
+      let validKey = false;
+      try { validKey = new PublicKey(start[1]).toBase58() === start[1]; } catch { /* Untrusted malformed runtime line. */ }
+      if (!validKey || !Number.isSafeInteger(depth) || depth < 1 || depth > 64 || depth !== stack.length + 1) stack.length = 0;
+      else stack.push({ programId: start[1], events: [] });
+      continue;
+    }
+    const end = finish.exec(line);
+    if (end) {
+      if (stack.at(-1)?.programId !== end[1]) stack.length = 0;
+      else {
+        const frame = stack.pop()!;
+        if (end[2] === "success") {
+          if (stack.length) stack[stack.length - 1].events.push(...frame.events);
+          else out.push(...frame.events);
+        }
+      }
+      continue;
+    }
+    if (!line.startsWith("Program data: ") || stack.length === 0) continue;
+    const encoded = line.slice("Program data: ".length);
+    if (!encoded || encoded.length > 1_048_576 || encoded.length % 4 !== 0 || !/^[A-Za-z0-9+/]+={0,2}$/.test(encoded)) continue;
+    const payload = Buffer.from(encoded, "base64");
+    if (payload.toString("base64") !== encoded) continue;
+    const frame = stack[stack.length - 1];
+    frame.events.push({ programId: frame.programId, payload });
+  }
+  return out;
+}
+
 /** Match an event payload's 8-byte discriminator, or null when unknown. */
 export function matchAnchorEvent(payload: Buffer): FolioxEventType | null {
   if (payload.length < 8) return null;

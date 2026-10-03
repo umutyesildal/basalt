@@ -381,7 +381,7 @@ describe("listener — err guard (failed txs are never indexed)", () => {
   function fakeTx(logs: string[], err: unknown = null): ParsedTransactionWithMeta {
     return {
       transaction: { message: { instructions: [] } },
-      meta: { logMessages: logs, innerInstructions: [], slot: 42, err },
+      meta: { logMessages: [`Program ${pk(99)} invoke [1]`, ...logs, `Program ${pk(99)} ${err ? "failed: fixture error" : "success"}`], innerInstructions: [], slot: 42, err },
     } as unknown as ParsedTransactionWithMeta;
   }
 

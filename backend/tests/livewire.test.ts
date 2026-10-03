@@ -51,6 +51,7 @@ const sha8 = (input: string): Buffer =>
   createHash("sha256").update(input).digest().subarray(0, 8);
 
 const FACTORY_PROGRAM = new PublicKey("3hzoPep9JKgTmzLT6CNW5x3EN7WNYDevM6KHVM7pLgMF");
+const [FACTORY_PDA, FACTORY_BUMP] = PublicKey.findProgramAddressSync([Buffer.from("factory")], FACTORY_PROGRAM);
 
 function buildCreateBasketData(): Buffer {
   return Buffer.concat([
@@ -78,7 +79,7 @@ function buildBasketCreatedPayload(): Buffer {
 function fakeTx(logs: string[], ixs: Array<{ programId: PublicKey; accounts: PublicKey[]; data: string }>): ParsedTransactionWithMeta {
   return {
     transaction: { message: { instructions: ixs } },
-    meta: { logMessages: logs, innerInstructions: [], slot: 42 },
+    meta: { logMessages: [`Program ${FACTORY_PROGRAM} invoke [1]`, ...logs, `Program ${FACTORY_PROGRAM} success`], innerInstructions: [], slot: 42 },
   } as unknown as ParsedTransactionWithMeta;
 }
 
@@ -104,7 +105,10 @@ const cfg = {
   maxSeenCache: 100,
 };
 
-const factoryAccount = Buffer.concat([Buffer.alloc(8), pk(5).toBuffer(), pk(6).toBuffer()]);
+const factoryAccount = Buffer.alloc(89);
+sha8("account:FactoryConfig").copy(factoryAccount); pk(5).toBuffer().copy(factoryAccount, 8); pk(6).toBuffer().copy(factoryAccount, 40);
+factoryAccount.writeUInt16LE(9000, 72); factoryAccount.writeUInt16LE(300, 74); factoryAccount.writeUInt16LE(100, 76);
+factoryAccount.writeUInt16LE(300, 78); factoryAccount[88] = FACTORY_BUMP;
 
 // --- 1. listener ordering: baskets row lands BEFORE events rows --------------
 
@@ -113,7 +117,7 @@ describe("listener — baskets-before-events ordering (FK fix)", () => {
     const db = fakeDb(1);
     const tx = fakeTx(
       [`Program data: ${payloadBase64()}`],
-      [{ programId: FACTORY_PROGRAM, accounts: [pk(5), pk(10), pk(12), pk(11)], data: bs58.encode(buildCreateBasketData()) }],
+      [{ programId: FACTORY_PROGRAM, accounts: [FACTORY_PDA, pk(10), pk(12), pk(11)], data: bs58.encode(buildCreateBasketData()) }],
     );
     const indexer = new EventIndexer(rpcForTx(tx, factoryAccount), cfg, db as never);
     await indexer.pollOnce();
@@ -153,7 +157,7 @@ describe("listener — retry on processing failure", () => {
     let fetches = 0;
     const tx = fakeTx(
       [`Program data: ${buildBasketCreatedPayload().toString("base64")}`],
-      [{ programId: FACTORY_PROGRAM, accounts: [pk(5), pk(10), pk(12), pk(11)], data: bs58.encode(buildCreateBasketData()) }],
+      [{ programId: FACTORY_PROGRAM, accounts: [FACTORY_PDA, pk(10), pk(12), pk(11)], data: bs58.encode(buildCreateBasketData()) }],
     );
     const rpc: SolanaRpc = {
       async getSignaturesForAddress() {
@@ -208,7 +212,7 @@ describe("listener — retry on processing failure", () => {
     let fetches = 0;
     const tx = fakeTx(
       [`Program data: ${buildBasketCreatedPayload().toString("base64")}`],
-      [{ programId: FACTORY_PROGRAM, accounts: [pk(5), pk(10), pk(12), pk(11)], data: bs58.encode(buildCreateBasketData()) }],
+      [{ programId: FACTORY_PROGRAM, accounts: [FACTORY_PDA, pk(10), pk(12), pk(11)], data: bs58.encode(buildCreateBasketData()) }],
     );
     const rpc: SolanaRpc = {
       async getSignaturesForAddress() {

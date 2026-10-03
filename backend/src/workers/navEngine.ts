@@ -732,7 +732,7 @@ export function createNavEngineFromEnv(opts: {
     // Real on-chain supply first; events-derived estimate as fallback.
     // Sequential reads are staggered (NAV_SUPPLY_RPC_GAP_MS) so a multi-basket
     // pass spreads its RPC load instead of bursting it.
-    const conn = new Connection(rpcUrl);
+    const conn = new Connection(rpcUrl, { disableRetryOnRateLimit: true });
     const supplyPacer = createPacer(NAV_SUPPLY_RPC_GAP_MS);
     fetchSupply = async (shareMint: string, basket: string) => {
       await supplyPacer.wait();
