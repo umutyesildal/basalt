@@ -46,8 +46,8 @@ Unchanged creation drafts reuse a nonce keyed by owner, chain, programs, metadat
 
 The first staged marker assertion only examined workspace chunks; the lookup-table marker belongs to the shared transaction chunk. Inspecting the actual linked shared chunk verified it before promotion. This was a check-scope error, not a missing implementation.
 
-### Accidental temporary project and blocked cleanup
+### Accidental temporary project and approved cleanup
 
-The first deployment preparation failed to copy an old temporary project-link file, but the following command was still launched. Vercel created `basalt-pipeline-publish-20261003` (`prj_zsjpfBrBE2TRtAJ3cBYiRPzSaOK1`) rather than using the existing project. It has one failed deployment (`dpl_9LoBvzESrXqrvm2sPG1GuUGXpyUZ`), zero environment variables and no Git link, verified through read-only Vercel metadata. The linked existing Basalt project and production promotion above are the actual release.
+The first deployment preparation failed to copy an old temporary project-link file, but the following command was still launched. Vercel created `basalt-pipeline-publish-20261003` (`prj_zsjpfBrBE2TRtAJ3cBYiRPzSaOK1`) rather than using the existing project. Before cleanup, it had one failed deployment (`dpl_9LoBvzESrXqrvm2sPG1GuUGXpyUZ`), zero environment variables and no Git link, verified through read-only Vercel metadata. The linked existing Basalt project and production promotion above are the actual release.
 
-Automatic approval review rejected permanent deletion of that accidental project because explicit human authorization for destructive cleanup was absent. An exact cleanup approval question is pending; deletion has not occurred. No workaround is used. The temporary project does not serve the live Basalt domain.
+Automatic approval review initially rejected permanent deletion because explicit human authorization for destructive cleanup was absent. The owner then explicitly approved cleanup. On October 3, 2026, Vercel confirmed removal of `basalt-pipeline-publish-20261003`; a subsequent read-only project lookup returned 404. The live Basalt route still returned HTTP 200 and referenced the verified UI and transaction chunks. Cleanup is complete.
