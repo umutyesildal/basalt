@@ -1,0 +1,292 @@
+{
+  "observedAt": "2026-10-03T11:46:27.067695+00:00",
+  "origin": "https://basalt.178.104.34.252.sslip.io",
+  "sourceCommit": "8e49be05a2fe0bbe8534dcef43b849926e835f50",
+  "expectedImage": "sha256:437a201ffb9e9bfa5b87737917e2467e97ae638f3e24703398c6b63e247240ce",
+  "readonly": true,
+  "runtime": {
+    "container": {
+      "status": "running",
+      "health": "healthy",
+      "startedAt": "2026-10-03T11:41:49.99931616Z",
+      "restartCount": 0,
+      "image": "sha256:437a201ffb9e9bfa5b87737917e2467e97ae638f3e24703398c6b63e247240ce"
+    },
+    "rollbackImage": "sha256:9cadab9b63962240deda043935ae3d3c703a615d4b5de0c489c75455c861bd0f",
+    "sourceSha256": {
+      "backend/src/indexer/events.ts": "15340a41beb2791e4af1d4d55a8011f49a3fe184e52436d9719c1e54e16f6393",
+      "backend/src/indexer/listener.ts": "c3cec5050e61383bd37f5439200269baa04f76c60d0544e7f22d338c9df41d9f",
+      "backend/src/indexer/basketState.ts": "2bcea6246045cd597765ada292a1c78174c75ea5aa369721873d69e3f6aa6319",
+      "backend/src/workers/navEngine.ts": "f300272b91afecf37fe9085bef11c8c0a1e1a86cef9ea8f9455290191cdfd919",
+      "backend/src/workers/feeCrank.ts": "09b39b36b38c7db0ad73e58be7b63094c1d883ca45400c5e9bc5fc602877f8b1"
+    },
+    "cache": [
+      {
+        "path": "/app/.cache/xstocks-prices.json",
+        "sha256": "86b2d0ea129badbf5c9354b6e2c2317efcec1716a9328b4a4bd626167ce6c389",
+        "entries": 176,
+        "histories": null
+      },
+      {
+        "path": "/app/.cache/xstocks-history.json",
+        "sha256": "7b0542ea21589adbfeca9a00c0b2551eb8084635d53846dd13e2b9b8b303b8b0",
+        "entries": null,
+        "histories": 13
+      }
+    ],
+    "compiled": {
+      "chainRecovery": true,
+      "retainedRetry": true,
+      "noDropAfterFive": true,
+      "attribution": true,
+      "retries": [
+        {
+          "path": "/app/dist/indexer/listener.js",
+          "sdk429RetryDisabled": true
+        },
+        {
+          "path": "/app/dist/workers/navEngine.js",
+          "sdk429RetryDisabled": true
+        },
+        {
+          "path": "/app/dist/workers/feeCrank.js",
+          "sdk429RetryDisabled": true
+        }
+      ]
+    },
+    "db": {
+      "basket": {
+        "pubkey": "CZCHnprMPvBFLCs5jwApLMPj1MEUMGJ4SWr4WWzKXYCo",
+        "nonce": "1",
+        "created_at": "2026-09-04T19:42:25+00:00",
+        "last_fee_accrual_ts": "2026-09-05T20:48:43+00:00",
+        "num_constituents": 6,
+        "constituents_count": 6,
+        "weights_count": 6
+      },
+      "expectedEvents": 10,
+      "expectedPositionLedger": 20,
+      "positionKinds": {
+        "Redeemed": 3,
+        "FeeAccrued": 10,
+        "Minted": 7
+      },
+      "holdings": {
+        "rows": 6,
+        "oldestUpdated": "2026-10-03T11:45:54.437279+00:00",
+        "latestUpdated": "2026-10-03T11:45:54.455961+00:00",
+        "rowsAfterStart": 6
+      },
+      "allHoldings": {
+        "rows": 23,
+        "latestUpdated": "2026-10-03T11:45:54.455961+00:00",
+        "rowsAfterStart": 23
+      },
+      "nav": {
+        "latestUpdated": "2026-10-03T11:45:51.268+00:00",
+        "snapshotsAfterStart": 6
+      },
+      "recoveredBasketNav": {
+        "latestUpdated": "2026-10-03T11:45:51.268+00:00",
+        "snapshotsAfterStart": 2
+      },
+      "basketCount": 6
+    },
+    "logCategories": {
+      "fkErrors": 0,
+      "dropAfterFive": 0,
+      "sdk429RetrySpam": 0,
+      "bounded429Backoff": 4,
+      "retainedRetries": 1,
+      "recoveredBasket": 1,
+      "fatal": 0,
+      "loopFailures": 0,
+      "stateSyncFailures": 0,
+      "positionWarnings": 0,
+      "nativeBigintWarning": 1
+    },
+    "logLineCount": 48
+  },
+  "health": {
+    "ok": true,
+    "version": "0.1.0",
+    "ts": "2026-10-03T11:46:29.823Z",
+    "subsystems": {
+      "db": {
+        "connected": true,
+        "schemaApplied": true
+      },
+      "indexer": {
+        "enabled": true,
+        "running": true
+      },
+      "navEngine": {
+        "enabled": true,
+        "running": true
+      },
+      "feeCrank": {
+        "enabled": true,
+        "running": true
+      },
+      "userSnapshot": {
+        "enabled": true,
+        "running": true
+      }
+    },
+    "db": {
+      "connected": true,
+      "basketCount": 6,
+      "lastSlot": "506981505",
+      "lastEventTs": "2026-10-03T11:33:21.000Z",
+      "indexerLagSeconds": 788,
+      "holdings": {
+        "rows": 23,
+        "lastUpdatedAt": "2026-10-03T11:46:29.657Z",
+        "staleSeconds": 0
+      }
+    }
+  },
+  "completedAt": "2026-10-03T11:46:29.826689+00:00",
+  "passed": false,
+  "checks": [
+    {
+      "name": "healthy container restart0",
+      "passed": true,
+      "evidence": {
+        "status": "running",
+        "health": "healthy",
+        "startedAt": "2026-10-03T11:41:49.99931616Z",
+        "restartCount": 0,
+        "image": "sha256:437a201ffb9e9bfa5b87737917e2467e97ae638f3e24703398c6b63e247240ce"
+      }
+    },
+    {
+      "name": "exact image",
+      "passed": true
+    },
+    {
+      "name": "exact committed source",
+      "passed": true,
+      "evidence": {
+        "checkedFiles": 5
+      }
+    },
+    {
+      "name": "rollback image retained",
+      "passed": true
+    },
+    {
+      "name": "compiled recovery and retry policy",
+      "passed": true
+    },
+    {
+      "name": "historical basket immutable state recovered",
+      "passed": true,
+      "evidence": {
+        "pubkey": "CZCHnprMPvBFLCs5jwApLMPj1MEUMGJ4SWr4WWzKXYCo",
+        "nonce": "1",
+        "created_at": "2026-09-04T19:42:25+00:00",
+        "last_fee_accrual_ts": "2026-09-05T20:48:43+00:00",
+        "num_constituents": 6,
+        "constituents_count": 6,
+        "weights_count": 6
+      }
+    },
+    {
+      "name": "all10 historical event rows indexed",
+      "passed": true,
+      "evidence": {
+        "rows": 10
+      }
+    },
+    {
+      "name": "all20 historical position ledger entries indexed",
+      "passed": true,
+      "evidence": {
+        "rows": 20,
+        "kinds": {
+          "Redeemed": 3,
+          "FeeAccrued": 10,
+          "Minted": 7
+        }
+      }
+    },
+    {
+      "name": "recovered six holdings refreshed",
+      "passed": true,
+      "evidence": {
+        "rows": 6,
+        "oldestUpdated": "2026-10-03T11:45:54.437279+00:00",
+        "latestUpdated": "2026-10-03T11:45:54.455961+00:00",
+        "rowsAfterStart": 6
+      }
+    },
+    {
+      "name": "NAV worker made new progress",
+      "passed": true,
+      "evidence": {
+        "latestUpdated": "2026-10-03T11:45:51.268+00:00",
+        "snapshotsAfterStart": 6
+      }
+    },
+    {
+      "name": "no new FK errors/drop5/SDK retry spam",
+      "passed": true,
+      "evidence": {
+        "fkErrors": 0,
+        "dropAfterFive": 0,
+        "sdk429RetrySpam": 0,
+        "bounded429Backoff": 4,
+        "retainedRetries": 1,
+        "recoveredBasket": 1,
+        "fatal": 0,
+        "loopFailures": 0,
+        "stateSyncFailures": 0,
+        "positionWarnings": 0,
+        "nativeBigintWarning": 1
+      }
+    },
+    {
+      "name": "no new fatal/loop/state sync failures",
+      "passed": true,
+      "evidence": {
+        "fkErrors": 0,
+        "dropAfterFive": 0,
+        "sdk429RetrySpam": 0,
+        "bounded429Backoff": 4,
+        "retainedRetries": 1,
+        "recoveredBasket": 1,
+        "fatal": 0,
+        "loopFailures": 0,
+        "stateSyncFailures": 0,
+        "positionWarnings": 0,
+        "nativeBigintWarning": 1
+      }
+    },
+    {
+      "name": "persistent public cache counts and source timestamps retained",
+      "passed": false,
+      "evidence": [
+        {
+          "path": "/app/.cache/xstocks-prices.json",
+          "sha256": "86b2d0ea129badbf5c9354b6e2c2317efcec1716a9328b4a4bd626167ce6c389",
+          "entries": 176,
+          "histories": null
+        },
+        {
+          "path": "/app/.cache/xstocks-history.json",
+          "sha256": "7b0542ea21589adbfeca9a00c0b2551eb8084635d53846dd13e2b9b8b303b8b0",
+          "entries": null,
+          "histories": 13
+        }
+      ]
+    },
+    {
+      "name": "public health DB schema workers running",
+      "passed": true
+    }
+  ],
+  "failedChecks": [
+    "persistent public cache counts and source timestamps retained"
+  ]
+}

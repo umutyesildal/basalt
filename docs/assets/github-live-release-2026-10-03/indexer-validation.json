@@ -1,0 +1,52 @@
+{
+  "createdAt": "2026-10-03T11:37:11.937711+00:00",
+  "backendBuild": "passed",
+  "backendTests": {
+    "passed": 865,
+    "skipped": 18,
+    "skipReason": "18 database-dependent tests require integration PostgreSQL"
+  },
+  "newTests": {
+    "strictAccountLayout": 40,
+    "runtimeEmitterAndCpiRollback": 8,
+    "indexerRecoveryAndRetry": 10
+  },
+  "scopedDiffCheck": "passed",
+  "independentReview": "passed; no actionable remaining findings",
+  "publicLogCredentialScan": {
+    "basalt-indexer-recovery-build-2026-10-03.log": {
+      "private-pem": 0,
+      "jwt": 0,
+      "known-service-token": 0,
+      "credential-url": 0,
+      "private-key-array": 0
+    },
+    "basalt-indexer-recovery-tests-2026-10-03.log": {
+      "private-pem": 0,
+      "jwt": 0,
+      "known-service-token": 0,
+      "credential-url": 0,
+      "private-key-array": 0
+    }
+  },
+  "sourceSha256": {
+    "backend/src/indexer/events.ts": "15340a41beb2791e4af1d4d55a8011f49a3fe184e52436d9719c1e54e16f6393",
+    "backend/src/indexer/listener.ts": "c3cec5050e61383bd37f5439200269baa04f76c60d0544e7f22d338c9df41d9f",
+    "backend/src/indexer/basketState.ts": "2bcea6246045cd597765ada292a1c78174c75ea5aa369721873d69e3f6aa6319",
+    "backend/src/workers/feeCrank.ts": "09b39b36b38c7db0ad73e58be7b63094c1d883ca45400c5e9bc5fc602877f8b1",
+    "backend/src/workers/navEngine.ts": "f300272b91afecf37fe9085bef11c8c0a1e1a86cef9ea8f9455290191cdfd919",
+    "backend/tests/backend-truth.test.ts": "2826e8bee4323236751bc93523849508beaed01c91d3bdc888f1e716c19e0172",
+    "backend/tests/livewire.test.ts": "d1e932ca02ff82e7943f6e0ade12236b0e0212372e4f6db90448aea840ddb78d",
+    "backend/tests/positions.test.ts": "4de0befb4a22e69c6337d1409efcf061484023b0f8624d3c9c27a9626051424a",
+    "backend/tests/positionsSync.test.ts": "a1491154d3f283bb5f589412327a823c31e3cee9782adf965b5a657a4a4305cc",
+    "backend/tests/basket-state-recovery.test.ts": "99637e124a11a258d580200e517201a34ea4fbfd80c83ab9f3b6e0fd321a32c7",
+    "backend/tests/event-attribution.test.ts": "e3cc4a46d8c457f5ad047d7eab79f5fbd045c217c5469d1a2b63ae281c6eee46",
+    "backend/tests/indexer-recovery.test.ts": "093a4289c1df8dbf06638f03cd786425746df6b4c3b78bf141f763a68da8977b"
+  },
+  "evidenceSha256": {
+    "basalt-indexer-recovery-build-2026-10-03.log": "99db077fcc390a645ef9cd76f3e9eef99c61da95855f924e03a554b207cd3617",
+    "basalt-indexer-recovery-tests-2026-10-03.log": "169c4a585e995c8873d3d45be3d6bf2cae48885b905ce40a055b9c2d1b56443b"
+  },
+  "publicReadOnlyProof": "indexer-account-proof.json",
+  "liveMutationPerformed": false
+}

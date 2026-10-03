@@ -1,0 +1,38 @@
+{
+  "sha": "e0e1edce2978ae8a717ef0b87d8683bddc296b19",
+  "commands": [
+    {
+      "name": "install",
+      "exit": 0,
+      "seconds": 8.25,
+      "log": "install.log"
+    },
+    {
+      "name": "backend-build",
+      "exit": 0,
+      "seconds": 1.74,
+      "log": "backend-build.log"
+    },
+    {
+      "name": "backend-tests",
+      "exit": 0,
+      "seconds": 4.45,
+      "log": "backend-tests.log"
+    },
+    {
+      "name": "app-typecheck",
+      "exit": 0,
+      "seconds": 5.42,
+      "log": "app-typecheck.log"
+    },
+    {
+      "name": "app-build",
+      "exit": 0,
+      "seconds": 25.36,
+      "log": "app-build.log"
+    }
+  ],
+  "frontendBigintBufferSourceReferences": [],
+  "frontendBigintBufferTraces": [],
+  "snapshotMethod": "git archive of exact released commit, no private environment files or keypairs"
+}

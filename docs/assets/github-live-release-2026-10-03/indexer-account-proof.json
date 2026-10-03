@@ -1,0 +1,140 @@
+{
+  "observedAt": "2026-10-03T11:36:39.945Z",
+  "cluster": "devnet",
+  "genesisHash": "EtWTRABZaYq6iMfeYKouRu166VU2xqa1wcaWoxPkrZBG",
+  "readonly": true,
+  "validated": true,
+  "basket": {
+    "pubkey": "CZCHnprMPvBFLCs5jwApLMPj1MEUMGJ4SWr4WWzKXYCo",
+    "factory": "CfxquMe4MAPksEEsVyw8XmcxYH5W7qftRWNySgHjLi6e",
+    "creator": "y72KA263br7MtZw7BqC2dx5QYCBUciJGzShE8BRSwRE",
+    "treasury": "AAb2TXLQCPFvnUoJFSBe9PFs28w5kvAukH4Gaiia3eiJ",
+    "shareMint": "GZzEofuvUyxzGAnYqNJiJuAt6j4HLAtPGRbpNaPV362D",
+    "nonce": "1",
+    "createdAt": "2026-09-04T19:42:25.000Z",
+    "metadataHash": "ddd77b09ee7137d7dd91c54adfbe9e869c0fa4110f1b7c81bce28b7de2744e90",
+    "numConstituents": 6,
+    "constituents": [
+      "Duagr7hYLnUcG42gu3xqhbSj1E6xwEvRMEN14CG5BKwn",
+      "7T5QwHsqHd5YmMSoJqg69kGsUVF7MMVzmy2bAumgPD23",
+      "4gZh5JxhrfKMg7x14evWcrhM3hWHfrtcq6cNgFPH5kQa",
+      "E4SnZpaaQorTGtZNznYEFNTp3U1a3au9B4cwJBdjvZjG",
+      "6JjHTTUediahYntYLyrrBtbThqcrNRkFMa3MvkBQAM1h",
+      "cwKxRhYYZyeZSkgLX3JT1KERSTFkzua2RcgaDucSsvj"
+    ],
+    "weightsBps": [
+      2500,
+      2000,
+      1500,
+      1500,
+      1250,
+      1250
+    ],
+    "entryFeeBps": 100,
+    "exitFeeBps": 50,
+    "managementFeeBps": 200,
+    "lastFeeAccrualTs": "2026-09-05T20:48:43.000Z",
+    "managementFeeRemainder": "0",
+    "vaultAuthority": "C2Wj4LvzYyGyEvcXQLaYrgBgFgnhrvmzff4Vf9Av7iLA"
+  },
+  "accounts": [
+    {
+      "address": "CZCHnprMPvBFLCs5jwApLMPj1MEUMGJ4SWr4WWzKXYCo",
+      "owner": "6Q43vFh4aqGxzvtU2vQwJX9PmX3skfYsGWZdA3fwJB9k",
+      "executable": false,
+      "dataLength": 888,
+      "dataBase64": "209rh+fz2vita8TcO3mj9qTSma17EY7naS144TkzeSGNgIjk2Etj4w5fVcrkJBK1+7FtRWOJ1zR0GVCVGj6JcO/BZqr3whz9iC3hx41vE5cShy0BPJIzRvOV2CwGOD22fUO89/MjWU/nUpvoMLKCtl+RcPQew54nezZy2cToYtSgUJQI8EsligEAAAAAAAAAIR+bagAAAAArgJxqAAAAAN3XewnucTfX3ZHFSt++noacD6QRDxt8gbzii33idE6QBr/EiQPxox/raplJWeirDYhyx/CheyH6ReIMRL9qWJFhX9Q2SDLb665DPpaejHpkyGkZSozf1qw+lH7Q9ZqRIcw2ta0UZaGNlB95Kg3wSF8C/cOxEFQPLjJZelipAyaHw8IJ1A9/qJXNBDCJPbsyrpKllJu7bWcn6cEg4R2YAph7TtUeZkgo8AocDWp7ze/wPb72pIMRrdX2jJgXTDLaPFAJNMF/YiOxWpHn8oM9moyymelIb6J5P8Rr4jPllmRrTAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAADECdAH3AXcBeIE4gQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAZAAyAMgA//0AAAAAAAAA"
+    },
+    {
+      "address": "CfxquMe4MAPksEEsVyw8XmcxYH5W7qftRWNySgHjLi6e",
+      "owner": "3hzoPep9JKgTmzLT6CNW5x3EN7WNYDevM6KHVM7pLgMF",
+      "executable": false,
+      "dataLength": 89,
+      "dataBase64": "HcX/6BaAQxoOX1XK5CQStfuxbUVjidc0dBlQlRo+iXDvwWaq98Ic/Ygt4ceNbxOXEoctATySM0bzldgsBjg9tn1DvPfzI1lPKCMsAWQALAEHAAAAAAAAAP8="
+    }
+  ],
+  "historicalTransaction": {
+    "signature": "23TPhP6GkjDCTKKutPHoJ5fPmLiCQ7ZuwLtFmJMKCJPsRxYPZDdNxZM51tRqGXuuPowM494RJ44FSyYEqfwSZ8ri",
+    "slot": 493721911,
+    "blockTime": 1788641323,
+    "failed": false,
+    "attributedEvents": [
+      {
+        "programId": "6Q43vFh4aqGxzvtU2vQwJX9PmX3skfYsGWZdA3fwJB9k",
+        "event": {
+          "type": "FeeAccrued",
+          "basket": "CZCHnprMPvBFLCs5jwApLMPj1MEUMGJ4SWr4WWzKXYCo",
+          "sharesMinted": "58",
+          "elapsedSec": "153"
+        }
+      },
+      {
+        "programId": "6Q43vFh4aqGxzvtU2vQwJX9PmX3skfYsGWZdA3fwJB9k",
+        "event": {
+          "type": "Redeemed",
+          "basket": "CZCHnprMPvBFLCs5jwApLMPj1MEUMGJ4SWr4WWzKXYCo",
+          "user": "TcAgGWYnr5uVQGRiU67C1ynpH5JDKCmwWaCA6V2ANea",
+          "sharesBurned": "100",
+          "exitFeeShares": "0"
+        }
+      }
+    ],
+    "logs": [
+      "Program ComputeBudget111111111111111111111111111111 invoke [1]",
+      "Program ComputeBudget111111111111111111111111111111 success",
+      "Program ComputeBudget111111111111111111111111111111 invoke [1]",
+      "Program ComputeBudget111111111111111111111111111111 success",
+      "Program 6Q43vFh4aqGxzvtU2vQwJX9PmX3skfYsGWZdA3fwJB9k invoke [1]",
+      "Program log: Instruction: RedeemInKind",
+      "Program ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL invoke [2]",
+      "Program log: CreateIdempotent",
+      "Program ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL consumed 4456 of 469777 compute units",
+      "Program ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL success",
+      "Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb invoke [2]",
+      "Program log: Instruction: MintTo",
+      "Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb consumed 1307 of 463012 compute units",
+      "Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb success",
+      "Program ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL invoke [2]",
+      "Program log: CreateIdempotent",
+      "Program ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL consumed 5956 of 452627 compute units",
+      "Program ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL success",
+      "Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb invoke [2]",
+      "Program log: Instruction: MintTo",
+      "Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb consumed 1307 of 444298 compute units",
+      "Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb success",
+      "Program data: PVMwkJAymS2rr+g6YWExkS4ZPjTfkdts6CCWwdcYiW4sjHNHO/D1ODoAAAAAAAAAmQAAAAAAAAA=",
+      "Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb invoke [2]",
+      "Program log: Instruction: TransferChecked",
+      "Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb consumed 2346 of 352670 compute units",
+      "Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb success",
+      "Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb invoke [2]",
+      "Program log: Instruction: TransferChecked",
+      "Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb consumed 2346 of 347473 compute units",
+      "Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb success",
+      "Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb invoke [2]",
+      "Program log: Instruction: TransferChecked",
+      "Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb consumed 2346 of 342276 compute units",
+      "Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb success",
+      "Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb invoke [2]",
+      "Program log: Instruction: TransferChecked",
+      "Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb consumed 2346 of 337079 compute units",
+      "Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb success",
+      "Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb invoke [2]",
+      "Program log: Instruction: TransferChecked",
+      "Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb consumed 2346 of 331882 compute units",
+      "Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb success",
+      "Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb invoke [2]",
+      "Program log: Instruction: TransferChecked",
+      "Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb consumed 2346 of 326685 compute units",
+      "Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb success",
+      "Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb invoke [2]",
+      "Program log: Instruction: Burn",
+      "Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb consumed 1427 of 321965 compute units",
+      "Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb success",
+      "Program log: redeem burn=100 exit_fee=0 out=[24998, 19998, 14999, 14999, 12499, 12499]",
+      "Program data: Dh23Rx+layarr+g6YWExkS4ZPjTfkdts6CCWwdcYiW4sjHNHO/D1OAbQ3UO5W4jqceZ8GFe9Vvd5tmc8eqOjWapzIpr3e/kvZAAAAAAAAAAAAAAAAAAAAA==",
+      "Program 6Q43vFh4aqGxzvtU2vQwJX9PmX3skfYsGWZdA3fwJB9k consumed 186089 of 499700 compute units",
+      "Program 6Q43vFh4aqGxzvtU2vQwJX9PmX3skfYsGWZdA3fwJB9k success"
+    ]
+  }
+}

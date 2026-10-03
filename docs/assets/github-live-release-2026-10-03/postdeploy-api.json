@@ -1,0 +1,1145 @@
+{
+  "startedAt": "2026-10-03T11:51:21.889169+00:00",
+  "origin": "https://basalt.178.104.34.252.sslip.io",
+  "sourceCommit": "8e49be05a2fe0bbe8534dcef43b849926e835f50",
+  "health": {
+    "ok": true,
+    "version": "0.1.0",
+    "ts": "2026-10-03T11:51:21.997Z",
+    "subsystems": {
+      "db": {
+        "connected": true,
+        "schemaApplied": true
+      },
+      "indexer": {
+        "enabled": true,
+        "running": true
+      },
+      "navEngine": {
+        "enabled": true,
+        "running": true
+      },
+      "feeCrank": {
+        "enabled": true,
+        "running": true
+      },
+      "userSnapshot": {
+        "enabled": true,
+        "running": true
+      }
+    },
+    "db": {
+      "connected": true,
+      "basketCount": 6,
+      "lastSlot": "506981505",
+      "lastEventTs": "2026-10-03T11:33:21.000Z",
+      "indexerLagSeconds": 1080,
+      "holdings": {
+        "rows": 23,
+        "lastUpdatedAt": "2026-10-03T11:51:00.168Z",
+        "staleSeconds": 21
+      }
+    }
+  },
+  "catalog": {
+    "count": 1271,
+    "etfCount": 69,
+    "meta": {
+      "source": "cache",
+      "fetchedAt": "2026-10-03T11:46:43.636Z",
+      "stale": false,
+      "sourceUrl": "https://api.xstocks.fi/api/v2/public/assets"
+    }
+  },
+  "assets": [
+    {
+      "symbol": "AAPLx",
+      "mint": "XsbEhLAtcf6HdfpFZ5xEMdqW8nfAvcsP5bdudRLJzJp",
+      "underlyingSymbol": "AAPL",
+      "assetClass": "unknown"
+    },
+    {
+      "symbol": "SPYx",
+      "mint": "XsoCS1TfEyfFhfvj8EtZ528L3CaKBDBRqRapnBbDF2W",
+      "underlyingSymbol": "SPY",
+      "assetClass": "etf"
+    },
+    {
+      "symbol": "NVDAx",
+      "mint": "Xsc9qvGR1efVDFGLrVsmkzv3qi45LTBjeUKSPmx9qEh",
+      "underlyingSymbol": "NVDA",
+      "assetClass": "unknown"
+    }
+  ],
+  "quotesBefore": {
+    "data": [
+      {
+        "mint": "XsbEhLAtcf6HdfpFZ5xEMdqW8nfAvcsP5bdudRLJzJp",
+        "priceUsd": 332.24038089616926,
+        "source": "jupiter",
+        "fetchedAt": "2026-10-02T22:59:37.494Z",
+        "observedAt": "2026-10-02T22:52:58.000Z",
+        "blockId": 452750107,
+        "decimals": 8,
+        "unit": "scaled-ui",
+        "change24hPct": 0.3484937689270459,
+        "status": "available",
+        "stale": true,
+        "freshness": "stale",
+        "refreshedAt": "2026-10-02T22:59:37.494Z",
+        "refreshReason": "priced"
+      },
+      {
+        "mint": "XsoCS1TfEyfFhfvj8EtZ528L3CaKBDBRqRapnBbDF2W",
+        "priceUsd": 769.36313049294,
+        "source": "jupiter",
+        "fetchedAt": "2026-10-02T22:59:37.494Z",
+        "observedAt": "2026-10-02T22:59:11.000Z",
+        "blockId": 452751486,
+        "decimals": 8,
+        "unit": "scaled-ui",
+        "change24hPct": 0.601930633376655,
+        "status": "available",
+        "stale": true,
+        "freshness": "stale",
+        "refreshedAt": "2026-10-02T22:59:37.494Z",
+        "refreshReason": "priced"
+      },
+      {
+        "mint": "Xsc9qvGR1efVDFGLrVsmkzv3qi45LTBjeUKSPmx9qEh",
+        "priceUsd": 234.0377079411011,
+        "source": "jupiter",
+        "fetchedAt": "2026-10-02T22:59:37.494Z",
+        "observedAt": "2026-10-02T22:59:33.000Z",
+        "blockId": 452751569,
+        "decimals": 8,
+        "unit": "scaled-ui",
+        "change24hPct": 1.1539388327839162,
+        "status": "available",
+        "stale": true,
+        "freshness": "stale",
+        "refreshedAt": "2026-10-02T22:59:37.494Z",
+        "refreshReason": "priced"
+      }
+    ],
+    "meta": {
+      "source": "jupiter-v3",
+      "unit": "scaled-ui",
+      "catalogStale": false,
+      "refreshIntervalMs": 300000,
+      "hotRefreshIntervalMs": 60000,
+      "lastFullRefreshAt": null,
+      "catalogAssetCount": 1271,
+      "pricedAssetCount": 0,
+      "cachedAssetCount": 176,
+      "refreshing": false,
+      "lastFullPass": null,
+      "marketSession": {
+        "market": "NYSE",
+        "timezone": "America/New_York",
+        "status": "closed",
+        "isOpen": false,
+        "reason": "weekend",
+        "sessionDate": "2026-10-03",
+        "opensAt": null,
+        "closesAt": null,
+        "nextOpenAt": "2026-10-05T13:30:00.000Z",
+        "earlyClose": false,
+        "calendarThrough": "2028-12-31"
+      }
+    }
+  },
+  "histories": {
+    "7d": {
+      "data": [
+        {
+          "mint": "XsbEhLAtcf6HdfpFZ5xEMdqW8nfAvcsP5bdudRLJzJp",
+          "range": "7d",
+          "windowEnd": "2026-10-03T00:00:00.000Z",
+          "points": [
+            {
+              "timestamp": "2026-09-26T00:00:00.000Z",
+              "priceUsd": 340.55128839275085
+            },
+            {
+              "timestamp": "2026-09-27T00:00:00.000Z",
+              "priceUsd": 337.99841270448655
+            },
+            {
+              "timestamp": "2026-09-28T00:00:00.000Z",
+              "priceUsd": 338.92440773291054
+            },
+            {
+              "timestamp": "2026-09-29T00:00:00.000Z",
+              "priceUsd": 338.03534778185025
+            },
+            {
+              "timestamp": "2026-09-30T00:00:00.000Z",
+              "priceUsd": 329.813100315418
+            },
+            {
+              "timestamp": "2026-10-01T00:00:00.000Z",
+              "priceUsd": 332.23309734385214
+            },
+            {
+              "timestamp": "2026-10-02T00:00:00.000Z",
+              "priceUsd": 329.5197476144247
+            },
+            {
+              "timestamp": "2026-10-03T00:00:00.000Z",
+              "priceUsd": 337.08201212280966
+            }
+          ],
+          "change7dPct": -1.018723577971059,
+          "change30dPct": 3.758843738622386,
+          "source": "geckoterminal",
+          "unit": "scaled-ui",
+          "interval": "1d",
+          "observedAt": "2026-10-03T00:00:00.000Z",
+          "fetchedAt": "2026-10-03T11:06:14.542Z",
+          "status": "available",
+          "refreshing": false,
+          "poolAddress": "CKwJZwm7oj3nu4653N1EpDrqXbXAYXoPFiPeEnLouF8y",
+          "timestampSemantics": "completed-utc-day-close"
+        },
+        {
+          "mint": "XsoCS1TfEyfFhfvj8EtZ528L3CaKBDBRqRapnBbDF2W",
+          "range": "7d",
+          "windowEnd": "2026-10-03T00:00:00.000Z",
+          "points": [
+            {
+              "timestamp": "2026-09-26T00:00:00.000Z",
+              "priceUsd": 769.8065830969934
+            },
+            {
+              "timestamp": "2026-09-27T00:00:00.000Z",
+              "priceUsd": 769.2338286421078
+            },
+            {
+              "timestamp": "2026-09-28T00:00:00.000Z",
+              "priceUsd": 770.3584635343268
+            },
+            {
+              "timestamp": "2026-09-29T00:00:00.000Z",
+              "priceUsd": 763.743989176873
+            },
+            {
+              "timestamp": "2026-09-30T00:00:00.000Z",
+              "priceUsd": 764.0528992554082
+            },
+            {
+              "timestamp": "2026-10-01T00:00:00.000Z",
+              "priceUsd": 767.8122388552555
+            },
+            {
+              "timestamp": "2026-10-02T00:00:00.000Z",
+              "priceUsd": 765.2937931953252
+            },
+            {
+              "timestamp": "2026-10-03T00:00:00.000Z",
+              "priceUsd": 767.9252860340293
+            }
+          ],
+          "change7dPct": -0.24438568132212346,
+          "change30dPct": 0.2333231340185593,
+          "source": "geckoterminal",
+          "unit": "scaled-ui",
+          "interval": "1d",
+          "observedAt": "2026-10-03T00:00:00.000Z",
+          "fetchedAt": "2026-10-03T11:06:16.541Z",
+          "status": "available",
+          "refreshing": false,
+          "poolAddress": "6truu3rZuiB9rKQg4VYC3Dt3QwV7DgwGqXrYUcrvnDDE",
+          "timestampSemantics": "completed-utc-day-close"
+        },
+        {
+          "mint": "Xsc9qvGR1efVDFGLrVsmkzv3qi45LTBjeUKSPmx9qEh",
+          "range": "7d",
+          "windowEnd": "2026-10-03T00:00:00.000Z",
+          "points": [
+            {
+              "timestamp": "2026-09-26T00:00:00.000Z",
+              "priceUsd": 223.95396857803266
+            },
+            {
+              "timestamp": "2026-09-27T00:00:00.000Z",
+              "priceUsd": 224.59244193723643
+            },
+            {
+              "timestamp": "2026-09-28T00:00:00.000Z",
+              "priceUsd": 224.33544595302865
+            },
+            {
+              "timestamp": "2026-09-29T00:00:00.000Z",
+              "priceUsd": 228.71849469005363
+            },
+            {
+              "timestamp": "2026-09-30T00:00:00.000Z",
+              "priceUsd": 227.45198085637145
+            },
+            {
+              "timestamp": "2026-10-01T00:00:00.000Z",
+              "priceUsd": 229.06385902342353
+            },
+            {
+              "timestamp": "2026-10-02T00:00:00.000Z",
+              "priceUsd": 232.21920307008497
+            },
+            {
+              "timestamp": "2026-10-03T00:00:00.000Z",
+              "priceUsd": 234.64743541196597
+            }
+          ],
+          "change7dPct": 4.774850341715364,
+          "change30dPct": 4.33871517382689,
+          "source": "geckoterminal",
+          "unit": "scaled-ui",
+          "interval": "1d",
+          "observedAt": "2026-10-03T00:00:00.000Z",
+          "fetchedAt": "2026-10-03T11:46:46.563Z",
+          "status": "available",
+          "refreshing": false,
+          "poolAddress": "49iMatQtoyabsYAQc8GafVq6aeBFVDxSRH44oiatyyw6",
+          "timestampSemantics": "completed-utc-day-close"
+        }
+      ],
+      "meta": {
+        "source": "geckoterminal",
+        "unit": "scaled-ui",
+        "interval": "1d",
+        "range": "7d",
+        "windowEnd": "2026-10-03T00:00:00.000Z",
+        "pending": 0,
+        "timestampSemantics": "completed-utc-day-close"
+      }
+    },
+    "30d": {
+      "data": [
+        {
+          "mint": "XsbEhLAtcf6HdfpFZ5xEMdqW8nfAvcsP5bdudRLJzJp",
+          "range": "30d",
+          "windowEnd": "2026-10-03T00:00:00.000Z",
+          "points": [
+            {
+              "timestamp": "2026-09-03T00:00:00.000Z",
+              "priceUsd": 324.8706326874158
+            },
+            {
+              "timestamp": "2026-09-04T00:00:00.000Z",
+              "priceUsd": 326.87927224490915
+            },
+            {
+              "timestamp": "2026-09-05T00:00:00.000Z",
+              "priceUsd": 319.6893281423408
+            },
+            {
+              "timestamp": "2026-09-06T00:00:00.000Z",
+              "priceUsd": 319.7965544812737
+            },
+            {
+              "timestamp": "2026-09-07T00:00:00.000Z",
+              "priceUsd": 321.83959552631427
+            },
+            {
+              "timestamp": "2026-09-08T00:00:00.000Z",
+              "priceUsd": 319.3207232780217
+            },
+            {
+              "timestamp": "2026-09-09T00:00:00.000Z",
+              "priceUsd": 316.0575863461219
+            },
+            {
+              "timestamp": "2026-09-10T00:00:00.000Z",
+              "priceUsd": 316.62972314675255
+            },
+            {
+              "timestamp": "2026-09-11T00:00:00.000Z",
+              "priceUsd": 328.6592544179688
+            },
+            {
+              "timestamp": "2026-09-12T00:00:00.000Z",
+              "priceUsd": 336.3462343988602
+            },
+            {
+              "timestamp": "2026-09-13T00:00:00.000Z",
+              "priceUsd": 333.0292172175226
+            },
+            {
+              "timestamp": "2026-09-14T00:00:00.000Z",
+              "priceUsd": 331.2607039471898
+            },
+            {
+              "timestamp": "2026-09-15T00:00:00.000Z",
+              "priceUsd": 332.8208744107991
+            },
+            {
+              "timestamp": "2026-09-16T00:00:00.000Z",
+              "priceUsd": 328.10498282851796
+            },
+            {
+              "timestamp": "2026-09-17T00:00:00.000Z",
+              "priceUsd": 332.2807299828515
+            },
+            {
+              "timestamp": "2026-09-18T00:00:00.000Z",
+              "priceUsd": 336.6158938515343
+            },
+            {
+              "timestamp": "2026-09-19T00:00:00.000Z",
+              "priceUsd": 337.2933159922442
+            },
+            {
+              "timestamp": "2026-09-20T00:00:00.000Z",
+              "priceUsd": 335.6815342564957
+            },
+            {
+              "timestamp": "2026-09-21T00:00:00.000Z",
+              "priceUsd": 335.19686877106204
+            },
+            {
+              "timestamp": "2026-09-22T00:00:00.000Z",
+              "priceUsd": 335.7380811467202
+            },
+            {
+              "timestamp": "2026-09-23T00:00:00.000Z",
+              "priceUsd": 338.4918058133087
+            },
+            {
+              "timestamp": "2026-09-24T00:00:00.000Z",
+              "priceUsd": 335.09866981025624
+            },
+            {
+              "timestamp": "2026-09-25T00:00:00.000Z",
+              "priceUsd": 334.9844791711454
+            },
+            {
+              "timestamp": "2026-09-26T00:00:00.000Z",
+              "priceUsd": 340.55128839275085
+            },
+            {
+              "timestamp": "2026-09-27T00:00:00.000Z",
+              "priceUsd": 337.99841270448655
+            },
+            {
+              "timestamp": "2026-09-28T00:00:00.000Z",
+              "priceUsd": 338.92440773291054
+            },
+            {
+              "timestamp": "2026-09-29T00:00:00.000Z",
+              "priceUsd": 338.03534778185025
+            },
+            {
+              "timestamp": "2026-09-30T00:00:00.000Z",
+              "priceUsd": 329.813100315418
+            },
+            {
+              "timestamp": "2026-10-01T00:00:00.000Z",
+              "priceUsd": 332.23309734385214
+            },
+            {
+              "timestamp": "2026-10-02T00:00:00.000Z",
+              "priceUsd": 329.5197476144247
+            },
+            {
+              "timestamp": "2026-10-03T00:00:00.000Z",
+              "priceUsd": 337.08201212280966
+            }
+          ],
+          "change7dPct": -1.018723577971059,
+          "change30dPct": 3.758843738622386,
+          "source": "geckoterminal",
+          "unit": "scaled-ui",
+          "interval": "1d",
+          "observedAt": "2026-10-03T00:00:00.000Z",
+          "fetchedAt": "2026-10-03T11:06:14.542Z",
+          "status": "available",
+          "refreshing": false,
+          "poolAddress": "CKwJZwm7oj3nu4653N1EpDrqXbXAYXoPFiPeEnLouF8y",
+          "timestampSemantics": "completed-utc-day-close"
+        },
+        {
+          "mint": "XsoCS1TfEyfFhfvj8EtZ528L3CaKBDBRqRapnBbDF2W",
+          "range": "30d",
+          "windowEnd": "2026-10-03T00:00:00.000Z",
+          "points": [
+            {
+              "timestamp": "2026-09-03T00:00:00.000Z",
+              "priceUsd": 766.137709519281
+            },
+            {
+              "timestamp": "2026-09-04T00:00:00.000Z",
+              "priceUsd": 772.8404360939592
+            },
+            {
+              "timestamp": "2026-09-05T00:00:00.000Z",
+              "priceUsd": 771.1332179139622
+            },
+            {
+              "timestamp": "2026-09-06T00:00:00.000Z",
+              "priceUsd": 770.3446784711623
+            },
+            {
+              "timestamp": "2026-09-07T00:00:00.000Z",
+              "priceUsd": 768.7620915938288
+            },
+            {
+              "timestamp": "2026-09-08T00:00:00.000Z",
+              "priceUsd": 768.7607956729468
+            },
+            {
+              "timestamp": "2026-09-09T00:00:00.000Z",
+              "priceUsd": 757.9848109159627
+            },
+            {
+              "timestamp": "2026-09-10T00:00:00.000Z",
+              "priceUsd": 763.7251259599273
+            },
+            {
+              "timestamp": "2026-09-11T00:00:00.000Z",
+              "priceUsd": 757.3805383565115
+            },
+            {
+              "timestamp": "2026-09-12T00:00:00.000Z",
+              "priceUsd": 767.8143254734478
+            },
+            {
+              "timestamp": "2026-09-13T00:00:00.000Z",
+              "priceUsd": 771.0208347053181
+            },
+            {
+              "timestamp": "2026-09-14T00:00:00.000Z",
+              "priceUsd": 758.1445525621289
+            },
+            {
+              "timestamp": "2026-09-15T00:00:00.000Z",
+              "priceUsd": 763.1607494897412
+            },
+            {
+              "timestamp": "2026-09-16T00:00:00.000Z",
+              "priceUsd": 759.3666864518287
+            },
+            {
+              "timestamp": "2026-09-17T00:00:00.000Z",
+              "priceUsd": 759.4191301833162
+            },
+            {
+              "timestamp": "2026-09-18T00:00:00.000Z",
+              "priceUsd": 762.4943187126398
+            },
+            {
+              "timestamp": "2026-09-19T00:00:00.000Z",
+              "priceUsd": 760.298609637407
+            },
+            {
+              "timestamp": "2026-09-20T00:00:00.000Z",
+              "priceUsd": 762.752373261907
+            },
+            {
+              "timestamp": "2026-09-21T00:00:00.000Z",
+              "priceUsd": 764.6293331739706
+            },
+            {
+              "timestamp": "2026-09-22T00:00:00.000Z",
+              "priceUsd": 776.4645110550836
+            },
+            {
+              "timestamp": "2026-09-23T00:00:00.000Z",
+              "priceUsd": 775.473901452935
+            },
+            {
+              "timestamp": "2026-09-24T00:00:00.000Z",
+              "priceUsd": 770.3182352668765
+            },
+            {
+              "timestamp": "2026-09-25T00:00:00.000Z",
+              "priceUsd": 764.7914063141666
+            },
+            {
+              "timestamp": "2026-09-26T00:00:00.000Z",
+              "priceUsd": 769.8065830969934
+            },
+            {
+              "timestamp": "2026-09-27T00:00:00.000Z",
+              "priceUsd": 769.2338286421078
+            },
+            {
+              "timestamp": "2026-09-28T00:00:00.000Z",
+              "priceUsd": 770.3584635343268
+            },
+            {
+              "timestamp": "2026-09-29T00:00:00.000Z",
+              "priceUsd": 763.743989176873
+            },
+            {
+              "timestamp": "2026-09-30T00:00:00.000Z",
+              "priceUsd": 764.0528992554082
+            },
+            {
+              "timestamp": "2026-10-01T00:00:00.000Z",
+              "priceUsd": 767.8122388552555
+            },
+            {
+              "timestamp": "2026-10-02T00:00:00.000Z",
+              "priceUsd": 765.2937931953252
+            },
+            {
+              "timestamp": "2026-10-03T00:00:00.000Z",
+              "priceUsd": 767.9252860340293
+            }
+          ],
+          "change7dPct": -0.24438568132212346,
+          "change30dPct": 0.2333231340185593,
+          "source": "geckoterminal",
+          "unit": "scaled-ui",
+          "interval": "1d",
+          "observedAt": "2026-10-03T00:00:00.000Z",
+          "fetchedAt": "2026-10-03T11:06:16.541Z",
+          "status": "available",
+          "refreshing": false,
+          "poolAddress": "6truu3rZuiB9rKQg4VYC3Dt3QwV7DgwGqXrYUcrvnDDE",
+          "timestampSemantics": "completed-utc-day-close"
+        },
+        {
+          "mint": "Xsc9qvGR1efVDFGLrVsmkzv3qi45LTBjeUKSPmx9qEh",
+          "range": "30d",
+          "windowEnd": "2026-10-03T00:00:00.000Z",
+          "points": [
+            {
+              "timestamp": "2026-09-03T00:00:00.000Z",
+              "priceUsd": 224.89009474675487
+            },
+            {
+              "timestamp": "2026-09-04T00:00:00.000Z",
+              "priceUsd": 230.16035605489347
+            },
+            {
+              "timestamp": "2026-09-05T00:00:00.000Z",
+              "priceUsd": 229.20475983542428
+            },
+            {
+              "timestamp": "2026-09-06T00:00:00.000Z",
+              "priceUsd": 231.06091215666513
+            },
+            {
+              "timestamp": "2026-09-07T00:00:00.000Z",
+              "priceUsd": 230.76110509026265
+            },
+            {
+              "timestamp": "2026-09-08T00:00:00.000Z",
+              "priceUsd": 231.2011004066383
+            },
+            {
+              "timestamp": "2026-09-09T00:00:00.000Z",
+              "priceUsd": 225.7422011722627
+            },
+            {
+              "timestamp": "2026-09-10T00:00:00.000Z",
+              "priceUsd": 223.96435964902793
+            },
+            {
+              "timestamp": "2026-09-11T00:00:00.000Z",
+              "priceUsd": 218.86060540804596
+            },
+            {
+              "timestamp": "2026-09-12T00:00:00.000Z",
+              "priceUsd": 218.59600397045722
+            },
+            {
+              "timestamp": "2026-09-13T00:00:00.000Z",
+              "priceUsd": 218.6762783710568
+            },
+            {
+              "timestamp": "2026-09-14T00:00:00.000Z",
+              "priceUsd": 215.4005490322316
+            },
+            {
+              "timestamp": "2026-09-15T00:00:00.000Z",
+              "priceUsd": 212.60057469357656
+            },
+            {
+              "timestamp": "2026-09-16T00:00:00.000Z",
+              "priceUsd": 213.0502865488937
+            },
+            {
+              "timestamp": "2026-09-17T00:00:00.000Z",
+              "priceUsd": 215.85096609492317
+            },
+            {
+              "timestamp": "2026-09-18T00:00:00.000Z",
+              "priceUsd": 220.42336816797737
+            },
+            {
+              "timestamp": "2026-09-19T00:00:00.000Z",
+              "priceUsd": 222.94259210684933
+            },
+            {
+              "timestamp": "2026-09-20T00:00:00.000Z",
+              "priceUsd": 222.32074856275793
+            },
+            {
+              "timestamp": "2026-09-21T00:00:00.000Z",
+              "priceUsd": 222.84900411232334
+            },
+            {
+              "timestamp": "2026-09-22T00:00:00.000Z",
+              "priceUsd": 226.6988391638983
+            },
+            {
+              "timestamp": "2026-09-23T00:00:00.000Z",
+              "priceUsd": 229.78506934364574
+            },
+            {
+              "timestamp": "2026-09-24T00:00:00.000Z",
+              "priceUsd": 225.52387376866832
+            },
+            {
+              "timestamp": "2026-09-25T00:00:00.000Z",
+              "priceUsd": 223.55106191639544
+            },
+            {
+              "timestamp": "2026-09-26T00:00:00.000Z",
+              "priceUsd": 223.95396857803266
+            },
+            {
+              "timestamp": "2026-09-27T00:00:00.000Z",
+              "priceUsd": 224.59244193723643
+            },
+            {
+              "timestamp": "2026-09-28T00:00:00.000Z",
+              "priceUsd": 224.33544595302865
+            },
+            {
+              "timestamp": "2026-09-29T00:00:00.000Z",
+              "priceUsd": 228.71849469005363
+            },
+            {
+              "timestamp": "2026-09-30T00:00:00.000Z",
+              "priceUsd": 227.45198085637145
+            },
+            {
+              "timestamp": "2026-10-01T00:00:00.000Z",
+              "priceUsd": 229.06385902342353
+            },
+            {
+              "timestamp": "2026-10-02T00:00:00.000Z",
+              "priceUsd": 232.21920307008497
+            },
+            {
+              "timestamp": "2026-10-03T00:00:00.000Z",
+              "priceUsd": 234.64743541196597
+            }
+          ],
+          "change7dPct": 4.774850341715364,
+          "change30dPct": 4.33871517382689,
+          "source": "geckoterminal",
+          "unit": "scaled-ui",
+          "interval": "1d",
+          "observedAt": "2026-10-03T00:00:00.000Z",
+          "fetchedAt": "2026-10-03T11:46:46.563Z",
+          "status": "available",
+          "refreshing": false,
+          "poolAddress": "49iMatQtoyabsYAQc8GafVq6aeBFVDxSRH44oiatyyw6",
+          "timestampSemantics": "completed-utc-day-close"
+        }
+      ],
+      "meta": {
+        "source": "geckoterminal",
+        "unit": "scaled-ui",
+        "interval": "1d",
+        "range": "30d",
+        "windowEnd": "2026-10-03T00:00:00.000Z",
+        "pending": 0,
+        "timestampSemantics": "completed-utc-day-close"
+      }
+    }
+  },
+  "quotesAfter": {
+    "data": [
+      {
+        "mint": "XsbEhLAtcf6HdfpFZ5xEMdqW8nfAvcsP5bdudRLJzJp",
+        "priceUsd": 332.24038089616926,
+        "source": "jupiter",
+        "fetchedAt": "2026-10-02T22:59:37.494Z",
+        "observedAt": "2026-10-02T22:52:58.000Z",
+        "blockId": 452750107,
+        "decimals": 8,
+        "unit": "scaled-ui",
+        "change24hPct": 0.3484937689270459,
+        "status": "available",
+        "stale": true,
+        "freshness": "stale",
+        "refreshedAt": "2026-10-02T22:59:37.494Z",
+        "refreshReason": "priced"
+      },
+      {
+        "mint": "XsoCS1TfEyfFhfvj8EtZ528L3CaKBDBRqRapnBbDF2W",
+        "priceUsd": 769.36313049294,
+        "source": "jupiter",
+        "fetchedAt": "2026-10-02T22:59:37.494Z",
+        "observedAt": "2026-10-02T22:59:11.000Z",
+        "blockId": 452751486,
+        "decimals": 8,
+        "unit": "scaled-ui",
+        "change24hPct": 0.601930633376655,
+        "status": "available",
+        "stale": true,
+        "freshness": "stale",
+        "refreshedAt": "2026-10-02T22:59:37.494Z",
+        "refreshReason": "priced"
+      },
+      {
+        "mint": "Xsc9qvGR1efVDFGLrVsmkzv3qi45LTBjeUKSPmx9qEh",
+        "priceUsd": 234.0377079411011,
+        "source": "jupiter",
+        "fetchedAt": "2026-10-02T22:59:37.494Z",
+        "observedAt": "2026-10-02T22:59:33.000Z",
+        "blockId": 452751569,
+        "decimals": 8,
+        "unit": "scaled-ui",
+        "change24hPct": 1.1539388327839162,
+        "status": "available",
+        "stale": true,
+        "freshness": "stale",
+        "refreshedAt": "2026-10-02T22:59:37.494Z",
+        "refreshReason": "priced"
+      }
+    ],
+    "meta": {
+      "source": "jupiter-v3",
+      "unit": "scaled-ui",
+      "catalogStale": false,
+      "refreshIntervalMs": 300000,
+      "hotRefreshIntervalMs": 60000,
+      "lastFullRefreshAt": null,
+      "catalogAssetCount": 1271,
+      "pricedAssetCount": 0,
+      "cachedAssetCount": 176,
+      "refreshing": false,
+      "lastFullPass": null,
+      "marketSession": {
+        "market": "NYSE",
+        "timezone": "America/New_York",
+        "status": "closed",
+        "isOpen": false,
+        "reason": "weekend",
+        "sessionDate": "2026-10-03",
+        "opensAt": null,
+        "closesAt": null,
+        "nextOpenAt": "2026-10-05T13:30:00.000Z",
+        "earlyClose": false,
+        "calendarThrough": "2028-12-31"
+      }
+    }
+  },
+  "completedAt": "2026-10-03T11:51:24.624387+00:00",
+  "passed": true,
+  "failedChecks": [],
+  "checks": [
+    {
+      "name": "CORS /api/v1/health",
+      "passed": true,
+      "evidence": {
+        "allowOrigin": "*"
+      }
+    },
+    {
+      "name": "health and DB",
+      "passed": true,
+      "evidence": {
+        "basketCount": 6
+      }
+    },
+    {
+      "name": "subsystem indexer",
+      "passed": true,
+      "evidence": {
+        "enabled": true,
+        "running": true
+      }
+    },
+    {
+      "name": "subsystem navEngine",
+      "passed": true,
+      "evidence": {
+        "enabled": true,
+        "running": true
+      }
+    },
+    {
+      "name": "subsystem feeCrank",
+      "passed": true,
+      "evidence": {
+        "enabled": true,
+        "running": true
+      }
+    },
+    {
+      "name": "subsystem userSnapshot",
+      "passed": true,
+      "evidence": {
+        "enabled": true,
+        "running": true
+      }
+    },
+    {
+      "name": "CORS /api/v1/xstocks",
+      "passed": true,
+      "evidence": {
+        "allowOrigin": "*"
+      }
+    },
+    {
+      "name": "complete catalog baseline",
+      "passed": true,
+      "evidence": {
+        "count": 1271
+      }
+    },
+    {
+      "name": "ETF coverage",
+      "passed": true,
+      "evidence": {
+        "count": 69
+      }
+    },
+    {
+      "name": "exact mint AAPLx",
+      "passed": true
+    },
+    {
+      "name": "exact mint SPYx",
+      "passed": true
+    },
+    {
+      "name": "exact mint NVDAx",
+      "passed": true
+    },
+    {
+      "name": "CORS /api/v1/xstocks/prices",
+      "passed": true,
+      "evidence": {
+        "allowOrigin": "*"
+      }
+    },
+    {
+      "name": "closed NYSE session",
+      "passed": true,
+      "evidence": {
+        "market": "NYSE",
+        "timezone": "America/New_York",
+        "status": "closed",
+        "isOpen": false,
+        "reason": "weekend",
+        "sessionDate": "2026-10-03",
+        "opensAt": null,
+        "closesAt": null,
+        "nextOpenAt": "2026-10-05T13:30:00.000Z",
+        "earlyClose": false,
+        "calendarThrough": "2028-12-31"
+      }
+    },
+    {
+      "name": "quote metadata provenance",
+      "passed": true
+    },
+    {
+      "name": "cached quote AAPLx",
+      "passed": true
+    },
+    {
+      "name": "closed quote remains stale AAPLx",
+      "passed": true
+    },
+    {
+      "name": "seed price/asOf retained AAPLx",
+      "passed": true,
+      "evidence": {
+        "liveAsOf": "2026-10-02T22:59:37.494Z",
+        "seedAsOf": "2026-10-02T22:59:37.494Z"
+      }
+    },
+    {
+      "name": "cached quote SPYx",
+      "passed": true
+    },
+    {
+      "name": "closed quote remains stale SPYx",
+      "passed": true
+    },
+    {
+      "name": "seed price/asOf retained SPYx",
+      "passed": true,
+      "evidence": {
+        "liveAsOf": "2026-10-02T22:59:37.494Z",
+        "seedAsOf": "2026-10-02T22:59:37.494Z"
+      }
+    },
+    {
+      "name": "cached quote NVDAx",
+      "passed": true
+    },
+    {
+      "name": "closed quote remains stale NVDAx",
+      "passed": true
+    },
+    {
+      "name": "seed price/asOf retained NVDAx",
+      "passed": true,
+      "evidence": {
+        "liveAsOf": "2026-10-02T22:59:37.494Z",
+        "seedAsOf": "2026-10-02T22:59:37.494Z"
+      }
+    },
+    {
+      "name": "CORS /api/v1/xstocks/history",
+      "passed": true,
+      "evidence": {
+        "allowOrigin": "*"
+      }
+    },
+    {
+      "name": "history AAPLx 7d",
+      "passed": true,
+      "evidence": {
+        "points": 8,
+        "source": "geckoterminal",
+        "unit": "scaled-ui",
+        "first": "2026-09-26T00:00:00.000Z",
+        "last": "2026-10-03T00:00:00.000Z",
+        "fetchedAt": "2026-10-03T11:06:14.542Z",
+        "change7dPct": -1.018723577971059,
+        "change30dPct": 3.758843738622386
+      }
+    },
+    {
+      "name": "history SPYx 7d",
+      "passed": true,
+      "evidence": {
+        "points": 8,
+        "source": "geckoterminal",
+        "unit": "scaled-ui",
+        "first": "2026-09-26T00:00:00.000Z",
+        "last": "2026-10-03T00:00:00.000Z",
+        "fetchedAt": "2026-10-03T11:06:16.541Z",
+        "change7dPct": -0.24438568132212346,
+        "change30dPct": 0.2333231340185593
+      }
+    },
+    {
+      "name": "history NVDAx 7d",
+      "passed": true,
+      "evidence": {
+        "points": 8,
+        "source": "geckoterminal",
+        "unit": "scaled-ui",
+        "first": "2026-09-26T00:00:00.000Z",
+        "last": "2026-10-03T00:00:00.000Z",
+        "fetchedAt": "2026-10-03T11:46:46.563Z",
+        "change7dPct": 4.774850341715364,
+        "change30dPct": 4.33871517382689
+      }
+    },
+    {
+      "name": "CORS /api/v1/xstocks/history",
+      "passed": true,
+      "evidence": {
+        "allowOrigin": "*"
+      }
+    },
+    {
+      "name": "history AAPLx 30d",
+      "passed": true,
+      "evidence": {
+        "points": 31,
+        "source": "geckoterminal",
+        "unit": "scaled-ui",
+        "first": "2026-09-03T00:00:00.000Z",
+        "last": "2026-10-03T00:00:00.000Z",
+        "fetchedAt": "2026-10-03T11:06:14.542Z",
+        "change7dPct": -1.018723577971059,
+        "change30dPct": 3.758843738622386
+      }
+    },
+    {
+      "name": "history SPYx 30d",
+      "passed": true,
+      "evidence": {
+        "points": 31,
+        "source": "geckoterminal",
+        "unit": "scaled-ui",
+        "first": "2026-09-03T00:00:00.000Z",
+        "last": "2026-10-03T00:00:00.000Z",
+        "fetchedAt": "2026-10-03T11:06:16.541Z",
+        "change7dPct": -0.24438568132212346,
+        "change30dPct": 0.2333231340185593
+      }
+    },
+    {
+      "name": "history NVDAx 30d",
+      "passed": true,
+      "evidence": {
+        "points": 31,
+        "source": "geckoterminal",
+        "unit": "scaled-ui",
+        "first": "2026-09-03T00:00:00.000Z",
+        "last": "2026-10-03T00:00:00.000Z",
+        "fetchedAt": "2026-10-03T11:46:46.563Z",
+        "change7dPct": 4.774850341715364,
+        "change30dPct": 4.33871517382689
+      }
+    },
+    {
+      "name": "CORS /api/v1/xstocks/prices",
+      "passed": true,
+      "evidence": {
+        "allowOrigin": "*"
+      }
+    },
+    {
+      "name": "closed market source/asOf preserved",
+      "passed": true
+    },
+    {
+      "name": "quote worker remained idle",
+      "passed": true
+    }
+  ],
+  "requests": [
+    {
+      "path": "/api/v1/health",
+      "status": 200,
+      "seconds": 0.108,
+      "cors": "*"
+    },
+    {
+      "path": "/api/v1/xstocks",
+      "status": 200,
+      "seconds": 0.212,
+      "cors": "*"
+    },
+    {
+      "path": "/api/v1/xstocks/prices?mints=XsbEhLAtcf6HdfpFZ5xEMdqW8nfAvcsP5bdudRLJzJp%2CXsoCS1TfEyfFhfvj8EtZ528L3CaKBDBRqRapnBbDF2W%2CXsc9qvGR1efVDFGLrVsmkzv3qi45LTBjeUKSPmx9qEh",
+      "status": 200,
+      "seconds": 0.107,
+      "cors": "*"
+    },
+    {
+      "path": "/api/v1/xstocks/history?mints=XsbEhLAtcf6HdfpFZ5xEMdqW8nfAvcsP5bdudRLJzJp%2CXsoCS1TfEyfFhfvj8EtZ528L3CaKBDBRqRapnBbDF2W%2CXsc9qvGR1efVDFGLrVsmkzv3qi45LTBjeUKSPmx9qEh&range=7d",
+      "status": 200,
+      "seconds": 0.088,
+      "cors": "*"
+    },
+    {
+      "path": "/api/v1/xstocks/history?mints=XsbEhLAtcf6HdfpFZ5xEMdqW8nfAvcsP5bdudRLJzJp%2CXsoCS1TfEyfFhfvj8EtZ528L3CaKBDBRqRapnBbDF2W%2CXsc9qvGR1efVDFGLrVsmkzv3qi45LTBjeUKSPmx9qEh&range=30d",
+      "status": 200,
+      "seconds": 0.106,
+      "cors": "*"
+    },
+    {
+      "path": "/api/v1/xstocks/prices?mints=XsbEhLAtcf6HdfpFZ5xEMdqW8nfAvcsP5bdudRLJzJp%2CXsoCS1TfEyfFhfvj8EtZ528L3CaKBDBRqRapnBbDF2W%2CXsc9qvGR1efVDFGLrVsmkzv3qi45LTBjeUKSPmx9qEh",
+      "status": 200,
+      "seconds": 0.102,
+      "cors": "*"
+    }
+  ]
+}

@@ -88,10 +88,10 @@ ufw --force enable
 
 ## 4. Install and start the project
 
-The repository is on GitHub (`umutyesildal/foliox`). If it is public:
+The repository is on GitHub (`umutyesildal/basalt`). If it is public:
 
 ```bash
-git clone https://github.com/umutyesildal/foliox.git /opt/basalt
+git clone https://github.com/umutyesildal/basalt.git /opt/basalt
 ```
 
 If it is private, create a deploy key or transfer it from your local machine with rsync:
@@ -154,29 +154,38 @@ docker compose logs -f backend   # Look for "[db] schema applied" and indexer li
 4. Test: https://basalt-coral.vercel.app/explore should now load data from the
    live backend.
 
-### Current concept and devnet release path (2026-09-24)
+### Current release path (2026-10-03)
 
-The `basalt` Vercel project is not connected to Git. A push to `main` alone
-does not update `basalt-coral.vercel.app`. Deploy from the canonical `main`
-worktree's `app/` directory after passing `npm run typecheck`,
-`npx tsx --test tests/*.test.ts`, and `npm run build`:
+The existing `basalt` Vercel project is not connected to Git. A push alone does
+not deploy it. Build and upload from the repository root: the frontend imports
+a canonical backend fee helper. Project settings are `rootDirectory: app` and
+`sourceFilesOutsideRootDirectory: true`; `.vercelignore` excludes private
+configuration, keys, caches and unrelated outputs.
+
+After the release checks pass, deploy with production settings, verify the
+returned build, then promote that exact deployment:
 
 ```bash
-cd /Users/umutyesildal/orca/workspaces/createyouretf/createyouretf/app
-vercel deploy --prod --yes --scope yesildaladams-projects
+cd /Users/umutyesildal/orca/workspaces/createyouretf/createyouretf
+vercel deploy --prod --skip-domain --yes --project basalt --scope yesildaladams-projects
+# Use the deployment ID or URL returned above after verification:
+vercel promote DEPLOYMENT_ID_OR_URL --yes --scope yesildaladams-projects
 ```
 
-Production uses the stable devnet API at
-`https://basalt.178.104.34.252.sslip.io`, `NEXT_PUBLIC_CLUSTER=devnet`, and
-`NEXT_PUBLIC_HOME_DEMO=0`. The primary `/create` and `/preview?d=...` concept
-flow is client-side and needs no backend or wallet; `/create/onchain` and the
-separate onchain basket section still use indexed devnet data. Project mock
-tokens and reference prices must remain labeled as such. Check
-`/api/v1/health` on the API, then create a $10 concept preview and reopen its
-link in a fresh browser tab. Confirm the `/explore` sample gallery and onchain
-section both load. Before enabling automatic Git
-deployments, set the Vercel project root to `app/` and confirm the production
-branch is `main`.
+Production uses `NEXT_PUBLIC_API=https://basalt.178.104.34.252.sslip.io`,
+`NEXT_PUBLIC_CLUSTER=devnet`, a verified devnet RPC and
+`NEXT_PUBLIC_SITE_URL=https://basalt-coral.vercel.app`. Preserve the existing
+home-demo setting when updating infrastructure.
+
+The VPS uses rsync source updates under `/opt/basalt`, with no Git checkout.
+Preserve `deploy/.env`, `backend/.env.production` and existing database/Caddy
+volumes. Back up the DB, source, Compose file and running backend image, then
+build/recreate only `backend`. Do not use `down -v` for a release. Quotes and
+history persist in `backend_cache:/app/.cache`; see the
+[cache migration](../docs/backend-cache-deployment-2026-10-03.md) for genuine
+snapshot seeding outside the NYSE session. The
+[published release record](../docs/github-live-release-2026-10-03.md) gives exact
+source/image/deployment identities, rollback material and live checks.
 
 ## 7. Maintenance commands
 

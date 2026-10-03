@@ -1,0 +1,78 @@
+{
+  "readonly": true,
+  "semanticMatch": false,
+  "countBefore": 13,
+  "countAfter": 13,
+  "beforeSemanticSha256": "cee2651557efad59510b3b4e9e6db0622b6d1362b37ddfb5583e8a46b2780f83",
+  "afterSemanticSha256": "9bce04842ae9839918caf812a38fff4c8c530a0e90404091567e660bc2c78270",
+  "differences": [
+    {
+      "mint": "XsbEhLAtcf6HdfpFZ5xEMdqW8nfAvcsP5bdudRLJzJp",
+      "changedFields": [
+        "fetchedAt"
+      ],
+      "before": {
+        "mint": "XsbEhLAtcf6HdfpFZ5xEMdqW8nfAvcsP5bdudRLJzJp",
+        "points": 31,
+        "pointsSha256": "1a9b202f8b1ab17de2f36436d77cf55cb8b69de1c1bf1c2a199c1cbf05eef6c0",
+        "windowEnd": "2026-10-03T00:00:00.000Z",
+        "fetchedAt": "2026-10-03T00:08:07.977Z",
+        "poolAddress": "CKwJZwm7oj3nu4653N1EpDrqXbXAYXoPFiPeEnLouF8y"
+      },
+      "after": {
+        "mint": "XsbEhLAtcf6HdfpFZ5xEMdqW8nfAvcsP5bdudRLJzJp",
+        "points": 31,
+        "pointsSha256": "1a9b202f8b1ab17de2f36436d77cf55cb8b69de1c1bf1c2a199c1cbf05eef6c0",
+        "windowEnd": "2026-10-03T00:00:00.000Z",
+        "fetchedAt": "2026-10-03T11:06:14.542Z",
+        "poolAddress": "CKwJZwm7oj3nu4653N1EpDrqXbXAYXoPFiPeEnLouF8y"
+      }
+    },
+    {
+      "mint": "Xsc9qvGR1efVDFGLrVsmkzv3qi45LTBjeUKSPmx9qEh",
+      "changedFields": [
+        "fetchedAt",
+        "windowEnd",
+        "pointsSha256"
+      ],
+      "before": {
+        "mint": "Xsc9qvGR1efVDFGLrVsmkzv3qi45LTBjeUKSPmx9qEh",
+        "points": 31,
+        "pointsSha256": "b11b8dd8b3eb7ea08bca56a2a51b2ae2656ef8b9dc88c837961a029092fcb96f",
+        "windowEnd": "2026-10-02T00:00:00.000Z",
+        "fetchedAt": "2026-10-02T23:54:54.678Z",
+        "poolAddress": "49iMatQtoyabsYAQc8GafVq6aeBFVDxSRH44oiatyyw6"
+      },
+      "after": {
+        "mint": "Xsc9qvGR1efVDFGLrVsmkzv3qi45LTBjeUKSPmx9qEh",
+        "points": 31,
+        "pointsSha256": "08012bcac360ea7470c71d3b2855b4efc861f31bd237d2442e28b0d9d3ca6907",
+        "windowEnd": "2026-10-03T00:00:00.000Z",
+        "fetchedAt": "2026-10-03T11:46:46.563Z",
+        "poolAddress": "49iMatQtoyabsYAQc8GafVq6aeBFVDxSRH44oiatyyw6"
+      }
+    },
+    {
+      "mint": "XsoCS1TfEyfFhfvj8EtZ528L3CaKBDBRqRapnBbDF2W",
+      "changedFields": [
+        "fetchedAt"
+      ],
+      "before": {
+        "mint": "XsoCS1TfEyfFhfvj8EtZ528L3CaKBDBRqRapnBbDF2W",
+        "points": 31,
+        "pointsSha256": "5049400590ea156cd0056425a012557b6a50f532acb7b9d274b3d96a3bf2d427",
+        "windowEnd": "2026-10-03T00:00:00.000Z",
+        "fetchedAt": "2026-10-03T00:09:52.951Z",
+        "poolAddress": "6truu3rZuiB9rKQg4VYC3Dt3QwV7DgwGqXrYUcrvnDDE"
+      },
+      "after": {
+        "mint": "XsoCS1TfEyfFhfvj8EtZ528L3CaKBDBRqRapnBbDF2W",
+        "points": 31,
+        "pointsSha256": "5049400590ea156cd0056425a012557b6a50f532acb7b9d274b3d96a3bf2d427",
+        "windowEnd": "2026-10-03T00:00:00.000Z",
+        "fetchedAt": "2026-10-03T11:06:16.541Z",
+        "poolAddress": "6truu3rZuiB9rKQg4VYC3Dt3QwV7DgwGqXrYUcrvnDDE"
+      }
+    }
+  ]
+}

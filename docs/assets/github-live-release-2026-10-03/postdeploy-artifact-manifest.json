@@ -1,0 +1,26 @@
+{
+  "readonly": true,
+  "sourceCommit": "8e49be05a2fe0bbe8534dcef43b849926e835f50",
+  "runtimeChecks": 15,
+  "apiChecks": 35,
+  "publicCredentialFindings": 0,
+  "files": {
+    "basalt-postdeploy-indexer-smoke-2026-10-03.json": {
+      "sha256": "d4cb8e01b2f74ccaf49b361c6d789952df4917589e64e89eab096ed4bb2a99ac",
+      "bytes": 9608
+    },
+    "basalt-live-api-smoke-indexer-2026-10-03.json": {
+      "sha256": "aed17b353ebfa7d8ddce1d5704825ca6c25ef7c8c01efa50fafe9ebc49fa106e",
+      "bytes": 33875
+    },
+    "basalt-live-api-smoke-indexer-2026-10-03.log": {
+      "sha256": "f635ed6c62a83512e01e96a91612ce1ecc3f9453cc016d09a50a1ba176d51bdc",
+      "bytes": 4383
+    },
+    "basalt-history-cache-semantic-compare-2026-10-03.json": {
+      "sha256": "049c83f3637348b00b037e817e17218c515b74dd720c9c1bc1790fd9179a09f6",
+      "bytes": 2955
+    }
+  },
+  "privateLogExcluded": "basalt-postdeploy-indexer-private-sanitized-2026-10-03.log"
+}

@@ -1,0 +1,236 @@
+{
+  "observedAt": "2026-10-03T11:17:00.969Z",
+  "transactions": [
+    {
+      "signature": "23TPhP6GkjDCTKKutPHoJ5fPmLiCQ7ZuwLtFmJMKCJPsRxYPZDdNxZM51tRqGXuuPowM494RJ44FSyYEqfwSZ8ri",
+      "slot": 493721911,
+      "blockTime": 1788641323,
+      "failed": false,
+      "events": [
+        {
+          "type": "FeeAccrued",
+          "basket": "CZCHnprMPvBFLCs5jwApLMPj1MEUMGJ4SWr4WWzKXYCo"
+        },
+        {
+          "type": "Redeemed",
+          "basket": "CZCHnprMPvBFLCs5jwApLMPj1MEUMGJ4SWr4WWzKXYCo"
+        }
+      ],
+      "creates": [],
+      "topLevelPrograms": [
+        "ComputeBudget111111111111111111111111111111",
+        "ComputeBudget111111111111111111111111111111",
+        "6Q43vFh4aqGxzvtU2vQwJX9PmX3skfYsGWZdA3fwJB9k"
+      ]
+    },
+    {
+      "signature": "2TtU4xNcRFnpUv6dhtEnSCBaf8YhU6GTjskJ3j7L3MBboKeNBhicHUd5TvhUXkgtAwfSeiMCxcxkE8uPc73jjc6",
+      "slot": 493260981,
+      "blockTime": 1788564963,
+      "failed": false,
+      "events": [
+        {
+          "type": "FeeAccrued",
+          "basket": "CZCHnprMPvBFLCs5jwApLMPj1MEUMGJ4SWr4WWzKXYCo"
+        },
+        {
+          "type": "Minted",
+          "basket": "CZCHnprMPvBFLCs5jwApLMPj1MEUMGJ4SWr4WWzKXYCo"
+        }
+      ],
+      "creates": [],
+      "topLevelPrograms": [
+        "ComputeBudget111111111111111111111111111111",
+        "ComputeBudget111111111111111111111111111111",
+        "6Q43vFh4aqGxzvtU2vQwJX9PmX3skfYsGWZdA3fwJB9k"
+      ]
+    },
+    {
+      "signature": "4Juwg2TH6Uo5frxF7cwjZBpmBxLTcrbvHPYaGcRvWq37g3JabMjhWdxznyRdQXTJtKcaJWovC7xo6A896PgX9VML",
+      "slot": 493264834,
+      "blockTime": 1788565601,
+      "failed": false,
+      "events": [
+        {
+          "type": "FeeAccrued",
+          "basket": "CZCHnprMPvBFLCs5jwApLMPj1MEUMGJ4SWr4WWzKXYCo"
+        },
+        {
+          "type": "Minted",
+          "basket": "CZCHnprMPvBFLCs5jwApLMPj1MEUMGJ4SWr4WWzKXYCo"
+        }
+      ],
+      "creates": [],
+      "topLevelPrograms": [
+        "ComputeBudget111111111111111111111111111111",
+        "ComputeBudget111111111111111111111111111111",
+        "6Q43vFh4aqGxzvtU2vQwJX9PmX3skfYsGWZdA3fwJB9k"
+      ]
+    },
+    {
+      "signature": "4uEmjojodMXBBPHgVTPZ5nh9r5Lm7pYMnMwUJUCMEfG7W8jyHgocgw8ow1naceAZyJvUrH1LrkHCd6ie8ewrtdVL",
+      "slot": 493268544,
+      "blockTime": 1788566218,
+      "failed": false,
+      "events": [
+        {
+          "type": "FeeAccrued",
+          "basket": "CZCHnprMPvBFLCs5jwApLMPj1MEUMGJ4SWr4WWzKXYCo"
+        },
+        {
+          "type": "Minted",
+          "basket": "CZCHnprMPvBFLCs5jwApLMPj1MEUMGJ4SWr4WWzKXYCo"
+        }
+      ],
+      "creates": [],
+      "topLevelPrograms": [
+        "ComputeBudget111111111111111111111111111111",
+        "ComputeBudget111111111111111111111111111111",
+        "6Q43vFh4aqGxzvtU2vQwJX9PmX3skfYsGWZdA3fwJB9k"
+      ]
+    },
+    {
+      "signature": "56FeZdiYfPmdKFyEFB5pSNGwURJ3M57jvQiPG1vsFkZaizqncx6my4Lu4GfbqVEYUFWt76Btt1HXLb5PMAZu3pRd",
+      "slot": 493238774,
+      "blockTime": 1788561282,
+      "failed": false,
+      "events": [
+        {
+          "type": "FeeAccrued",
+          "basket": "CZCHnprMPvBFLCs5jwApLMPj1MEUMGJ4SWr4WWzKXYCo"
+        },
+        {
+          "type": "Redeemed",
+          "basket": "CZCHnprMPvBFLCs5jwApLMPj1MEUMGJ4SWr4WWzKXYCo"
+        }
+      ],
+      "creates": [],
+      "topLevelPrograms": [
+        "ComputeBudget111111111111111111111111111111",
+        "ComputeBudget111111111111111111111111111111",
+        "6Q43vFh4aqGxzvtU2vQwJX9PmX3skfYsGWZdA3fwJB9k"
+      ]
+    },
+    {
+      "signature": "5P5ge92vEL7LYNmtRET4NZqMSbtMqMpau9tFQJGTsGfBmLfeq59eQfbhSFkmUuqRihiSV5EvAaiEAyDSRa1RERSp",
+      "slot": 493239464,
+      "blockTime": 1788561397,
+      "failed": false,
+      "events": [
+        {
+          "type": "FeeAccrued",
+          "basket": "CZCHnprMPvBFLCs5jwApLMPj1MEUMGJ4SWr4WWzKXYCo"
+        },
+        {
+          "type": "Minted",
+          "basket": "CZCHnprMPvBFLCs5jwApLMPj1MEUMGJ4SWr4WWzKXYCo"
+        }
+      ],
+      "creates": [],
+      "topLevelPrograms": [
+        "ComputeBudget111111111111111111111111111111",
+        "ComputeBudget111111111111111111111111111111",
+        "6Q43vFh4aqGxzvtU2vQwJX9PmX3skfYsGWZdA3fwJB9k"
+      ]
+    },
+    {
+      "signature": "5aDq9yfftyj5xSXqtNHX3Q7caiiBLPfvGu1r6Fs7csNM6AQ3YUuZ8oeWB2Zx4EVqAj91PHm186AwtfFMLctZH9Z",
+      "slot": 493720982,
+      "blockTime": 1788641170,
+      "failed": false,
+      "events": [
+        {
+          "type": "FeeAccrued",
+          "basket": "CZCHnprMPvBFLCs5jwApLMPj1MEUMGJ4SWr4WWzKXYCo"
+        },
+        {
+          "type": "Minted",
+          "basket": "CZCHnprMPvBFLCs5jwApLMPj1MEUMGJ4SWr4WWzKXYCo"
+        }
+      ],
+      "creates": [],
+      "topLevelPrograms": [
+        "ComputeBudget111111111111111111111111111111",
+        "ComputeBudget111111111111111111111111111111",
+        "6Q43vFh4aqGxzvtU2vQwJX9PmX3skfYsGWZdA3fwJB9k"
+      ]
+    },
+    {
+      "signature": "5qNfyDyQn1sG6NrAcpvojDXRA5wkTjQtNqYrupu22mfqz3okuXMrGFVywXDiRdKjBHiiVsbxMDgPvCLoJSYibT79",
+      "slot": 493239537,
+      "blockTime": 1788561409,
+      "failed": false,
+      "events": [
+        {
+          "type": "FeeAccrued",
+          "basket": "CZCHnprMPvBFLCs5jwApLMPj1MEUMGJ4SWr4WWzKXYCo"
+        },
+        {
+          "type": "Redeemed",
+          "basket": "CZCHnprMPvBFLCs5jwApLMPj1MEUMGJ4SWr4WWzKXYCo"
+        }
+      ],
+      "creates": [],
+      "topLevelPrograms": [
+        "ComputeBudget111111111111111111111111111111",
+        "ComputeBudget111111111111111111111111111111",
+        "6Q43vFh4aqGxzvtU2vQwJX9PmX3skfYsGWZdA3fwJB9k"
+      ]
+    },
+    {
+      "signature": "Fjeo2ecpFRnNKU9rRJd1FWE3wvvUp2xSZBsStwhqt65ekf7r476kNMbberG1baouLaocdNDJfAQQHt5StNqtJFb",
+      "slot": 493238732,
+      "blockTime": 1788561275,
+      "failed": false,
+      "events": [
+        {
+          "type": "FeeAccrued",
+          "basket": "CZCHnprMPvBFLCs5jwApLMPj1MEUMGJ4SWr4WWzKXYCo"
+        },
+        {
+          "type": "Minted",
+          "basket": "CZCHnprMPvBFLCs5jwApLMPj1MEUMGJ4SWr4WWzKXYCo"
+        }
+      ],
+      "creates": [],
+      "topLevelPrograms": [
+        "ComputeBudget111111111111111111111111111111",
+        "ComputeBudget111111111111111111111111111111",
+        "6Q43vFh4aqGxzvtU2vQwJX9PmX3skfYsGWZdA3fwJB9k"
+      ]
+    },
+    {
+      "signature": "j8dWHzhjkcj5BAtJPrr9Cm3ch39UxmaYFi53LP5JwfxqTUsZ8x6V8sSp2ukVxASrWyuC8w3yNX7fUxmiiEZWWee",
+      "slot": 493269240,
+      "blockTime": 1788566332,
+      "failed": false,
+      "events": [
+        {
+          "type": "FeeAccrued",
+          "basket": "CZCHnprMPvBFLCs5jwApLMPj1MEUMGJ4SWr4WWzKXYCo"
+        },
+        {
+          "type": "Minted",
+          "basket": "CZCHnprMPvBFLCs5jwApLMPj1MEUMGJ4SWr4WWzKXYCo"
+        }
+      ],
+      "creates": [],
+      "topLevelPrograms": [
+        "ComputeBudget111111111111111111111111111111",
+        "ComputeBudget111111111111111111111111111111",
+        "6Q43vFh4aqGxzvtU2vQwJX9PmX3skfYsGWZdA3fwJB9k"
+      ]
+    }
+  ],
+  "accounts": [
+    {
+      "address": "CZCHnprMPvBFLCs5jwApLMPj1MEUMGJ4SWr4WWzKXYCo",
+      "exists": true,
+      "owner": "6Q43vFh4aqGxzvtU2vQwJX9PmX3skfYsGWZdA3fwJB9k",
+      "dataLength": 888,
+      "discriminator": "db4f6b87e7f3daf8",
+      "factory": "CfxquMe4MAPksEEsVyw8XmcxYH5W7qftRWNySgHjLi6e",
+      "creator": "y72KA263br7MtZw7BqC2dx5QYCBUciJGzShE8BRSwRE"
+    }
+  ]
+}
