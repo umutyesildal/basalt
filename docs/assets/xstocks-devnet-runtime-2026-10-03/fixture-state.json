@@ -1,0 +1,63 @@
+{
+  "version": 1,
+  "cluster": "devnet",
+  "genesisHash": "EtWTRABZaYq6iMfeYKouRu166VU2xqa1wcaWoxPkrZBG",
+  "profile": "xstocks-eight-extension-devnet-mock-v1",
+  "payer": "y72KA263br7MtZw7BqC2dx5QYCBUciJGzShE8BRSwRE",
+  "createdAt": "2026-10-03T00:45:30.718Z",
+  "updatedAt": "2026-10-03T00:45:55.708Z",
+  "mocks": [
+    {
+      "letter": "A",
+      "symbol": "BSTESTA",
+      "multiplier": 1,
+      "name": "Basalt devnet fixture A",
+      "mint": "CrjoC7fq5XAbdej5zjinKNGXVqo8E8qCmh8XSiu2QViQ",
+      "decimals": 8,
+      "signatures": {
+        "create": "28rKfoo3uvifJXMtREYufYPoasm8xLiTjdFSvSkyyAe1jazEytvpPwPrBK45j7TF4Surn1weRKkMJ4aAAmgPFC5W",
+        "fund": "RRaBMREurhedWz1EconLRoStfggCxC85EKYCiqkoMdSP28S61heMVQciLmxByuCpmwNUkaE49xh9ShjmG9zT9sz",
+        "whitelist": "5yyoSAcJ7uB4itTYy1SuZ15c4H23KrLDuNMaPuvtXnKCYALtJQ8WdzSzJoKSXigPno1p2R3iBFdrzfQsDoHQebVu"
+      }
+    },
+    {
+      "letter": "B",
+      "symbol": "BSTESTB",
+      "multiplier": 1.25,
+      "name": "Basalt devnet fixture B",
+      "mint": "EpH2swtxW2rCuFg2o2ukD5Qw5Xv3toaug1M3mbcB4hab",
+      "decimals": 8,
+      "signatures": {
+        "create": "4Cyt2rjox9XDDe8vnCJQr6EuwKE77Fo7i6shm6Jbf5bgg27oBBnf37EZkmwmEFcmMUYnvbfvGUQpEYHK12ZsadVS",
+        "fund": "f5keCzoQhkL1oBYBH47yt9AJWDvrpUd2Zi41X4tWFSmbbVtccih6AFfsLbsii6t9MFJAD22thMxKXYdKGbt63D9",
+        "whitelist": "3NxTp582ACvqHrpGrtUFGJFY2oof9JBmK3SCHHVywFH9b5TZcXUogey6HzCFEVHXvzJ4YuFZcrnPdqUt73erwzq6"
+      }
+    },
+    {
+      "letter": "C",
+      "symbol": "BSTESTC",
+      "multiplier": 2,
+      "name": "Basalt devnet fixture C",
+      "mint": "5G1hMSqs2nWKaFQt737FTxwnruPgeQqQWZ2FRoqxvehA",
+      "decimals": 8,
+      "signatures": {
+        "create": "4rxu9tqRC5CD5EEa4N7cEEkbDZHGzeJ82bnvPT9UzDVhvmFMRuiMkdg45hjtzUESBZ8KT2JYeNb5HV2AM83FFvGR",
+        "fund": "5ieLgoC4p4m2Zk5F1VkstXyo7xALmq5jNTiE9MG2123cW4WFN1zzcW18RjAf3RJhKaVDPakHSYrNA9BJWSs7ry5",
+        "whitelist": "2unSH164pVeJ9k3svhPna9rZHH8xaGWi6bZfhSsQ8bemLE1LV4duuPX47W7L85V4ZKeskBnGCwA4YLG7DgZNVjRz"
+      }
+    },
+    {
+      "letter": "D",
+      "symbol": "BSTESTD",
+      "multiplier": 10,
+      "name": "Basalt devnet fixture D",
+      "mint": "8W2hrfJPPrXEBjs5gDgpVZcs8HsELeHkBaqSjnUvgJUq",
+      "decimals": 8,
+      "signatures": {
+        "create": "j81vUnKMoWa1QNu1xbpSfHBz2rSkVWUVJxK6yhoxMWHQLWD6mzRktDJNbe9RkrDz69fH47Rvf5hTshfCxWiLoRr",
+        "fund": "4nYbRE4YiuKiyvQd484732YUd45yiM6bCGnfix1HHGvXAyZbd1KG46mW8uyBtWLP5Twg1Yv8GhcKsFzH9R9E98m7",
+        "whitelist": "5381WwDctKj2eW1MsF3nckyXcFE6LZMPuSedSbXqJv1EyjicbcvZ7xBEZxSScT2sEWojGQ6mKwXRptQuzPvgUezU"
+      }
+    }
+  ]
+}

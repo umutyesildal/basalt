@@ -1,0 +1,6 @@
+{
+  "source": "https://github.com/solana-program/token-2022/blob/main/interface/src/extension/confidential_transfer/instruction.rs",
+  "schema": "TokenInstruction::ConfidentialTransferExtension=27, InitializeMint=0, authority OptionalNonZeroPubkey 32 bytes, auto_approve_new_accounts PodBool 1 byte, auditor_elgamal_pubkey OptionalNonZeroElGamalPubkey 32 bytes",
+  "authorityHex": "0707070707070707070707070707070707070707070707070707070707070707",
+  "instructionHex": "1b000707070707070707070707070707070707070707070707070707070707070707000000000000000000000000000000000000000000000000000000000000000000"
+}

@@ -1,0 +1,10 @@
+
+ RUN  v1.6.1 /Users/umutyesildal/orca/workspaces/createyouretf/createyouretf
+
+ ✓ app/components/devnet/amounts.test.ts  (5 tests) 3ms
+ ✓ app/tests/sign-and-send-local.test.ts  (9 tests) 32ms
+
+ Test Files  2 passed (2)
+      Tests  14 passed (14)
+   Start at  11:08:06
+   Duration  446ms (transform 115ms, setup 0ms, collect 245ms, tests 35ms, environment 0ms, prepare 110ms)

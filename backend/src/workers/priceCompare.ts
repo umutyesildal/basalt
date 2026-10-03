@@ -1,4 +1,5 @@
-import { fetchPrices } from "./priceFetch.js";
+import { fetchPriceQuotes } from "./priceFetch.js";
+import { getXStockCatalog, getCachedXStockCatalog, findXStockAsset } from "../catalog/xstocks.js";
 import { fetchYahooSeries, fetchYahooPrice } from "./yahooFetch.js";
 import {
   realisticMockQuote,
@@ -10,13 +11,14 @@ import {
   isMockPriceSource,
   mockPriceForPriceSource,
 } from "../catalog/mockStocks.js";
+import { getNyseMarketSession, type MarketSession } from "./marketSession.js";
 import type { PgLike } from "../db/client.js";
 
 /**
  * One row of GET /api/v1/prices/compare. `source` (optional, additive — the
  * Create wizard only reads ticker/mint/jupiter) says where `jupiter` came
  * from:
- *   "jupiter"     — live Jupiter Price v6 (real mainnet xStock mints)
+ *   "jupiter"     — live Jupiter Price V3 (real mainnet xStock mints)
  *   "yahoo"       — REAL US-equity market spot quote (guarded Yahoo chart API);
  *                   on devnet the mock:<slug> mints track their real equity, so
  *                   both legs reference the same real quote (diffBps 0)
@@ -31,18 +33,6 @@ export interface CompareTick {
   diffBps: number | null;
   source?: "jupiter" | "yahoo" | "mock" | "unavailable";
 }
-
-export const TICKER_MINTS: Record<string, string> = {
-  // Gerçek Backed xStocks mintleri — Solscan doğrulandı (2025-06-30)
-  TSLAx: "XsDoVfqeBukxuZHWhdvWHBhgEHjGNst4MLodqsJHzoB",
-  AAPLx: "XsbEhLAtcf6HdfpFZ5xEMdqW8nfAvcsP5bdudRLJzJp",
-  NVDAx: "Xsc9qvGR1efVDFGLrVsmkzv3qi45LTBjeUKSPmx9qEh",
-  SPYx:  "XsoCS1TfEyfFhfvj8EtZ528L3CaKBDBRqRapnBbDF2W",
-};
-
-export const YAHOO_MAP: Record<string,string> = {
-  TSLAx: "TSLA", AAPLx: "AAPL", NVDAx: "NVDA", SPYx: "SPY",
-};
 
 // --- mock-mint resolution (devnet "mock:<slug>" whitelist rows) --------------
 
@@ -147,74 +137,63 @@ export interface CompareOptions {
    * the deterministic catalog, then to null (never fabricated).
    */
   mockRows?: MockMintRow[];
+  market?: "mainnet" | "devnet";
+  fetchUnderlyingPrice?: typeof fetchYahooPrice;
+  fetchImpl?: typeof fetch;
+  now?: () => Date;
+  marketSession?: (now: Date) => MarketSession;
 }
 
 export async function comparePrices(
-  tickers: string[] = Object.keys(TICKER_MINTS),
+  tickers: string[] = ["TSLAx", "AAPLx", "NVDAx", "SPYx"],
   opts: CompareOptions = {},
 ): Promise<CompareTick[]> {
-  const mockIndex = buildMockIndex(opts.mockRows ?? []);
-  const legacyTickers = tickers.filter((t) => TICKER_MINTS[t] !== undefined);
-  const mints = legacyTickers.map((t) => TICKER_MINTS[t]);
-
-  let jupiterMap: Record<string, number> = {};
-  let useMock = false;
-  if (mints.length > 0) {
-    try {
-      jupiterMap = await fetchPrices(mints);
-      const hasAny = Object.values(jupiterMap).some((v) => v > 0);
-      if (!hasAny) useMock = true;
-    } catch {
-      useMock = true;
-    }
-  }
-
-  const out: CompareTick[] = [];
-  for (const ticker of tickers) {
-    const mint = TICKER_MINTS[ticker];
-    if (mint === undefined) {
-      // Not a real Backed mint — try the devnet mock whitelist resolution.
+  // Dev fixtures require an explicit market choice; never cross-fill a mainnet quote.
+  if (opts.market === "devnet") {
+    const mockIndex = buildMockIndex(opts.mockRows ?? []);
+    return Promise.all(tickers.map(ticker => {
       const entry = mockIndex[ticker.trim().toUpperCase()];
-      out.push(entry ? await mockCompareTick(ticker, entry)
-                     : { ticker, mint: "", jupiter: null, yahoo: null, diffBps: null, source: "unavailable" });
-      continue;
-    }
-    const yahooSym = YAHOO_MAP[ticker];
-    const yahoo = yahooSym ? await fetchYahooPrice(yahooSym) : null;
-    let jupiter: number | null = jupiterMap[mint] ?? null;
-    let source: NonNullable<CompareTick["source"]> = "jupiter";
-    if (useMock || jupiter == null || jupiter === 0) {
-      // Mock'u gerçekçi yap: Yahoo fiyatının %99.5-100.5 arası jitter, gerçek depeg simülasyonu
-      jupiter = yahoo != null ? Number((yahoo * (0.998 + Math.random() * 0.004)).toFixed(2)) : null;
-      source = jupiter != null ? "yahoo" : "unavailable";
-    }
-    const diffBps = (jupiter != null && yahoo != null && yahoo !== 0) ? Math.round((jupiter - yahoo) / yahoo * 10000) : null;
-    out.push({ ticker, mint, jupiter, yahoo, diffBps, source });
+      return entry ? mockCompareTick(ticker, entry)
+        : { ticker, mint: "", jupiter: null, yahoo: null, diffBps: null, source: "unavailable" as const };
+    }));
   }
-  return out;
-}
-
-export async function getChartSeries(ticker: string, range="1mo") {
-  const mint = TICKER_MINTS[ticker];
-  const yahooSym = YAHOO_MAP[ticker];
-  const [yahoo, nasdaq] = await Promise.all([
-    yahooSym ? fetchYahooSeries(yahooSym, range, "1d").catch(()=>({symbol:yahooSym,candles:[]})) : {symbol:"",candles:[]},
-    fetchYahooSeries("QQQ", range, "1d").catch(()=>({symbol:"QQQ",candles:[]})),
-  ]);
-  // xStock series: mock OHLCV from yahoo jitter (real would be Jupiter snapshots)
-  const xStockCandles = yahoo.candles.map(c=>({
-    ts:c.ts,
-    open: c.open * (0.995 + Math.random()*0.01),
-    high: c.high * (0.995 + Math.random()*0.01),
-    low: c.low * (0.995 + Math.random()*0.01),
-    close: c.close * (0.995 + Math.random()*0.01),
-    volume: c.volume,
+  const open = () => (opts.marketSession ?? getNyseMarketSession)((opts.now ?? (() => new Date()))()).isOpen;
+  const catalog = open() ? await getXStockCatalog({ fetchImpl: async (input, init) => {
+    if (!open()) throw new Error("NYSE session closed");
+    return (opts.fetchImpl ?? fetch)(input, init);
+  }, now: opts.now }) : getCachedXStockCatalog(opts.now);
+  const assets = tickers.map(ticker => findXStockAsset(catalog, ticker));
+  const quotes = await fetchPriceQuotes(assets.flatMap(asset => asset ? [asset.mint] : []), {
+    fetchImpl: opts.fetchImpl, now: opts.now, fallback: "none", marketSession: opts.marketSession,
+  });
+  return Promise.all(tickers.map(async (ticker, index): Promise<CompareTick> => {
+    const asset = assets[index];
+    if (!asset) {
+      return { ticker, mint: "", jupiter: null, yahoo: null, diffBps: null, source: "unavailable" };
+    }
+    const yahoo = open() ? await (opts.fetchUnderlyingPrice ?? fetchYahooPrice)(asset.underlyingSymbol).catch(() => null) : null;
+    const jupiter = quotes[asset.mint]?.price ?? null;
+    const diffBps = jupiter !== null && yahoo !== null && yahoo > 0
+      ? Math.round((jupiter - yahoo) / yahoo * 10000) : null;
+    return { ticker: asset.symbol, mint: asset.mint, jupiter, yahoo, diffBps,
+      source: jupiter !== null ? "jupiter" : "unavailable" };
   }));
-  return { ticker, mint, yahoo, xStock: { symbol: ticker, candles: xStockCandles }, nasdaq };
 }
 
-export async function getOHLCSeries(ticker: string, range="1mo") {
-  const yahooSym = YAHOO_MAP[ticker] || ticker;
-  const series = await fetchYahooSeries(yahooSym, range, "1d").catch(()=>({symbol:yahooSym,candles:[]}));
-  return series;
+/** Underlying price history is a reference only. We do not manufacture token OHLC. */
+export async function getChartSeries(ticker: string, range = "1mo") {
+  const asset = findXStockAsset(await getXStockCatalog(), ticker);
+  const underlying = asset?.underlyingSymbol;
+  const [yahoo, nasdaq] = await Promise.all([
+    underlying ? fetchYahooSeries(underlying, range, "1d").catch(() => ({ symbol: underlying, candles: [] })) : { symbol: "", candles: [] },
+    fetchYahooSeries("QQQ", range, "1d").catch(() => ({ symbol: "QQQ", candles: [] })),
+  ]);
+  return { ticker: asset?.symbol ?? ticker, mint: asset?.mint ?? null, yahoo,
+    xStock: { symbol: asset?.symbol ?? ticker, candles: [], source: "unavailable" },
+    nasdaq, historySource: "underlying-reference" };
+}
+export async function getOHLCSeries(ticker: string, range = "1mo") {
+  const asset = findXStockAsset(await getXStockCatalog(), ticker);
+  const underlying = asset?.underlyingSymbol ?? ticker;
+  return fetchYahooSeries(underlying, range, "1d").catch(() => ({ symbol: underlying, candles: [] }));
 }

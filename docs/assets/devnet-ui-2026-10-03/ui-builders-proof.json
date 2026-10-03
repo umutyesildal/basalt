@@ -1,0 +1,408 @@
+{
+  "version": 1,
+  "cluster": "devnet",
+  "wallet": "7H6p7PNL7hFB6PPnCcQ7YeWzPuVJBChXGnhEA1xTxVjN",
+  "startedAt": "2026-10-03T08:51:44.543Z",
+  "transactions": [
+    {
+      "signature": "ei68cZRDMjvTsBDPzibc9miy8moYHWyv1AH3PoHursmoxiJ6oUb511UXK3Lw97gJQRiRx2Y4WwvtqYvzbzBosoV",
+      "bytes": 912,
+      "stage": "confirmed-success",
+      "programIds": [
+        "7H6p7PNL7hFB6PPnCcQ7YeWzPuVJBChXGnhEA1xTxVjN",
+        "Ga24ANf3piB7jrkAKreTFh1PsNYwJMwUj6Rk9HgGXN1w",
+        "AddressLookupTab1e1111111111111111111111111",
+        "11111111111111111111111111111111"
+      ],
+      "slot": 506940148,
+      "computeUnits": 22141
+    },
+    {
+      "signature": "cadiQqiA8bcs3RwuxCMVAVpgrWSjqmRwk2zTEnsgGiTyfX2CTzEY4J8LXHCULfXnTPGQyUQA4PR6YVEzQVRHYuj",
+      "bytes": 508,
+      "stage": "confirmed-success",
+      "programIds": [
+        "7H6p7PNL7hFB6PPnCcQ7YeWzPuVJBChXGnhEA1xTxVjN",
+        "Ga24ANf3piB7jrkAKreTFh1PsNYwJMwUj6Rk9HgGXN1w",
+        "AddressLookupTab1e1111111111111111111111111",
+        "11111111111111111111111111111111"
+      ],
+      "slot": 506940160,
+      "computeUnits": 8130
+    },
+    {
+      "signature": "6SYBn4koYgzYuvo2bNaaHP8GiPowe6uDSPLxrE79yByX6pZSwVP1WtdzaJMJ7V7j3sHJt2ZivKhwZREtUCYGHVD",
+      "bytes": 543,
+      "stage": "confirmed-success",
+      "programIds": [
+        "7H6p7PNL7hFB6PPnCcQ7YeWzPuVJBChXGnhEA1xTxVjN",
+        "ComputeBudget111111111111111111111111111111",
+        "3hzoPep9JKgTmzLT6CNW5x3EN7WNYDevM6KHVM7pLgMF"
+      ],
+      "slot": 506940178,
+      "computeUnits": 281046
+    },
+    {
+      "signature": "4ZZWiPoFK62iNmjQHn9qrx5Ha42UKeUWgPC31WdQUwaUJaY79CAek3vg11nvxKdSNtTkaTGGMFrxZLGid2wkij5Z",
+      "bytes": 912,
+      "stage": "confirmed-success",
+      "programIds": [
+        "7H6p7PNL7hFB6PPnCcQ7YeWzPuVJBChXGnhEA1xTxVjN",
+        "HZ4wopp4VCCdPFFXq68esevpnMFp6Ax9ZsrQvB2dMV5y",
+        "AddressLookupTab1e1111111111111111111111111",
+        "11111111111111111111111111111111"
+      ],
+      "slot": 506940194,
+      "computeUnits": 22141
+    },
+    {
+      "signature": "32apco5LSi9VMn4hRJ5XEYngDL92xzDvYV41vFFtLPcK2gZ2osqwYCPJcUeJSH4qMXtUHA8DErdFv3Fma3RE52Bu",
+      "bytes": 476,
+      "stage": "confirmed-success",
+      "programIds": [
+        "7H6p7PNL7hFB6PPnCcQ7YeWzPuVJBChXGnhEA1xTxVjN",
+        "HZ4wopp4VCCdPFFXq68esevpnMFp6Ax9ZsrQvB2dMV5y",
+        "AddressLookupTab1e1111111111111111111111111",
+        "11111111111111111111111111111111"
+      ],
+      "slot": 506940206,
+      "computeUnits": 7836
+    },
+    {
+      "signature": "64hBPks7JZZs2bwrihxgfvPjTDwoFFo2GTLMQXKWWab9KnRgozxET4HZwvhpyheYGS3CkGNbvT5SfxU7w3UZzykV",
+      "bytes": 390,
+      "stage": "confirmed-success",
+      "programIds": [
+        "7H6p7PNL7hFB6PPnCcQ7YeWzPuVJBChXGnhEA1xTxVjN",
+        "ComputeBudget111111111111111111111111111111",
+        "6Q43vFh4aqGxzvtU2vQwJX9PmX3skfYsGWZdA3fwJB9k"
+      ],
+      "slot": 506940227,
+      "computeUnits": 104298
+    },
+    {
+      "signature": "3rsAcebtD8fKTX4boTK5y9vgyLUchnaeCajV4Kq6rw4Ww38wLt5AttTinJJrYkSWqdE257d5yzmj83xUrsU4iQdi",
+      "bytes": 354,
+      "stage": "confirmed-success",
+      "programIds": [
+        "7H6p7PNL7hFB6PPnCcQ7YeWzPuVJBChXGnhEA1xTxVjN",
+        "ComputeBudget111111111111111111111111111111",
+        "6Q43vFh4aqGxzvtU2vQwJX9PmX3skfYsGWZdA3fwJB9k"
+      ],
+      "slot": 506940240,
+      "computeUnits": 82929
+    }
+  ],
+  "assertions": [
+    "Wallet has a bounded devnet rent/fee budget",
+    "Serialized UI transaction fits the packet limit",
+    "Serialized UI transaction fits the packet limit",
+    "Serialized UI transaction fits the packet limit",
+    "Genesis creates exactly 1,000,000 raw shares in the wallet",
+    "Immutable metadata hash matches the UI draft",
+    "Create vault raw balances match the UI seed vector",
+    "Serialized UI transaction fits the packet limit",
+    "Serialized UI transaction fits the packet limit",
+    "Serialized UI transaction fits the packet limit",
+    "Mint supply follows the canonical checkpoint and gross share formula",
+    "Mint credits the reviewed wallet with its net shares and creator fee shares",
+    "Mint credits each vault exactly in raw units",
+    "Mint debits the wallet exactly in raw units",
+    "Serialized UI transaction fits the packet limit",
+    "Redeem burns the requested shares after canonical fee checkpoint",
+    "Redeem burns shares from the reviewed wallet and preserves creator fee shares",
+    "Redeem removes exact pro-rata raw assets from every vault",
+    "Redeem returns exact pro-rata raw assets to the wallet",
+    "All shipped UI builder transactions are finalized"
+  ],
+  "complete": true,
+  "initialWallet": {
+    "wallet": "7H6p7PNL7hFB6PPnCcQ7YeWzPuVJBChXGnhEA1xTxVjN",
+    "solBalance": 53751680,
+    "mintFacts": [
+      {
+        "mint": "CrjoC7fq5XAbdej5zjinKNGXVqo8E8qCmh8XSiu2QViQ",
+        "decimals": 8,
+        "multiplier": 1
+      },
+      {
+        "mint": "EpH2swtxW2rCuFg2o2ukD5Qw5Xv3toaug1M3mbcB4hab",
+        "decimals": 8,
+        "multiplier": 1.25
+      },
+      {
+        "mint": "5G1hMSqs2nWKaFQt737FTxwnruPgeQqQWZ2FRoqxvehA",
+        "decimals": 8,
+        "multiplier": 2
+      },
+      {
+        "mint": "8W2hrfJPPrXEBjs5gDgpVZcs8HsELeHkBaqSjnUvgJUq",
+        "decimals": 8,
+        "multiplier": 10
+      }
+    ],
+    "whitelistStatuses": [
+      "Active",
+      "Active",
+      "Active",
+      "Active"
+    ],
+    "walletBalances": [
+      {
+        "mint": "CrjoC7fq5XAbdej5zjinKNGXVqo8E8qCmh8XSiu2QViQ",
+        "rawAmount": "100000000000",
+        "exists": true
+      },
+      {
+        "mint": "EpH2swtxW2rCuFg2o2ukD5Qw5Xv3toaug1M3mbcB4hab",
+        "rawAmount": "100000000000",
+        "exists": true
+      },
+      {
+        "mint": "5G1hMSqs2nWKaFQt737FTxwnruPgeQqQWZ2FRoqxvehA",
+        "rawAmount": "100000000000",
+        "exists": true
+      },
+      {
+        "mint": "8W2hrfJPPrXEBjs5gDgpVZcs8HsELeHkBaqSjnUvgJUq",
+        "rawAmount": "100000000000",
+        "exists": true
+      }
+    ]
+  },
+  "basket": "9PoTEPsCjew9NtYA9MLTjDapMsW1ZdW4dgokdGzmPimB",
+  "shareMint": "9UPqD8gfePPEMpEy67pCitvwqr4V58jTcFzSkPB2P3A9",
+  "metadataHash": "ce41536c0f813e87dce19cad96511a0c81c6eca0a1609eb968d92e70c5c8413a",
+  "finalized": {
+    "context": {
+      "apiVersion": "4.4.0-beta.0",
+      "slot": 506940268
+    },
+    "value": [
+      {
+        "confirmationStatus": "finalized",
+        "confirmations": null,
+        "err": null,
+        "slot": 506940148,
+        "status": {
+          "Ok": null
+        }
+      },
+      {
+        "confirmationStatus": "finalized",
+        "confirmations": null,
+        "err": null,
+        "slot": 506940160,
+        "status": {
+          "Ok": null
+        }
+      },
+      {
+        "confirmationStatus": "finalized",
+        "confirmations": null,
+        "err": null,
+        "slot": 506940178,
+        "status": {
+          "Ok": null
+        }
+      },
+      {
+        "confirmationStatus": "finalized",
+        "confirmations": null,
+        "err": null,
+        "slot": 506940194,
+        "status": {
+          "Ok": null
+        }
+      },
+      {
+        "confirmationStatus": "finalized",
+        "confirmations": null,
+        "err": null,
+        "slot": 506940206,
+        "status": {
+          "Ok": null
+        }
+      },
+      {
+        "confirmationStatus": "finalized",
+        "confirmations": null,
+        "err": null,
+        "slot": 506940227,
+        "status": {
+          "Ok": null
+        }
+      },
+      {
+        "confirmationStatus": "finalized",
+        "confirmations": null,
+        "err": null,
+        "slot": 506940240,
+        "status": {
+          "Ok": null
+        }
+      }
+    ]
+  },
+  "finalSnapshot": {
+    "detail": {
+      "pubkey": "9PoTEPsCjew9NtYA9MLTjDapMsW1ZdW4dgokdGzmPimB",
+      "factory": "CfxquMe4MAPksEEsVyw8XmcxYH5W7qftRWNySgHjLi6e",
+      "creator": "7H6p7PNL7hFB6PPnCcQ7YeWzPuVJBChXGnhEA1xTxVjN",
+      "treasury": "AAb2TXLQCPFvnUoJFSBe9PFs28w5kvAukH4Gaiia3eiJ",
+      "share_mint": "9UPqD8gfePPEMpEy67pCitvwqr4V58jTcFzSkPB2P3A9",
+      "nonce": "1791017505374",
+      "created_at": "2026-10-03T08:51:54.000Z",
+      "metadata_hash": "ce41536c0f813e87dce19cad96511a0c81c6eca0a1609eb968d92e70c5c8413a",
+      "metadata_json": null,
+      "num_constituents": 4,
+      "constituents": [
+        "CrjoC7fq5XAbdej5zjinKNGXVqo8E8qCmh8XSiu2QViQ",
+        "EpH2swtxW2rCuFg2o2ukD5Qw5Xv3toaug1M3mbcB4hab",
+        "5G1hMSqs2nWKaFQt737FTxwnruPgeQqQWZ2FRoqxvehA",
+        "8W2hrfJPPrXEBjs5gDgpVZcs8HsELeHkBaqSjnUvgJUq"
+      ],
+      "weights_bps": [
+        2500,
+        2500,
+        2500,
+        2500
+      ],
+      "entry_fee_bps": 0,
+      "exit_fee_bps": 0,
+      "management_fee_bps": 200,
+      "last_fee_accrual_ts": "1791017528",
+      "source": "devnet-rpc",
+      "asOf": "2026-10-03T08:52:15.351Z",
+      "holdings": [
+        {
+          "mint": "CrjoC7fq5XAbdej5zjinKNGXVqo8E8qCmh8XSiu2QViQ",
+          "raw_amount": "4250000000",
+          "multiplier": 1,
+          "decimals": 8,
+          "scaled_amount": "42.5",
+          "updated_at": "2026-10-03T08:52:15.351Z",
+          "source": "devnet-rpc"
+        },
+        {
+          "mint": "EpH2swtxW2rCuFg2o2ukD5Qw5Xv3toaug1M3mbcB4hab",
+          "raw_amount": "4250000000",
+          "multiplier": 1.25,
+          "decimals": 8,
+          "scaled_amount": "53.125",
+          "updated_at": "2026-10-03T08:52:15.351Z",
+          "source": "devnet-rpc"
+        },
+        {
+          "mint": "5G1hMSqs2nWKaFQt737FTxwnruPgeQqQWZ2FRoqxvehA",
+          "raw_amount": "4250000000",
+          "multiplier": 2,
+          "decimals": 8,
+          "scaled_amount": "85",
+          "updated_at": "2026-10-03T08:52:15.351Z",
+          "source": "devnet-rpc"
+        },
+        {
+          "mint": "8W2hrfJPPrXEBjs5gDgpVZcs8HsELeHkBaqSjnUvgJUq",
+          "raw_amount": "4250000000",
+          "multiplier": 10,
+          "decimals": 8,
+          "scaled_amount": "425",
+          "updated_at": "2026-10-03T08:52:15.351Z",
+          "source": "devnet-rpc"
+        }
+      ],
+      "nav": null,
+      "drift": null
+    },
+    "supply": "1700000",
+    "shareDecimals": 6,
+    "managementFeeRemainder": "3280000000",
+    "vaultAuthority": "HHjjyLkjz2gv3NEhTYBWLmBZ6m17Hx4CxU1id55VCw5w",
+    "wallet": "7H6p7PNL7hFB6PPnCcQ7YeWzPuVJBChXGnhEA1xTxVjN",
+    "shareBalance": "1700000",
+    "walletBalances": [
+      {
+        "mint": "CrjoC7fq5XAbdej5zjinKNGXVqo8E8qCmh8XSiu2QViQ",
+        "rawAmount": "95750000000",
+        "exists": true
+      },
+      {
+        "mint": "EpH2swtxW2rCuFg2o2ukD5Qw5Xv3toaug1M3mbcB4hab",
+        "rawAmount": "95750000000",
+        "exists": true
+      },
+      {
+        "mint": "5G1hMSqs2nWKaFQt737FTxwnruPgeQqQWZ2FRoqxvehA",
+        "rawAmount": "95750000000",
+        "exists": true
+      },
+      {
+        "mint": "8W2hrfJPPrXEBjs5gDgpVZcs8HsELeHkBaqSjnUvgJUq",
+        "rawAmount": "95750000000",
+        "exists": true
+      }
+    ],
+    "whitelistStatuses": [
+      "Active",
+      "Active",
+      "Active",
+      "Active"
+    ]
+  },
+  "finalWallet": {
+    "wallet": "7H6p7PNL7hFB6PPnCcQ7YeWzPuVJBChXGnhEA1xTxVjN",
+    "solBalance": 28896280,
+    "mintFacts": [
+      {
+        "mint": "CrjoC7fq5XAbdej5zjinKNGXVqo8E8qCmh8XSiu2QViQ",
+        "decimals": 8,
+        "multiplier": 1
+      },
+      {
+        "mint": "EpH2swtxW2rCuFg2o2ukD5Qw5Xv3toaug1M3mbcB4hab",
+        "decimals": 8,
+        "multiplier": 1.25
+      },
+      {
+        "mint": "5G1hMSqs2nWKaFQt737FTxwnruPgeQqQWZ2FRoqxvehA",
+        "decimals": 8,
+        "multiplier": 2
+      },
+      {
+        "mint": "8W2hrfJPPrXEBjs5gDgpVZcs8HsELeHkBaqSjnUvgJUq",
+        "decimals": 8,
+        "multiplier": 10
+      }
+    ],
+    "whitelistStatuses": [
+      "Active",
+      "Active",
+      "Active",
+      "Active"
+    ],
+    "walletBalances": [
+      {
+        "mint": "CrjoC7fq5XAbdej5zjinKNGXVqo8E8qCmh8XSiu2QViQ",
+        "rawAmount": "95750000000",
+        "exists": true
+      },
+      {
+        "mint": "EpH2swtxW2rCuFg2o2ukD5Qw5Xv3toaug1M3mbcB4hab",
+        "rawAmount": "95750000000",
+        "exists": true
+      },
+      {
+        "mint": "5G1hMSqs2nWKaFQt737FTxwnruPgeQqQWZ2FRoqxvehA",
+        "rawAmount": "95750000000",
+        "exists": true
+      },
+      {
+        "mint": "8W2hrfJPPrXEBjs5gDgpVZcs8HsELeHkBaqSjnUvgJUq",
+        "rawAmount": "95750000000",
+        "exists": true
+      }
+    ]
+  },
+  "completedAt": "2026-10-03T08:52:16.095Z"
+}

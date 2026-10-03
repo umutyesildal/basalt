@@ -1,0 +1,27 @@
+✔ removing assets keeps every remaining allocation positive and the total exact (1.375042ms)
+✔ redistribution retains relative allocations and handles tiny remaining weights (0.110084ms)
+✔ slider extremes leave at least one basis point for each other asset (0.579ms)
+✔ scroll affordance stops at the end, including fractional browser dimensions (0.105167ms)
+✔ live grouping preserves decimals and caret positions during middle edits (4.164167ms)
+✔ clear and boundary amounts retain existing validation, without rounding drafts (0.589875ms)
+✔ existing copied amounts keep their precision without widening new input rules (13.128917ms)
+✔ all snapshot assets survive validation without mock prices or wrong-chain rows (4.750959ms)
+✔ search covers the complete catalog by token, underlying, name and mint (3591.296416ms)
+✔ short ticker searches ignore incidental mint substrings but full mint searches still work (12.367375ms)
+✔ verified ETFs include more than SPY and unknown classification stays discoverable (6.498541ms)
+✔ mint validation checks decoded32bytes, rejecting malformed or oversized addresses (0.391042ms)
+✔ v3 links preserve new asset mint identities and legacy v2 stays unchanged (1.600209ms)
+✔ future issuer assets and exchange-qualified or numeric symbols round-trip independently of bundled metadata (0.941875ms)
+✔ known symbol and mint identities cannot be mixed in v3 links (0.415ms)
+✔ unknown future mint metadata never borrows a known company name or logo (0.229ms)
+✔ every official symbol can form a shared draft without network lookup (59.102833ms)
+✔ token quotes fail closed for wrong identity, underlying sources and invalid numbers (0.291625ms)
+✔ quote requests contain only the visible page and missing quotes remain null (12.840916ms)
+ℹ tests 19
+ℹ suites 0
+ℹ pass 19
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 3853.728

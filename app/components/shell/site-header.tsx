@@ -130,7 +130,7 @@ function ClaimHandleChip() {
  */
 export function SiteHeader() {
   const pathname = usePathname();
-  const onchainRoute = pathname.startsWith("/create/onchain") || pathname.startsWith("/basket/") || pathname.startsWith("/portfolio");
+  const onchainRoute = pathname.startsWith("/devnet") || pathname.startsWith("/create/onchain") || pathname.startsWith("/basket/") || pathname.startsWith("/portfolio");
   const [mobileOpen, setMobileOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const menuButtonRef = useRef<HTMLButtonElement | null>(null);
@@ -221,7 +221,7 @@ export function SiteHeader() {
             ))}
           </div>
 
-          {onchainRoute && <ClaimHandleChip />}
+          {onchainRoute && !pathname.startsWith("/devnet") && !pathname.startsWith("/create/onchain") && <ClaimHandleChip />}
           {onchainRoute && <NetworkIndicator className="hidden sm:inline-flex" />}
           <WalletButton />
 

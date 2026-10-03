@@ -1,0 +1,203 @@
+{
+  "catalogMeta": {
+    "source": "cache",
+    "fetchedAt": "2026-10-02T22:41:14.259Z",
+    "stale": false,
+    "sourceUrl": "https://api.xstocks.fi/api/v2/public/assets"
+  },
+  "count": 1271,
+  "etfCount": 69,
+  "assets": [
+    {
+      "mint": "XsbEhLAtcf6HdfpFZ5xEMdqW8nfAvcsP5bdudRLJzJp",
+      "symbol": "AAPLx",
+      "ticker": "AAPLx",
+      "underlyingSymbol": "AAPL",
+      "name": "Apple xStock",
+      "assetClass": "unknown",
+      "decimals": 8,
+      "logoUrl": "https://xstocks-metadata.backed.fi/logos/tokens/AAPLx.png",
+      "network": "solana",
+      "provider": "backed",
+      "status": "active",
+      "sourceUrl": "https://api.xstocks.fi/api/v2/public/assets"
+    },
+    {
+      "mint": "Xsc9qvGR1efVDFGLrVsmkzv3qi45LTBjeUKSPmx9qEh",
+      "symbol": "NVDAx",
+      "ticker": "NVDAx",
+      "underlyingSymbol": "NVDA",
+      "name": "NVIDIA xStock",
+      "assetClass": "unknown",
+      "decimals": 8,
+      "logoUrl": "https://xstocks-metadata.backed.fi/logos/tokens/NVDAx.png",
+      "network": "solana",
+      "provider": "backed",
+      "status": "active",
+      "sourceUrl": "https://api.xstocks.fi/api/v2/public/assets"
+    },
+    {
+      "mint": "Xs8S1uUs1zvS2p7iwtsG3b6fkhpvmwz4GYU3gWAmWHZ",
+      "symbol": "QQQx",
+      "ticker": "QQQx",
+      "underlyingSymbol": "QQQ",
+      "name": "Nasdaq xStock",
+      "assetClass": "etf",
+      "decimals": 8,
+      "logoUrl": "https://xstocks-metadata.backed.fi/logos/tokens/QQQx.png",
+      "network": "solana",
+      "provider": "backed",
+      "status": "active",
+      "sourceUrl": "https://api.xstocks.fi/api/v2/public/assets"
+    },
+    {
+      "mint": "Xsv9hRk1z5ystj9MhnA7Lq4vjSsLwzL2nxrwmwtD3re",
+      "symbol": "GLDx",
+      "ticker": "GLDx",
+      "underlyingSymbol": "GLD",
+      "name": "Gold xStock",
+      "assetClass": "etf",
+      "decimals": 8,
+      "logoUrl": "https://xstocks-metadata.backed.fi/logos/tokens/GLDx.png",
+      "network": "solana",
+      "provider": "backed",
+      "status": "active",
+      "sourceUrl": "https://api.xstocks.fi/api/v2/public/assets"
+    },
+    {
+      "mint": "XsssYEQjzxBCFgvYFFNuhJFBeHNdLWYeUSP8F45cDr9",
+      "symbol": "VTIx",
+      "ticker": "VTIx",
+      "underlyingSymbol": "VTI",
+      "name": "Vanguard xStock",
+      "assetClass": "etf",
+      "decimals": 8,
+      "logoUrl": "https://xstocks-metadata.backed.fi/logos/tokens/VTIx.png",
+      "network": "solana",
+      "provider": "backed",
+      "status": "active",
+      "sourceUrl": "https://api.xstocks.fi/api/v2/public/assets"
+    },
+    {
+      "mint": "XsYD72ntjj7ZwoFDZCDmN2gamTcLpnywqvG7PQN5vCN",
+      "symbol": "SGOVx",
+      "ticker": "SGOVx",
+      "underlyingSymbol": "SGOV",
+      "name": "iShares 0-3 Month Treasury Bond ETF xStock",
+      "assetClass": "etf",
+      "decimals": 8,
+      "logoUrl": "https://xstocks-metadata.backed.fi/logos/tokens/SGOVx.png",
+      "network": "solana",
+      "provider": "backed",
+      "status": "active",
+      "sourceUrl": "https://api.xstocks.fi/api/v2/public/assets"
+    },
+    {
+      "mint": "XsDoVfqeBukxuZHWhdvWHBhgEHjGNst4MLodqsJHzoB",
+      "symbol": "TSLAx",
+      "ticker": "TSLAx",
+      "underlyingSymbol": "TSLA",
+      "name": "Tesla xStock",
+      "assetClass": "unknown",
+      "decimals": 8,
+      "logoUrl": "https://xstocks-metadata.backed.fi/logos/tokens/TSLAx.png",
+      "network": "solana",
+      "provider": "backed",
+      "status": "active",
+      "sourceUrl": "https://api.xstocks.fi/api/v2/public/assets"
+    }
+  ],
+  "quotes": {
+    "data": [
+      {
+        "mint": "XsbEhLAtcf6HdfpFZ5xEMdqW8nfAvcsP5bdudRLJzJp",
+        "priceUsd": 332.2348107867694,
+        "source": "jupiter",
+        "fetchedAt": "2026-10-02T22:42:24.084Z",
+        "observedAt": "2026-10-02T22:35:40.000Z",
+        "blockId": 452746220,
+        "decimals": 8,
+        "unit": "scaled-ui",
+        "change24hPct": 0.5885044527853883,
+        "status": "available"
+      },
+      {
+        "mint": "Xsc9qvGR1efVDFGLrVsmkzv3qi45LTBjeUKSPmx9qEh",
+        "priceUsd": 233.89550400998615,
+        "source": "jupiter",
+        "fetchedAt": "2026-10-02T22:42:24.084Z",
+        "observedAt": "2026-10-02T22:42:20.000Z",
+        "blockId": 452747711,
+        "decimals": 8,
+        "unit": "scaled-ui",
+        "change24hPct": 1.1109165466038904,
+        "status": "available"
+      },
+      {
+        "mint": "Xs8S1uUs1zvS2p7iwtsG3b6fkhpvmwz4GYU3gWAmWHZ",
+        "priceUsd": 748.244305620354,
+        "source": "jupiter",
+        "fetchedAt": "2026-10-02T22:42:24.084Z",
+        "observedAt": "2026-10-02T22:41:39.000Z",
+        "blockId": 452747556,
+        "decimals": 8,
+        "unit": "scaled-ui",
+        "change24hPct": 0.9125118412775656,
+        "status": "available"
+      },
+      {
+        "mint": "Xsv9hRk1z5ystj9MhnA7Lq4vjSsLwzL2nxrwmwtD3re",
+        "priceUsd": 380.0201056276318,
+        "source": "jupiter",
+        "fetchedAt": "2026-10-02T22:42:24.084Z",
+        "observedAt": "2026-10-02T22:42:19.000Z",
+        "blockId": 452747707,
+        "decimals": 8,
+        "unit": "scaled-ui",
+        "change24hPct": -0.6219611714516403,
+        "status": "available"
+      },
+      {
+        "mint": "XsssYEQjzxBCFgvYFFNuhJFBeHNdLWYeUSP8F45cDr9",
+        "priceUsd": 371.1185729928296,
+        "source": "jupiter",
+        "fetchedAt": "2026-10-02T22:42:24.084Z",
+        "observedAt": "2026-09-27T11:45:47.000Z",
+        "blockId": 450987409,
+        "decimals": 8,
+        "unit": "scaled-ui",
+        "change24hPct": null,
+        "status": "available"
+      },
+      {
+        "mint": "XsYD72ntjj7ZwoFDZCDmN2gamTcLpnywqvG7PQN5vCN",
+        "priceUsd": null,
+        "source": "unavailable",
+        "fetchedAt": null,
+        "observedAt": null,
+        "blockId": null,
+        "decimals": null,
+        "unit": "scaled-ui",
+        "change24hPct": null,
+        "status": "unavailable"
+      },
+      {
+        "mint": "XsDoVfqeBukxuZHWhdvWHBhgEHjGNst4MLodqsJHzoB",
+        "priceUsd": 370.8242102344344,
+        "source": "jupiter",
+        "fetchedAt": "2026-10-02T22:42:24.084Z",
+        "observedAt": "2026-10-02T22:42:01.000Z",
+        "blockId": 452747640,
+        "decimals": 8,
+        "unit": "scaled-ui",
+        "change24hPct": 4.517794840468143,
+        "status": "available"
+      }
+    ],
+    "meta": {
+      "source": "jupiter-v3",
+      "unit": "scaled-ui",
+      "catalogStale": false
+    }
+  }
+}

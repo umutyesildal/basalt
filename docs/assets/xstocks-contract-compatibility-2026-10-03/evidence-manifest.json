@@ -1,0 +1,23 @@
+{
+  "reviewDate": "2026-10-03",
+  "sourceHead": "7a16c18e5809ae3b955dc334b4af016afae9eb56",
+  "scope": "Read-only compatibility review; report artifacts only",
+  "sourceHashes": {
+    "programs/whitelist/src/lib.rs": "2d16363359e7a3f0e28209dcd1bb6621d84c76cd3f0719e4172603dcfc35ad3a",
+    "programs/basket_factory/src/lib.rs": "411632e88441d9344ef777fbe46226780cfa14e28557e0f3570492baf611d666",
+    "programs/basket/src/lib.rs": "5b9d0a8f1d65f79e74a616cd6273f5377ef9e89bdcc5789c4a34e5b633ad4360",
+    "programs/managed_basket/src/lib.rs": "191a5fe6a1ecb171335af6bdd0dbc9ba5b98467b060fadcd1d2451d9ebf17088",
+    "programs/managed_basket/src/token.rs": "acf8837ecc252eebdc25d35d3a702d3227344eb70ad23b97f51700c6cf353abc",
+    "app/lib/transactions.ts": "b7eba1ba5d136d3b0c64f9ba644a002fdfb26583039cd9fa32e5108df2f74c02",
+    "app/app/create/onchain/page.tsx": "2f20bdf5283c02bb1f5608fe67be3a8ecb021618e32ab1e17cc4065f5dbdc894",
+    "Cargo.toml": "e24639a8c92d36b34eb42ae2b29fecc4faac1acf56ec25c6a020fd6c80301358",
+    "Cargo.lock": "898ba25eda35a87146a47a4047d10adfab8d69adadb07f74a7a08c01ad2acfe8"
+  },
+  "artifactHashes": {
+    "rust-library-tests.log": "27aa0f93998460082662e8b198553e9d0c2d369e604b09cff1bf8d687e5bb179",
+    "rpc-evidence.json": "375bf943be21450394de5cbbd014b3b5949671faca52744be275c039472b46b0",
+    "rpc-probe.cjs": "b64f06a617b0478fcfbab0292e54533f0c76107c2335f050f5532d9a00c8338d",
+    "review.html": "92daf926a221166c0648f7b45d630730f930cc922420f7bb43c257a152c73ad4",
+    "../../xstocks-contract-compatibility-2026-10-03.md": "9248bb802f8961bf026e05acc5cf75a1aab3fa6af55923dc9e0d36d368725d1e"
+  }
+}

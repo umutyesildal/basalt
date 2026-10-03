@@ -1,12 +1,16 @@
 # BAS-002 — Token-2022 extension policy and official xStocks fixtures
 
-Status: fixture and policy decision record only. The program/client changes described here are not implemented by this document.
+Status: historical 2026-09-18 fixture and initial extension-free policy record. **The blanket rejection policy below is superseded for current immutable V0 source by the [2026-10-03 admission decision](xstocks-token-policy-decision-2026-10-03.md) and the [dated V0 spec erratum](basalt-v0-spec.md#dated-admission-erratum-2026-10-03-immutable-v0-only).** Keep the earlier table and findings as evidence of the pre-change boundary.
+
+Current source fully validates Plain, DisplayOnly and the complete observed eight-extension issuer profile. It accepts the latter only with inactive hooks, unpaused mint state and Initialized default accounts, and rechecks public deposit account extensions and raw deltas. Real AAPLx/SPYx fixtures, 29 shared-parser tests and independent source review support this compatibility boundary. Redeem remains unchanged and independent of basket admission gates; underlying issuer powers still limit transfer availability. Managed V2 is not covered by this change.
+
+The current V0 programs are upgraded and byte-attested on devnet at finalized slot 506820772. Fresh three/four-asset eight-extension mock proof passed with 54 transactions and 28 assertions, including 16 expected onchain rejections and rollback checks: [completed runtime report](xstocks-devnet-runtime-2026-10-03.md), [harness and independent review](xstocks-devnet-basket-proof-2026-10-03.md). These are project-issued mocks; real mainnet parser fixtures do not establish official funded transfers or live issuer backing. Mainnet, external audit, legal and real-issuer integration gaps remain. The repository changes are still local and unpushed.
 
 ## Scope
 
 BAS-002 closes the evidence gap around Token-2022 mints used as basket constituents. A Token-2022 mint is not equivalent to a legacy SPL mint just because it exposes the same basic `mint` and `token account` fields. Extensions can change who can transfer or burn, whether transfers are paused, how balances are displayed, and whether a transfer requires additional accounts.
 
-The current V0 policy fails closed and admits only extension-free Token-2022 mints. In particular, the current implementation is not compatible with a mint that has an active transfer hook, confidential-transfer state, a permanent delegate, or a paused mint. This is a compatibility statement, not a claim that the issuer is malicious or that the asset cannot be used elsewhere.
+At this document’s original September 2026 scope, V0 failed closed and admitted only extension-free Token-2022 mints. At that time, the implementation was not compatible with a mint that had an active transfer hook, confidential-transfer state, a permanent delegate, or a paused mint. This is a compatibility statement, not a claim that the issuer is malicious or that the asset cannot be used elsewhere.
 
 ## Point-in-time observation
 

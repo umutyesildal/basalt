@@ -7,7 +7,7 @@
     "backend"
   ],
   "scripts": {
-    "build": "cargo build-sbf || cargo build",
+    "build": "bash scripts/build-v0-sbf.sh",
     "test": "cargo test",
     "e2e": "bash scripts/e2e.sh",
     "faucet": "tsx --tsconfig app/tsconfig.json scripts/faucet.ts",

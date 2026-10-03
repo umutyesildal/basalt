@@ -1,0 +1,171 @@
+{
+  "version": 1,
+  "program": "2GBfjd9jPKLoqNXdX7GDN9MHRKwzwXbHk65xQVf9HAcf",
+  "genesisHash": "EtWTRABZaYq6iMfeYKouRu166VU2xqa1wcaWoxPkrZBG",
+  "payer": "y72KA263br7MtZw7BqC2dx5QYCBUciJGzShE8BRSwRE",
+  "startedAt": "2026-10-03T08:49:50.700Z",
+  "transactions": [
+    {
+      "label": "fund_BSTESTA",
+      "signature": "4Po2sfU8BGeGLQn6E4TVhdMJ5PQ8GwrRD1yA9aJEnYGScc5czh3MitzpoxtRZqZ7UJ7WGEkGXRxTBF3ep9nEXivd",
+      "stage": "finalized-success",
+      "bytes": 425,
+      "slot": 506939232,
+      "payerDeltaLamports": 1564560,
+      "feeLamports": 5000,
+      "computeUnits": 24655
+    },
+    {
+      "label": "fund_BSTESTB",
+      "signature": "4Dvis2v4UX63PuFwdHv4yRWBjSrR4nGSyNaaZyuMWVyFvyFE7PhNCVMwPYuaEZKifjGFBpTM5qocjoXhLYXtECrd",
+      "stage": "finalized-success",
+      "bytes": 425,
+      "slot": 506939251,
+      "payerDeltaLamports": 1564560,
+      "feeLamports": 5000,
+      "computeUnits": 24655
+    },
+    {
+      "label": "fund_BSTESTC",
+      "signature": "2GVvSrQhZ6G5KB42zDtoVANzAfL3RLrBkxMpZYS3yPLdRVHf8R6rNg22ZiV5tEv4i5A7x6WuizkFJffi9JsYifuQ",
+      "stage": "finalized-success",
+      "bytes": 425,
+      "slot": 506939270,
+      "payerDeltaLamports": 1564560,
+      "feeLamports": 5000,
+      "computeUnits": 24655
+    },
+    {
+      "label": "fund_BSTESTD",
+      "signature": "2nc2pQdwZHqaQBUnMdWZWGJMDBmkuBYTM6wJWdkU7TXg935TjKDBKbzuwEnRVX2MoasDidz3dfvz6DuykvUCLcHp",
+      "stage": "finalized-success",
+      "bytes": 425,
+      "slot": 506939288,
+      "payerDeltaLamports": 1564560,
+      "feeLamports": 5000,
+      "computeUnits": 24655
+    },
+    {
+      "label": "fund_proof_wallet_sol",
+      "signature": "53ei4P4qCX3JhcBNvrZfswTyaMnWsQhDXm9718qDPvr3skwPbTzEWgjjjd6ohxmfhJPCGqynssrXUbnwqbDZLRCt",
+      "stage": "finalized-success",
+      "bytes": 255,
+      "slot": 506939310,
+      "payerDeltaLamports": 60005000,
+      "feeLamports": 5000,
+      "computeUnits": 300
+    },
+    {
+      "label": "prefund_claim_rent",
+      "signature": "62ggXb45uPW3ntDGPZXyUrgiszF4MMZXenJwfHuSgWBmDh48uNt1HrTjYBVnss1CwQve3fSQBd9yHiFbJPcGS26G",
+      "stage": "finalized-success",
+      "bytes": 255,
+      "slot": 506939696,
+      "payerDeltaLamports": 655240,
+      "feeLamports": 5000,
+      "computeUnits": 300
+    },
+    {
+      "label": "fresh_wallet_claim_with_prefunded_pda",
+      "signature": "5HcRACDfmY4khwQZbxRavxEKkwS89uRiVPYnLw75HzF3HgW3F3CQudyUV2qyBUWdiStS797vwszxgedhPmpkJaau",
+      "stage": "finalized-success",
+      "bytes": 811,
+      "slot": 506939736,
+      "payerDeltaLamports": 0,
+      "feeLamports": 5000,
+      "computeUnits": 144728
+    }
+  ],
+  "funding": [
+    {
+      "mint": "CrjoC7fq5XAbdej5zjinKNGXVqo8E8qCmh8XSiu2QViQ",
+      "vault": "DMxJLcFNx3CMrNsHyPFcxCZLCY7jtZ6z5QcWHxNBcGqB",
+      "rawAfter": "10000000000000",
+      "rawAdded": "10000000000000"
+    },
+    {
+      "mint": "EpH2swtxW2rCuFg2o2ukD5Qw5Xv3toaug1M3mbcB4hab",
+      "vault": "8X6wHi2bDgWQ1BKm8ELxLPibQ3xr5vLHjSAtg2z43GBP",
+      "rawAfter": "10000000000000",
+      "rawAdded": "10000000000000"
+    },
+    {
+      "mint": "5G1hMSqs2nWKaFQt737FTxwnruPgeQqQWZ2FRoqxvehA",
+      "vault": "BuVPHqcjYf5c8NBjvUYe7gbQfrzoqGxnCQxhCo61oR6a",
+      "rawAfter": "10000000000000",
+      "rawAdded": "10000000000000"
+    },
+    {
+      "mint": "8W2hrfJPPrXEBjs5gDgpVZcs8HsELeHkBaqSjnUvgJUq",
+      "vault": "6M2ZHa75ZScJNCEar3iPduyeoqptKSWVNkgFMbBd7cUe",
+      "rawAfter": "10000000000000",
+      "rawAdded": "10000000000000"
+    }
+  ],
+  "payerBalanceBefore": 2520348080,
+  "proof": {
+    "wallet": "7H6p7PNL7hFB6PPnCcQ7YeWzPuVJBChXGnhEA1xTxVjN",
+    "signature": "5HcRACDfmY4khwQZbxRavxEKkwS89uRiVPYnLw75HzF3HgW3F3CQudyUV2qyBUWdiStS797vwszxgedhPmpkJaau",
+    "prefundedPda": true,
+    "exactRawBalances": [
+      {
+        "symbol": "BSTESTA",
+        "mint": "CrjoC7fq5XAbdej5zjinKNGXVqo8E8qCmh8XSiu2QViQ",
+        "ata": "zqRrhKy7gwPBqvWpq27dhoGz2eD1g7FZHF2UEiXeMZL",
+        "rawBalance": "100000000000",
+        "rawVaultDebit": "100000000000"
+      },
+      {
+        "symbol": "BSTESTB",
+        "mint": "EpH2swtxW2rCuFg2o2ukD5Qw5Xv3toaug1M3mbcB4hab",
+        "ata": "G8VwhfTckaeJVyiZ5tf2LzNjoSwPQNxkZokoK4CNhpmw",
+        "rawBalance": "100000000000",
+        "rawVaultDebit": "100000000000"
+      },
+      {
+        "symbol": "BSTESTC",
+        "mint": "5G1hMSqs2nWKaFQt737FTxwnruPgeQqQWZ2FRoqxvehA",
+        "ata": "APzz3dsYq7FT3K8YmTAYqPUP9WbgMMZMdGWbJZg6Xa48",
+        "rawBalance": "100000000000",
+        "rawVaultDebit": "100000000000"
+      },
+      {
+        "symbol": "BSTESTD",
+        "mint": "8W2hrfJPPrXEBjs5gDgpVZcs8HsELeHkBaqSjnUvgJUq",
+        "ata": "CXaK7CYpJJbbLBE1v44NmF5gYmb3c2W3gHopAVnkvmCN",
+        "rawBalance": "100000000000",
+        "rawVaultDebit": "100000000000"
+      }
+    ],
+    "substitutionRejected": {
+      "InstructionError": [
+        4,
+        "InvalidAccountData"
+      ]
+    },
+    "mintSubstitutionRejected": {
+      "InstructionError": [
+        4,
+        "IncorrectProgramId"
+      ]
+    },
+    "missingSignerRejected": {
+      "InstructionError": [
+        0,
+        "MissingRequiredSignature"
+      ]
+    },
+    "finalized": true,
+    "secondClaimRejected": {
+      "InstructionError": [
+        4,
+        {
+          "Custom": 0
+        }
+      ]
+    }
+  },
+  "payerBalanceAfter": 2453429600,
+  "complete": true,
+  "totalSetupPayerDebitLamports": 66918480
+}

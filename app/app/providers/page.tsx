@@ -16,7 +16,7 @@ import { apiFetch } from "@/lib/api-client";
 import { cn } from "@/lib/utils";
 
 export const metadata: Metadata = {
-  title: "Data providers — Basalt",
+  title: "Data providers | Basalt",
   description:
     "Source registry: Backed Finance (xStocks issuer), Jupiter, Yahoo Finance, and the Nasdaq benchmark, with status and freshness.",
 };
@@ -68,14 +68,14 @@ interface HealthPayload {
 /** Well-known links for the static registry rows (configuration, not health data). */
 const PROVIDER_LINKS: Record<string, string> = {
   backed: "https://backed.fi",
-  jupiter: "https://price.jup.ag/v6/price",
+  jupiter: "https://api.jup.ag/price/v3",
   yahoo: "https://finance.yahoo.com",
   nasdaq: "https://www.nasdaq.com/market-activity/index/qx",
 };
 
 const STATIC_REGISTRY: ProviderRow[] = [
   { id: "backed", name: "Backed Finance", type: "xstock" },
-  { id: "jupiter", name: "Jupiter Price v6", type: "price" },
+  { id: "jupiter", name: "Jupiter Price V3", type: "price" },
   { id: "yahoo", name: "Yahoo Finance", type: "price" },
   { id: "nasdaq", name: "Nasdaq Benchmark (QQQ)", type: "index", symbol: "QQQ" },
 ];
@@ -84,6 +84,7 @@ const ROLE_LABEL: Record<string, string> = {
   xstock: "issuer",
   price: "price feed",
   index: "benchmark",
+  "underlying-reference": "underlying reference",
 };
 
 async function getJson<T>(path: string): Promise<T | null> {
@@ -235,7 +236,7 @@ export default async function ProvidersPage() {
                         ? p.mints.map((m) => m.ticker).join(" · ")
                         : p.symbol
                           ? `${p.symbol} benchmark series`
-                          : "price series"}
+                          : p.type === "xstock" ? "Solana asset metadata" : "price series"}
                     </TableCell>
                     <TableCell>
                       <UnknownChip />
@@ -273,7 +274,7 @@ export default async function ProvidersPage() {
                             href="/stock/TSLAx"
                             className="text-xs underline underline-offset-4 hover:text-foreground"
                           >
-                            Example chart
+                            Asset details
                           </Link>
                         ) : null}
                       </div>
@@ -291,8 +292,9 @@ export default async function ProvidersPage() {
         <h2 id="xstock-instruments" className="font-display text-sm font-medium">
           xStock instruments
         </h2>
+        <Link href="/stocks" className="mt-2 inline-flex min-h-11 items-center text-sm underline underline-offset-4">Browse and search the full catalog</Link>
         <p className="mt-2 text-xs text-muted-foreground">
-          Token-2022 mints issued by Backed Finance — structured instruments, not direct equity.
+          Token-2022 mints issued by Backed Finance. Structured instruments, not direct equity.
         </p>
         <div className="mt-4">
           {xstockRows.length === 0 && fallbackMints.length === 0 ? (
@@ -313,7 +315,7 @@ export default async function ProvidersPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {(xstockRows.length > 0 ? xstockRows : fallbackMints).map((x) => (
+                {(xstockRows.length > 0 ? xstockRows : fallbackMints).slice(0, 50).map((x) => (
                   <TableRow key={x.ticker} className="h-11 hover:bg-muted/40">
                     <TableCell className="pl-4 font-mono text-sm tabular-nums">{x.ticker}</TableCell>
                     <TableCell className="text-sm text-muted-foreground">Backed Finance</TableCell>
@@ -330,7 +332,7 @@ export default async function ProvidersPage() {
                       )}
                     </TableCell>
                     <TableCell className="text-right font-mono text-xs tabular-nums text-muted-foreground">
-                      {x.decimals ?? "—"}
+                      {x.decimals ?? "Unknown"}
                     </TableCell>
                     <TableCell className="pr-4 font-mono text-xs text-muted-foreground">
                       {x.priceSource ?? `jupiter:${x.ticker}`}

@@ -1,0 +1,21 @@
+{
+  "observedAt": "2026-10-03T08:45:46.818Z",
+  "genesisHash": "EtWTRABZaYq6iMfeYKouRu166VU2xqa1wcaWoxPkrZBG",
+  "program": "2GBfjd9jPKLoqNXdX7GDN9MHRKwzwXbHk65xQVf9HAcf",
+  "bytes": 85176,
+  "sha256": "e322d4884827833af244bbca4e33d3eb36e3ab8b1e6df8af5ff9c253760fc4b1",
+  "elfMachine": 263,
+  "elfEntry": "11928",
+  "payerBalanceLamports": 2955199120,
+  "programRentLamports": 433572920,
+  "programAccountRentLamports": 833120,
+  "temporaryBufferRentLamports": 433532280,
+  "maximumDeploymentSpendLamports": 900000000,
+  "remainingAfterWorstTemporaryRentLamports": 1967260800,
+  "keyModes": {
+    "program": 384,
+    "buffer": 384
+  },
+  "featureDisableV0Exists": false,
+  "featureEnableV3Exists": true
+}

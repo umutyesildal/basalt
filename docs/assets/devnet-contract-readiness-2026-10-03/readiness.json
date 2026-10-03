@@ -1,0 +1,88 @@
+{
+  "observedAt": "2026-10-03T00:12:57.679Z",
+  "rpc": "https://api.devnet.solana.com",
+  "genesisHash": "EtWTRABZaYq6iMfeYKouRu166VU2xqa1wcaWoxPkrZBG",
+  "clusterVersion": {
+    "feature-set": 1855282951,
+    "solana-core": "4.4.0-beta.0"
+  },
+  "finalizedSlot": 506810075,
+  "wallet": "y72KA263br7MtZw7BqC2dx5QYCBUciJGzShE8BRSwRE",
+  "balanceLamports": 3117839360,
+  "programs": [
+    {
+      "name": "whitelist",
+      "programId": "FRavMcYQb2FVAHbbG6fGieQHdKk1UrQqgKsAAXTPRQeS",
+      "programData": "DtNwP5QCJZXTVTs5BkA2GHY1Ys2j2xdERrvBJBdiW1Kz",
+      "maxProgramBytes": 261816,
+      "lamports": 1330904120,
+      "lastDeploySlot": 493110585,
+      "upgradeAuthority": "y72KA263br7MtZw7BqC2dx5QYCBUciJGzShE8BRSwRE"
+    },
+    {
+      "name": "basket_factory",
+      "programId": "3hzoPep9JKgTmzLT6CNW5x3EN7WNYDevM6KHVM7pLgMF",
+      "programData": "C9g9HdnPpYy4HA9ivPhJKctTQ2YBNpran4fW5n3nPCmf",
+      "maxProgramBytes": 537736,
+      "lamports": 2732577720,
+      "lastDeploySlot": 493110824,
+      "upgradeAuthority": "y72KA263br7MtZw7BqC2dx5QYCBUciJGzShE8BRSwRE"
+    },
+    {
+      "name": "basket",
+      "programId": "6Q43vFh4aqGxzvtU2vQwJX9PmX3skfYsGWZdA3fwJB9k",
+      "programData": "wgr99UCBVZWm7h9jswno2p9owpD8RSYE5iiUTyNFhJA",
+      "maxProgramBytes": 593416,
+      "lamports": 3015432120,
+      "lastDeploySlot": 493111012,
+      "upgradeAuthority": "y72KA263br7MtZw7BqC2dx5QYCBUciJGzShE8BRSwRE"
+    }
+  ],
+  "rentLamportsByAccountBytes": {
+    "512": 3251200,
+    "1024": 5852160,
+    "250000": 1270650240,
+    "400000": 2032650240,
+    "600000": 3048650240,
+    "1000000": 5080650240
+  },
+  "featureCheck": {
+    "observedAt": "2026-10-03T00:27:25.536Z",
+    "finalizedSlot": 506813625,
+    "features": [
+      {
+        "address": "B8JJXCy5amZyWG9r7EnUYLwzXSXTxG7GZ1qZ1qggo83g",
+        "exists": false,
+        "owner": null,
+        "activationSlot": null
+      },
+      {
+        "address": "5cC3foj77CWun58pC51ebHFUWavHWKarWyR5UUik7dnC",
+        "exists": true,
+        "owner": "Feature111111111111111111111111111111111111",
+        "activationSlot": 461808000
+      }
+    ]
+  },
+  "toolchain": {
+    "cli": "Agave4.3.0",
+    "cargoBuildSbf": "4.3.0",
+    "platformTools": "v1.56",
+    "rustc": "1.89.0-dev(e57530ef2)",
+    "cargo": "1.89.0",
+    "temporaryRoot": "/private/tmp/basalt-sbf-toolchain",
+    "smokeBuild": "passed (disposable no_std probe only, not project programs)",
+    "archives": [
+      {
+        "filename": "agave-4.3.0.tar.bz2",
+        "downloadUrl": "https://github.com/anza-xyz/agave/releases/download/v4.3.0/solana-release-aarch64-apple-darwin.tar.bz2",
+        "observedSha256": "0bfbd769a55e32f0a1fe1b92f76f360f01ee19475facf8c31cb90f99dcca7fe0"
+      },
+      {
+        "filename": "platform-tools-v1.56.tar.bz2",
+        "downloadUrl": "https://github.com/anza-xyz/platform-tools/releases/download/v1.56/platform-tools-osx-aarch64.tar.bz2",
+        "observedSha256": "57cc5b6e7690cdff66fe9aae8f54a2bc2283fa766c207ddfb2cde1c2dd415eeb"
+      }
+    ]
+  }
+}

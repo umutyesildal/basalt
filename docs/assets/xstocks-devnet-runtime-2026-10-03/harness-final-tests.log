@@ -1,0 +1,70 @@
+{
+  "mode": "plan",
+  "cluster": "devnet",
+  "expectedGenesis": "EtWTRABZaYq6iMfeYKouRu166VU2xqa1wcaWoxPkrZBG",
+  "stateDirectory": "/Users/umutyesildal/orca/workspaces/createyouretf/createyouretf/.cache/devnet-xstocks/readonly-harness-test-1790989227155",
+  "fixtures": "Four project-issued eight-extension mocks, not official xStocks",
+  "baskets": [
+    3,
+    4
+  ],
+  "checks": [
+    "Raw atomic seed, deposits and pro-rata redemption",
+    "Share supply and separate 90/10 entry, exit and management fees",
+    "Four-asset v0 address lookup table",
+    "Whitelist pause rejects new deposits while redemption succeeds",
+    "Issuer pause, active hook and frozen default state reject deposits with full state rollback",
+    "Issuer pause can also prevent underlying redemption",
+    "Multiplier changes display units without changing raw custody or redemption math"
+  ],
+  "maximumSpendSol": 0.2,
+  "minimumRemainingSol": 0.2,
+  "note": "Without --execute: no RPC requests, key reads, file writes or transactions. No program deployment in either mode."
+}
+{
+  "mode": "execute",
+  "cluster": "devnet",
+  "expectedGenesis": "EtWTRABZaYq6iMfeYKouRu166VU2xqa1wcaWoxPkrZBG",
+  "stateDirectory": "/Users/umutyesildal/orca/workspaces/createyouretf/createyouretf/.cache/devnet-xstocks/RUN_ID",
+  "fixtures": "Four project-issued eight-extension mocks, not official xStocks",
+  "baskets": [
+    3,
+    4
+  ],
+  "checks": [
+    "Raw atomic seed, deposits and pro-rata redemption",
+    "Share supply and separate 90/10 entry, exit and management fees",
+    "Four-asset v0 address lookup table",
+    "Whitelist pause rejects new deposits while redemption succeeds",
+    "Issuer pause, active hook and frozen default state reject deposits with full state rollback",
+    "Issuer pause can also prevent underlying redemption",
+    "Multiplier changes display units without changing raw custody or redemption math"
+  ],
+  "maximumSpendSol": 0.2,
+  "minimumRemainingSol": 0.2,
+  "note": "Without --execute: no RPC requests, key reads, file writes or transactions. No program deployment in either mode."
+}
+✔ default mode does not read a payer, contact RPC, or create its state directory (1.908042ms)
+✔ execution needs an explicit run and signer path before RPC access (2.21425ms)
+✔ fixture selection pins all four distinct project mocks with completed admission (61.263542ms)
+✔ checkpoint reads five-byte management remainder without consuming reserved padding (1.9495ms)
+✔ raw mint expectation uses post-accrual supply and exact 90/10 fee conservation (0.311792ms)
+✔ raw redemption floors pro-rata output and preserves exit-fee dust in treasury (0.116333ms)
+✔ holder reconciliation catches unaccounted minted shares (1.807208ms)
+✔ plain SDK InstructionError resolves the same confirmed failed signature (0.41175ms)
+✔ normal SDK Error can resolve only a finalized matching expected rejection (0.447125ms)
+✔ absent or processed expected-failure status stays ambiguous (0.372042ms)
+✔ confirmed success is not accepted as an expected rejection (0.285458ms)
+✔ a confirmed failure must match the exact simulated error (1.351292ms)
+✔ positive confirmation failure is rethrown without a lookup or resend (0.130042ms)
+✔ failed status retrieval cannot become evidence of rejection (0.111625ms)
+✔ normal confirmations validate either success or the simulated rejection (0.254375ms)
+✔ non-Error diagnostics serialize only whitelisted public InstructionError fields (0.137333ms)
+ℹ tests 16
+ℹ suites 0
+ℹ pass 16
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 781.155166

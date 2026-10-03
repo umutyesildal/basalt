@@ -6,7 +6,7 @@ import ConceptPreviewClient from "./preview-client";
 export async function generateMetadata({
   searchParams,
 }: {
-  searchParams: Promise<{ d?: string | string[] }>;
+  searchParams: Promise<{ d?: string | string[]; created?: string | string[] }>;
 }): Promise<Metadata> {
   const params = await searchParams;
   const encoded = typeof params.d === "string" ? params.d : null;
@@ -22,11 +22,11 @@ export async function generateMetadata({
 export default async function PreviewPage({
   searchParams,
 }: {
-  searchParams: Promise<{ d?: string | string[] }>;
+  searchParams: Promise<{ d?: string | string[]; created?: string | string[] }>;
 }) {
   const params = await searchParams;
   const encoded = typeof params.d === "string" ? params.d : null;
   const basket = decodeConceptBasket(encoded);
 
-  return <ConceptPreviewClient basket={basket} />;
+  return <ConceptPreviewClient basket={basket} created={params.created === "1"} />;
 }

@@ -1,0 +1,13 @@
+.confetti { position: fixed; z-index: 60; inset: 4rem 0 auto; height: 19rem; overflow: hidden; pointer-events: none; }
+.piece { position: absolute; top: 0; width: .25rem; height: .5rem; border-radius: 1px; opacity: 0; background: hsl(var(--primary)); }
+.piece:nth-child(3n) { background: hsl(var(--foreground)); }
+.piece:nth-child(3n + 1) { width: .375rem; height: .375rem; border-radius: 50%; background: hsl(var(--muted-foreground)); }
+@media (prefers-reduced-motion: no-preference) {
+  .piece { animation: creation-confetti 1.8s cubic-bezier(.18,.5,.4,1) var(--delay) both; }
+}
+@keyframes creation-confetti {
+  0% { opacity: 0; transform: translate3d(0, -1rem, 0) rotate(0deg); }
+  12% { opacity: .9; }
+  100% { opacity: 0; transform: translate3d(var(--drift), 17rem, 0) rotate(var(--turn)); }
+}
+@media (prefers-reduced-motion: reduce) { .confetti { display: none; } }

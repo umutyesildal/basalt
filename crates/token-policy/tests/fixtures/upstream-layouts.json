@@ -1,0 +1,85 @@
+{
+  "purpose": "Exact upstream layout provenance for dependency-free policy; references are not runtime dependencies",
+  "interface": {
+    "crate": "spl-token-2022-interface",
+    "version": "1.0.0",
+    "crateChecksum": "62d7ae2ee6b856f8ddcbdc3b3a9f4d2141582bbe150f93e5298ee97e0251fa04",
+    "gitCommit": "690985e54d84b428ea4a37b6735192cf2f89d601",
+    "files": {
+      "src/state.rs": "0a8321e98238fe60b85b34c576ad9150fb78126e93f0c9934bc2a385ce67980d",
+      "src/extension/mod.rs": "5166f7fc46bb0358de3f927fc62d459fce4ea08cce8602b4f5844d9cbfab6eba",
+      "src/extension/scaled_ui_amount/mod.rs": "77a34ebe80bf65f9f7e7ad9804c7b08502e2470e599228139ddaa16c947ed2fa",
+      "src/extension/pausable/mod.rs": "1c2b905eba6484ba35496d5a246237e14823e911ca16b3eecb11bbb2505913f2",
+      "src/extension/transfer_hook/mod.rs": "db7623acdbace8123d1acf507e9936a8611f4bc59562ac314b5e816b1f520454",
+      "src/extension/confidential_transfer/mod.rs": "2fa2328a6e81787656dc6407a9065377d76120b408eef04642d8e25d42d73785",
+      "src/extension/permanent_delegate.rs": "d5e815b8ae1f36cb1209725728967f17f2963bd1de79d918ed6b53afe5aea9d6",
+      "src/extension/metadata_pointer/mod.rs": "85869597c42162159a2d130bbdfdb6e0434ffed46af83b9be1015c5d8106ae9c",
+      "src/extension/default_account_state/mod.rs": "2f99ac0590ada4ae651bce35dcbe4c1ede983331f0a34598c640eb5b590dd3df",
+      "src/extension/immutable_owner.rs": "8346ba8c6b309d75280550585a1bd7b6a43f0059db9fda0fc4d43d5ac408647d"
+    }
+  },
+  "baseLayouts": {
+    "Mint": 82,
+    "Account": 165,
+    "AccountTypeOffset": 165,
+    "TlvOffset": 166,
+    "TlvTypeBytes": 2,
+    "TlvLengthBytes": 2
+  },
+  "mintExtensions": {
+    "4": {
+      "name": "ConfidentialTransferMint",
+      "bytes": 65
+    },
+    "6": {
+      "name": "DefaultAccountState",
+      "bytes": 1
+    },
+    "12": {
+      "name": "PermanentDelegate",
+      "bytes": 32
+    },
+    "14": {
+      "name": "TransferHook",
+      "bytes": 64
+    },
+    "18": {
+      "name": "MetadataPointer",
+      "bytes": 64
+    },
+    "19": {
+      "name": "TokenMetadata",
+      "bytes": "variable Borsh"
+    },
+    "25": {
+      "name": "ScaledUiAmount",
+      "bytes": 56
+    },
+    "26": {
+      "name": "Pausable",
+      "bytes": 33
+    }
+  },
+  "accountExtensions": {
+    "7": {
+      "name": "ImmutableOwner",
+      "bytes": 0
+    },
+    "15": {
+      "name": "TransferHookAccount",
+      "bytes": 1
+    },
+    "27": {
+      "name": "PausableAccount",
+      "bytes": 0
+    }
+  },
+  "metadata": {
+    "crate": "spl-token-metadata-interface",
+    "version": "0.7.0",
+    "archiveSha256": "304d6e06f0de0c13a621464b1fd5d4b1bebf60d15ca71a44d3839958e0da16ee",
+    "gitCommit": "28b1e025e28c54e7447cd29d566413ae00d04ff8",
+    "stateRsSha256": "194e53a9536adead44516c7ff86362c40acd6380517527be6aa8be4487d6940c",
+    "wire": "update_authority[32], mint[32], String name, String symbol, String uri, Vec<(String,String)> additional_metadata"
+  }
+}

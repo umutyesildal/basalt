@@ -1,0 +1,668 @@
+warning: unexpected `cfg` condition value: `anchor-debug`
+  --> programs/whitelist/src/lib.rs:17:1
+   |
+17 | #[program]
+   | ^^^^^^^^^^
+   |
+   = note: expected values for `feature` are: `cpi`, `default`, `idl-build`, `no-entrypoint`, `no-idl`, and `no-log-ix-name`
+   = note: using a cfg inside a attribute macro will use the cfgs from the destination crate and not the ones from the defining crate
+   = help: try referring to `program` crate for guidance on how handle this unexpected cfg
+   = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+   = note: `#[warn(unexpected_cfgs)]` on by default
+   = note: this warning originates in the attribute macro `program` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: unexpected `cfg` condition value: `anchor-debug`
+  --> programs/whitelist/src/lib.rs:17:1
+   |
+17 | #[program]
+   | ^^^^^^^^^^
+   |
+   = note: expected values for `feature` are: `cpi`, `default`, `idl-build`, `no-entrypoint`, `no-idl`, and `no-log-ix-name`
+   = note: using a cfg inside a derive macro will use the cfgs from the destination crate and not the ones from the defining crate
+   = help: try referring to `Accounts` crate for guidance on how handle this unexpected cfg
+   = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+   = note: this warning originates in the derive macro `Accounts` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: unexpected `cfg` condition value: `anchor-debug`
+   --> programs/whitelist/src/lib.rs:178:10
+    |
+178 | #[derive(Accounts)]
+    |          ^^^^^^^^
+    |
+    = note: expected values for `feature` are: `cpi`, `default`, `idl-build`, `no-entrypoint`, `no-idl`, and `no-log-ix-name`
+    = note: using a cfg inside a derive macro will use the cfgs from the destination crate and not the ones from the defining crate
+    = help: try referring to `Accounts` crate for guidance on how handle this unexpected cfg
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+    = note: this warning originates in the derive macro `Accounts` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: unexpected `cfg` condition value: `anchor-debug`
+   --> programs/whitelist/src/lib.rs:193:10
+    |
+193 | #[derive(Accounts)]
+    |          ^^^^^^^^
+    |
+    = note: expected values for `feature` are: `cpi`, `default`, `idl-build`, `no-entrypoint`, `no-idl`, and `no-log-ix-name`
+    = note: using a cfg inside a derive macro will use the cfgs from the destination crate and not the ones from the defining crate
+    = help: try referring to `Accounts` crate for guidance on how handle this unexpected cfg
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+    = note: this warning originates in the derive macro `Accounts` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: unexpected `cfg` condition value: `anchor-debug`
+   --> programs/whitelist/src/lib.rs:214:10
+    |
+214 | #[derive(Accounts)]
+    |          ^^^^^^^^
+    |
+    = note: expected values for `feature` are: `cpi`, `default`, `idl-build`, `no-entrypoint`, `no-idl`, and `no-log-ix-name`
+    = note: using a cfg inside a derive macro will use the cfgs from the destination crate and not the ones from the defining crate
+    = help: try referring to `Accounts` crate for guidance on how handle this unexpected cfg
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+    = note: this warning originates in the derive macro `Accounts` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: unexpected `cfg` condition value: `anchor-debug`
+   --> programs/whitelist/src/lib.rs:223:10
+    |
+223 | #[derive(Accounts)]
+    |          ^^^^^^^^
+    |
+    = note: expected values for `feature` are: `cpi`, `default`, `idl-build`, `no-entrypoint`, `no-idl`, and `no-log-ix-name`
+    = note: using a cfg inside a derive macro will use the cfgs from the destination crate and not the ones from the defining crate
+    = help: try referring to `Accounts` crate for guidance on how handle this unexpected cfg
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+    = note: this warning originates in the derive macro `Accounts` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: unexpected `cfg` condition value: `anchor-debug`
+   --> programs/whitelist/src/lib.rs:230:10
+    |
+230 | #[derive(Accounts)]
+    |          ^^^^^^^^
+    |
+    = note: expected values for `feature` are: `cpi`, `default`, `idl-build`, `no-entrypoint`, `no-idl`, and `no-log-ix-name`
+    = note: using a cfg inside a derive macro will use the cfgs from the destination crate and not the ones from the defining crate
+    = help: try referring to `Accounts` crate for guidance on how handle this unexpected cfg
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+    = note: this warning originates in the derive macro `Accounts` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: unexpected `cfg` condition value: `anchor-debug`
+   --> programs/basket/src/lib.rs:238:1
+    |
+238 | #[program]
+    | ^^^^^^^^^^
+    |
+    = note: expected values for `feature` are: `cpi`, `default`, `idl-build`, `no-entrypoint`, `no-idl`, and `no-log-ix-name`
+    = note: using a cfg inside a attribute macro will use the cfgs from the destination crate and not the ones from the defining crate
+    = help: try referring to `program` crate for guidance on how handle this unexpected cfg
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+    = note: `#[warn(unexpected_cfgs)]` on by default
+    = note: this warning originates in the attribute macro `program` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: unexpected `cfg` condition value: `anchor-debug`
+   --> programs/basket/src/lib.rs:238:1
+    |
+238 | #[program]
+    | ^^^^^^^^^^
+    |
+    = note: expected values for `feature` are: `cpi`, `default`, `idl-build`, `no-entrypoint`, `no-idl`, and `no-log-ix-name`
+    = note: using a cfg inside a derive macro will use the cfgs from the destination crate and not the ones from the defining crate
+    = help: try referring to `Accounts` crate for guidance on how handle this unexpected cfg
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+    = note: this warning originates in the derive macro `Accounts` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: unexpected `cfg` condition value: `anchor-debug`
+    --> programs/basket/src/lib.rs:1358:10
+     |
+1358 | #[derive(Accounts)]
+     |          ^^^^^^^^
+     |
+     = note: expected values for `feature` are: `cpi`, `default`, `idl-build`, `no-entrypoint`, `no-idl`, and `no-log-ix-name`
+     = note: using a cfg inside a derive macro will use the cfgs from the destination crate and not the ones from the defining crate
+     = help: try referring to `Accounts` crate for guidance on how handle this unexpected cfg
+     = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+     = note: this warning originates in the derive macro `Accounts` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: unexpected `cfg` condition value: `anchor-debug`
+    --> programs/basket/src/lib.rs:1373:10
+     |
+1373 | #[derive(Accounts)]
+     |          ^^^^^^^^
+     |
+     = note: expected values for `feature` are: `cpi`, `default`, `idl-build`, `no-entrypoint`, `no-idl`, and `no-log-ix-name`
+     = note: using a cfg inside a derive macro will use the cfgs from the destination crate and not the ones from the defining crate
+     = help: try referring to `Accounts` crate for guidance on how handle this unexpected cfg
+     = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+     = note: this warning originates in the derive macro `Accounts` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: unexpected `cfg` condition value: `anchor-debug`
+    --> programs/basket/src/lib.rs:1417:10
+     |
+1417 | #[derive(Accounts)]
+     |          ^^^^^^^^
+     |
+     = note: expected values for `feature` are: `cpi`, `default`, `idl-build`, `no-entrypoint`, `no-idl`, and `no-log-ix-name`
+     = note: using a cfg inside a derive macro will use the cfgs from the destination crate and not the ones from the defining crate
+     = help: try referring to `Accounts` crate for guidance on how handle this unexpected cfg
+     = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+     = note: this warning originates in the derive macro `Accounts` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: unexpected `cfg` condition value: `anchor-debug`
+    --> programs/basket/src/lib.rs:1463:10
+     |
+1463 | #[derive(Accounts)]
+     |          ^^^^^^^^
+     |
+     = note: expected values for `feature` are: `cpi`, `default`, `idl-build`, `no-entrypoint`, `no-idl`, and `no-log-ix-name`
+     = note: using a cfg inside a derive macro will use the cfgs from the destination crate and not the ones from the defining crate
+     = help: try referring to `Accounts` crate for guidance on how handle this unexpected cfg
+     = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+     = note: this warning originates in the derive macro `Accounts` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: unexpected `cfg` condition value: `custom-heap`
+  --> programs/managed_basket/src/lib.rs:34:1
+   |
+34 | #[program]
+   | ^^^^^^^^^^
+   |
+   = note: expected values for `feature` are: `cpi`, `default`, `idl-build`, `localnet-fast-notice`, `no-entrypoint`, `no-idl`, and `no-log-ix-name`
+   = note: using a cfg inside a macro will use the cfgs from the destination crate and not the ones from the defining crate
+   = help: try referring to `$crate::custom_heap_default` crate for guidance on how handle this unexpected cfg
+   = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+   = note: `#[warn(unexpected_cfgs)]` on by default
+   = note: this warning originates in the macro `$crate::custom_heap_default` which comes from the expansion of the attribute macro `program` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: unexpected `cfg` condition value: `solana`
+  --> programs/managed_basket/src/lib.rs:34:1
+   |
+34 | #[program]
+   | ^^^^^^^^^^
+   |
+   = note: expected values for `target_os` are: `aix`, `amdhsa`, `android`, `cuda`, `cygwin`, `dragonfly`, `emscripten`, `espidf`, `freebsd`, `fuchsia`, `haiku`, `helenos`, `hermit`, `horizon`, `hurd`, `illumos`, `ios`, `l4re`, `linux`, `lynxos178`, `macos`, `managarm`, `motor`, `netbsd`, `none`, `nto`, `nuttx`, `openbsd`, `psp`, `psx`, `qnx`, `qurt`, `redox`, `rtems`, and `solaris` and 15 more
+   = note: using a cfg inside a macro will use the cfgs from the destination crate and not the ones from the defining crate
+   = help: try referring to `$crate::custom_heap_default` crate for guidance on how handle this unexpected cfg
+   = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+   = note: this warning originates in the macro `$crate::custom_heap_default` which comes from the expansion of the attribute macro `program` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: unexpected `cfg` condition value: `custom-panic`
+  --> programs/managed_basket/src/lib.rs:34:1
+   |
+34 | #[program]
+   | ^^^^^^^^^^
+   |
+   = note: expected values for `feature` are: `cpi`, `default`, `idl-build`, `localnet-fast-notice`, `no-entrypoint`, `no-idl`, and `no-log-ix-name`
+   = note: using a cfg inside a macro will use the cfgs from the destination crate and not the ones from the defining crate
+   = help: try referring to `$crate::custom_panic_default` crate for guidance on how handle this unexpected cfg
+   = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+   = note: this warning originates in the macro `$crate::custom_panic_default` which comes from the expansion of the attribute macro `program` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: unexpected `cfg` condition value: `solana`
+  --> programs/managed_basket/src/lib.rs:34:1
+   |
+34 | #[program]
+   | ^^^^^^^^^^
+   |
+   = note: expected values for `target_os` are: `aix`, `amdhsa`, `android`, `cuda`, `cygwin`, `dragonfly`, `emscripten`, `espidf`, `freebsd`, `fuchsia`, `haiku`, `helenos`, `hermit`, `horizon`, `hurd`, `illumos`, `ios`, `l4re`, `linux`, `lynxos178`, `macos`, `managarm`, `motor`, `netbsd`, `none`, `nto`, `nuttx`, `openbsd`, `psp`, `psx`, `qnx`, `qurt`, `redox`, `rtems`, and `solaris` and 15 more
+   = note: using a cfg inside a macro will use the cfgs from the destination crate and not the ones from the defining crate
+   = help: try referring to `$crate::custom_panic_default` crate for guidance on how handle this unexpected cfg
+   = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+   = note: this warning originates in the macro `$crate::custom_panic_default` which comes from the expansion of the attribute macro `program` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: unexpected `cfg` condition value: `anchor-debug`
+   --> programs/managed_basket/src/create.rs:377:10
+    |
+377 | #[derive(Accounts)]
+    |          ^^^^^^^^
+    |
+    = note: expected values for `feature` are: `cpi`, `default`, `idl-build`, `localnet-fast-notice`, `no-entrypoint`, `no-idl`, and `no-log-ix-name`
+    = note: using a cfg inside a derive macro will use the cfgs from the destination crate and not the ones from the defining crate
+    = help: try referring to `Accounts` crate for guidance on how handle this unexpected cfg
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+    = note: this warning originates in the derive macro `Accounts` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: unexpected `cfg` condition value: `anchor-debug`
+   --> programs/managed_basket/src/execution.rs:249:10
+    |
+249 | #[derive(Accounts)]
+    |          ^^^^^^^^
+    |
+    = note: expected values for `feature` are: `cpi`, `default`, `idl-build`, `localnet-fast-notice`, `no-entrypoint`, `no-idl`, and `no-log-ix-name`
+    = note: using a cfg inside a derive macro will use the cfgs from the destination crate and not the ones from the defining crate
+    = help: try referring to `Accounts` crate for guidance on how handle this unexpected cfg
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+    = note: this warning originates in the derive macro `Accounts` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: unexpected `cfg` condition value: `anchor-debug`
+   --> programs/managed_basket/src/proposal.rs:315:10
+    |
+315 | #[derive(Accounts)]
+    |          ^^^^^^^^
+    |
+    = note: expected values for `feature` are: `cpi`, `default`, `idl-build`, `localnet-fast-notice`, `no-entrypoint`, `no-idl`, and `no-log-ix-name`
+    = note: using a cfg inside a derive macro will use the cfgs from the destination crate and not the ones from the defining crate
+    = help: try referring to `Accounts` crate for guidance on how handle this unexpected cfg
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+    = note: this warning originates in the derive macro `Accounts` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: unexpected `cfg` condition value: `anchor-debug`
+   --> programs/managed_basket/src/proposal.rs:333:10
+    |
+333 | #[derive(Accounts)]
+    |          ^^^^^^^^
+    |
+    = note: expected values for `feature` are: `cpi`, `default`, `idl-build`, `localnet-fast-notice`, `no-entrypoint`, `no-idl`, and `no-log-ix-name`
+    = note: using a cfg inside a derive macro will use the cfgs from the destination crate and not the ones from the defining crate
+    = help: try referring to `Accounts` crate for guidance on how handle this unexpected cfg
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+    = note: this warning originates in the derive macro `Accounts` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: unexpected `cfg` condition value: `anchor-debug`
+   --> programs/managed_basket/src/proposal.rs:348:10
+    |
+348 | #[derive(Accounts)]
+    |          ^^^^^^^^
+    |
+    = note: expected values for `feature` are: `cpi`, `default`, `idl-build`, `localnet-fast-notice`, `no-entrypoint`, `no-idl`, and `no-log-ix-name`
+    = note: using a cfg inside a derive macro will use the cfgs from the destination crate and not the ones from the defining crate
+    = help: try referring to `Accounts` crate for guidance on how handle this unexpected cfg
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+    = note: this warning originates in the derive macro `Accounts` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: unexpected `cfg` condition value: `anchor-debug`
+   --> programs/managed_basket/src/proposal.rs:363:10
+    |
+363 | #[derive(Accounts)]
+    |          ^^^^^^^^
+    |
+    = note: expected values for `feature` are: `cpi`, `default`, `idl-build`, `localnet-fast-notice`, `no-entrypoint`, `no-idl`, and `no-log-ix-name`
+    = note: using a cfg inside a derive macro will use the cfgs from the destination crate and not the ones from the defining crate
+    = help: try referring to `Accounts` crate for guidance on how handle this unexpected cfg
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+    = note: this warning originates in the derive macro `Accounts` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: unexpected `cfg` condition value: `anchor-debug`
+   --> programs/managed_basket/src/shares.rs:400:10
+    |
+400 | #[derive(Accounts)]
+    |          ^^^^^^^^
+    |
+    = note: expected values for `feature` are: `cpi`, `default`, `idl-build`, `localnet-fast-notice`, `no-entrypoint`, `no-idl`, and `no-log-ix-name`
+    = note: using a cfg inside a derive macro will use the cfgs from the destination crate and not the ones from the defining crate
+    = help: try referring to `Accounts` crate for guidance on how handle this unexpected cfg
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+    = note: this warning originates in the derive macro `Accounts` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: unexpected `cfg` condition value: `anchor-debug`
+   --> programs/managed_basket/src/shares.rs:428:10
+    |
+428 | #[derive(Accounts)]
+    |          ^^^^^^^^
+    |
+    = note: expected values for `feature` are: `cpi`, `default`, `idl-build`, `localnet-fast-notice`, `no-entrypoint`, `no-idl`, and `no-log-ix-name`
+    = note: using a cfg inside a derive macro will use the cfgs from the destination crate and not the ones from the defining crate
+    = help: try referring to `Accounts` crate for guidance on how handle this unexpected cfg
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+    = note: this warning originates in the derive macro `Accounts` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: unexpected `cfg` condition value: `anchor-debug`
+  --> programs/managed_basket/src/lib.rs:34:1
+   |
+34 | #[program]
+   | ^^^^^^^^^^
+   |
+   = note: expected values for `feature` are: `cpi`, `default`, `idl-build`, `localnet-fast-notice`, `no-entrypoint`, `no-idl`, and `no-log-ix-name`
+   = note: using a cfg inside a attribute macro will use the cfgs from the destination crate and not the ones from the defining crate
+   = help: try referring to `program` crate for guidance on how handle this unexpected cfg
+   = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+   = note: this warning originates in the attribute macro `program` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: unexpected `cfg` condition value: `anchor-debug`
+  --> programs/managed_basket/src/lib.rs:34:1
+   |
+34 | #[program]
+   | ^^^^^^^^^^
+   |
+   = note: expected values for `feature` are: `cpi`, `default`, `idl-build`, `localnet-fast-notice`, `no-entrypoint`, `no-idl`, and `no-log-ix-name`
+   = note: using a cfg inside a derive macro will use the cfgs from the destination crate and not the ones from the defining crate
+   = help: try referring to `Accounts` crate for guidance on how handle this unexpected cfg
+   = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+   = note: this warning originates in the derive macro `Accounts` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: `whitelist` (lib) generated 12 warnings (5 duplicates)
+warning: `basket` (lib) generated 11 warnings (5 duplicates)
+warning: `managed_basket` (lib test) generated 19 warnings (5 duplicates)
+warning: `whitelist` (lib test) generated 12 warnings (12 duplicates)
+warning: `basket` (lib test) generated 11 warnings (11 duplicates)
+warning: unexpected `cfg` condition value: `custom-heap`
+  --> programs/basket_factory/src/lib.rs:34:1
+   |
+34 | #[program]
+   | ^^^^^^^^^^
+   |
+   = note: expected values for `feature` are: `cpi`, `default`, `idl-build`, `no-entrypoint`, `no-idl`, and `no-log-ix-name`
+   = note: using a cfg inside a macro will use the cfgs from the destination crate and not the ones from the defining crate
+   = help: try referring to `$crate::custom_heap_default` crate for guidance on how handle this unexpected cfg
+   = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+   = note: `#[warn(unexpected_cfgs)]` on by default
+   = note: this warning originates in the macro `$crate::custom_heap_default` which comes from the expansion of the attribute macro `program` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: unexpected `cfg` condition value: `solana`
+  --> programs/basket_factory/src/lib.rs:34:1
+   |
+34 | #[program]
+   | ^^^^^^^^^^
+   |
+   = note: expected values for `target_os` are: `aix`, `amdhsa`, `android`, `cuda`, `cygwin`, `dragonfly`, `emscripten`, `espidf`, `freebsd`, `fuchsia`, `haiku`, `helenos`, `hermit`, `horizon`, `hurd`, `illumos`, `ios`, `l4re`, `linux`, `lynxos178`, `macos`, `managarm`, `motor`, `netbsd`, `none`, `nto`, `nuttx`, `openbsd`, `psp`, `psx`, `qnx`, `qurt`, `redox`, `rtems`, and `solaris` and 15 more
+   = note: using a cfg inside a macro will use the cfgs from the destination crate and not the ones from the defining crate
+   = help: try referring to `$crate::custom_heap_default` crate for guidance on how handle this unexpected cfg
+   = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+   = note: this warning originates in the macro `$crate::custom_heap_default` which comes from the expansion of the attribute macro `program` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: unexpected `cfg` condition value: `custom-panic`
+  --> programs/basket_factory/src/lib.rs:34:1
+   |
+34 | #[program]
+   | ^^^^^^^^^^
+   |
+   = note: expected values for `feature` are: `cpi`, `default`, `idl-build`, `no-entrypoint`, `no-idl`, and `no-log-ix-name`
+   = note: using a cfg inside a macro will use the cfgs from the destination crate and not the ones from the defining crate
+   = help: try referring to `$crate::custom_panic_default` crate for guidance on how handle this unexpected cfg
+   = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+   = note: this warning originates in the macro `$crate::custom_panic_default` which comes from the expansion of the attribute macro `program` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: unexpected `cfg` condition value: `solana`
+  --> programs/basket_factory/src/lib.rs:34:1
+   |
+34 | #[program]
+   | ^^^^^^^^^^
+   |
+   = note: expected values for `target_os` are: `aix`, `amdhsa`, `android`, `cuda`, `cygwin`, `dragonfly`, `emscripten`, `espidf`, `freebsd`, `fuchsia`, `haiku`, `helenos`, `hermit`, `horizon`, `hurd`, `illumos`, `ios`, `l4re`, `linux`, `lynxos178`, `macos`, `managarm`, `motor`, `netbsd`, `none`, `nto`, `nuttx`, `openbsd`, `psp`, `psx`, `qnx`, `qurt`, `redox`, `rtems`, and `solaris` and 15 more
+   = note: using a cfg inside a macro will use the cfgs from the destination crate and not the ones from the defining crate
+   = help: try referring to `$crate::custom_panic_default` crate for guidance on how handle this unexpected cfg
+   = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+   = note: this warning originates in the macro `$crate::custom_panic_default` which comes from the expansion of the attribute macro `program` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: unexpected `cfg` condition value: `anchor-debug`
+  --> programs/basket_factory/src/lib.rs:34:1
+   |
+34 | #[program]
+   | ^^^^^^^^^^
+   |
+   = note: expected values for `feature` are: `cpi`, `default`, `idl-build`, `no-entrypoint`, `no-idl`, and `no-log-ix-name`
+   = note: using a cfg inside a attribute macro will use the cfgs from the destination crate and not the ones from the defining crate
+   = help: try referring to `program` crate for guidance on how handle this unexpected cfg
+   = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+   = note: this warning originates in the attribute macro `program` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: unexpected `cfg` condition value: `anchor-debug`
+  --> programs/basket_factory/src/lib.rs:34:1
+   |
+34 | #[program]
+   | ^^^^^^^^^^
+   |
+   = note: expected values for `feature` are: `cpi`, `default`, `idl-build`, `no-entrypoint`, `no-idl`, and `no-log-ix-name`
+   = note: using a cfg inside a derive macro will use the cfgs from the destination crate and not the ones from the defining crate
+   = help: try referring to `Accounts` crate for guidance on how handle this unexpected cfg
+   = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+   = note: this warning originates in the derive macro `Accounts` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: unexpected `cfg` condition value: `anchor-debug`
+   --> programs/basket_factory/src/lib.rs:730:10
+    |
+730 | #[derive(Accounts)]
+    |          ^^^^^^^^
+    |
+    = note: expected values for `feature` are: `cpi`, `default`, `idl-build`, `no-entrypoint`, `no-idl`, and `no-log-ix-name`
+    = note: using a cfg inside a derive macro will use the cfgs from the destination crate and not the ones from the defining crate
+    = help: try referring to `Accounts` crate for guidance on how handle this unexpected cfg
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+    = note: this warning originates in the derive macro `Accounts` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: unexpected `cfg` condition value: `anchor-debug`
+   --> programs/basket_factory/src/lib.rs:739:10
+    |
+739 | #[derive(Accounts)]
+    |          ^^^^^^^^
+    |
+    = note: expected values for `feature` are: `cpi`, `default`, `idl-build`, `no-entrypoint`, `no-idl`, and `no-log-ix-name`
+    = note: using a cfg inside a derive macro will use the cfgs from the destination crate and not the ones from the defining crate
+    = help: try referring to `Accounts` crate for guidance on how handle this unexpected cfg
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+    = note: this warning originates in the derive macro `Accounts` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: `basket_factory` (lib test) generated 13 warnings (5 duplicates)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 0.49s
+     Running unittests src/lib.rs (target/debug/deps/basket-8520c57f69f78251)
+
+running 136 tests
+test impl_tests::test_compute_mint_gross_genesis_constant ... ok
+test impl_tests::test_compute_mint_gross_genesis_fixed ... ok
+test bas004_arithmetic_tests::checked_fee_helpers_reject_invalid_bps_and_keep_u64_boundaries ... ok
+test bas004_arithmetic_tests::redeem_requires_nonzero_supply_and_burn_within_supply ... ok
+test bas004_arithmetic_tests::split_accounts_rejects_constituent_count_multiplication_overflow ... ok
+test impl_tests::test_compute_mint_gross_non_genesis_delegates ... ok
+test bas004_arithmetic_tests::management_fee_rejects_checked_narrowing ... ok
+test bas004_arithmetic_tests::checked_helpers_reject_narrowing_and_tolerance_overflow ... ok
+test impl_tests::test_entry_fee_split_accounts_minted_total ... ok
+test impl_tests::test_fee_split_amounts_dust_cases ... ok
+test bas004_arithmetic_tests::deterministic_arithmetic_properties_hold_at_boundaries ... ok
+test impl_tests::test_mgmt_fee_split_over_time_grid ... ok
+test impl_tests::test_redeem_aggregate_never_over_withdraws ... ok
+test impl_tests::test_redeem_burn_positive_when_fee_bps_capped ... ok
+test impl_tests::test_redeem_floor_favors_remaining_holders ... ok
+test impl_tests::test_redeem_full_supply_empties_vault_exactly ... ok
+test impl_tests::test_redeem_spec_example_54_725_000 ... ok
+test impl_tests::test_redeem_user_post_burn_balance_covers_fee_transfer ... ok
+test impl_tests::test_tolerance_exact_boundary_passes ... ok
+test impl_tests::test_tolerance_exact_one_raw_unit_over_fails ... ok
+test mega_tests::t10_fee_3_percent ... ok
+test mega_tests::t11_exit_1_percent ... ok
+test mega_tests::t12_mgmt_1_year_200bps ... ok
+test mega_tests::t13_mgmt_half_year ... ok
+test mega_tests::t14_split_half ... ok
+test mega_tests::t15_split_10 ... ok
+test impl_tests::test_fee_split_amounts_sum_invariant_exhaustive ... ok
+test mega_tests::t16_redeem_10_percent ... ok
+test mega_tests::t17_redeem_50_percent ... ok
+test mega_tests::t18_redeem_all ... ok
+test mega_tests::t19_gross_large_supply ... ok
+test mega_tests::t1_entry_zero ... ok
+test mega_tests::t20_gross_small_vault ... ok
+test mega_tests::t21_fuzz_entry ... ok
+test mega_tests::t22_fuzz_exit ... ok
+test mega_tests::t23_fuzz_mgmt ... ok
+test mega_tests::t24_fuzz_split ... ok
+test mega_tests::t25_redeem_floor ... ok
+test mega_tests::t26_redeem_never_exceeds ... ok
+test mega_tests::t27_gross_no_overflow ... ok
+test mega_tests::t28_mgmt_never_exceeds_cap_random ... ok
+test mega_tests::t29_entry_exact ... ok
+test mega_tests::t2_exit_zero ... ok
+test mega_tests::t30_exit_exact ... ok
+test mega_tests::t31_scaled_raw ... ok
+test mega_tests::t32_vault_consistency ... ok
+test mega_tests::t33_weight_mismatch_edge ... ok
+test mega_tests::t34_weight_exact ... ok
+test mega_tests::t35_fee_split_0 ... ok
+test mega_tests::t36_fee_split_100 ... ok
+test mega_tests::t37_gross_with_supply_1 ... ok
+test mega_tests::t38_mgmt_30_days ... ok
+test mega_tests::t39_mgmt_7_days ... ok
+test mega_tests::t3_split_zero ... ok
+test mega_tests::t40_redeem_multi ... ok
+test mega_tests::t4_mgmt_zero_supply ... ok
+test mega_tests::t5_mgmt_zero_elapsed ... ok
+test mega_tests::t6_redeem_empty ... ok
+test mega_tests::t7_gross_min_is_min ... ok
+test mega_tests::t8_gross_with_20_vals ... ok
+test mega_tests::t9_fee_1_percent ... ok
+test paused_gate_tests::test_factory_genesis_supply_small_first_deposit_pro_rata ... ok
+test paused_gate_tests::test_factory_genesis_supply_takes_pro_rata_path ... ok
+test paused_gate_tests::test_gross_uses_supply_read_from_mint_not_stale_field ... ok
+test paused_gate_tests::test_mint_extension_policy_rejects_extension_bearing_account ... ok
+test paused_gate_tests::test_paused_gate_active_passes ... ok
+test paused_gate_tests::test_paused_gate_data_length_boundary ... ok
+test paused_gate_tests::test_paused_gate_mint_field_mismatch_fails ... ok
+test paused_gate_tests::test_paused_gate_paused_new_mints_blocks_mint ... ok
+test paused_gate_tests::test_paused_gate_unknown_status_fails_closed ... ok
+test paused_gate_tests::test_paused_gate_wrong_discriminator_fails ... ok
+test paused_gate_tests::test_parse_constituents_triplet_order ... ok
+test paused_gate_tests::test_paused_gate_wrong_owner_fails ... ok
+test paused_gate_tests::test_redeem_doc_comment_permissionless_contract ... ok
+test paused_gate_tests::test_redeem_struct_has_no_whitelist_dependency ... ok
+test paused_gate_tests::test_remaining_accounts_layout_ordering ... ok
+test paused_gate_tests::test_remaining_accounts_rejects_legacy_3n_layout ... ok
+test paused_gate_tests::test_remaining_accounts_rejects_wrong_lengths ... ok
+test paused_gate_tests::test_mint_handler_calls_extension_policy ... ok
+test paused_gate_tests::test_status_offset_pins_whitelisted_mint_layout ... ok
+test paused_gate_tests::test_redeem_handler_has_no_whitelist_logic ... ok
+test paused_gate_tests::test_transfer_delta_exact_raw_amount ... ok
+test paused_gate_tests::test_transfer_delta_rejects_extra_source_debit ... ok
+test paused_gate_tests::test_transfer_delta_rejects_short_destination_credit ... ok
+test paused_gate_tests::test_whitelist_program_id_matches_declared_id ... ok
+test paused_gate_tests::test_whitelisted_mint_discriminator_constant ... ok
+test test_id ... ok
+test tests::test_deposits_full_redeem_property ... ok
+test tests::test_entry_fee_max_bps ... ok
+test tests::test_entry_fee_never_exceeds_gross ... ok
+test tests::test_entry_fee_zero_bps ... ok
+test tests::test_exit_fee_max_bps ... ok
+test tests::test_fee_math ... ok
+test tests::test_fee_overcharging_never ... ok
+test paused_gate_tests::test_token2022_owner_checks_are_pinned_on_token_entrypoints ... ok
+test tests::test_fuzz_random_deposits_redeems ... ok
+test tests::test_genesis_fixed_shares ... ok
+test tests::test_gross_shares_20_constituents ... ok
+test tests::test_gross_shares_dust_amount ... ok
+test tests::test_gross_shares_large_numbers_no_overflow ... ok
+test tests::test_gross_shares_length_mismatch_fails ... ok
+test tests::test_gross_shares_perfect ... ok
+test tests::test_gross_shares_single_constituent ... ok
+test tests::test_gross_shares_tolerance_boundary_fail ... ok
+test tests::test_gross_shares_tolerance_boundary_pass ... ok
+test tests::test_gross_shares_weight_mismatch ... ok
+test tests::test_gross_shares_zero_deposit_fails ... ok
+test tests::test_gross_shares_zero_supply_fails ... ok
+test tests::test_gross_shares_zero_vault_fails ... ok
+test tests::test_legacy_basket_deserializes_with_zero_remainder_without_realloc ... ok
+test tests::test_management_fee_hourly_vs_yearly ... ok
+test tests::test_management_fee_compounding_not_exceeded ... ok
+test tests::test_management_fee_one_year_cap ... ok
+test tests::test_management_fee_remainder_encoding_roundtrip ... ok
+test tests::test_management_fee_remainder_preserves_small_accruals ... ok
+test tests::test_management_fee_remainder_rejects_noncanonical_state ... ok
+test tests::test_management_fee_zero_bps ... ok
+test tests::test_management_fee_zero_elapsed ... ok
+test tests::test_management_fee_zero_supply ... ok
+test tests::test_management_never_exceeds_cap ... ok
+test tests::test_no_user_redeems_more_than_pro_rata ... ok
+test tests::test_redeem_amounts_floor ... ok
+test tests::test_redeem_consistency_multi_vault ... ok
+test tests::test_redeem_dust_floor ... ok
+test tests::test_redeem_full_supply ... ok
+test tests::test_redeem_half_supply ... ok
+test tests::test_redeem_never_exceeds_vault ... ok
+test tests::test_reentrancy_concept_no_cpi_reentry ... ok
+test tests::test_rounding_never_over_withdraws ... ok
+test tests::test_scaled_multiplier_invariance ... ok
+test tests::test_scaled_multiplier_various ... ok
+test tests::test_split_fee_dust ... ok
+test tests::test_split_fee_exact ... ok
+test tests::test_token_decimal_mismatch_concept ... ok
+test tests::test_total_value_consistency_after_ops ... ok
+test tests::test_frequent_cranks_cannot_suppress_annual_fee ... ok
+
+test result: ok. 136 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.05s
+
+     Running unittests src/lib.rs (target/debug/deps/basket_factory-8ba31bdc9eabbc00)
+
+running 45 tests
+test tests::test_basket_account_size_covers_20_constituents ... ok
+test tests::test_basket_count_increment ... ok
+test test_id ... ok
+test tests::test_check_metadata_hash_helper ... ok
+test tests::test_check_constituent_count_helper ... ok
+test tests::test_check_no_duplicates_helper ... ok
+test tests::test_check_lengths_helper ... ok
+test tests::test_check_fee_caps_helper ... ok
+test tests::test_check_remaining_accounts_layout_helper ... ok
+test tests::test_check_seed_amounts_helper ... ok
+test tests::test_check_weights_sum_helper ... ok
+test tests::test_check_whitelisted_record_paused ... ok
+test tests::test_check_whitelisted_record_ok ... ok
+test tests::test_constituent_count_bounds ... ok
+test tests::test_check_whitelisted_record_wrong_mint ... ok
+test tests::test_check_whitelisted_record_forged_pda_fails ... ok
+test tests::test_creator_split_valid ... ok
+test tests::test_decode_mint_decimals_base_mint ... ok
+test tests::test_decode_mint_decimals_truncated_fails ... ok
+test tests::test_decode_whitelisted_mint_roundtrip ... ok
+test tests::test_duplicate_detection ... ok
+test tests::test_factory_decoder_rejects_extension_bearing_mint ... ok
+test tests::test_factory_pda_seeds_deterministic ... ok
+test tests::test_factory_seeds ... ok
+test tests::test_create_entrypoint_reapplies_fail_closed_mint_policy ... ok
+test tests::test_factory_size ... ok
+test tests::test_fee_caps ... ok
+test tests::test_genesis_matches_basket_program_constant ... ok
+test tests::test_genesis_shares_constant ... ok
+test tests::test_length_mismatch ... ok
+test tests::test_metadata_hash_zero_rejected ... ok
+test tests::test_seed_amounts_zero_rejected ... ok
+test tests::test_share_mint_constants ... ok
+test tests::test_transfer_delta_accepts_max_raw_amount ... ok
+test tests::test_transfer_delta_exact_raw_amount ... ok
+test tests::test_transfer_delta_rejects_fee_or_hook_debit ... ok
+test tests::test_transfer_delta_rejects_short_credit ... ok
+test tests::test_weights_random_invalid ... ok
+test tests::test_weights_sum_invalid ... ok
+test tests::test_weights_sum_valid ... ok
+test tests::test_weights_various_valid ... ok
+test tests::test_vault_authority_pda_uses_basket_program_id ... ok
+test tests::test_whitelist_pda_derivation_deterministic ... ok
+test tests::test_vault_bump_written_canonical ... ok
+test tests::test_creator_split_helper_rejects_every_noncanonical_value ... ok
+
+test result: ok. 45 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+
+     Running unittests src/lib.rs (target/debug/deps/managed_basket-ff48a926119e692c)
+
+running 6 tests
+test state::default_notice_tests::default_notice_remains_twenty_four_hours_nominally ... ok
+test math::tests::redemption_floors_each_raw_component ... ok
+test test_id ... ok
+test math::tests::gross_shares_uses_live_raw_balances_and_one_percent_floor_tolerance ... ok
+test token::tests::admits_plain_token_2022_mint_without_freeze_authority ... ok
+test token::tests::rejects_plain_token_2022_mint_with_freeze_authority ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/lib.rs (target/debug/deps/whitelist-ca6fda0ccdf26d88)
+
+running 27 tests
+test tests::test_check_decimals_ok ... ok
+test test_id ... ok
+test tests::test_add_mint_caches_onchain_decimals_semantics ... ok
+test tests::test_check_mint_owner_rejects_other_programs ... ok
+test tests::test_check_decimals_arg_over_cap_fails ... ok
+test tests::test_check_mint_owner_accepts_token_2022 ... ok
+test tests::test_check_decimals_mismatch_fails ... ok
+test tests::test_add_mint_entrypoint_uses_fail_closed_decoder ... ok
+test tests::test_config_size ... ok
+test tests::test_decimals_validation ... ok
+test tests::test_decode_mint_decimals_base_mint ... ok
+test tests::test_decode_mint_decimals_rejects_known_extensions ... ok
+test tests::test_decode_mint_decimals_rejects_malformed_tlv ... ok
+test tests::test_decode_mint_decimals_rejects_padded_empty_tlv_region ... ok
+test tests::test_decode_mint_decimals_rejects_uninitialized_base_mint ... ok
+test tests::test_decode_mint_decimals_truncated_fails ... ok
+test tests::test_mint_count_increment ... ok
+test tests::test_mint_count_overflow_is_rejected ... ok
+test tests::test_mint_size ... ok
+test tests::test_multiplier_watermark_default ... ok
+test tests::test_pause_idempotency ... ok
+test tests::test_pending_authority_none_initially ... ok
+test tests::test_price_source_length_validation ... ok
+test tests::test_price_source_various ... ok
+test tests::test_seed_constants ... ok
+test tests::test_transfer_authority_flow ... ok
+test tests::test_whitelist_status_values ... ok
+
+test result: ok. 27 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s

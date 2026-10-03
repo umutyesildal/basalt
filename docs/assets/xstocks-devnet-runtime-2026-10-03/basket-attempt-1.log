@@ -1,0 +1,166 @@
+{
+  "mode": "execute",
+  "cluster": "devnet",
+  "expectedGenesis": "EtWTRABZaYq6iMfeYKouRu166VU2xqa1wcaWoxPkrZBG",
+  "stateDirectory": "/Users/umutyesildal/orca/workspaces/createyouretf/createyouretf/.cache/devnet-xstocks/issuer-profile-20261003-0035",
+  "fixtures": "Four project-issued eight-extension mocks, not official xStocks",
+  "baskets": [
+    3,
+    4
+  ],
+  "checks": [
+    "Raw atomic seed, deposits and pro-rata redemption",
+    "Share supply and separate 90/10 entry, exit and management fees",
+    "Four-asset v0 address lookup table",
+    "Whitelist pause rejects new deposits while redemption succeeds",
+    "Issuer pause, active hook and frozen default state reject deposits with full state rollback",
+    "Issuer pause can also prevent underlying redemption",
+    "Multiplier changes display units without changing raw custody or redemption math"
+  ],
+  "maximumSpendSol": 0.2,
+  "minimumRemainingSol": 0.2,
+  "note": "Without --execute: no RPC requests, key reads, file writes or transactions. No program deployment in either mode."
+}
+  tx alt_create_xstocks-basket-proof: 5pP6gVDhdxb2YB7HsjMxi9J3r1dViwtxcoXXZbp4D4MKMSCfEwsxHSwN2RMPpm5imAWeyZAxkQ4kFwT9JCTVDMAC
+  tx alt_extend_Fg2XCB_0: 5HjHoi9dme2F2JTr7hrRyJ17PTaRDbipE3t5RSMxhUiadQVoWTeA8PkoffWt5GxGqzCbaqkkRiLRAbW4XdtuLx1m
+  ALT xstocks-basket-proof: Fg2XCBiGct5sRFZHF2Rz3mnSfJdXBdRfpgS3mm3hfApP created @slot 506819055 (2 addresses)
+{
+  "label": "fund-creator",
+  "signature": "5WRkMNZx7DC2tpfMxSVSbxyJVBgH2eJSn4BogKYKAQvouzTAWHkVpaCFuKjsnPygbvs1gG7hDuyVw4e8aBJsyCTL",
+  "result": "confirmed"
+}
+  tx alt_extend_Fg2XCB_0: 2RzQMjW9Wun1syZn7SL3nr3t3mkPiXsdmV84n735ctghmgTzKseG8vvXrurU998mbjXnrVqaqG7yaCABqNAHQyy1
+  ALT xstocks-basket-proof: Fg2XCBiGct5sRFZHF2Rz3mnSfJdXBdRfpgS3mm3hfApP (7 wanted, 5 newly extended)
+{
+  "label": "fund-creator-A",
+  "signature": "AjZV4ePd6ZRx8G2Cd8JnimLq1BfkCKfwsaHf2oM8TvvgqY3tG2Yfcs5q8fe1UNvyHJPoLxG5mFkuyin18RBKvVC",
+  "result": "confirmed"
+}
+  tx alt_extend_Fg2XCB_0: 2BFK1pGE2wjSAfgnXT161rrdTCiMNkbYeh9b2DxmndeW2q6m7nzPVaHd3sn1zEpfuGx84uVV58tY16kdM7V463bJ
+  ALT xstocks-basket-proof: Fg2XCBiGct5sRFZHF2Rz3mnSfJdXBdRfpgS3mm3hfApP (7 wanted, 3 newly extended)
+{
+  "label": "fund-creator-B",
+  "signature": "o19nYKuNV6dwJtWNGt4aEx34EJwMWRGxA1h9EpapqTrNX7WbBoVtY3Mghcr5tSuc7ScqGanp5QLeuhaNXzDW7dd",
+  "result": "confirmed"
+}
+  tx alt_extend_Fg2XCB_0: 4LvsvUtbfSDsV6A52bypjGtb1BaN33zZz3P9G8sg96CCvoUgDBK1nnULzE2vvGrofPqyzFrkeSDoSnPN1of9g2gw
+  ALT xstocks-basket-proof: Fg2XCBiGct5sRFZHF2Rz3mnSfJdXBdRfpgS3mm3hfApP (7 wanted, 3 newly extended)
+{
+  "label": "fund-creator-C",
+  "signature": "5tfGh1cb8izgcuimRgHo85mPDsZVAUNUHGYqGjK5pYvDtNUjNdnq51WT5mBDJUh99L7o1wjBEVu4HjWa4bUzpxRN",
+  "result": "confirmed"
+}
+  tx alt_extend_Fg2XCB_0: 56MwfJR12FQW33wCjXKFES4eCJScseXundhtz3YYkzFhVndXrtexFLp3McBLxjDNV5XyApc7j4KEfuoEMp2ewRRN
+  ALT xstocks-basket-proof: Fg2XCBiGct5sRFZHF2Rz3mnSfJdXBdRfpgS3mm3hfApP (7 wanted, 3 newly extended)
+{
+  "label": "fund-creator-D",
+  "signature": "4DWxvMuRBXz88RFAJSExmjNUvgfVmnQ6mMR2oAxX3F229bMxU4zGCnfcwGtPdynkCPVWzGoLiA5wbQrmUpB2PrhL",
+  "result": "confirmed"
+}
+  tx alt_extend_Fg2XCB_0: js1CXf9jUZCMXFPhz4kDbPmp4m5jQedotQYe4BN7YYyWNCosfmiuJoA49WosDyDTC4wYTbJuwGJiuB8gi6YbMqx
+  ALT xstocks-basket-proof: Fg2XCBiGct5sRFZHF2Rz3mnSfJdXBdRfpgS3mm3hfApP (2 wanted, 1 newly extended)
+{
+  "label": "fund-investor",
+  "signature": "4Ab76P2buWqQ4WqctR5hgwJNr2kKvWoa9GZsA3ML6Vm1Y2ctDFPV5AJ4oULmXezNSqwA8fkZZXjS62k5RojuCdhh",
+  "result": "confirmed"
+}
+  tx alt_extend_Fg2XCB_0: 5v3ciDX9J9BisapPVftvGHpv9ZyhEhH8brmLqgkoCvvA8VnVALo6dRWKgT2C8xCxG3QhTEjHkPoTzuZC6cyEQSuD
+  ALT xstocks-basket-proof: Fg2XCBiGct5sRFZHF2Rz3mnSfJdXBdRfpgS3mm3hfApP (7 wanted, 1 newly extended)
+{
+  "label": "fund-investor-A",
+  "signature": "3C3qGMAyps141YE394BqyD8pZqTaee3afMQwtfsdgRK4jav6LQYJsocg8Eo7URFA9c8SoasvbTHpQneP8xzznxNS",
+  "result": "confirmed"
+}
+  tx alt_extend_Fg2XCB_0: yWUtCr5ukWwytgJSPENNt8BBFnXJCRUDLj5JzdPZyHeQCoiN1GmYpGeyhVj5C4sd6JNh82qHBVY2pFkAepbGtro
+  ALT xstocks-basket-proof: Fg2XCBiGct5sRFZHF2Rz3mnSfJdXBdRfpgS3mm3hfApP (7 wanted, 1 newly extended)
+{
+  "label": "fund-investor-B",
+  "signature": "57ATsFq4pYuBjBfk7kKRWR7YyYr5m7VZNtyMhs2bKcRA5HPp1YTUNntFvTN5aVVc9oSepmCu5jP4v3T7M5CnaTek",
+  "result": "confirmed"
+}
+  tx alt_extend_Fg2XCB_0: 5QpyYuEJL1Gs8R4XMUBt2pednDazCNYPoRzAN2aAbDCGTLewNkhUcjQRuY7G7caaWtVGuUt9UxQ9XWk29qaD7BQL
+  ALT xstocks-basket-proof: Fg2XCBiGct5sRFZHF2Rz3mnSfJdXBdRfpgS3mm3hfApP (7 wanted, 1 newly extended)
+{
+  "label": "fund-investor-C",
+  "signature": "msefcmCXxEBAqaJcjceuiMkQ7mMHQ6i3oZDAStXU8ScsoQP6nSL9nsHgChaDBk12vhLZJy7BQLPHc2L6hc5MKkA",
+  "result": "confirmed"
+}
+  tx alt_extend_Fg2XCB_0: 5xLF8tDqSExi9hMsEVz8emCYvfxgm3227wY6ELKkDE3eGa4C2RTNimK2Sg1SWCWcVZ4Ne8MaWkW8HoGD9oBYqqKC
+  ALT xstocks-basket-proof: Fg2XCBiGct5sRFZHF2Rz3mnSfJdXBdRfpgS3mm3hfApP (7 wanted, 1 newly extended)
+{
+  "label": "fund-investor-D",
+  "signature": "N2sJQFDrGBTBGU8dB6BAfUKj3DEvSu6oesSYoWLH3NW9dcc8hEgRUFkGhQzLGFdCNcKmhYeYWz2gamNLwVKHCLB",
+  "result": "confirmed"
+}
+  tx alt_extend_Fg2XCB_0: 1b8H8JHbahkTC5VTxpShcdqyaYFCJ6FxEZekpCtpnFhHyVg9ekDGdVhzgcXpjZY1vuEFKv5thFDqUG1RfvFDsH7
+  ALT xstocks-basket-proof: Fg2XCBiGct5sRFZHF2Rz3mnSfJdXBdRfpgS3mm3hfApP (22 wanted, 13 newly extended)
+{
+  "label": "create-3",
+  "signature": "ySoVSuThvammTviwjexji5W5dcsEy2DsRJJ34i28nafnJrbWmRjg6bmesNFLm3Eg2eGozvHqGTG8PpaNxY4vjcU",
+  "result": "confirmed"
+}
+  tx alt_extend_Fg2XCB_0: 333BBdSddsdFJrH3L69JZL18kWZbHNtgijHuwTtCeG8fP73Rj8ucpswaLnrguN9oJaVokpuQieWnmeRkrhCjcWZz
+  ALT xstocks-basket-proof: Fg2XCBiGct5sRFZHF2Rz3mnSfJdXBdRfpgS3mm3hfApP (24 wanted, 3 newly extended)
+{
+  "label": "mint-3",
+  "signature": "39eEbABow9YhSX9ndv6L9y4PorhuvLC9xwaMFDVUJSNJfJtb8r7z5LgBK6f7jd9rG5pZgjhiXeAhTUEz5K7QxruK",
+  "result": "confirmed"
+}
+  ALT xstocks-basket-proof: Fg2XCBiGct5sRFZHF2Rz3mnSfJdXBdRfpgS3mm3hfApP (11 wanted, 0 newly extended)
+{
+  "label": "management-3",
+  "signature": "3AuPuNmYDnptCDUtkBxstmB4M2FVzNddg251UBpk3HD8g1gCLmheuCkivuoaVooPrAhzVxv5r6iAYaHcXjixdHeo",
+  "result": "confirmed"
+}
+  tx alt_extend_Fg2XCB_0: 5FtZnf2dW7ZvMELxFVpuLMVpdJreSwY6Tvpfotea7TDoEtT3GgSJ8ewPsU9XdaWdmpmcQahjLDsRzot9FUpXiDku
+  ALT xstocks-basket-proof: Fg2XCBiGct5sRFZHF2Rz3mnSfJdXBdRfpgS3mm3hfApP (3 wanted, 2 newly extended)
+{
+  "label": "whitelist-pause-3",
+  "signature": "3XmuC4FUhWjGM4m6sA2fAUXxJLcQsPqjiJvirFdsQFfPYFYRyyJxjxTE62YRmDi8hEM7VATsZ2dwmoaJLxGmpg4Z",
+  "result": "confirmed"
+}
+  ALT xstocks-basket-proof: Fg2XCBiGct5sRFZHF2Rz3mnSfJdXBdRfpgS3mm3hfApP (24 wanted, 0 newly extended)
+{
+  "label": "whitelist-reject-3",
+  "signature": "67nJtmhX3nPHosRuZ99NoRgoQcRSPFEC7CzSdZqkX1wH5v1cenFS5QPQFWg3t3AFwozqx43y8gcy1szapxFaLNzi",
+  "result": "expected rejection"
+}
+  ALT xstocks-basket-proof: Fg2XCBiGct5sRFZHF2Rz3mnSfJdXBdRfpgS3mm3hfApP (21 wanted, 0 newly extended)
+{
+  "label": "redeem-whitelist-paused-3",
+  "signature": "4i5NmN9gSUnqfdqQMm7mtj98FY1u1PHSSg6dG29ENtrRxt2z2QxJ8UUEgJXm7o2199SaiNPhdJMqNepqP9Hwoapt",
+  "result": "confirmed"
+}
+  ALT xstocks-basket-proof: Fg2XCBiGct5sRFZHF2Rz3mnSfJdXBdRfpgS3mm3hfApP (3 wanted, 0 newly extended)
+{
+  "label": "whitelist-resume-3",
+  "signature": "5dPkqtUxrKpg4xku2uWtNUZy2Ubu1nWTN6mk1GWXUgbMfCnCUpsKBzMRtov2cGNoU79eLXvipfZtDWqAadNmAtYL",
+  "result": "confirmed"
+}
+  ALT xstocks-basket-proof: Fg2XCBiGct5sRFZHF2Rz3mnSfJdXBdRfpgS3mm3hfApP (2 wanted, 0 newly extended)
+{
+  "label": "issuer-pause-3",
+  "signature": "22YL6M4pQTUfzLTYEcCSckEDLrJCZuu8XoSPMvxyL7asgMfp4h6D8u2s2iTUPJKNKNB8b4dQqL7B7QFoDLwsE2dE",
+  "result": "confirmed"
+}
+  ALT xstocks-basket-proof: Fg2XCBiGct5sRFZHF2Rz3mnSfJdXBdRfpgS3mm3hfApP (24 wanted, 0 newly extended)
+{
+  "label": "issuer-deposit-reject-3",
+  "signature": "4LWE6eTsiF39yxV7a96XLrXozDLkdYTiemytjxUNHXVesp2NDzUg77iyaWYKmjsjFNuFBFtrcMy4d6NTf7kMZBgc",
+  "result": "expected rejection"
+}
+  tx alt_extend_Fg2XCB_0: 3TaivSk2vZE2PSz9w8cRTLZenrkps2ayY9VJr3WpWyk97Z68GN5tNm15Xm6taMZbiMYJsvktYjjvqimo6qgkrUv3
+  ALT xstocks-basket-proof: Fg2XCBiGct5sRFZHF2Rz3mnSfJdXBdRfpgS3mm3hfApP (22 wanted, 7 newly extended)
+{
+  "label": "issuer-create-reject-3",
+  "signature": "5n5m2zzW4yXviZmy5rvGHLSAToMutkTMCnm4QgTQdrbUZVN3LXF4DLCY99kCCt2oCZAqopXfEPDxSEZVMHhJ1DFY",
+  "result": "expected rejection"
+}
+  ALT xstocks-basket-proof: Fg2XCBiGct5sRFZHF2Rz3mnSfJdXBdRfpgS3mm3hfApP (21 wanted, 0 newly extended)
+  ALT xstocks-basket-proof: Fg2XCBiGct5sRFZHF2Rz3mnSfJdXBdRfpgS3mm3hfApP (2 wanted, 0 newly extended)
+{
+  "label": "issuer-resume-3",
+  "signature": "4XdNeM74eWMJQaUnuxT6EqP7oxQrnfbtmkzu1VfMDqXwZgBneoQwd57fEiAm5hcPw9VqGvhVPwk3B7L3XVcPcyo7",
+  "result": "confirmed"
+}
+Basket proof failed

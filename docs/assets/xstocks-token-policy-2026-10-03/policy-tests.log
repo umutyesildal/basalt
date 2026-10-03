@@ -1,0 +1,48 @@
+   Compiling basalt-token-policy v0.1.0 (/Users/umutyesildal/orca/workspaces/createyouretf/createyouretf/crates/token-policy)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 1.07s
+     Running unittests src/lib.rs (target/debug/deps/basalt_token_policy-5b2908ee1a8d9b2f)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/policy.rs (target/debug/deps/policy-fe52c96fd7dda563)
+
+running 29 tests
+test account_confidential_fee_guard_memo_unknown_and_mint_types_are_rejected ... ok
+test base_mint_coption_and_initialization_are_canonical ... ok
+test every_display_subset_is_admitted_without_privilege ... ok
+test boolean_encoding_must_be_zero_or_one ... ok
+test duplicate_tlvs_are_rejected_even_with_valid_payloads ... ok
+test captured_official_mints_have_full_supported_profile ... ok
+test extended_mint_padding_account_kind_and_multisig_length_are_checked ... ok
+test every_fixed_mint_payload_has_exact_size ... ok
+test frozen_uninitialized_and_bad_account_coptions_are_rejected ... ok
+test initialized_base_account_returns_exact_identity_and_raw_amount ... ok
+test hook_account_requires_canonical_false ... ok
+test issuer_order_is_irrelevant_but_privileged_profile_must_be_complete ... ok
+test metadata_additional_pairs_are_fully_consumed ... ok
+test metadata_huge_lengths_and_pair_counts_fail_without_allocation ... ok
+test metadata_pointer_and_metadata_must_bind_actual_mint ... ok
+test official_fixture_mutations_reject_dangerous_semantics ... ok
+test multiplier_and_schedule_do_not_change_raw_account_amount ... ok
+test paused_active_hook_and_frozen_default_rejected ... ok
+test plain_base_mint_preserves_decimals_and_freeze_info ... ok
+test standard_issuer_atas_are_accepted_in_any_order ... ok
+test positive_finite_multipliers_only_in_both_slots ... ok
+test metadata_schema_rejects_truncation_trailing_and_invalid_utf8 ... ok
+test token_account_duplicate_kind_wrong_tag_and_truncated_base_rejected ... ok
+test truncated_tlv_header_and_length_overruns_rejected ... ok
+test unsupported_known_and_unknown_mint_extensions_fail_closed ... ok
+test unused_coption_key_bytes_are_not_mistaken_for_invalid_padding ... ok
+test zero_padding_is_allowed_only_after_real_extensions ... ok
+test official_fixture_truncated_payloads_do_not_panic ... ok
+test arbitrary_mutation_fuzz_is_total_and_deterministic ... ok
+
+test result: ok. 29 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+   Doc-tests basalt_token_policy
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s

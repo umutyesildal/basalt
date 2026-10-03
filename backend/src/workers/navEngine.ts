@@ -440,7 +440,7 @@ export interface BasketNavComputation {
   sharePrice: string;
   actualWeightsBps: number[];
   driftBps: number[];
-  priceSource: Record<string, { price: number; source: string; asOf: string }>;
+  priceSource: Record<string, { price: number; source: string; asOf: string; unit?: "scaled-ui"; blockId?: number }>;
   asOf: string;
   /** Why nothing was persisted (holdings/supply/prices missing). */
   skipReason?: string;
@@ -636,7 +636,8 @@ export class NavEngine {
     for (const mint of mints) {
       const q = quotes[mint];
       if (q && Number.isFinite(q.price)) {
-        priceSource[mint] = { price: q.price, source: q.source, asOf: q.asOf };
+        priceSource[mint] = { price: q.price, source: q.source, asOf: q.asOf,
+          ...(q.unit ? { unit: q.unit } : {}), ...(q.blockId ? { blockId: q.blockId } : {}) };
         prices.push(q.price);
       } else {
         priceSource[mint] = { price: 0, source: "missing", asOf };

@@ -2,14 +2,19 @@
 
 import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
+import { devnetCreateHref } from "@/lib/devnet-links";
 import { ArrowLeft, ArrowRight, Check, ChevronDown, Plus, Search, X } from "lucide-react";
 import { motion, useReducedMotion } from "motion/react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { CreatePreviewDonut } from "@/components/create/create-preview-donut";
+import { initialCreateDraft, rememberCreatedPreview, RECOMMENDED_MANAGEMENT_BPS } from "@/components/create/create-feedback";
+import styles from "./concept-create.module.css";
 import { canScrollDown, distributeWeights, equalWeights, formatAmountEdit, initialAmountDraft, parseCreateAmount } from "@/components/create/concept-create-utils";
-import { DISCOVERY_ASSETS, getConceptAsset } from "@/lib/concept-assets";
+import { DISCOVERY_ASSETS, getConceptAsset, registerConceptAssets, toConceptAsset, type ConceptAsset } from "@/lib/concept-assets";
+import { fetchXStockCatalog, sortXStocksForDiscovery, matchesAssetSearch, assetSearchRank } from "@/lib/xstock-catalog";
 import { type ConceptBasket, validateConceptBasket } from "@/lib/concept-basket";
 import { conceptPreviewHref } from "@/lib/concept-share";
 import { formatBpsAsPercent, formatGroupedAmountInput, formatUsd, parseGroupedAmountInput } from "@/lib/format";
@@ -22,39 +27,6 @@ const COLORS = [
   "hsl(var(--chart-5))",
 ] as const;
 
-const TEMPLATE_OPTIONS = [
-  {
-    id: "mega-cap-tech",
-    name: "Mega-Cap Tech",
-    description: "Big names shaping tech.",
-    assets: [
-      { symbol: "AAPL", weightBps: 2_500 },
-      { symbol: "MSFT", weightBps: 2_500 },
-      { symbol: "NVDA", weightBps: 3_000 },
-      { symbol: "GOOGL", weightBps: 2_000 },
-    ],
-  },
-  {
-    id: "index-core",
-    name: "Index Core",
-    description: "Broad market, tech tilt.",
-    assets: [
-      { symbol: "SPY", weightBps: 6_000 },
-      { symbol: "QQQ", weightBps: 4_000 },
-    ],
-  },
-  {
-    id: "motion",
-    name: "Motion",
-    description: "The future of mobility.",
-    assets: [
-      { symbol: "TSLA", weightBps: 5_000 },
-      { symbol: "UBER", weightBps: 3_000 },
-      { symbol: "ABNB", weightBps: 2_000 },
-    ],
-  },
-] as const;
-
 const STEPS = ["Choose", "Set up", "Start", "Review"] as const;
 type Step = 0 | 1 | 2 | 3;
 type SelectedAsset = ConceptBasket["assets"][number];
@@ -64,8 +36,6 @@ type SelectedAsset = ConceptBasket["assets"][number];
  * 200ms New step content settles 6px upward; selection feedback is immediate.
  * The live donut has its own 200ms weight transition. */
 const STEP_ENTER_MS = 200;
-
-const INITIAL_ASSETS = TEMPLATE_OPTIONS[0].assets.map((asset) => ({ ...asset }));
 
 function formatCompactPercent(bps: number): string {
   return `${(bps / 100).toFixed(2).replace(/\.00$/, "").replace(/(\.\d)0$/, "$1")}%`;
@@ -86,14 +56,28 @@ export default function ConceptCreate({ initialBasket = null }: { initialBasket?
   const reducedMotion = useReducedMotion();
   const [step, setStep] = useState<Step>(initialBasket ? 1 : 0);
   const [hasNavigated, setHasNavigated] = useState(false);
-  const [activeTemplate, setActiveTemplate] = useState<string | null>(initialBasket ? null : "mega-cap-tech");
-  const [assets, setAssets] = useState<SelectedAsset[]>(initialBasket?.assets ?? INITIAL_ASSETS);
+  const [initialDraft] = useState(() => initialCreateDraft(initialBasket));
+  const [assets, setAssets] = useState<SelectedAsset[]>(initialDraft.assets);
   const [search, setSearch] = useState("");
+  const [catalogAssets, setCatalogAssets] = useState<readonly ConceptAsset[]>(DISCOVERY_ASSETS);
+  const [catalogSource, setCatalogSource] = useState("Saved issuer catalog");
+  const [catalogVisible, setCatalogVisible] = useState(60);
+
+  useEffect(() => {
+    let active = true;
+    fetchXStockCatalog().then((catalog) => {
+      if (!active) return;
+      registerConceptAssets(catalog.data);
+      setCatalogAssets(sortXStocksForDiscovery(catalog.data).map(toConceptAsset));
+      setCatalogSource(catalog.meta.stale || catalog.meta.source === "snapshot" ? "Saved issuer catalog" : "Issuer catalog");
+    });
+    return () => { active = false; };
+  }, []);
   const [moreAssetsBelow, setMoreAssetsBelow] = useState(false);
   const [amountDraft, setAmountDraft] = useState(initialAmountDraft(initialBasket?.amountUsd ?? 1000));
   const [feesOpen, setFeesOpen] = useState(Boolean(initialBasket && (initialBasket.fees.entryBps || initialBasket.fees.exitBps)));
-  const [fees, setFees] = useState<ConceptBasket["fees"]>(initialBasket?.fees ?? { entryBps: 0, exitBps: 0, managementBps: 0 });
-  const [name, setName] = useState(initialBasket?.name ?? "Mega-Cap Tech");
+  const [fees, setFees] = useState<ConceptBasket["fees"]>(initialDraft.fees);
+  const [name, setName] = useState(initialDraft.name);
   const [thesis, setThesis] = useState(initialBasket?.thesis ?? "");
   const [shareError, setShareError] = useState<string | null>(null);
   const [mixStatus, setMixStatus] = useState("");
@@ -124,12 +108,15 @@ export default function ConceptCreate({ initialBasket = null }: { initialBasket?
   useEffect(() => {
     const catalog = catalogRef.current;
     if (step !== 0 || !catalog) return;
-    catalog.scrollTop = 0;
     updateCatalogScroll();
     const observer = new ResizeObserver(updateCatalogScroll);
     observer.observe(catalog);
     if (catalogContentRef.current) observer.observe(catalogContentRef.current);
     return () => observer.disconnect();
+  }, [step, search, catalogVisible, catalogAssets]);
+
+  useEffect(() => {
+    if (step === 0 && catalogRef.current) catalogRef.current.scrollTop = 0;
   }, [step, search]);
 
   const parsedAmount = parseCreateAmount(amountDraft, initialBasket?.amountUsd ?? 1000) ?? Number.NaN;
@@ -137,10 +124,10 @@ export default function ConceptCreate({ initialBasket = null }: { initialBasket?
   const selectedSymbols = useMemo(() => new Set(assets.map((asset) => asset.symbol)), [assets]);
   const matchingAssets = useMemo(() => {
     const query = search.trim().toLowerCase();
-    return DISCOVERY_ASSETS.filter((asset) =>
-      !query || asset.symbol.toLowerCase().includes(query) || asset.name.toLowerCase().includes(query) || asset.category.toLowerCase().includes(query),
-    );
-  }, [search]);
+    return catalogAssets.filter((asset) => matchesAssetSearch(asset, query))
+      .sort((a, b) => assetSearchRank(a, query) - assetSearchRank(b, query));
+  }, [search, catalogAssets]);
+  const visibleAssets = matchingAssets.slice(0, catalogVisible);
 
   const currentBasket = asBasket(name, thesis, assets, amountIsValid ? parsedAmount : 0, fees);
   const validation = validateConceptBasket(currentBasket);
@@ -158,22 +145,8 @@ export default function ConceptCreate({ initialBasket = null }: { initialBasket?
         ? amountIsValid
         : validation.ok;
 
-  function chooseTemplate(templateId: string) {
-    const template = TEMPLATE_OPTIONS.find((option) => option.id === templateId);
-    setActiveTemplate(templateId);
-    if (!template) {
-      setAssets([]);
-      setName("My stock basket");
-      setSearch("");
-      return;
-    }
-    setAssets(template.assets.map((asset) => ({ ...asset })));
-    setName(template.name);
-  }
-
   function toggleAsset(symbol: string) {
     const existing = assets.some((asset) => asset.symbol === symbol);
-    setActiveTemplate(null);
     if (existing) {
       const remaining = assets.filter((asset) => asset.symbol !== symbol);
       const nextWeights = distributeWeights(remaining.map((asset) => asset.weightBps));
@@ -181,9 +154,10 @@ export default function ConceptCreate({ initialBasket = null }: { initialBasket?
       return;
     }
     if (assets.length >= 20) return;
-    const nextSymbols = [...assets.map((asset) => asset.symbol), symbol];
-    const weights = equalWeights(nextSymbols.length);
-    setAssets(nextSymbols.map((nextSymbol, index) => ({ symbol: nextSymbol, weightBps: weights[index] })));
+    const metadata = catalogAssets.find((asset) => asset.symbol === symbol);
+    const nextAssets: SelectedAsset[] = [...assets, { symbol, weightBps: 0, ...(metadata?.mint ? { mint: metadata.mint } : {}) }];
+    const weights = equalWeights(nextAssets.length);
+    setAssets(nextAssets.map((asset, index) => ({ ...asset, weightBps: weights[index] })));
   }
 
   function setAssetWeight(index: number, rawValue: number) {
@@ -194,7 +168,6 @@ export default function ConceptCreate({ initialBasket = null }: { initialBasket?
     nextWeights[index] = nextValue;
     const rest = distributeWeights(otherIndices.map((i) => assets[i].weightBps), 10_000 - nextValue);
     otherIndices.forEach((otherIndex, i) => { nextWeights[otherIndex] = rest[i]; });
-    setActiveTemplate(null);
     setAssets(assets.map((asset, i) => ({ ...asset, weightBps: nextWeights[i] })));
   }
 
@@ -248,7 +221,11 @@ export default function ConceptCreate({ initialBasket = null }: { initialBasket?
       return;
     }
     try {
-      router.push(conceptPreviewHref(validation.value));
+      const href = conceptPreviewHref(validation.value);
+      let storage: Storage | null = null;
+      try { storage = window.sessionStorage; } catch { /* In-memory one-time feedback still works. */ }
+      rememberCreatedPreview(href, storage);
+      router.push(`${href}&created=1`);
     } catch (error) {
       setShareError(error instanceof Error ? error.message : "Could not create the link. Try again.");
     }
@@ -256,7 +233,7 @@ export default function ConceptCreate({ initialBasket = null }: { initialBasket?
 
   const stepTitle = ["Pick your stocks", "Set the weights", "Try an amount", "Review and share"][step];
   const stepDescription = [
-    "Pick a template, then make it your own.",
+    "Choose the stocks and ETFs for your idea.",
     "How much of each stock belongs in your basket?",
     "See the dollar split across your stocks.",
     "Name your basket and check the mix.",
@@ -271,6 +248,9 @@ export default function ConceptCreate({ initialBasket = null }: { initialBasket?
             Pick your stocks. Set the mix. Share your basket.
           </p>
         </div>
+        <Link href={devnetCreateHref({ name, thesis, managementFeeBps: fees.managementBps })} className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-border px-4 text-sm transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+          Try on devnet <ArrowRight className="size-4" aria-hidden="true" />
+        </Link>
       </div>
 
       <nav aria-label="Create steps" className="mb-8">
@@ -307,38 +287,8 @@ export default function ConceptCreate({ initialBasket = null }: { initialBasket?
               transition={{ duration: reducedMotion ? 0 : STEP_ENTER_MS / 1000, ease: "easeOut" }}
             >
             {step === 0 && (
-              <section aria-labelledby="template-heading" className="space-y-6">
-                <div>
-                  <h3 id="template-heading" className="mb-3 text-sm font-medium">Start with a template</h3>
-                  <div className="grid grid-cols-2 gap-2 sm:gap-3 lg:grid-cols-2">
-                    {TEMPLATE_OPTIONS.map((template) => (
-                      <TemplateCard
-                        key={template.id}
-                        name={template.name}
-                        description={template.description}
-                        assets={template.assets}
-                        selected={activeTemplate === template.id}
-                        onSelect={() => chooseTemplate(template.id)}
-                      />
-                    ))}
-                    <button
-                      type="button"
-                      aria-pressed={activeTemplate === "custom"}
-                      onClick={() => chooseTemplate("custom")}
-                      className={`basalt-choice group flex min-h-32 flex-col justify-between rounded-xl border p-4 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 ${activeTemplate === "custom" ? "border-primary bg-primary/5" : "border-border bg-background hover:bg-muted/40"}`}
-                    >
-                      <span className="flex items-center justify-between gap-2">
-                        <span className="font-medium">Pick your own stocks</span>
-                        <span className="flex size-7 items-center justify-center rounded-full border border-border bg-muted/40 text-muted-foreground group-hover:text-foreground">
-                          <Plus className="size-4" aria-hidden="true" />
-                        </span>
-                      </span>
-                      <span className="mt-2 text-xs leading-5 text-muted-foreground">Pick your own companies.</span>
-                    </button>
-                  </div>
-                </div>
-
-                <div className="space-y-3 border-t border-border/70 pt-5">
+              <section aria-label="Choose your stocks and ETFs" className="space-y-6">
+                <div className="space-y-3">
                   <div className="flex flex-wrap items-baseline justify-between gap-2">
                     <h3 className="text-sm font-medium">Your assets <span className="font-mono tabular-nums text-muted-foreground">{assets.length}/20</span></h3>
                     <p className="text-xs text-muted-foreground">Choose at least 2</p>
@@ -348,7 +298,7 @@ export default function ConceptCreate({ initialBasket = null }: { initialBasket?
                       {assets.map((asset) => (
                         <li key={asset.symbol}>
                           <span className="inline-flex min-h-10 items-center gap-2 rounded-lg border border-border bg-muted/30 pl-2 pr-1">
-                            <AssetLogo symbol={asset.symbol} size={24} />
+                            <AssetLogo symbol={asset.symbol} mint={asset.mint} size={24} />
                             <span className="font-mono text-xs font-medium">{asset.symbol}</span>
                             <button
                               type="button"
@@ -374,23 +324,28 @@ export default function ConceptCreate({ initialBasket = null }: { initialBasket?
                       ref={assetSearchRef}
                       type="search"
                       value={search}
-                      onChange={(event) => setSearch(event.target.value)}
-                      placeholder="Search assets"
+                      onChange={(event) => { setSearch(event.target.value); setCatalogVisible(60); }}
+                      placeholder="Search name, ticker or mint"
                       className="min-h-11 w-full rounded-lg border border-input bg-background pl-10 pr-3 text-sm outline-none placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring"
                     />
                   </div>
+                  <div className="flex items-center justify-between gap-3 text-xs text-muted-foreground"><span>{catalogSource} · Solana</span><span className="font-mono">{matchingAssets.length.toLocaleString("en-US")} {matchingAssets.length === 1 ? "asset" : "assets"}</span></div>
                   <div className="relative">
                   <div
                     id="create-asset-catalog"
                     ref={catalogRef}
                     role="region"
-                    aria-label="Stocks and ETFs"
+                    aria-label="Official Solana stock and ETF catalog"
                     tabIndex={0}
-                    onScroll={updateCatalogScroll}
-                    className="max-h-72 overflow-y-auto overscroll-contain rounded-lg p-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:max-h-80"
+                    onScroll={() => {
+                      updateCatalogScroll();
+                      const element = catalogRef.current;
+                      if (element && element.scrollHeight - element.scrollTop - element.clientHeight < 160) setCatalogVisible((count) => Math.min(count + 60, matchingAssets.length));
+                    }}
+                    className={`${styles.catalogScroll} max-h-72 overflow-y-auto overscroll-contain rounded-lg p-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring sm:max-h-80`}
                   >
                   <div ref={catalogContentRef} className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-                    {matchingAssets.map((asset) => {
+                    {visibleAssets.map((asset) => {
                       const selected = selectedSymbols.has(asset.symbol);
                       const disabled = !selected && assets.length >= 20;
                       return (
@@ -402,9 +357,9 @@ export default function ConceptCreate({ initialBasket = null }: { initialBasket?
                           onClick={() => toggleAsset(asset.symbol)}
                           className={`basalt-choice flex min-h-12 items-center gap-2 rounded-lg border px-2.5 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 disabled:cursor-not-allowed disabled:opacity-50 ${selected ? "border-primary/60 bg-primary/5" : "border-border bg-background hover:bg-muted/40"}`}
                         >
-                          <AssetLogo symbol={asset.symbol} size={28} />
+                          <AssetLogo symbol={asset.symbol} mint={asset.mint} size={28} />
                           <span className="min-w-0 flex-1">
-                            <span className="block truncate font-mono text-xs font-medium">{asset.symbol}</span>
+                            <span className="block truncate font-mono text-xs font-medium">{asset.tokenSymbol ?? asset.symbol}</span>
                             <span className="block truncate text-[11px] text-muted-foreground">{asset.name}</span>
                           </span>
                           <span className={`flex size-5 shrink-0 items-center justify-center rounded-full border ${selected ? "border-primary bg-primary text-primary-foreground" : "border-border text-transparent"}`}>
@@ -414,8 +369,9 @@ export default function ConceptCreate({ initialBasket = null }: { initialBasket?
                       );
                     })}
                   </div>
+                  {catalogVisible < matchingAssets.length && <button type="button" onClick={() => setCatalogVisible((count) => count + 60)} className="mt-2 flex min-h-11 w-full items-center justify-center rounded-lg border border-border text-xs focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">Show more assets</button>}
                   {matchingAssets.length === 0 && (
-                    <p className="rounded-lg border border-dashed border-border p-4 text-center text-sm text-muted-foreground">No matching assets. Try a company name or ticker.</p>
+                    <p className="rounded-lg border border-dashed border-border p-4 text-center text-sm text-muted-foreground">No matching assets. Try a company name, ticker or mint.</p>
                   )}
                   </div>
                   {moreAssetsBelow && (
@@ -449,7 +405,6 @@ export default function ConceptCreate({ initialBasket = null }: { initialBasket?
                     <Plus className="size-4" aria-hidden="true" /> Add stocks
                   </Button>
                   <Button type="button" variant="outline" size="sm" className="min-h-11" disabled={assets.length < 2} onClick={() => {
-                    setActiveTemplate(null);
                     setAssets(assets.map((asset, index) => ({ ...asset, weightBps: equalWeights(assets.length)[index] })));
                   }}>
                     Equal mix
@@ -466,14 +421,14 @@ export default function ConceptCreate({ initialBasket = null }: { initialBasket?
                   <>
                     <div className="divide-y divide-border/70 rounded-xl border border-border bg-background">
                       {assets.map((asset, index) => {
-                        const info = getConceptAsset(asset.symbol);
+                        const info = getConceptAsset(asset.symbol, asset.mint);
                         const dollars = amountIsValid ? (parsedAmount * asset.weightBps) / 10_000 : 0;
                         const max = Math.max(1, 10_000 - (assets.length - 1));
                         return (
                           <div key={asset.symbol} className="px-4 py-4 sm:px-5">
                             <div className="mb-2 grid grid-cols-[minmax(0,1fr)_auto] items-center gap-2 sm:grid-cols-[minmax(0,1fr)_auto_auto]">
                               <div className="flex min-w-0 items-center gap-3">
-                                <AssetLogo symbol={asset.symbol} size={34} />
+                                <AssetLogo symbol={asset.symbol} mint={asset.mint} size={34} />
                                 <div className="min-w-0">
                                   <p className="truncate text-sm font-medium">{info?.name ?? asset.symbol}</p>
                                   <p className="font-mono text-xs text-muted-foreground">{asset.symbol}</p>
@@ -559,7 +514,7 @@ export default function ConceptCreate({ initialBasket = null }: { initialBasket?
                 </div>
 
                 <div className="space-y-4 border-t border-border/70 pt-5">
-                  <FeeSlider label="Management fee" detail="A yearly fee on your basket’s value, paid in basket shares when investing opens." value={fees.managementBps} max={300} suffix="/ year" onChange={(value) => setFees((current) => ({ ...current, managementBps: value }))} />
+                  <FeeSlider label="Management fee" detail="A yearly fee on your basket’s value, paid in basket shares when investing opens." value={fees.managementBps} max={300} recommended={RECOMMENDED_MANAGEMENT_BPS} suffix="/ year" onChange={(value) => setFees((current) => ({ ...current, managementBps: value }))} />
                   <p className="text-xs leading-5 text-muted-foreground">Future fee shares: <span className="font-mono tabular-nums">90%</span> to you, <span className="font-mono tabular-nums">10%</span> to Basalt.</p>
                   <div className="border-t border-border/70 pt-4">
                   <button
@@ -657,48 +612,8 @@ export default function ConceptCreate({ initialBasket = null }: { initialBasket?
   );
 }
 
-function TemplateCard({
-  name,
-  description,
-  assets,
-  selected,
-  onSelect,
-}: {
-  name: string;
-  description: string;
-  assets: readonly SelectedAsset[];
-  selected: boolean;
-  onSelect: () => void;
-}) {
-  return (
-    <button
-      type="button"
-      aria-pressed={selected}
-      onClick={onSelect}
-      className={`basalt-choice flex min-h-32 flex-col rounded-xl border p-3.5 text-left transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 sm:p-4 ${selected ? "border-primary bg-primary/5" : "border-border bg-background hover:bg-muted/40"}`}
-    >
-      <span className="flex w-full items-start justify-between gap-2">
-        <span className="min-w-0">
-          <span className="block text-sm font-medium leading-5">{name}</span>
-          <span className="mt-1 block text-xs leading-4 text-muted-foreground">{description}</span>
-        </span>
-        <span className={`flex size-5 shrink-0 items-center justify-center rounded-full border ${selected ? "border-primary bg-primary text-primary-foreground" : "border-border text-transparent"}`}>
-          {selected ? <Check className="size-3" aria-hidden="true" /> : null}
-        </span>
-      </span>
-      <span className="mt-auto flex items-center gap-1.5 pt-3" aria-label={`${assets.length} assets`}>
-        {assets.slice(0, 2).map((asset) => <AssetLogo key={asset.symbol} symbol={asset.symbol} size={24} />)}
-        <span className="hidden sm:contents">
-          {assets.slice(2, 4).map((asset) => <AssetLogo key={asset.symbol} symbol={asset.symbol} size={24} />)}
-        </span>
-        <span className="ml-1 font-mono text-[11px] text-muted-foreground">{assets.length} assets</span>
-      </span>
-    </button>
-  );
-}
-
-function AssetLogo({ symbol, size }: { symbol: string; size: number }) {
-  const asset = getConceptAsset(symbol);
+function AssetLogo({ symbol, mint, size }: { symbol: string; mint?: string; size: number }) {
+  const asset = getConceptAsset(symbol, mint);
   const [failed, setFailed] = useState(false);
   const colorIndex = symbol.split("").reduce((value, char) => value + char.charCodeAt(0), 0) % COLORS.length;
   const style = {
@@ -748,7 +663,7 @@ function LiveSummary({ basket }: { basket: ConceptBasket }) {
         {basket.assets.length > 0 ? (
           <ul className="space-y-2.5" aria-label="Basket allocation">
             {basket.assets.map((asset, index) => {
-              const info = getConceptAsset(asset.symbol);
+              const info = getConceptAsset(asset.symbol, asset.mint);
               const amount = (basket.amountUsd * asset.weightBps) / 10_000;
               return (
                 <li key={asset.symbol} className="flex min-w-0 items-center gap-2">
@@ -789,6 +704,7 @@ function FeeSlider({
   value,
   max,
   suffix,
+  recommended,
   onChange,
 }: {
   label: string;
@@ -796,6 +712,7 @@ function FeeSlider({
   value: number;
   max: number;
   suffix?: string;
+  recommended?: number;
   onChange: (value: number) => void;
 }) {
   const inputId = `fee-${label.toLowerCase().replace(/\s+/g, "-")}`;
@@ -804,12 +721,18 @@ function FeeSlider({
       <div className="flex items-baseline justify-between gap-4">
         <div>
           <label htmlFor={inputId} className="text-sm font-medium">{label}</label>
-          <p className="mt-0.5 text-xs leading-5 text-muted-foreground">{detail}</p>
+          <p id={`${inputId}-detail`} className="mt-0.5 text-xs leading-5 text-muted-foreground">{detail}</p>
         </div>
         <span className="shrink-0 font-mono text-xs tabular-nums">{formatBpsAsPercent(value)}{suffix ?? ""}</span>
       </div>
-      <input id={inputId} type="range" min={0} max={max} step={5} value={value} onChange={(event) => onChange(Number(event.target.value))} className="mt-1 h-11 w-full accent-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2" aria-valuetext={`${formatBpsAsPercent(value)}${suffix ?? ""}`} />
-      <p className="-mt-1 text-right font-mono text-[11px] text-muted-foreground">Up to {formatBpsAsPercent(max)}{suffix ?? ""}</p>
+      <div className={styles.feeRange}>
+        <input id={inputId} type="range" min={0} max={max} step={5} value={value} onChange={(event) => onChange(Number(event.target.value))} className="h-11 w-full accent-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2" aria-valuetext={`${formatBpsAsPercent(value)}${suffix ?? ""}`} aria-describedby={`${inputId}-detail ${inputId}-cap${recommended !== undefined ? ` ${inputId}-recommended` : ""}`} />
+        {recommended !== undefined && <span className={styles.feeRecommendation} data-recommended-bps={recommended} style={{ left: `calc(${recommended / max * 100}% + ${8 - (recommended / max) * 16}px)` }} aria-hidden="true" />}
+      </div>
+      <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
+        {recommended !== undefined && <span id={`${inputId}-recommended`} className={styles.recommendationLabel}>Recommended {formatCompactPercent(recommended)}</span>}
+        <span id={`${inputId}-cap`} className="ml-auto font-mono text-[11px] text-muted-foreground">Up to {formatBpsAsPercent(max)}{suffix ?? ""}</span>
+      </div>
     </div>
   );
 }

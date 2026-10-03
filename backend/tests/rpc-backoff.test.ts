@@ -152,7 +152,7 @@ describe("workers/priceCompare — devnet mock mint resolution", () => {
     clearRealisticQuoteCache();
     // REALISTIC_MOCK_PRICES unset in the test env → Yahoo path off → the
     // deterministic dev catalog is the honest fallback (source "mock").
-    const rows = await comparePrices(["TSLA"], { mockRows });
+    const rows = await comparePrices(["TSLA"], { mockRows, market: "devnet" });
     expect(rows).toHaveLength(1);
     expect(rows[0]).toMatchObject({
       ticker: "TSLA",
@@ -166,21 +166,26 @@ describe("workers/priceCompare — devnet mock mint resolution", () => {
 
   it("matches the display symbol form too (TSLAx) and is case-insensitive", async () => {
     clearRealisticQuoteCache();
-    const rows = await comparePrices(["tslax"], { mockRows });
+    const rows = await comparePrices(["tslax"], { mockRows, market: "devnet" });
     expect(rows[0]?.mint).toBe("MOCKTSLAMINT11111111111111111111111111111");
     expect(rows[0]?.source).toBe("mock");
   });
 
   it("never resolves a jupiter:<TICKER> whitelist label through the mock path", async () => {
     clearRealisticQuoteCache();
-    const rows = await comparePrices(["TSLAx"], { mockRows });
-    // "TSLAx" IS in TICKER_MINTS (real Backed mint) — legacy path, not mock.
+    const rows = await comparePrices(["TSLAx"], { mockRows, market: "mainnet",
+      fetchImpl: (async () => new Response("{}", { status: 503 })) as typeof fetch,
+      fetchUnderlyingPrice: async () => null,
+    });
+    // Mainnet issuer identity wins; devnet mock rows never substitute its price.
     expect(rows[0]?.mint).toBe("XsDoVfqeBukxuZHWhdvWHBhgEHjGNst4MLodqsJHzoB");
+    expect(rows[0]?.jupiter).toBeNull();
+    expect(rows[0]?.source).toBe("unavailable");
   });
 
   it("unknown tickers degrade to explicit nulls (source unavailable)", async () => {
     clearRealisticQuoteCache();
-    const rows = await comparePrices(["NOPE"], { mockRows });
+    const rows = await comparePrices(["NOPE"], { mockRows, market: "devnet" });
     expect(rows[0]).toEqual({ ticker: "NOPE", mint: "", jupiter: null, yahoo: null, diffBps: null, source: "unavailable" });
   });
 
@@ -188,7 +193,7 @@ describe("workers/priceCompare — devnet mock mint resolution", () => {
     clearRealisticQuoteCache();
     // No mints.length → no Jupiter fetch at all (fetch would fail offline and
     // slow the suite; asserting via spy is unnecessary — offline-proof by design).
-    const rows = await comparePrices(["SPY"], { mockRows });
+    const rows = await comparePrices(["SPY"], { mockRows, market: "devnet" });
     expect(rows[0]?.jupiter).toBe(560);
     expect(rows[0]?.source).toBe("mock");
   });

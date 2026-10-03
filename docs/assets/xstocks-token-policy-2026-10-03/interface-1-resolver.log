@@ -1,0 +1,16 @@
+    Updating crates.io index
+error: failed to select a version for `zeroize`.
+    ... required by package `curve25519-dalek v3.2.1`
+    ... which satisfies dependency `curve25519-dalek = "^3.2.1"` of package `solana-program v1.17.3`
+    ... which satisfies dependency `solana-program = "^1.17.3"` of package `anchor-lang v0.30.1`
+    ... which satisfies dependency `anchor-lang = "=0.30.1"` of package `basalt-token-interface-probe v0.0.0 (/tmp/basalt-token-interface-probe)`
+versions that meet the requirements `>=1, <1.4` are: 1.3.0, 1.2.0, 1.1.1, 1.1.0, 1.0.0
+
+all possible versions conflict with previously selected packages
+
+  previously selected package `zeroize v1.7.0`
+    ... which satisfies dependency `zeroize = "^1.7"` of package `solana-zk-sdk v2.3.4`
+    ... which satisfies dependency `solana-zk-sdk = "^2.3.4"` of package `spl-token-2022-interface v1.0.0`
+    ... which satisfies dependency `spl-token-2022-interface = "=1.0.0"` of package `basalt-token-interface-probe v0.0.0 (/tmp/basalt-token-interface-probe)`
+
+failed to select a version for `zeroize` which could resolve this conflict

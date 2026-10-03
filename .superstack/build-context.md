@@ -1,5 +1,10 @@
 # Basalt — Build Context (pitch-deck input)
 
+> **Current devnet wallet UI, 2026-10-03:** `/devnet` and `/create/onchain` now expose wallet-signed test-token claim, atomic basket creation, in-kind mint and redemption. The same four project-issued eight-decimal Token-2022 mocks, BSTESTA–D, back every new test basket; each basket gets its own share mint. `/create` offers **Try on devnet** and a shared preview offers **Create on devnet**. The funded, once-per-wallet faucet is `2GBfjd9jPKLoqNXdX7GDN9MHRKwzwXbHk65xQVf9HAcf`. Verified basket, supply, vault and wallet reads use direct devnet RPC, without a database or backend signer. [The wallet-flow record](../docs/devnet-ui-wallet-flow-2026-10-03.md) links the finalized claim and shipped UI-builder proof: **seven finalized transactions and 20 assertions**. Names and theses are browser-local, verified against the immutable onchain metadata hash. An owner extension-wallet signature was not performed; build and responsive checks are recorded separately. This supersedes earlier redirect-only and incomplete mock-UI statements. Official xStocks, mainnet and Managed V2 release boundaries remain unchanged. Source changes remain local and unpushed.
+
+> Current scoped follow-up, 2026-10-03: V0 now has shared full-profile Token-2022 admission, current isolated SBF builds and byte-attested devnet upgrades. Complete 3/4-token runtime checks passed using explicitly project-issued eight-extension mocks. See [runtime evidence](../docs/xstocks-devnet-runtime-2026-10-03.md) and [policy decision](../docs/xstocks-token-policy-decision-2026-10-03.md). Current checks: 243 Rust, 807 backend passed with 18 DB skips, 16 harness and 14 build-wrapper cases. Compact quote-only Stocks/ETF cards passed the production build and responsive browser check; detail Bklit 7D/1M charts remain. Older verification/gap statements below are historical; real funded issuer-token integration, historic-account live smoke, governance and external/mainnet reviews remain separate.
+
+
 > Prepared 2026-09-03 and verification status refreshed 2026-09-18. Companion to `idea-context.md`. Sources: AGENTS.md, plan.md §6/§8c, verified worker reports.
 
 ## Stack
@@ -39,3 +44,13 @@
 - `defi.oracle_integration`: reference NAV only; no oracle is permitted in redemption correctness
 - `defi.emergency_pause`: mint-only through whitelist status; redeem is intentionally never pausable
 - BAS-001 working-tree decision: exact checked management-fee numerator remainder, appended as five bytes inside the existing 888-byte Basket allocation; devnet program upgrade and smoke are pending
+
+## DeFi build handoff, 2026-10-03
+
+- `defi.protocol_type`: `vault`
+- `defi.program_id`: `6Q43vFh4aqGxzvtU2vQwJX9PmX3skfYsGWZdA3fwJB9k`, unchanged, current binary deployed on devnet at slot 506817619.
+- `defi.security_review`: independent agent source/parser review and separately reviewed harness passed; external full audit remains required before mainnet.
+- `defi.oracle_integration`: reference NAV only; create/in-kind/redeem correctness in this proof has no oracle or price dependency.
+- `defi.emergency_pause`: protocol whitelist pause blocks new minting only; redemption has no policy/oracle/backend pause gate. Underlying issuer powers can still stop a Token-2022 transfer.
+- Current management-fee remainder and raw pro-rata behavior passed current-program runtime tests in newly created baskets. Historic pre-upgrade basket state was preserved, not exercised or reset.
+- Authority remains the existing single devnet key; multisig/timelock rollout and mainnet remain outside this task.

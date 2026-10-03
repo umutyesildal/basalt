@@ -1,0 +1,256 @@
+{
+  "startedAt": "2026-10-03T00:49:31.347Z",
+  "profile": "xstocks-eight-extension-devnet-mock-v1",
+  "transactions": [
+    {
+      "label": "fund-creator",
+      "signature": "5WRkMNZx7DC2tpfMxSVSbxyJVBgH2eJSn4BogKYKAQvouzTAWHkVpaCFuKjsnPygbvs1gG7hDuyVw4e8aBJsyCTL",
+      "wire": "v0",
+      "alt": "Fg2XCBiGct5sRFZHF2Rz3mnSfJdXBdRfpgS3mm3hfApP",
+      "bytes": 260,
+      "expectedRejection": false,
+      "slot": 506819105,
+      "computeUnits": 300
+    },
+    {
+      "label": "fund-creator-A",
+      "signature": "AjZV4ePd6ZRx8G2Cd8JnimLq1BfkCKfwsaHf2oM8TvvgqY3tG2Yfcs5q8fe1UNvyHJPoLxG5mFkuyin18RBKvVC",
+      "wire": "v0",
+      "alt": "Fg2XCBiGct5sRFZHF2Rz3mnSfJdXBdRfpgS3mm3hfApP",
+      "bytes": 306,
+      "expectedRejection": false,
+      "slot": 506819140,
+      "computeUnits": 24655
+    },
+    {
+      "label": "fund-creator-B",
+      "signature": "o19nYKuNV6dwJtWNGt4aEx34EJwMWRGxA1h9EpapqTrNX7WbBoVtY3Mghcr5tSuc7ScqGanp5QLeuhaNXzDW7dd",
+      "wire": "v0",
+      "alt": "Fg2XCBiGct5sRFZHF2Rz3mnSfJdXBdRfpgS3mm3hfApP",
+      "bytes": 306,
+      "expectedRejection": false,
+      "slot": 506819175,
+      "computeUnits": 24655
+    },
+    {
+      "label": "fund-creator-C",
+      "signature": "5tfGh1cb8izgcuimRgHo85mPDsZVAUNUHGYqGjK5pYvDtNUjNdnq51WT5mBDJUh99L7o1wjBEVu4HjWa4bUzpxRN",
+      "wire": "v0",
+      "alt": "Fg2XCBiGct5sRFZHF2Rz3mnSfJdXBdRfpgS3mm3hfApP",
+      "bytes": 306,
+      "expectedRejection": false,
+      "slot": 506819225,
+      "computeUnits": 32155
+    },
+    {
+      "label": "fund-creator-D",
+      "signature": "4DWxvMuRBXz88RFAJSExmjNUvgfVmnQ6mMR2oAxX3F229bMxU4zGCnfcwGtPdynkCPVWzGoLiA5wbQrmUpB2PrhL",
+      "wire": "v0",
+      "alt": "Fg2XCBiGct5sRFZHF2Rz3mnSfJdXBdRfpgS3mm3hfApP",
+      "bytes": 306,
+      "expectedRejection": false,
+      "slot": 506819260,
+      "computeUnits": 26155
+    },
+    {
+      "label": "fund-investor",
+      "signature": "4Ab76P2buWqQ4WqctR5hgwJNr2kKvWoa9GZsA3ML6Vm1Y2ctDFPV5AJ4oULmXezNSqwA8fkZZXjS62k5RojuCdhh",
+      "wire": "v0",
+      "alt": "Fg2XCBiGct5sRFZHF2Rz3mnSfJdXBdRfpgS3mm3hfApP",
+      "bytes": 260,
+      "expectedRejection": false,
+      "slot": 506819294,
+      "computeUnits": 300
+    },
+    {
+      "label": "fund-investor-A",
+      "signature": "3C3qGMAyps141YE394BqyD8pZqTaee3afMQwtfsdgRK4jav6LQYJsocg8Eo7URFA9c8SoasvbTHpQneP8xzznxNS",
+      "wire": "v0",
+      "alt": "Fg2XCBiGct5sRFZHF2Rz3mnSfJdXBdRfpgS3mm3hfApP",
+      "bytes": 306,
+      "expectedRejection": false,
+      "slot": 506819329,
+      "computeUnits": 27655
+    },
+    {
+      "label": "fund-investor-B",
+      "signature": "57ATsFq4pYuBjBfk7kKRWR7YyYr5m7VZNtyMhs2bKcRA5HPp1YTUNntFvTN5aVVc9oSepmCu5jP4v3T7M5CnaTek",
+      "wire": "v0",
+      "alt": "Fg2XCBiGct5sRFZHF2Rz3mnSfJdXBdRfpgS3mm3hfApP",
+      "bytes": 306,
+      "expectedRejection": false,
+      "slot": 506819366,
+      "computeUnits": 26155
+    },
+    {
+      "label": "fund-investor-C",
+      "signature": "msefcmCXxEBAqaJcjceuiMkQ7mMHQ6i3oZDAStXU8ScsoQP6nSL9nsHgChaDBk12vhLZJy7BQLPHc2L6hc5MKkA",
+      "wire": "v0",
+      "alt": "Fg2XCBiGct5sRFZHF2Rz3mnSfJdXBdRfpgS3mm3hfApP",
+      "bytes": 306,
+      "expectedRejection": false,
+      "slot": 506819414,
+      "computeUnits": 27655
+    },
+    {
+      "label": "fund-investor-D",
+      "signature": "N2sJQFDrGBTBGU8dB6BAfUKj3DEvSu6oesSYoWLH3NW9dcc8hEgRUFkGhQzLGFdCNcKmhYeYWz2gamNLwVKHCLB",
+      "wire": "v0",
+      "alt": "Fg2XCBiGct5sRFZHF2Rz3mnSfJdXBdRfpgS3mm3hfApP",
+      "bytes": 306,
+      "expectedRejection": false,
+      "slot": 506819449,
+      "computeUnits": 24655
+    },
+    {
+      "label": "create-3",
+      "signature": "ySoVSuThvammTviwjexji5W5dcsEy2DsRJJ34i28nafnJrbWmRjg6bmesNFLm3Eg2eGozvHqGTG8PpaNxY4vjcU",
+      "wire": "v0",
+      "alt": "Fg2XCBiGct5sRFZHF2Rz3mnSfJdXBdRfpgS3mm3hfApP",
+      "bytes": 577,
+      "expectedRejection": false,
+      "slot": 506819488,
+      "computeUnits": 235129
+    },
+    {
+      "label": "mint-3",
+      "signature": "39eEbABow9YhSX9ndv6L9y4PorhuvLC9xwaMFDVUJSNJfJtb8r7z5LgBK6f7jd9rG5pZgjhiXeAhTUEz5K7QxruK",
+      "wire": "v0",
+      "alt": "Fg2XCBiGct5sRFZHF2Rz3mnSfJdXBdRfpgS3mm3hfApP",
+      "bytes": 452,
+      "expectedRejection": false,
+      "slot": 506819527,
+      "computeUnits": 157358
+    },
+    {
+      "label": "management-3",
+      "signature": "3AuPuNmYDnptCDUtkBxstmB4M2FVzNddg251UBpk3HD8g1gCLmheuCkivuoaVooPrAhzVxv5r6iAYaHcXjixdHeo",
+      "wire": "v0",
+      "alt": "Fg2XCBiGct5sRFZHF2Rz3mnSfJdXBdRfpgS3mm3hfApP",
+      "bytes": 274,
+      "expectedRejection": false,
+      "slot": 506819619,
+      "computeUnits": 56812
+    },
+    {
+      "label": "whitelist-pause-3",
+      "signature": "3XmuC4FUhWjGM4m6sA2fAUXxJLcQsPqjiJvirFdsQFfPYFYRyyJxjxTE62YRmDi8hEM7VATsZ2dwmoaJLxGmpg4Z",
+      "wire": "v0",
+      "alt": "Fg2XCBiGct5sRFZHF2Rz3mnSfJdXBdRfpgS3mm3hfApP",
+      "bytes": 258,
+      "expectedRejection": false,
+      "slot": 506819656,
+      "computeUnits": 5758
+    },
+    {
+      "label": "whitelist-reject-3",
+      "signature": "67nJtmhX3nPHosRuZ99NoRgoQcRSPFEC7CzSdZqkX1wH5v1cenFS5QPQFWg3t3AFwozqx43y8gcy1szapxFaLNzi",
+      "wire": "v0",
+      "alt": "Fg2XCBiGct5sRFZHF2Rz3mnSfJdXBdRfpgS3mm3hfApP",
+      "bytes": 452,
+      "expectedRejection": true,
+      "slot": 506819677,
+      "computeUnits": 17791
+    },
+    {
+      "label": "redeem-whitelist-paused-3",
+      "signature": "4i5NmN9gSUnqfdqQMm7mtj98FY1u1PHSSg6dG29ENtrRxt2z2QxJ8UUEgJXm7o2199SaiNPhdJMqNepqP9Hwoapt",
+      "wire": "v0",
+      "alt": "Fg2XCBiGct5sRFZHF2Rz3mnSfJdXBdRfpgS3mm3hfApP",
+      "bytes": 426,
+      "expectedRejection": false,
+      "slot": 506819698,
+      "computeUnits": 165724
+    },
+    {
+      "label": "whitelist-resume-3",
+      "signature": "5dPkqtUxrKpg4xku2uWtNUZy2Ubu1nWTN6mk1GWXUgbMfCnCUpsKBzMRtov2cGNoU79eLXvipfZtDWqAadNmAtYL",
+      "wire": "v0",
+      "alt": "Fg2XCBiGct5sRFZHF2Rz3mnSfJdXBdRfpgS3mm3hfApP",
+      "bytes": 258,
+      "expectedRejection": false,
+      "slot": 506819717,
+      "computeUnits": 5757
+    },
+    {
+      "label": "issuer-pause-3",
+      "signature": "22YL6M4pQTUfzLTYEcCSckEDLrJCZuu8XoSPMvxyL7asgMfp4h6D8u2s2iTUPJKNKNB8b4dQqL7B7QFoDLwsE2dE",
+      "wire": "v0",
+      "alt": "Fg2XCBiGct5sRFZHF2Rz3mnSfJdXBdRfpgS3mm3hfApP",
+      "bytes": 250,
+      "expectedRejection": false,
+      "slot": 506819740,
+      "computeUnits": 1997
+    },
+    {
+      "label": "issuer-deposit-reject-3",
+      "signature": "4LWE6eTsiF39yxV7a96XLrXozDLkdYTiemytjxUNHXVesp2NDzUg77iyaWYKmjsjFNuFBFtrcMy4d6NTf7kMZBgc",
+      "wire": "v0",
+      "alt": "Fg2XCBiGct5sRFZHF2Rz3mnSfJdXBdRfpgS3mm3hfApP",
+      "bytes": 452,
+      "expectedRejection": true,
+      "slot": 506819764,
+      "computeUnits": 92965
+    },
+    {
+      "label": "issuer-create-reject-3",
+      "signature": "5n5m2zzW4yXviZmy5rvGHLSAToMutkTMCnm4QgTQdrbUZVN3LXF4DLCY99kCCt2oCZAqopXfEPDxSEZVMHhJ1DFY",
+      "wire": "v0",
+      "alt": "Fg2XCBiGct5sRFZHF2Rz3mnSfJdXBdRfpgS3mm3hfApP",
+      "bytes": 577,
+      "expectedRejection": true,
+      "slot": 506819804,
+      "computeUnits": 55396
+    },
+    {
+      "label": "issuer-resume-3",
+      "signature": "4XdNeM74eWMJQaUnuxT6EqP7oxQrnfbtmkzu1VfMDqXwZgBneoQwd57fEiAm5hcPw9VqGvhVPwk3B7L3XVcPcyo7",
+      "wire": "v0",
+      "alt": "Fg2XCBiGct5sRFZHF2Rz3mnSfJdXBdRfpgS3mm3hfApP",
+      "bytes": 250,
+      "expectedRejection": false,
+      "slot": 506819846,
+      "computeUnits": 1997
+    }
+  ],
+  "proofs": [
+    {
+      "label": "mint-3",
+      "gross": "1000000000",
+      "entryFee": "10000000",
+      "creatorFee": "9000000",
+      "treasuryFee": "1000000",
+      "managementFee": "0"
+    },
+    {
+      "label": "management-3",
+      "fee": "14",
+      "creator": "12",
+      "treasury": "2"
+    },
+    {
+      "label": "whitelist-reject-3",
+      "assertion": "Confirmed failure preserved every writable non-signer account byte"
+    },
+    {
+      "label": "redeem-whitelist-paused-3",
+      "shares": "99000000",
+      "exitFee": "495000",
+      "creatorFee": "445500",
+      "treasuryFee": "49500",
+      "rawOutputs": [
+        "39401998976",
+        "31521599181",
+        "27581399283"
+      ]
+    },
+    {
+      "label": "issuer-deposit-reject-3",
+      "assertion": "Confirmed failure preserved every writable non-signer account byte"
+    },
+    {
+      "label": "issuer-create-reject-3",
+      "assertion": "Confirmed failure preserved every writable non-signer account byte"
+    }
+  ]
+}

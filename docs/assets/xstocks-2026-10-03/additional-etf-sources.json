@@ -1,0 +1,127 @@
+[
+  {
+    "symbol": "EWYx",
+    "source": "https://assets.backed.fi/products/ishares-msci-south-korea-xstock",
+    "classification": "ETF"
+  },
+  {
+    "symbol": "DAXx",
+    "source": "https://assets.backed.fi/products/global-x-dax-germany-xstock",
+    "classification": "ETF"
+  },
+  {
+    "symbol": "SOXXx",
+    "source": "https://assets.backed.fi/products/ishares-semiconductor-xstock",
+    "classification": "ETF"
+  },
+  {
+    "symbol": "EWUx",
+    "source": "https://assets.backed.fi/products/ishares-msci-united-kingdom-xstock",
+    "classification": "ETF"
+  },
+  {
+    "symbol": "EWGx",
+    "source": "https://assets.backed.fi/products/ishares-msci-germany-xstock",
+    "classification": "ETF"
+  },
+  {
+    "symbol": "EWQx",
+    "source": "https://assets.backed.fi/products/ishares-msci-france-xstock",
+    "classification": "ETF"
+  },
+  {
+    "symbol": "BITXx",
+    "source": "https://assets.backed.fi/products/volatility-shares-2x-bitcoin-strategy-xstock",
+    "classification": "ETF"
+  },
+  {
+    "symbol": "NLRx",
+    "source": "https://assets.backed.fi/products/vaneck-uranium-and-nuclear-xstock",
+    "classification": "ETF"
+  },
+  {
+    "symbol": "GDXx",
+    "source": "https://assets.backed.fi/products/vaneck-gold-miners-xstock",
+    "classification": "ETF"
+  },
+  {
+    "symbol": "FEZx",
+    "source": "https://assets.backed.fi/products/spdr-euro-stoxx-50-xstock",
+    "classification": "ETF"
+  },
+  {
+    "symbol": "JAAAx",
+    "source": "https://assets.backed.fi/products/janus-henderson-aaa-clo-xstock",
+    "classification": "ETF"
+  },
+  {
+    "symbol": "JPSTx",
+    "source": "https://assets.backed.fi/products/jpmorgan-ultra-short-income-xstock",
+    "classification": "ETF"
+  },
+  {
+    "symbol": "FLQMx",
+    "source": "https://assets.backed.fi/products/franklin-u-s-mid-cap-multi-factor-xstock",
+    "classification": "ETF"
+  },
+  {
+    "symbol": "USPXx",
+    "source": "https://assets.backed.fi/products/franklin-u-s-equity-index-xstock",
+    "classification": "ETF"
+  },
+  {
+    "symbol": "FSMLx",
+    "source": "https://assets.backed.fi/products/franklin-small-cap-enhanced-xstock",
+    "classification": "ETF"
+  },
+  {
+    "symbol": "FLBLx",
+    "source": "https://assets.backed.fi/products/franklin-senior-loan-xstock",
+    "classification": "ETF"
+  },
+  {
+    "symbol": "IQMx",
+    "source": "https://assets.backed.fi/products/franklin-intelligent-machines-xstock",
+    "classification": "ETF"
+  },
+  {
+    "symbol": "YLDEx",
+    "source": "https://assets.backed.fi/products/franklin-clearbridge-enhanced-income-xstock",
+    "classification": "ETF"
+  },
+  {
+    "symbol": "FAAAx",
+    "source": "https://assets.backed.fi/products/fidelity-aaa-clo-xstock",
+    "classification": "ETF"
+  },
+  {
+    "symbol": "SOXLx",
+    "source": "https://assets.backed.fi/products/direxion-semiconductor-bull-3x-xstock",
+    "classification": "ETF"
+  },
+  {
+    "symbol": "XLEx",
+    "source": "https://assets.backed.fi/products/energy-select-sector-spdr-fund-xstock",
+    "classification": "ETF"
+  },
+  {
+    "symbol": "PPLTx",
+    "source": "https://assets.backed.fi/products/abrdn-physical-platinum-shares-xstock",
+    "classification": "ETF"
+  },
+  {
+    "symbol": "PALLx",
+    "source": "https://assets.backed.fi/products/abrdn-physical-palladium-shares-xstock",
+    "classification": "ETF"
+  },
+  {
+    "symbol": "COPXx",
+    "source": "https://assets.backed.fi/products/global-x-copper-miners-xstock",
+    "classification": "ETF"
+  },
+  {
+    "symbol": "IJRx",
+    "source": "https://assets.backed.fi/products/s-p-small-cap-xstock",
+    "classification": "ETF"
+  }
+]

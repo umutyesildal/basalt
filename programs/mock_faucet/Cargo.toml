@@ -1,0 +1,23 @@
+[package]
+name = "basalt-mock-faucet"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[lib]
+name = "basalt_mock_faucet"
+crate-type = ["cdylib", "lib"]
+
+[workspace]
+
+[features]
+no-entrypoint = []
+default = []
+
+[dependencies]
+solana-program = "=1.18.26"
+
+[profile.release]
+overflow-checks = true
+lto = "fat"
+codegen-units = 1

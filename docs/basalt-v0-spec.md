@@ -3,6 +3,19 @@
 > Status: **Draft V0 — READY FOR CODE** | Stack: Anchor + Next.js + TypeScript Backend | Date: 2026-09-01 | Author: Basalt Architect
 > Source: `foliox_build_prompt.md` (historical filename; xStocks strategy baskets, Solana-first, no-ETF language)
 
+
+## Dated admission erratum, 2026-10-03, immutable V0 only
+
+This erratum supersedes the earlier extension-free BAS-002 source boundary. It does not change Managed Basket V2 admission, basket immutability, raw accounting, account layouts, instruction arguments or fee rules. Full rationale and source provenance: [token admission decision](xstocks-token-policy-decision-2026-10-03.md), [shared validator](../crates/token-policy/README.md).
+
+V0 whitelist admission, factory seeding and new in-kind deposits validate one of three complete profiles: exact initialized 82-byte Plain mints; a fully parsed DisplayOnly subset of MetadataPointer, TokenMetadata, ScaledUiAmount and initialized DefaultAccountState; or the full observed IssuerControlled set of MetadataPointer, PermanentDelegate, DefaultAccountState, ScaledUiAmount, Pausable, ConfidentialTransferMint, TransferHook and TokenMetadata. The issuer profile requires unpaused state, no active hook and Initialized default accounts. Metadata binds to the actual mint, both multiplier encodings must be positive and finite, and malformed, duplicate, unknown or incomplete privileged TLVs are rejected. Token-2022 program ownership and authority-controlled mint-specific whitelist membership remain separate mandatory checks. Profile compatibility never authenticates an issuer.
+
+New seed/deposit source and vault accounts must be initialized, public Token-2022 accounts with only supported account extensions. Exact raw sent/received deltas remain required. Confidential mint configuration does not authorize confidential account balances, transfer fees or arbitrary hook CPIs.
+
+`redeem_in_kind` receives **no new admission, whitelist, oracle, backend or administrator gate**. A holder redeems a pro-rata share of actual remaining raw vault assets. An underlying issuer can still pause or freeze transfers, activate a hook, or exercise PermanentDelegate power. The basket cannot override these restrictions; permissionless redemption is not an unconditional issuer-independent transfer guarantee. Multiplier changes affect displayed units only.
+
+Source evidence includes real AAPLx/SPYx mint fixtures, 29 shared-policy tests and an independent parser/integration review. All three current V0 binaries are deployed and byte-attested on devnet at finalized slot 506820772. Fresh three/four-asset full-profile mock tests passed with 54 transactions, 16 expected rejections and 28 assertions. [Completed runtime evidence](xstocks-devnet-runtime-2026-10-03.md), [proof harness and review](xstocks-devnet-basket-proof-2026-10-03.md). This proves the scoped project-issued mock flow, not funded official issuer transfers. Source changes remain local and unpushed; public investing, Managed V2 and mainnet/external-audit/legal gates remain unchanged.
+
 ---
 
 ## 1. System Architecture (Text Diagram)

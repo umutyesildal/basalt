@@ -1,0 +1,47 @@
+{
+  "observedAt": "2026-10-03T08:52:13.065Z",
+  "genesisHash": "EtWTRABZaYq6iMfeYKouRu166VU2xqa1wcaWoxPkrZBG",
+  "finalizedSlot": 506940263,
+  "program": "2GBfjd9jPKLoqNXdX7GDN9MHRKwzwXbHk65xQVf9HAcf",
+  "programData": "6fxYD8TexUaoBjf6NMTHkWQdkJLeNsinru7C2djAjq9F",
+  "loader": "BPFLoaderUpgradeab1e11111111111111111111111",
+  "deploySlot": "506938960",
+  "upgradeAuthority": "y72KA263br7MtZw7BqC2dx5QYCBUciJGzShE8BRSwRE",
+  "programRentLamports": 833120,
+  "programDataRentLamports": 433572920,
+  "bytes": 85176,
+  "sha256": "e322d4884827833af244bbca4e33d3eb36e3ab8b1e6df8af5ff9c253760fc4b1",
+  "exactExecutablePrefix": true,
+  "zeroOnlySpareCapacity": true,
+  "payerStartingBalanceLamports": 2955199120,
+  "payerFinalizedBalanceLamports": 2453429600,
+  "totalTaskPayerDebitLamports": 501769520,
+  "setupPayerDebitLamports": 66918480,
+  "remainingInitialWalletClaims": 99,
+  "pools": [
+    {
+      "symbol": "BSTESTA",
+      "mint": "CrjoC7fq5XAbdej5zjinKNGXVqo8E8qCmh8XSiu2QViQ",
+      "vault": "DMxJLcFNx3CMrNsHyPFcxCZLCY7jtZ6z5QcWHxNBcGqB",
+      "rawBalance": "9900000000000"
+    },
+    {
+      "symbol": "BSTESTB",
+      "mint": "EpH2swtxW2rCuFg2o2ukD5Qw5Xv3toaug1M3mbcB4hab",
+      "vault": "8X6wHi2bDgWQ1BKm8ELxLPibQ3xr5vLHjSAtg2z43GBP",
+      "rawBalance": "9900000000000"
+    },
+    {
+      "symbol": "BSTESTC",
+      "mint": "5G1hMSqs2nWKaFQt737FTxwnruPgeQqQWZ2FRoqxvehA",
+      "vault": "BuVPHqcjYf5c8NBjvUYe7gbQfrzoqGxnCQxhCo61oR6a",
+      "rawBalance": "9900000000000"
+    },
+    {
+      "symbol": "BSTESTD",
+      "mint": "8W2hrfJPPrXEBjs5gDgpVZcs8HsELeHkBaqSjnUvgJUq",
+      "vault": "6M2ZHa75ZScJNCEar3iPduyeoqptKSWVNkgFMbBd7cUe",
+      "rawBalance": "9900000000000"
+    }
+  ]
+}

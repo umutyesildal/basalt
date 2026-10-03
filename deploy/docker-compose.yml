@@ -35,6 +35,10 @@ services:
     environment:
       DATABASE_URL: postgres://basalt:${POSTGRES_PASSWORD}@postgres:5432/foliox
       PORT: "3001"
+      XSTOCK_PRICE_CACHE_PATH: /app/.cache/xstocks-prices.json
+      XSTOCK_HISTORY_CACHE_PATH: /app/.cache/xstocks-history.json
+    volumes:
+      - backend_cache:/app/.cache
     depends_on:
       postgres:
         condition: service_healthy
@@ -56,5 +60,6 @@ services:
 
 volumes:
   pgdata:
+  backend_cache:
   caddy_data:
   caddy_config:

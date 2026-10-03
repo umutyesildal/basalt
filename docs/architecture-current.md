@@ -1,6 +1,29 @@
 # Basalt implemented architecture
 
-> This document describes how the system works as of 2026-09-18. The normative constraints remain in `docs/basalt-v0-spec.md`.
+> **Current devnet wallet UI, 2026-10-03:** `/devnet` and `/create/onchain` now expose wallet-signed test-token claim, atomic basket creation, in-kind mint and redemption. The same four project-issued eight-decimal Token-2022 mocks, BSTESTA–D, back every new test basket; each basket gets its own share mint. `/create` offers **Try on devnet** and a shared preview offers **Create on devnet**. The funded, once-per-wallet faucet is `2GBfjd9jPKLoqNXdX7GDN9MHRKwzwXbHk65xQVf9HAcf`. Verified basket, supply, vault and wallet reads use direct devnet RPC, without a database or backend signer. [The wallet-flow record](devnet-ui-wallet-flow-2026-10-03.md) links the finalized claim and shipped UI-builder proof: **seven finalized transactions and 20 assertions**. Names and theses are browser-local, verified against the immutable onchain metadata hash. An owner extension-wallet signature was not performed; build and responsive checks are recorded separately. This supersedes earlier redirect-only and incomplete mock-UI statements. Official xStocks, mainnet and Managed V2 release boundaries remain unchanged. Source changes remain local and unpushed.
+
+> The base architecture below records 2026-09-18. The scoped 2026-10-03 updates in this document and the dated admission erratum in `docs/basalt-v0-spec.md` supersede older policy statements; other dated deployment claims retain their original scope.
+
+
+## Devnet wallet UI increment, 2026-10-03
+
+`/devnet` and `/create/onchain` use the same four eight-decimal BSTESTA–D mock mints for every new immutable V0 basket. `basket_factory` still atomically transfers the seed, initializes vaults and creates a separate six-decimal share mint. The connected wallet signs lookup-table preparation and the main create/mint/redeem transaction. Reviewed raw token deposits remain the transaction amounts, and the wallet/network are checked around signing.
+
+`app/lib/devnet-baskets.ts` verifies the devnet genesis, account owners, discriminators, canonical PDAs, composition, fees and Token-2022 identities. It reads the current basket fee checkpoint, raw share supply, vaults and optional wallet balances in one confirmed RPC batch, uses the existing BigInt management-fee helper and preserves actual active display multipliers. Discovery is limited to the fixed mock pack with bounded materialization and paced, cached reads. USD NAV and prices remain null. The read path accepts whitelist mint pause as data; redemption adds no whitelist, price or backend gate.
+
+The separately deployed faucet `2GBfjd9jPKLoqNXdX7GDN9MHRKwzwXbHk65xQVf9HAcf` transfers a fixed pack from funded onchain vaults once per signing wallet. The frontend builds unsigned claims and reads funding/claim state; it holds no server signing key. Browser metadata is displayed only when its exact bytes hash to the basket's immutable metadata hash, with a verified session fallback when persistent storage is denied. This is local presentation, not public metadata publishing.
+
+[The wallet-flow record](devnet-ui-wallet-flow-2026-10-03.md) links the finalized faucet claim and seven-transaction, 20-assertion proof using the shipped UI builders. This scope requires no database or indexer, adds no core ABI/math change and does not deploy Managed V2 or real official xStocks investing.
+
+## Scoped update, 2026-10-03
+
+Immutable V0 source now uses `crates/token-policy` at whitelist admission, factory seed and new deposits. It accepts validated Plain/DisplayOnly profiles and the complete observed eight-extension issuer profile only while default accounts are Initialized, Pausable is unpaused and TransferHook has no program. Deposit source/vault accounts must use supported public account extensions; raw balance delta and canonical identity checks remain. All unrecognized or malformed TLVs fail closed. [Decision](xstocks-token-policy-decision-2026-10-03.md), [source review](xstocks-devnet-basket-proof-2026-10-03.md).
+
+Redemption has no added policy gate and continues to use raw pro-rata accounting. PermanentDelegate, freeze, issuer pause or a later hook can still affect backing or transfer availability. Mainnet issuer metadata discovery does not populate the onchain whitelist. Managed V2 admission remains separately defined and unchanged.
+
+The public Stocks/ETF catalog now uses compact quote-only cards and never requests per-card history. Detail pages retain real exact-mint Bklit 7D/1M history and historical multiplier normalization. Internal NYSE cash-session spot refresh rules remain. [UI verification](compact-asset-cards-2026-10-03.md).
+
+The current V0 whitelist, factory and basket binaries are upgraded on devnet and byte-attested at finalized slot 506820772. Fresh three/four-asset full-profile mock tests passed: 54 transactions, 38 successes, 16 expected rejections and 28 assertions, with issuer settings restored. The [completed runtime report](xstocks-devnet-runtime-2026-10-03.md) carries program and transaction evidence. Real mainnet AAPLx/SPYx fixtures separately prove parser compatibility; no funded official issuer transfer, public investing release or V2 upgrade is claimed. Source changes remain local and unpushed.
 
 ## Product model
 
@@ -14,6 +37,7 @@ Basalt creates immutable strategy baskets with 2–20 constituents. Each basket 
 | `basket_factory` program | Basket PDA, vaults, share mint, and atomic seed | Moves creator constituents and mints genesis shares |
 | `basket` program | Mint, redeem, and management-fee accrual | Real Token-2022 transfer/mint/burn CPIs |
 | Frontend | Transaction building, simulation, wallet signing, confirmation | User wallet signs |
+| `devnet_faucet` program | Fixed BSTESTA–D starter pack and once-per-wallet claim record | Transfers funded mock tokens; connected wallet pays rent/fees |
 | Backend/indexer | Events, holdings, NAV, positions, and social read models | Never signs; no custody |
 | Price providers | Reference USD prices and chart data | Never gates mint or redeem |
 
@@ -53,7 +77,7 @@ Basalt creates immutable strategy baskets with 2–20 constituents. Each basket 
 4. Confirmed legs are not repeated. Ambiguous sends retain and resend identical signed bytes, while positive below-minimum deltas block automatic recovery.
 5. The client freezes only the verified deltas and sends a separate `mint_in_kind` transaction.
 
-The V0 Zap is not atomic. If a leg fails, intermediate tokens remain in the user's wallet. A new quote takes a new snapshot, so those existing tokens are excluded from the next Zap deposit. Zap remains unavailable for the extension-bearing official xStocks until the BAS-002 dependency and hook-aware transfer work is complete.
+The V0 Zap is not atomic. If a leg fails, intermediate tokens remain in the user's wallet. A new quote takes a new snapshot, so those existing tokens are excluded from the next Zap deposit. The V0 admission change does not enable a public official-xStocks Zap route or arbitrary active hooks. End-to-end swap, whitelist and issuer-state compatibility must be verified separately before exposing that flow.
 
 ## Trust boundaries
 
@@ -78,8 +102,8 @@ The V0 Zap is not atomic. If a leg fails, intermediate tokens remain in the user
 
 ## Known architecture debt
 
-- The working tree carries management-fee numerator remainder in an append-only five-byte field; the deployed devnet program still requires an upgrade and existing-account smoke test.
-- Whitelist state does not encode a Token-2022 policy version; V0 enforces an extension-free, fail-closed boundary in instructions.
+- The deployed V0 program now carries management-fee numerator remainder in the append-only five-byte field, with new-basket accrual verified in the 2026-10-03 mock flow. Existing-account migration/smoke coverage remains a separate requirement; the new-basket proof does not retroactively validate every historical account.
+- Whitelist state does not encode a Token-2022 policy version; current V0 instructions revalidate the shared allowed profiles and mutable issuer state on admission/new deposits. A previously Active record cannot bypass current admission checks.
 - V0 fee split divergence is resolved: `creator_fee_split_bps` remains only as a legacy factory ABI/account-layout field, is pinned to 9,000, and the basket program uses the protocol-wide 90/10 split on every fee path. The client policy helper and docs derive the same labels/formula.
 - `events.sig` as a sole primary key can drop multiple events from one transaction.
 - BullMQ is listed as a dependency, while runtime orchestration uses direct interval loops.

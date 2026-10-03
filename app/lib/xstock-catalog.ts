@@ -1,111 +1,68 @@
-/**
- * Mock xStock catalog client (devnet demo universe).
- *
- * Reads GET /api/v1/xstocks/mock — the backend's 36-stock dev catalog
- * (backend/src/catalog/mockStocks.ts): display ticker, whitelist price_source
- * ("mock:<slug>") and a deterministic dev-catalog USD price explicitly labeled
- * `source: "dev-catalog"` — NOT live market data.
- *
- * Mint addresses are deliberately absent here: devnet mock mints are fresh
- * Token-2022 keypairs per deploy and must always come from API data
- * (/api/v1/whitelist), never hard-coded.
- *
- * This module is environment-neutral (no "use client") so both server
- * components (/etfs, /stock/[ticker]) and client components can use it.
- */
+import { apiFetch, apiQuery } from "@/lib/api-client";
+import snapshot from "@/lib/data/xstocks.snapshot.json";
+import { isSolanaMint, normalizeXStockAssets, parseXStockQuote, parseXStockMarketSession, unavailableXStockQuote, type XStockAsset, type XStockCatalog, type XStockQuote, type XStockMarketSession } from "@/lib/xstock-types";
 
-import { API_BASE, apiFetch } from "@/lib/api-client";
+export * from "@/lib/xstock-types";
 
-export { API_BASE };
+/** Exact issuer metadata snapshot. It intentionally contains no prices or quote fallbacks. */
+export const XSTOCK_SNAPSHOT: XStockCatalog = {
+  data: normalizeXStockAssets(snapshot.data),
+  meta: { source: "snapshot", fetchedAt: snapshot.fetchedAt, stale: true, sourceUrl: snapshot.sourceUrl },
+};
 
-export interface MockCatalogEntry {
-  ticker: string;
-  priceSource: string;
-  /** Deterministic dev-catalog price (null only in the static fallback). */
-  priceUsd: number | null;
+let catalogCache: { until: number; value: XStockCatalog } | null = null;
+let catalogRequest: Promise<XStockCatalog> | null = null;
+
+export async function fetchXStockCatalog(force = false): Promise<XStockCatalog> {
+  if (!force && catalogCache && catalogCache.until > Date.now()) return catalogCache.value;
+  if (catalogRequest) return catalogRequest;
+  catalogRequest = (async () => {
+    try {
+      const response = await apiFetch("/api/v1/xstocks", { cache: "no-store", signal: AbortSignal.timeout(35_000) });
+      if (!response.ok) throw new Error("Catalog unavailable");
+      const payload = await response.json() as { data?: unknown; meta?: Record<string, unknown> };
+      const data = normalizeXStockAssets(payload.data);
+      if (!data.length) throw new Error("Catalog unavailable");
+      const meta = payload.meta ?? {};
+      const value: XStockCatalog = { data, meta: {
+        source: meta.source === "snapshot" || meta.source === "cache" ? meta.source : "issuer",
+        fetchedAt: typeof meta.fetchedAt === "string" && Number.isFinite(Date.parse(meta.fetchedAt)) ? meta.fetchedAt : XSTOCK_SNAPSHOT.meta.fetchedAt,
+        stale: meta.stale === true, sourceUrl: typeof meta.sourceUrl === "string" && meta.sourceUrl.startsWith("https://") ? meta.sourceUrl : XSTOCK_SNAPSHOT.meta.sourceUrl,
+      } };
+      catalogCache = { until: Date.now() + 60_000, value };
+      return value;
+    } catch {
+      const value = catalogCache ? { ...catalogCache.value, meta: { ...catalogCache.value.meta, source: "cache" as const, stale: true } } : XSTOCK_SNAPSHOT;
+      return value;
+    } finally { catalogRequest = null; }
+  })();
+  return catalogRequest;
 }
 
-/**
- * Static fallback for when the backend is unreachable: the 36 display tickers
- * of the dev catalog, no prices. Rendered honestly as "static dev list" —
- * symbols only, nothing fabricated.
- */
-export const MOCK_XSTOCK_FALLBACK: readonly MockCatalogEntry[] = [
-  { ticker: "TSLAx", priceSource: "mock:tsla", priceUsd: null },
-  { ticker: "NVDAx", priceSource: "mock:nvda", priceUsd: null },
-  { ticker: "AAPLx", priceSource: "mock:aapl", priceUsd: null },
-  { ticker: "MSFTx", priceSource: "mock:msft", priceUsd: null },
-  { ticker: "AMZNx", priceSource: "mock:amzn", priceUsd: null },
-  { ticker: "GOOGLx", priceSource: "mock:googl", priceUsd: null },
-  { ticker: "METAx", priceSource: "mock:meta", priceUsd: null },
-  { ticker: "AMDx", priceSource: "mock:amd", priceUsd: null },
-  { ticker: "COINx", priceSource: "mock:coin", priceUsd: null },
-  { ticker: "MSTRx", priceSource: "mock:mstr", priceUsd: null },
-  { ticker: "HOODx", priceSource: "mock:hood", priceUsd: null },
-  { ticker: "SPYx", priceSource: "mock:spy", priceUsd: null },
-  { ticker: "ADBEx", priceSource: "mock:adbe", priceUsd: null },
-  { ticker: "NFLXx", priceSource: "mock:nflx", priceUsd: null },
-  { ticker: "ORCLx", priceSource: "mock:orcl", priceUsd: null },
-  { ticker: "CRMx", priceSource: "mock:crm", priceUsd: null },
-  { ticker: "INTCx", priceSource: "mock:intc", priceUsd: null },
-  { ticker: "QCOMx", priceSource: "mock:qcom", priceUsd: null },
-  { ticker: "AVGOx", priceSource: "mock:avgo", priceUsd: null },
-  { ticker: "TSMx", priceSource: "mock:tsm", priceUsd: null },
-  { ticker: "UBERx", priceSource: "mock:uber", priceUsd: null },
-  { ticker: "ABNBx", priceSource: "mock:abnb", priceUsd: null },
-  { ticker: "DISx", priceSource: "mock:dis", priceUsd: null },
-  { ticker: "BAx", priceSource: "mock:ba", priceUsd: null },
-  { ticker: "JPMx", priceSource: "mock:jpm", priceUsd: null },
-  { ticker: "Vx", priceSource: "mock:v", priceUsd: null },
-  { ticker: "WMTx", priceSource: "mock:wmt", priceUsd: null },
-  { ticker: "KOx", priceSource: "mock:ko", priceUsd: null },
-  { ticker: "MCDx", priceSource: "mock:mcd", priceUsd: null },
-  { ticker: "NKEx", priceSource: "mock:nke", priceUsd: null },
-  { ticker: "PFEx", priceSource: "mock:pfe", priceUsd: null },
-  { ticker: "JNJx", priceSource: "mock:jnj", priceUsd: null },
-  { ticker: "XOMx", priceSource: "mock:xom", priceUsd: null },
-  { ticker: "CVXx", priceSource: "mock:cvx", priceUsd: null },
-  { ticker: "PLTRx", priceSource: "mock:pltr", priceUsd: null },
-  { ticker: "GMEx", priceSource: "mock:gme", priceUsd: null },
-] as const;
-
-interface MockCatalogPayload {
-  data?: { ticker?: unknown; priceSource?: unknown; priceUsd?: unknown }[];
-  source?: unknown;
-}
-
-/**
- * Fetch the dev catalog. Returns null when the API is unreachable or the
- * payload has no usable rows — callers then fall back to MOCK_XSTOCK_FALLBACK
- * and must label the result as static.
- */
-export async function fetchMockXStockCatalog(
-  timeoutMs = 8000,
-): Promise<MockCatalogEntry[] | null> {
+/** Callers pass only the currently visible page, not the complete issuer catalog. */
+export async function fetchXStockPricePage(mints: readonly string[], signal?: AbortSignal): Promise<{ data: XStockQuote[]; marketSession: XStockMarketSession | null }> {
+  const requested = [...new Set(mints)].filter(isSolanaMint).slice(0, 100);
+  if (!requested.length) return { data: [], marketSession: null };
   try {
-    const res = await apiFetch("/api/v1/xstocks/mock", {
-      cache: "no-store",
-      signal: AbortSignal.timeout(timeoutMs),
-      headers: { accept: "application/json" },
+    const response = await apiQuery("/api/v1/xstocks/prices", { mints: requested.join(",") }, {
+      cache: "no-store", signal: signal ? AbortSignal.any([signal, AbortSignal.timeout(45_000)]) : AbortSignal.timeout(45_000),
     });
-    if (!res.ok) return null;
-    const payload = (await res.json()) as MockCatalogPayload;
-    const rows = Array.isArray(payload?.data) ? payload.data : [];
-    const entries: MockCatalogEntry[] = [];
-    for (const row of rows) {
-      if (typeof row.ticker !== "string" || !row.ticker) continue;
-      const price =
-        typeof row.priceUsd === "number" && Number.isFinite(row.priceUsd)
-          ? row.priceUsd
-          : null;
-      entries.push({
-        ticker: row.ticker,
-        priceSource: typeof row.priceSource === "string" ? row.priceSource : "",
-        priceUsd: price,
-      });
-    }
-    return entries.length > 0 ? entries : null;
-  } catch {
-    return null;
-  }
+    if (!response.ok) throw new Error("Token prices unavailable");
+    const payload = await response.json() as { data?: unknown; meta?: { marketSession?: unknown } };
+    if (!Array.isArray(payload?.data)) throw new Error("Invalid token price response");
+    const rows = payload.data;
+    const byMint = new Map(rows.filter((row) => row && typeof row === "object").map((row) => [row.mint, row]));
+    return { data: requested.map((mint) => byMint.has(mint) ? parseXStockQuote(byMint.get(mint), mint) : unavailableXStockQuote(mint, "omitted")), marketSession: parseXStockMarketSession(payload.meta?.marketSession) };
+  } catch { return { data: requested.map(mint => unavailableXStockQuote(mint, "outage")), marketSession: null }; }
+}
+
+export async function fetchXStockPrices(mints: readonly string[], signal?: AbortSignal): Promise<XStockQuote[]> {
+  return (await fetchXStockPricePage(mints, signal)).data;
+}
+
+/** Familiar names first; all remaining official entries stay searchable and paginated. */
+const DISCOVERY = ["AAPL", "MSFT", "NVDA", "AMZN", "GOOGL", "META", "TSLA", "SPY", "QQQ", "GLD", "NFLX", "JPM", "V", "WMT", "COST", "UBER"];
+export function sortXStocksForDiscovery(assets: readonly XStockAsset[]): XStockAsset[] {
+  const rank = (symbol: string) => { const index = DISCOVERY.indexOf(symbol); return index < 0 ? Number.MAX_SAFE_INTEGER : index; };
+  return [...assets].sort((a, b) => rank(a.underlyingSymbol) - rank(b.underlyingSymbol) || a.name.localeCompare(b.name));
 }

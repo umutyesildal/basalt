@@ -1,0 +1,17 @@
+Basalt backend v0.1.0 starting (port 3001)
+[xstocks] cached quotes enabled; full=300000ms hot=60000ms
+[db] DATABASE_URL not set — running without Postgres persistence
+[indexer] RPC_URL or PROGRAM_* env missing — indexer disabled
+[navEngine] disabled — no Postgres (DB-less mode)
+[feeCrank] disabled — no Postgres (DB-less mode)
+[userSnapshot] disabled (no Postgres)
+Basalt backend listening on :3001
+ - GET  /api/v1/baskets            (basket_rankings, source: onchain-indexed)
+ - GET  /api/v1/baskets/:pubkey    (detail + NAV + holdings + drift)
+ - GET  /api/v1/baskets/:pubkey/holdings | /nav/history | /performance
+ - GET  /api/v1/whitelist | /creators/:p | /users/:p/portfolio | /health
+ - GET  /api/v1/positions?wallet=:p  (chain-reconciled user positions + NAV price)
+ - POST /api/v1/quotes/zap-in|zap-out (Jupiter quote legs — quotes only, backend never signs)
+ - GET  /api/v1/feed | /leaderboard | /users/:w/profile|history   (social — on-chain verified)
+ - POST /api/v1/auth/nonce|verify   (wallet-signature auth for SOCIAL WRITES only)
+ subsystems: db=off indexer=off navEngine=off feeCrank=off userSnapshot=off cache=in-memory

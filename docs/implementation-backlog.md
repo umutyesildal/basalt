@@ -1,5 +1,7 @@
 # Basalt implementation backlog
 
+> **Current devnet wallet UI, 2026-10-03:** `/devnet` and `/create/onchain` now expose wallet-signed test-token claim, atomic basket creation, in-kind mint and redemption. The same four project-issued eight-decimal Token-2022 mocks, BSTESTA–D, back every new test basket; each basket gets its own share mint. `/create` offers **Try on devnet** and a shared preview offers **Create on devnet**. The funded, once-per-wallet faucet is `2GBfjd9jPKLoqNXdX7GDN9MHRKwzwXbHk65xQVf9HAcf`. Verified basket, supply, vault and wallet reads use direct devnet RPC, without a database or backend signer. [The wallet-flow record](devnet-ui-wallet-flow-2026-10-03.md) links the finalized claim and shipped UI-builder proof: **seven finalized transactions and 20 assertions**. Names and theses are browser-local, verified against the immutable onchain metadata hash. An owner extension-wallet signature was not performed; build and responsive checks are recorded separately. This supersedes earlier redirect-only and incomplete mock-UI statements. Official xStocks, mainnet and Managed V2 release boundaries remain unchanged. Source changes remain local and unpushed.
+
 > **UI update, 2026-10-02:** The discovery landing, Feed/Managers refresh, copy cleanup, and Colosseum research are recorded in [session updates](session-updates-2026-10-02.md). `/create/onchain` redirects to `/create`; prior transaction-wizard acceptance notes describe retained implementation, not current route availability. This pass does not close protocol, provenance, legal, or deployment gates.
 
 > Canonical operational work queue. Mark an item complete only when code, tests, documentation, and evidence are finished.
@@ -35,13 +37,17 @@ Completion evidence (working tree, 2026-09-18):
 - Deployment impact: upgrade only the `basket` program, then run existing-account accrue/mint/redeem smoke tests on devnet before treating the deployed issue as closed.
 - Backend fee estimates share the exact BigInt helper with remainder defaulted to zero. For identical supply and elapsed inputs, the unknown remainder can make the estimate at most one raw share low; stale DB supply or timestamps can cause a larger difference.
 
-### BAS-002 — Token-2022 extension policy
+### BAS-002 — Token-2022 extension policy `[~]`
+
+2026-10-03 source update: the [dated admission decision](xstocks-token-policy-decision-2026-10-03.md) replaces blanket extension rejection for immutable V0. Shared validation accepts Plain/DisplayOnly and the full observed issuer profile with inactive hooks, unpaused state, complete validated TLVs and supported public token accounts. Real AAPLx/SPYx fixtures, 29 shared-policy tests and [independent review](xstocks-devnet-basket-proof-2026-10-03.md) are complete. Redeem is unchanged; issuer powers remain an explicit limitation. All three current V0 binaries are upgraded and byte-attested on devnet at finalized slot 506820772. The [completed runtime report](xstocks-devnet-runtime-2026-10-03.md) records the fresh three/four-asset full-profile mock flow: 54 transactions, 16 expected rejections and 28 assertions. This closes that scoped devnet proof, not funded official issuer transfers or mainnet admission. Managed V2 policy is unchanged.
 
 - [x] Record official xStocks extension fixtures.
-- [x] Implement a strict extension-free whitelist allowlist/denylist boundary.
+- [x] Implement the original strict extension-free boundary, then replace it with the reviewed complete-profile validator on 2026-10-03.
 - [x] Account for actual received balance delta in seed/mint.
 - [x] Fail closed on unsupported extensions.
-- [ ] Add extension integration tests.
+- [x] Prepare isolated eight-extension mock setup and 3/4-asset accounting/rollback harness; final confirmation regressions bring focused harness coverage to 16 passing tests.
+- [x] Complete and record current-SBF extension runtime proof and deployed-byte verification for all three V0 programs.
+- [ ] Verify funded official issuer transfers and mainnet mint-specific admission under the release gates.
 
 **Owner area:** on-chain + client
 **Acceptance:** Transfer semantics cannot break vault/share accounting.
@@ -49,7 +55,7 @@ Completion evidence (working tree, 2026-09-18):
 Documentation evidence (2026-09-18):
 - `docs/fixtures/token2022-mainnet-xstocks-2026-09-18.json` records the observed mainnet-beta Token-2022 owner, decimals, extension order, authorities, account lengths, account-data hashes, and scaled multipliers for TSLAx, AAPLx, and NVDAx at slot `448202873`.
 - `docs/bas-002-token2022-extension-policy.md` records the deny-by-default policy, V0 incompatibilities, received-balance-delta design, and the invariant that redeem remains permissionless, oracle-free, backend-independent, and not gated by the whitelist pause flag.
-- The current V0 boundary is intentionally narrow: whitelist admission, factory seed, and basket mint accept only extension-free Token-2022 mints; seed/mint transfers require exact raw source and destination deltas. Official xStocks remain unsupported until the dependency and hook-aware transfer work is complete.
+- Historical September boundary: whitelist admission, factory seed and basket mint accepted only extension-free Token-2022 mints. This blanket rejection is superseded by the 2026-10-03 update above. Exact raw source/destination delta requirements remain.
 - Host-level policy and delta tests are green. Instruction-level extension, adversarial-hook, and full ProgramTest/LiteSVM coverage remain open under BAS-016.
 
 ### BAS-003 — Zap pre/post balance delta
@@ -149,6 +155,9 @@ Partial completion evidence (repository-local, 2026-09-19):
 
 ### BAS-009 — Devnet/mock truth layer
 
+2026-10-03 scoped progress: the new `/devnet` workspace labels the fixed BSTESTA–D mocks and devnet network, omits invented USD valuations and distinguishes each basket share mint. The broader whole-product and OG truth-layer checklist remains open. [Wallet-flow evidence](devnet-ui-wallet-flow-2026-10-03.md).
+
+
 - [ ] Add global devnet/mock banner.
 - [ ] Use Reference NAV terminology.
 - [ ] Add backing badges to basket, trade, portfolio, and OG output.
@@ -175,6 +184,8 @@ Partial completion evidence (repository-local, 2026-09-19):
 **Acceptance:** Legacy `price.jup.ag/v6` is absent from production paths.
 
 ### BAS-012 — Official xStocks integration
+
+2026-10-03 progress: the public official catalog, verified ETF classifications, nullable scaled token quotes and historical multiplier normalization are implemented ([data integration](xstocks-integration-2026-10-03.md)). Reviewed V0 source now supports the observed inactive-hook issuer profile. This is not a mainnet whitelist, live backing or public investment release; verified mint admission, corporate-action coverage and deployment evidence remain separate gates.
 
 - [ ] Sync official asset and mint metadata.
 - [ ] Track current/pending multiplier and activation.
@@ -239,6 +250,8 @@ Local workflow evidence (2026-09-18):
 
 ### BAS-016 — Solana instruction-level suite
 
+2026-10-03 scoped completion: `scripts/testXStockBaskets.ts` passed current-SBF devnet three/four-asset tests using four distinct full-profile mocks, ALT, exact raw/share/90-10 fee reconciliation and confirmed-failure rollback for whitelist pause, issuer pause, active hooks and frozen default state. Default mode is read-only; `--execute` is explicit and devnet-genesis-pinned. [Harness review](xstocks-devnet-basket-proof-2026-10-03.md), [completed runtime proof](xstocks-devnet-runtime-2026-10-03.md). The run recorded 38 successful transactions, 16 expected onchain rejections and 28 assertions with settings restored. This does not close the larger ProgramTest/LiteSVM or 20-constituent suite.
+
 - [ ] ProgramTest/LiteSVM harness.
 - [ ] CPI, ATA, extension, and adversarial flows.
 - [ ] 20-constituent compute/size.
@@ -247,6 +260,9 @@ Local workflow evidence (2026-09-18):
 **Acceptance:** Real instruction/account tests complement host math tests.
 
 ### BAS-017 — Frontend Playwright suite
+
+2026-10-03 scoped evidence: direct-RPC data, amount and signing tests passed, and the shipped UI builders produced seven finalized devnet transactions with 20 accounting assertions. Disconnected browser checks are separate evidence; neither the CLI proof nor these focused tests constitute an automated extension-wallet Playwright release gate. [Wallet-flow record](devnet-ui-wallet-flow-2026-10-03.md).
+
 
 - [ ] Read-only pages.
 - [ ] Create/mint/redeem.
@@ -308,6 +324,9 @@ Local workflow evidence (2026-09-18):
 
 ### BAS-023 — Wallet-late create wizard
 
+2026-10-03 scoped progress: wallet-free Create/preview remain available, with an explicit test link to `/devnet` and `/create/onchain`. The fixed-mock workspace validates connection, devnet identity, legal acknowledgment, exact seeds and balances before simulation/signing. This supplies the new workspace network guard; versioned concept-draft persistence remains separate.
+
+
 - [x] Allow the four-task Choose → Set up → Start → Review flow and final basket summary without a wallet (2026-09-23 UX pass).
 - [ ] Persist a versioned draft.
 - [x] Check wallet connection and creator token balances at Deploy; transaction simulation remains before signing (2026-09-22 UX pass).
@@ -320,6 +339,9 @@ Remaining: versioned draft persistence and an explicit wrong-network check remai
 
 ### BAS-024 — Human/raw amount system
 
+2026-10-03 scoped progress: the devnet workspace has exact eight-decimal token parsing, six-decimal shares, positive bps allocation checks, proportional deposits and Half/Max. Transfers stay raw; actual scaled multipliers are used for display. Five amount tests and the direct-RPC large-integer checks passed. The broader shared amount-system checklist remains open.
+
+
 - [ ] Shared exact parser/formatter.
 - [ ] Human amount primary; raw amount advanced.
 - [ ] Max, rounding, and balance preview.
@@ -329,6 +351,9 @@ Remaining: versioned draft persistence and an explicit wrong-network check remai
 2026-09-22 UX pass: create weights/fees now display percentages, while transaction arguments remain exact integer bps. Seed inputs already use human token units with exact raw parsing; a shared cross-flow amount system and Max behavior remain open.
 
 ### BAS-025 — Devnet onboarding
+
+2026-10-03 scoped implementation: `/devnet` and `/create/onchain` include network/SOL help, a deployed funded once-per-wallet BSTESTA–D claim, atomic basket creation, mint/redeem review and transaction Explorer links. The faucet claim and shipped UI builders finalized with exact raw/share accounting. A real owner extension-wallet first-run completion remains unverified, so this broader acceptance item is not marked complete. [Wallet-flow record](devnet-ui-wallet-flow-2026-10-03.md).
+
 
 - [ ] Network and faucet help.
 - [ ] Mock constituent acquisition.
@@ -358,6 +383,9 @@ Remaining: versioned draft persistence and an explicit wrong-network check remai
 
 ### BAS-034 — Direct-RPC redeem fallback
 
+2026-10-03 scoped implementation: `/devnet` reads verified current Basket/share/vault/wallet accounts directly from devnet RPC, accepts whitelist pause as data and submits in-kind redemption without a database, indexer or price feed. Large raw precision, whitelist-paused reads and finalized redemption through the shipped builder are covered. This closes the fixed BSTESTA–D workspace path only; general `/basket/[pubkey]/redeem` fallback and the broader outage/stale-indexer acceptance checklist below remain open. [Data and transaction evidence](devnet-ui-wallet-flow-2026-10-03.md).
+
+
 - [ ] Read basket supply, constituent vault balances, and user share balance from RPC when indexed basket data are unavailable or stale.
 - [ ] Build and preview `redeem_in_kind` from verified on-chain accounts without a price feed, backend, or whitelist status check.
 - [ ] Test indexer outage, stale snapshots, paused mints, raw Token-2022 precision, and a fresh redeem after direct-RPC fallback.
@@ -367,6 +395,8 @@ Remaining: versioned draft persistence and an explicit wrong-network check remai
 ## P2 — Charts, accessibility, and social
 
 ### BAS-028 — Real chart pipeline
+
+2026-10-03 scoped delivery: exact-mint Solana daily history, historical multiplier normalization, complete-window 7D/1M returns and detail Bklit charts are implemented. The subsequent owner decision removes charts and history requests from the compact Stocks/ETF catalog. [History evidence](xstocks-charts-2026-10-03.md), [compact-card verification](compact-asset-cards-2026-10-03.md). Broader candlestick/volume/brush work below remains unclaimed.
 
 - [ ] Real OHLCV provider contract.
 - [ ] Candlestick and volume rendering.

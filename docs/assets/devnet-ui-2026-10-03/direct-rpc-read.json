@@ -1,0 +1,164 @@
+{
+  "observedAt": "2026-10-03T08:46:13.228Z",
+  "rpc": "https://api.devnet.solana.com",
+  "snapshots": [
+    {
+      "detail": {
+        "pubkey": "HYq16UQLv8HnBnzZDgjEJWnYS1mrUs5rzzbycQEGduSW",
+        "factory": "CfxquMe4MAPksEEsVyw8XmcxYH5W7qftRWNySgHjLi6e",
+        "creator": "Hri8symaFK9pAyzDqrsrtxSSTEGN1FEr8WTdWVVEV5SU",
+        "treasury": "AAb2TXLQCPFvnUoJFSBe9PFs28w5kvAukH4Gaiia3eiJ",
+        "share_mint": "Cwg289wCPtC3kDn7ZcfyP7DKPXNumtp3trrVhTQo3BnP",
+        "nonce": "4",
+        "created_at": "2026-10-03T00:59:14.000Z",
+        "metadata_hash": "96fdde6546aa8a6b3cb1dcffdc72cd5efc5a2b566e4809ee06f893170a93227d",
+        "metadata_json": null,
+        "num_constituents": 3,
+        "constituents": [
+          "CrjoC7fq5XAbdej5zjinKNGXVqo8E8qCmh8XSiu2QViQ",
+          "EpH2swtxW2rCuFg2o2ukD5Qw5Xv3toaug1M3mbcB4hab",
+          "5G1hMSqs2nWKaFQt737FTxwnruPgeQqQWZ2FRoqxvehA"
+        ],
+        "weights_bps": [
+          4000,
+          3200,
+          2800
+        ],
+        "entry_fee_bps": 100,
+        "exit_fee_bps": 50,
+        "management_fee_bps": 200,
+        "last_fee_accrual_ts": "1790989301",
+        "source": "devnet-rpc",
+        "asOf": "2026-10-03T08:46:12.427Z",
+        "holdings": [
+          {
+            "mint": "CrjoC7fq5XAbdej5zjinKNGXVqo8E8qCmh8XSiu2QViQ",
+            "raw_amount": "290074406983",
+            "multiplier": 1,
+            "decimals": 8,
+            "scaled_amount": "2900.74406983",
+            "updated_at": "2026-10-03T08:46:12.427Z",
+            "source": "devnet-rpc"
+          },
+          {
+            "mint": "EpH2swtxW2rCuFg2o2ukD5Qw5Xv3toaug1M3mbcB4hab",
+            "raw_amount": "232059525587",
+            "multiplier": 1.25,
+            "decimals": 8,
+            "scaled_amount": "2900.7440698375",
+            "updated_at": "2026-10-03T08:46:12.427Z",
+            "source": "devnet-rpc"
+          },
+          {
+            "mint": "5G1hMSqs2nWKaFQt737FTxwnruPgeQqQWZ2FRoqxvehA",
+            "raw_amount": "203052084889",
+            "multiplier": 2,
+            "decimals": 8,
+            "scaled_amount": "4061.04169778",
+            "updated_at": "2026-10-03T08:46:12.427Z",
+            "source": "devnet-rpc"
+          }
+        ],
+        "nav": null,
+        "drift": null
+      },
+      "supply": "725186080",
+      "shareDecimals": 6,
+      "managementFeeRemainder": "191098487200",
+      "vaultAuthority": "5CW4LedJXCGbr4Eibm7B2NDWf3jvgkrbJWqPqvnyWVzq",
+      "wallet": null,
+      "shareBalance": null,
+      "walletBalances": [],
+      "whitelistStatuses": [
+        "Active",
+        "Active",
+        "Active"
+      ]
+    },
+    {
+      "detail": {
+        "pubkey": "YZuBJ6PmVZXvaGHmNC8g84j1H61zDWpZ1mkENjGcrd8",
+        "factory": "CfxquMe4MAPksEEsVyw8XmcxYH5W7qftRWNySgHjLi6e",
+        "creator": "Hri8symaFK9pAyzDqrsrtxSSTEGN1FEr8WTdWVVEV5SU",
+        "treasury": "AAb2TXLQCPFvnUoJFSBe9PFs28w5kvAukH4Gaiia3eiJ",
+        "share_mint": "B98n2ZFwhXhZR2hYuM48Aci4RXjo8oo1osFkyBMMkxKf",
+        "nonce": "5",
+        "created_at": "2026-10-03T01:01:55.000Z",
+        "metadata_hash": "85c0a168fbed238f0b520cfa1507e66670cea0ca89e4cf16329206f36a6eaf69",
+        "metadata_json": null,
+        "num_constituents": 4,
+        "constituents": [
+          "CrjoC7fq5XAbdej5zjinKNGXVqo8E8qCmh8XSiu2QViQ",
+          "EpH2swtxW2rCuFg2o2ukD5Qw5Xv3toaug1M3mbcB4hab",
+          "5G1hMSqs2nWKaFQt737FTxwnruPgeQqQWZ2FRoqxvehA",
+          "8W2hrfJPPrXEBjs5gDgpVZcs8HsELeHkBaqSjnUvgJUq"
+        ],
+        "weights_bps": [
+          3000,
+          2700,
+          2300,
+          2000
+        ],
+        "entry_fee_bps": 100,
+        "exit_fee_bps": 50,
+        "management_fee_bps": 200,
+        "last_fee_accrual_ts": "1790989455",
+        "source": "devnet-rpc",
+        "asOf": "2026-10-03T08:46:13.223Z",
+        "holdings": [
+          {
+            "mint": "CrjoC7fq5XAbdej5zjinKNGXVqo8E8qCmh8XSiu2QViQ",
+            "raw_amount": "217555805002",
+            "multiplier": 1,
+            "decimals": 8,
+            "scaled_amount": "2175.55805002",
+            "updated_at": "2026-10-03T08:46:13.223Z",
+            "source": "devnet-rpc"
+          },
+          {
+            "mint": "EpH2swtxW2rCuFg2o2ukD5Qw5Xv3toaug1M3mbcB4hab",
+            "raw_amount": "195800224502",
+            "multiplier": 1.25,
+            "decimals": 8,
+            "scaled_amount": "2447.502806275",
+            "updated_at": "2026-10-03T08:46:13.223Z",
+            "source": "devnet-rpc"
+          },
+          {
+            "mint": "5G1hMSqs2nWKaFQt737FTxwnruPgeQqQWZ2FRoqxvehA",
+            "raw_amount": "166792783835",
+            "multiplier": 2,
+            "decimals": 8,
+            "scaled_amount": "3335.8556767",
+            "updated_at": "2026-10-03T08:46:13.223Z",
+            "source": "devnet-rpc"
+          },
+          {
+            "mint": "8W2hrfJPPrXEBjs5gDgpVZcs8HsELeHkBaqSjnUvgJUq",
+            "raw_amount": "145037203335",
+            "multiplier": 10,
+            "decimals": 8,
+            "scaled_amount": "14503.7203335",
+            "updated_at": "2026-10-03T08:46:13.223Z",
+            "source": "devnet-rpc"
+          }
+        ],
+        "nav": null,
+        "drift": null
+      },
+      "supply": "725186076",
+      "shareDecimals": 6,
+      "managementFeeRemainder": "208746452600",
+      "vaultAuthority": "56Gtkh1kw3PBPJjF84F7s9L2VGq869o8xm28YGWGVWjs",
+      "wallet": null,
+      "shareBalance": null,
+      "walletBalances": [],
+      "whitelistStatuses": [
+        "Active",
+        "Active",
+        "Active",
+        "Active"
+      ]
+    }
+  ]
+}

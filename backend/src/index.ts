@@ -13,6 +13,7 @@
  *                  ever fabricated).
  */
 import http from "http";
+import { XStockQuoteService } from "./workers/xstockQuotes.js";
 import { connectFromEnv, disconnectFromEnv } from "./db/client.js";
 import { applySchema } from "./db/init.js";
 import { createIndexerFromEnv } from "./indexer/listener.js";
@@ -25,6 +26,12 @@ const PORT = Number(process.env.PORT || 3001);
 
 async function main(): Promise<void> {
   console.log(`Basalt backend v${API_VERSION} starting (port ${PORT})`);
+
+  // Public mainnet quote caching works independently of DB/devnet transaction readiness.
+  const xstockQuotes = new XStockQuoteService();
+  await xstockQuotes.initialize();
+  if (process.env.XSTOCK_PRICE_WORKER !== "0") xstockQuotes.start();
+  console.log(`[xstocks] cached quotes enabled; full=${xstockQuotes.fullRefreshMs}ms hot=${xstockQuotes.hotRefreshMs}ms`);
 
   // 1. Postgres + normative spec §7 schema (both degrade honestly when unset).
   const db = await connectFromEnv();
@@ -68,7 +75,7 @@ async function main(): Promise<void> {
     feeCrank: { enabled: feeCrank !== null, running: feeCrank?.isRunning ?? false },
     userSnapshot: { enabled: userSnapshotter !== null, running: userSnapshotter?.isRunning ?? false },
   });
-  const server = http.createServer(createHandler({ db, cache, status }));
+  const server = http.createServer(createHandler({ db, cache, status, xstockQuotes }));
   await new Promise<void>((resolve) => server.listen(PORT, resolve));
   console.log(`Basalt backend listening on :${PORT}`);
   console.log(` - GET  /api/v1/baskets            (basket_rankings, source: onchain-indexed)`);
@@ -96,8 +103,9 @@ async function main(): Promise<void> {
   navEngine?.stop();
   feeCrank?.stop();
   userSnapshotter?.stop();
+  const quotesStopped = xstockQuotes.stop();
     server.close(() => {
-      void disconnectFromEnv().finally(() => process.exit(0));
+      void Promise.allSettled([quotesStopped, disconnectFromEnv()]).finally(() => process.exit(0));
     });
     // Hard exit if connections refuse to drain.
     setTimeout(() => process.exit(0), 5000).unref();

@@ -8,7 +8,7 @@ import {
   createMintToInstruction,
   createSetAuthorityInstruction,
   getAssociatedTokenAddressSync,
-} from "@solana/spl-token";
+} from "@/lib/token-2022";
 import { Connection, Keypair, PublicKey, SystemProgram, Transaction, type TransactionInstruction } from "@solana/web3.js";
 
 import { MANAGED_PROGRAM_ID, isLocalManagedEndpoint, tokenAta } from "@/lib/managed-chain";

@@ -1,8 +1,6 @@
 use anchor_lang::prelude::*;
-use anchor_lang::solana_program::program_pack::Pack;
 use anchor_spl::token_2022::spl_token_2022::{
-    extension::{BaseStateWithExtensions, StateWithExtensions},
-    state::Mint as Token2022Mint,
+    extension::StateWithExtensions, state::Mint as Token2022Mint,
 };
 use anchor_spl::token_2022::ID as TOKEN_2022_PROGRAM_ID;
 
@@ -42,7 +40,7 @@ pub mod whitelist {
         check_mint_owner(mint_ai.owner)?;
         let on_chain_decimals = {
             let data = mint_ai.try_borrow_data()?;
-            decode_mint_decimals(&data)?
+            decode_mint_decimals(&data, &mint_ai.key())?
         };
         check_decimals(decimals, on_chain_decimals)?;
 
@@ -128,35 +126,36 @@ pub fn check_mint_owner(owner: &Pubkey) -> Result<()> {
     Ok(())
 }
 
-/// Deserializes a Token-2022 mint and returns its on-chain decimals.
-///
-/// V0 intentionally accepts only the extension-free base `Mint` layout. The
-/// pinned SPL Token-2022 3.0.5 dependency does not model the newer xStocks
-/// extension profile (including `ScaledUiAmountConfig`), so accepting opaque
-/// TLV data here would make transfer/redeem semantics unverifiable. Unknown,
-/// duplicate, or malformed TLV data therefore fails closed.
-pub fn decode_mint_decimals(data: &[u8]) -> Result<u8> {
-    let mint = StateWithExtensions::<Token2022Mint>::unpack(data).map_err(|error| match error {
+/// Validates a complete Token-2022 mint under the shared admission policy.
+/// Plain and display-only mints remain supported. The observed issuer profile
+/// is accepted only while initialized, unpaused and without an active hook.
+/// Metadata identity is checked against the actual mint address. Transfers and
+/// share accounting continue to use raw amounts exclusively.
+pub fn decode_mint_decimals(data: &[u8], mint_key: &Pubkey) -> Result<u8> {
+    // Preserve the SPL base-state validation and historical error mapping.
+    StateWithExtensions::<Token2022Mint>::unpack(data).map_err(|error| match error {
         anchor_lang::solana_program::program_error::ProgramError::UninitializedAccount => {
             error!(WhitelistError::UninitializedMint)
         }
         _ => error!(WhitelistError::InvalidMintAccountData),
     })?;
-    let extension_types = mint
-        .get_extension_types()
-        .map_err(|_| error!(WhitelistError::MalformedMintExtensions))?;
-    require!(
-        extension_types.is_empty(),
-        WhitelistError::MintExtensionNotAllowed
-    );
-    // An extensionless mint must use the exact base Mint allocation. This
-    // rejects padded/opaque TLV buffers that happen to contain no parsed
-    // entries, rather than treating them as a plain mint.
-    require!(
-        data.len() == Token2022Mint::LEN,
-        WhitelistError::InvalidMintAccountData
-    );
-    Ok(mint.base.decimals)
+    basalt_token_policy::validate_mint(data, &mint_key.to_bytes())
+        .map(|info| info.decimals)
+        .map_err(|error| match error {
+            basalt_token_policy::PolicyError::Uninitialized => {
+                error!(WhitelistError::UninitializedMint)
+            }
+            basalt_token_policy::PolicyError::MalformedExtensions => {
+                error!(WhitelistError::MalformedMintExtensions)
+            }
+            basalt_token_policy::PolicyError::InvalidAccountData => {
+                error!(WhitelistError::InvalidMintAccountData)
+            }
+            basalt_token_policy::PolicyError::InvalidDecimals => {
+                error!(WhitelistError::InvalidDecimals)
+            }
+            _ => error!(WhitelistError::MintExtensionNotAllowed),
+        })
 }
 
 /// The `decimals` arg must be within the cap AND match the actual mint.
@@ -460,18 +459,18 @@ mod tests {
         let mut buf = [0u8; 82];
         buf[44] = 6; // decimals
         buf[45] = 1; // is_initialized
-        assert_eq!(decode_mint_decimals(&buf).unwrap(), 6);
+        assert_eq!(decode_mint_decimals(&buf, &Pubkey::default()).unwrap(), 6);
         buf[44] = 9;
-        assert_eq!(decode_mint_decimals(&buf).unwrap(), 9);
+        assert_eq!(decode_mint_decimals(&buf, &Pubkey::default()).unwrap(), 9);
         buf[44] = 0;
-        assert_eq!(decode_mint_decimals(&buf).unwrap(), 0);
+        assert_eq!(decode_mint_decimals(&buf, &Pubkey::default()).unwrap(), 0);
     }
     #[test]
     fn test_decode_mint_decimals_truncated_fails() {
         let buf = [0u8; 40];
-        assert!(decode_mint_decimals(&buf).is_err());
+        assert!(decode_mint_decimals(&buf, &Pubkey::default()).is_err());
         let empty: [u8; 0] = [];
-        assert!(decode_mint_decimals(&empty).is_err());
+        assert!(decode_mint_decimals(&empty, &Pubkey::default()).is_err());
     }
 
     fn mint_data_with_extension(extension: u16, value_len: usize) -> Vec<u8> {
@@ -488,9 +487,9 @@ mod tests {
 
     #[test]
     fn test_decode_mint_decimals_rejects_known_extensions() {
-        // TransferFeeConfig is representative: V0 has no extension allowlist.
+        // TransferFeeConfig remains outside the supported admission profiles.
         let data = mint_data_with_extension(1, 0);
-        let result = decode_mint_decimals(&data);
+        let result = decode_mint_decimals(&data, &Pubkey::default());
         assert!(result.is_err());
         assert!(format!("{result:?}").contains("MintExtensionNotAllowed"));
     }
@@ -499,7 +498,7 @@ mod tests {
     fn test_decode_mint_decimals_rejects_malformed_tlv() {
         let mut data = mint_data_with_extension(1, 0);
         data[168..170].copy_from_slice(&u16::MAX.to_le_bytes());
-        let result = decode_mint_decimals(&data);
+        let result = decode_mint_decimals(&data, &Pubkey::default());
         assert!(result.is_err());
         assert!(format!("{result:?}").contains("MalformedMintExtensions"));
     }
@@ -510,7 +509,7 @@ mod tests {
         data[44] = 6;
         data[45] = 1;
         data[165] = 1; // AccountType::Mint, but no extension entry.
-        let result = decode_mint_decimals(&data);
+        let result = decode_mint_decimals(&data, &Pubkey::default());
         assert!(result.is_err());
         assert!(format!("{result:?}").contains("InvalidMintAccountData"));
     }
@@ -519,7 +518,7 @@ mod tests {
     fn test_decode_mint_decimals_rejects_uninitialized_base_mint() {
         let mut data = [0u8; 82];
         data[44] = 6;
-        let result = decode_mint_decimals(&data);
+        let result = decode_mint_decimals(&data, &Pubkey::default());
         assert!(result.is_err());
         assert!(format!("{result:?}").contains("UninitializedMint"));
     }
@@ -549,7 +548,7 @@ mod tests {
     fn test_add_mint_entrypoint_uses_fail_closed_decoder() {
         let src = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/lib.rs"));
         let add_mint = braced_block(src, "pub fn add_mint");
-        assert!(add_mint.contains("decode_mint_decimals(&data)"));
+        assert!(add_mint.contains("decode_mint_decimals(&data, &mint_ai.key())"));
         assert!(src.contains("MintExtensionNotAllowed"));
     }
     #[test]

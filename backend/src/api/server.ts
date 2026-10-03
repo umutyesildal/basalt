@@ -13,7 +13,11 @@
  */
 import http from "http";
 import { PublicKey } from "@solana/web3.js";
-import { comparePrices, getChartSeries, readMockWhitelistRows, TICKER_MINTS, YAHOO_MAP } from "../workers/priceCompare.js";
+import { comparePrices, getChartSeries, readMockWhitelistRows } from "../workers/priceCompare.js";
+import { getXStockCatalog, getCachedXStockCatalog } from "../catalog/xstocks.js";
+import { JUPITER_PRICE_URL } from "../workers/priceFetch.js";
+import { XStockQuoteService } from "../workers/xstockQuotes.js";
+import { XStockHistoryService } from "../workers/xstockHistory.js";
 import { fetchYahooSeries } from "../workers/yahooFetch.js";
 import { connectFromEnv, isPgLike, type PgLike } from "../db/client.js";
 import { computeDriftExact, type KeyValueCache } from "../workers/navEngine.js";
@@ -48,6 +52,8 @@ export interface ApiContext {
   now?: () => Date;
   /** Subsystem enabled/running report for /health (wired by index.ts). */
   status?: () => SubsystemStatus;
+  xstockQuotes?: XStockQuoteService;
+  xstockHistory?: XStockHistoryService;
 }
 
 // --- helpers -----------------------------------------------------------------
@@ -854,6 +860,8 @@ export async function healthReport(
 // --- handler -----------------------------------------------------------------
 
 export function createHandler(ctx: ApiContext = { db: null }) {
+  const xstockQuotes = ctx.xstockQuotes ?? new XStockQuoteService({ fetchImpl: ctx.fetchImpl, now: ctx.now, cachePath: null });
+  const xstockHistory = ctx.xstockHistory ?? new XStockHistoryService({ fetchImpl: ctx.fetchImpl, now: ctx.now, ...(ctx.fetchImpl ? { cachePath: null } : {}) });
   return async (req: http.IncomingMessage, res: http.ServerResponse): Promise<void> => {
     const url = new URL(req.url || "/", `http://${req.headers.host}`);
     const pathname = url.pathname;
@@ -882,23 +890,53 @@ export function createHandler(ctx: ApiContext = { db: null }) {
       return;
     }
 
-    // --- Providers ---
+    // Official discovery metadata is separate from the protocol whitelist.
     if (pathname === "/api/v1/providers" && req.method === "GET") {
       sendJson(res, 200, { data: [
-        { id: "backed", name: "Backed Finance", type: "xstock", mints: Object.entries(TICKER_MINTS).map(([ticker, mint]) => ({ ticker, mint, decimals: 6, status: "Active", priceSource: `jupiter:${ticker}` })) },
-        { id: "jupiter", name: "Jupiter Price v6", type: "price", url: "https://price.jup.ag/v6/price" },
-        { id: "yahoo", name: "Yahoo Finance", type: "price", url: "https://query2.finance.yahoo.com" },
-        { id: "nasdaq", name: "Nasdaq Benchmark (QQQ)", type: "index", symbol: "QQQ" },
+        { id: "backed", name: "xStocks", type: "xstock", url: "https://docs.xstocks.fi/developers" },
+        { id: "jupiter", name: "Jupiter Price V3", type: "price", url: JUPITER_PRICE_URL },
+        { id: "yahoo", name: "Yahoo Finance", type: "underlying-reference", url: "https://query2.finance.yahoo.com" },
       ] });
       return;
     }
-
-    // --- xStocks list ---
     if (pathname === "/api/v1/xstocks" && req.method === "GET") {
-      const data = Object.entries(TICKER_MINTS).map(([ticker, mint]) => ({
-        ticker, mint, yahooSymbol: YAHOO_MAP[ticker], decimals: 6, provider: "backed", status: "Active",
-      }));
-      sendJson(res, 200, { data });
+      sendJson(res, 200, await getXStockCatalog({ fetchImpl: ctx.fetchImpl, now: ctx.now }));
+      return;
+    }
+    // Explicit historical reads remain available outside the live NYSE refresh session.
+    if (pathname === "/api/v1/xstocks/history" && req.method === "GET") {
+      const mints = [...new Set((url.searchParams.get("mints") ?? "").split(",").filter(Boolean))];
+      const range = url.searchParams.get("range") ?? "7d";
+      if (mints.length === 0 || mints.length > 24 || (range !== "7d" && range !== "30d") || mints.some(mint => {
+        try { return new PublicKey(mint).toBase58() !== mint; } catch { return true; }
+      })) { sendError(res, 400, "INVALID_HISTORY_QUERY", "Provide 1-24 Solana mints and range 7d or 30d."); return; }
+      const official = new Set(getCachedXStockCatalog(ctx.now).data.map(asset => asset.mint));
+      if (mints.some(mint => !official.has(mint))) { sendError(res, 400, "UNKNOWN_XSTOCK", "One or more mints are not in the Solana xStocks catalog."); return; }
+      sendJson(res, 200, await xstockHistory.getHistories(mints, range));
+      return;
+    }
+    if (pathname === "/api/v1/xstocks/prices" && req.method === "GET") {
+      const mints = [...new Set((url.searchParams.get("mints") ?? "").split(",").filter(Boolean))];
+      if (mints.length === 0 || mints.length > 100 || mints.some(mint => {
+        try { return new PublicKey(mint).toBase58() !== mint; } catch { return true; }
+      })) {
+        sendError(res, 400, "INVALID_MINTS", "Provide between 1 and 100 Solana mint addresses.");
+        return;
+      }
+      // Known issuer mints can be priced without waiting for all 13 metadata pages.
+      // New mints require a fresh complete issuer lookup before their quote is read.
+      let catalog = getCachedXStockCatalog(ctx.now);
+      let official = new Set(catalog.data.map(asset => asset.mint));
+      if (xstockQuotes.marketSession().isOpen && mints.some(mint => !official.has(mint))) {
+        catalog = await getXStockCatalog({ fetchImpl: ctx.fetchImpl, now: ctx.now });
+        official = new Set(catalog.data.map(asset => asset.mint));
+      }
+      if (mints.some(mint => !official.has(mint))) {
+        sendError(res, 400, "UNKNOWN_XSTOCK", "One or more mints are not in the Solana xStocks catalog.");
+        return;
+      }
+      const data = await xstockQuotes.getQuotes(mints);
+      sendJson(res, 200, { data, meta: { ...xstockQuotes.metadata(), catalogStale: catalog.meta.stale } });
       return;
     }
 
@@ -924,19 +962,19 @@ export function createHandler(ctx: ApiContext = { db: null }) {
       return;
     }
 
-    // --- Price compare: xStock (Jupiter) vs gerçek (Yahoo) ---
-    // GET /api/v1/prices/compare?tickers=TSLAx,NVDAx
-    // Real Backed mints compare Jupiter vs Yahoo. Devnet mock mints (a ticker
-    // not in TICKER_MINTS whose whitelisted_mints row is "mock:<slug>") are
-    // quoted from the REAL US-equity market via the guarded Yahoo path
-    // (source "yahoo"), falling back to the dev catalog (source "mock"), then
-    // to null (source "unavailable") — never a fabricated price.
+    // Token spot and underlying reference remain separate; no equity fallback.
     if (pathname === "/api/v1/prices/compare" && req.method === "GET") {
       const tickersParam = url.searchParams.get("tickers");
       const tickers = tickersParam ? tickersParam.split(",") : undefined;
+      if (tickers && tickers.length > 20) {
+        sendError(res, 400, "TOO_MANY_TICKERS", "Request at most 20 tickers.");
+        return;
+      }
       const db = await resolveDb(ctx);
       const data = await comparePrices(tickers, {
-        mockRows: db ? await readMockWhitelistRows(db) : [],
+        market: url.searchParams.get("network") === "devnet" ? "devnet" : "mainnet",
+        mockRows: db && url.searchParams.get("network") === "devnet" ? await readMockWhitelistRows(db) : [],
+        fetchImpl: ctx.fetchImpl, now: ctx.now,
       });
       sendJson(res, 200, { data, ts: new Date().toISOString(), note: "diffBps = (jupiter - yahoo)/yahoo*10000, LEGAL: xStock is structured instrument" });
       return;

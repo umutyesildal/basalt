@@ -1,11 +1,13 @@
-import { getConceptAsset } from "@/lib/concept-assets";
+import { getConceptAsset, hasConceptAssetIdentityConflict } from "@/lib/concept-assets";
+import { isSolanaMint } from "@/lib/xstock-types";
 
 /** Public, wallet-free basket shape used by the hackathon concept preview. */
 export interface ConceptBasket {
   v: 1;
   name: string;
   thesis: string;
-  assets: { symbol: string; weightBps: number }[];
+  /** Optional mint identifies a shared idea; it never grants transaction permission. */
+  assets: { symbol: string; weightBps: number; mint?: string }[];
   amountUsd: number;
   fees: { entryBps: number; exitBps: number; managementBps: number };
 }
@@ -50,6 +52,7 @@ export function validateConceptBasket(input: unknown): ConceptBasketValidation {
     errors.push("A basket needs between 2 and 20 assets.");
   }
   const symbols = new Set<string>();
+  const mints = new Set<string>();
   let totalWeight = 0;
   for (const asset of assets) {
     if (!asset || typeof asset !== "object" || Array.isArray(asset)) {
@@ -57,9 +60,17 @@ export function validateConceptBasket(input: unknown): ConceptBasketValidation {
       continue;
     }
     const row = asset as Record<string, unknown>;
-    if (typeof row.symbol !== "string" || !/^[A-Z][A-Z0-9.]{0,9}$/.test(row.symbol) || !getConceptAsset(row.symbol)) {
+    if (typeof row.symbol !== "string" || !/^[A-Z0-9][A-Z0-9.:-]{0,24}$/.test(row.symbol) || (!getConceptAsset(row.symbol) && !isSolanaMint(row.mint))) {
       errors.push("One or more asset symbols are invalid.");
       continue;
+    }
+    if (row.mint !== undefined) {
+      if (!isSolanaMint(row.mint)) errors.push("One or more token mints are invalid.");
+      else {
+        if (hasConceptAssetIdentityConflict(row.symbol, row.mint)) errors.push("An asset symbol does not match its token mint.");
+        if (mints.has(row.mint)) errors.push("Each token mint can appear only once.");
+        mints.add(row.mint);
+      }
     }
     if (symbols.has(row.symbol)) errors.push("Each asset can appear only once.");
     symbols.add(row.symbol);
@@ -96,7 +107,7 @@ export function validateConceptBasket(input: unknown): ConceptBasketValidation {
       thesis: (value.thesis as string).trim(),
       assets: assets.map((asset) => {
         const row = asset as Record<string, unknown>;
-        return { symbol: row.symbol as string, weightBps: row.weightBps as number };
+        return { symbol: row.symbol as string, weightBps: row.weightBps as number, ...(typeof row.mint === "string" ? { mint: row.mint } : {}) };
       }),
       amountUsd: value.amountUsd as number,
       fees: {

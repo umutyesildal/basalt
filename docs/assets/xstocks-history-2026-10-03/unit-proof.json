@@ -1,0 +1,144 @@
+{
+  "sources": {
+    "geckoDocs": "https://api.geckoterminal.com/docs/index.html",
+    "ohlcvDocs": "https://docs.coingecko.com/reference/pool-ohlcv-contract-address",
+    "multiplierDocs": "https://docs.xstocks.fi/developers/multipliers"
+  },
+  "unit": "GeckoTerminal USD per unscaled token; divide each completed daily close by its historically effective issuer multiplier to display USD per scaled UI token.",
+  "nflx": {
+    "mint": "XsEH7wWfJJu2ZT3UCFeVfALnVA6CP5ur7Ee11KmzVpL",
+    "pool": "7RQXW5KEBgHCcy1eSNs1Kh7BWaEL46q8jb9t18S151bL",
+    "transaction": "3u5wmZncqmhYvCYQqwE75H35WZDMhMMnQSPNEE423ZfkfuLWPv3YT6hd7yZWEiEf14nwUvikyYg8qGoTmoDc45yT",
+    "slot": 452757227,
+    "tokenDecimals": 8,
+    "poolPreRawAmount": "1279723082",
+    "poolPostRawAmount": "1279725477",
+    "gtFromTokenAmount": "0.00002395",
+    "gtPriceUsdPerUnscaledToken": 675.8849714065308,
+    "effectiveMultiplier": 10,
+    "scaledUiSwapAmount": 0.0002395,
+    "scaledUiPriceUsd": 67.58849714065308,
+    "issuerMultiplierResponse": {
+      "page": {
+        "currentPage": 0,
+        "hasNextPage": false
+      },
+      "nodes": [
+        {
+          "id": "1f11136b-c16e-4b18-802e-6244326e1144",
+          "reason": "Split",
+          "multiplier": 10,
+          "previousMultiplier": 1,
+          "activationDateTime": "2025-11-16T23:55:00.000Z"
+        }
+      ]
+    },
+    "ohlcvRequestUrl": "https://api.geckoterminal.com/api/v2/networks/solana/pools/7RQXW5KEBgHCcy1eSNs1Kh7BWaEL46q8jb9t18S151bL/ohlcv/day?aggregate=1&before_timestamp=1790899200&limit=40&currency=usd&token=XsEH7wWfJJu2ZT3UCFeVfALnVA6CP5ur7Ee11KmzVpL&include_empty_intervals=false",
+    "ohlcvSample": {
+      "data": {
+        "attributes": {
+          "ohlcv_list": [
+            [
+              1790899200,
+              677.4865378930293,
+              712.731140999518,
+              584.8952396286958,
+              675.8849714065308,
+              6885.324472162738
+            ],
+            [
+              1790812800,
+              697.7740683943367,
+              706.7999201050961,
+              677.4865378930293,
+              677.4865378930293,
+              1956.2962973444303
+            ],
+            [
+              1790726400,
+              691.5898635237636,
+              733.6808521061283,
+              681.5717228034563,
+              697.7740683943367,
+              2792.120827032924
+            ]
+          ]
+        }
+      },
+      "meta": {
+        "base": {
+          "name": "Netflix xStock",
+          "symbol": "NFLXx",
+          "coingecko_coin_id": "netflix-xstock",
+          "address": "XsEH7wWfJJu2ZT3UCFeVfALnVA6CP5ur7Ee11KmzVpL"
+        },
+        "quote": {
+          "name": "USD Coin",
+          "symbol": "USDC",
+          "coingecko_coin_id": "usd-coin",
+          "address": "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v"
+        }
+      }
+    }
+  },
+  "qqq": {
+    "mint": "Xs8S1uUs1zvS2p7iwtsG3b6fkhpvmwz4GYU3gWAmWHZ",
+    "issuerMultiplierResponse": {
+      "page": {
+        "currentPage": 0,
+        "hasNextPage": false
+      },
+      "nodes": [
+        {
+          "id": "4da92a36-d38e-45bb-a080-1ecd828cd17b",
+          "reason": "Dividend",
+          "multiplier": 1.0034560758968376,
+          "previousMultiplier": 1.0027250296551051,
+          "activationDateTime": "2026-09-19T23:00:00.000Z"
+        },
+        {
+          "id": "3a997bdf-63b6-4cc2-8bca-288c9194cf01",
+          "reason": "Dividend",
+          "multiplier": 1.0027250296551051,
+          "previousMultiplier": 1.0019546533977475,
+          "activationDateTime": "2026-06-21T23:55:00.000Z"
+        },
+        {
+          "id": "769407df-b776-40ab-bd39-6efedc2db8ab",
+          "reason": "Dividend",
+          "multiplier": 1.0019546533977475,
+          "previousMultiplier": 1.0011045482302958,
+          "activationDateTime": "2026-03-28T23:55:00.000Z"
+        },
+        {
+          "id": "33427b2b-eb9c-4623-aa5c-b79c32dc8252",
+          "reason": "Dividend",
+          "multiplier": 1.0011045482302958,
+          "previousMultiplier": 1.0002078861658,
+          "activationDateTime": "2025-12-31T23:55:00.000Z"
+        },
+        {
+          "id": "a5e4393a-0b3c-4ff0-8ea4-da6133cf0046",
+          "reason": "Dividend",
+          "multiplier": 1.0002078861658,
+          "previousMultiplier": 1,
+          "activationDateTime": "2025-10-31T23:55:00.000Z"
+        }
+      ]
+    }
+  },
+  "interpretation": "The 7D/30D percentages compare displayed token prices at exact completed UTC day boundaries. They are not total investment return, realized P&L, or fee-adjusted return. Volume-zero or missing candles are never filled.",
+  "warmCoverage": {
+    "complete31PointHistories": [
+      "AAPLx",
+      "SPYx",
+      "QQQx",
+      "NFLXx",
+      "MSFTx"
+    ],
+    "unavailable": {
+      "NVDAx": "HTTP429 from pool-discovery provider; no underlying-stock or mock fallback"
+    },
+    "runtimeCache": "backend/.cache/xstocks-history.json (ignored, public data only)"
+  }
+}

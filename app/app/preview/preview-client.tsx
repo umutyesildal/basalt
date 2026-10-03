@@ -6,6 +6,7 @@ import { useEffect, useMemo, useState } from "react";
 
 import { BasketMetrics, ModelPerformanceNote } from "@/components/basket/basket-performance";
 import { BasketCover } from "@/components/basket/basket-story-card";
+import { CreationCelebration } from "@/components/preview/creation-celebration";
 import { CONCEPT_BASKETS } from "@/lib/concept-samples";
 import { PieCenter } from "@/components/charts/pie-center";
 import { PieChart } from "@/components/charts/pie-chart";
@@ -18,9 +19,10 @@ import { conceptCopyHref, conceptPreviewHref } from "@/lib/concept-share";
 import { formatBpsAsPercent, formatUsd } from "@/lib/format";
 import { tickerColor } from "@/lib/ticker-color";
 import { cn } from "@/lib/utils";
+import { devnetCreateHref } from "@/lib/devnet-links";
 
-export default function ConceptPreviewClient({ basket }: { basket: ConceptBasket | null }) {
-  const sample = basket ? CONCEPT_BASKETS.find((entry) => entry.name === basket.name && entry.assets.length === basket.assets.length && entry.assets.every((asset) => basket.assets.some((candidate) => candidate.symbol === asset.symbol && candidate.weightBps === asset.weightBps))) : undefined;
+export default function ConceptPreviewClient({ basket, created = false }: { basket: ConceptBasket | null; created?: boolean }) {
+  const sample = basket ? CONCEPT_BASKETS.find((entry) => entry.name === basket.name && entry.assets.length === basket.assets.length && entry.assets.every((asset) => basket.assets.some((candidate) => candidate.symbol === asset.symbol && candidate.weightBps === asset.weightBps && (!candidate.mint || getConceptAsset(candidate.symbol, candidate.mint)?.symbol === asset.symbol)))) : undefined;
   const [shareUrl, setShareUrl] = useState("");
   const [shareStatus, setShareStatus] = useState("");
   const [showFullLink, setShowFullLink] = useState(false);
@@ -79,6 +81,7 @@ export default function ConceptPreviewClient({ basket }: { basket: ConceptBasket
 
   return (
     <div className="mx-auto max-w-5xl space-y-8 pb-8">
+      <CreationCelebration created={created} previewHref={conceptPreviewHref(basket)} />
       <div className="flex flex-col gap-6 border-b border-border pb-6 md:flex-row md:items-end md:justify-between">
         <div className="min-w-0 flex-1 space-y-3">
           <Link
@@ -138,10 +141,10 @@ export default function ConceptPreviewClient({ basket }: { basket: ConceptBasket
               <ul className="divide-y divide-border/70" aria-label="Asset allocations">
                 {basket.assets.map((asset) => (
                   <li key={asset.symbol} className="flex items-center gap-3 py-3 first:pt-0 last:pb-0">
-                    <AssetMark symbol={asset.symbol} />
+                    <AssetMark symbol={asset.symbol} mint={asset.mint} />
                     <span className="min-w-0 flex-1">
                       <span className="block truncate text-sm font-medium text-foreground">
-                        {getConceptAssetName(asset.symbol)}
+                        {getConceptAssetName(asset.symbol, asset.mint)}
                       </span>
                       <span className="font-mono text-xs text-muted-foreground">{asset.symbol}</span>
                     </span>
@@ -212,7 +215,7 @@ export default function ConceptPreviewClient({ basket }: { basket: ConceptBasket
               <CardTitle className="text-base">Create onchain</CardTitle>
             </CardHeader>
             <CardContent>
-              <Button type="button" disabled className="min-h-10 w-full">Coming soon</Button>
+              <Link href={devnetCreateHref({ name: basket.name, thesis: basket.thesis, managementFeeBps: basket.fees.managementBps })} className={cn(buttonVariants(), "min-h-11 w-full")}>Create on devnet</Link>
             </CardContent>
           </Card>
         </div>
@@ -235,9 +238,9 @@ function FeeRow({ label, value, annual = false }: { label: string; value: number
   );
 }
 
-function AssetMark({ symbol }: { symbol: string }) {
+function AssetMark({ symbol, mint }: { symbol: string; mint?: string }) {
   const [failed, setFailed] = useState(false);
-  const asset = getConceptAsset(symbol);
+  const asset = getConceptAsset(symbol, mint);
   const initials = symbol.replace(/[^A-Za-z0-9]/g, "").slice(0, 2).toUpperCase();
 
   if (!asset?.logoUrl || failed) {

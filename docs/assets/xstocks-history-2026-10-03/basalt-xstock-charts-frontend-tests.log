@@ -1,0 +1,47 @@
+✔ removing assets keeps every remaining allocation positive and the total exact (1.081917ms)
+✔ redistribution retains relative allocations and handles tiny remaining weights (0.1065ms)
+✔ slider extremes leave at least one basis point for each other asset (0.171042ms)
+✔ scroll affordance stops at the end, including fractional browser dimensions (0.080375ms)
+✔ live grouping preserves decimals and caret positions during middle edits (0.332708ms)
+✔ clear and boundary amounts retain existing validation, without rounding drafts (0.256792ms)
+✔ existing copied amounts keep their precision without widening new input rules (13.1185ms)
+✔ new drafts start empty with the recommended management fee inside the existing cap (0.767333ms)
+✔ copying a basket preserves zero or custom fees, its mix and original amount precision (0.135791ms)
+✔ independent fresh drafts do not share mutable arrays or fee objects (0.074875ms)
+✔ a completed share celebrates once, ordinary links and refreshes do not (0.12075ms)
+✔ storage-restricted browsers still get one-time feedback for the current action (0.089709ms)
+✔ all snapshot assets survive validation without mock prices or wrong-chain rows (4.331625ms)
+✔ search covers the complete catalog by token, underlying, name and mint (2881.610792ms)
+✔ short ticker searches ignore incidental mint substrings but full mint searches still work (7.049458ms)
+✔ verified ETFs include more than SPY and unknown classification stays discoverable (2.803ms)
+✔ mint validation checks decoded32bytes, rejecting malformed or oversized addresses (0.12125ms)
+✔ v3 links preserve new asset mint identities and legacy v2 stays unchanged (0.875792ms)
+✔ future issuer assets and exchange-qualified or numeric symbols round-trip independently of bundled metadata (0.663541ms)
+✔ known symbol and mint identities cannot be mixed in v3 links (0.340625ms)
+✔ unknown future mint metadata never borrows a known company name or logo (0.269542ms)
+✔ every official symbol can form a shared draft without network lookup (43.314667ms)
+✔ token quotes fail closed for wrong identity, underlying sources and invalid numbers (0.295625ms)
+✔ quote requests contain only the visible page and missing quotes remain null (9.798208ms)
+✔ cached refresh failures preserve same-token prices and their source dates (0.126208ms)
+✔ server cache freshness is parsed independently of source price age (0.060625ms)
+✔ provider omission and malformed refresh payloads retain the prior quote through fetch and merge (0.557334ms)
+✔ 24h movement requires a recent traceable source price even when the cache just refreshed (0.081917ms)
+✔ closed-market metadata accompanies cached reads without changing quote source dates (0.186ms)
+✔ accepts verified token closes and exact seven-day anchors (2.01475ms)
+✔ rejects identity, underlying-source, units, range and malformed prices (0.15975ms)
+✔ does not turn partial, obsolete or unverified-return history into a seven-day return (0.290417ms)
+✔ rejects duplicate/non-daily candles and clips an overlong response to the selected window (0.134375ms)
+✔ monthly change requires its own exact thirty-day anchors (0.107125ms)
+✔ cold loading stays distinct from unavailable data without accepting another mint (0.074208ms)
+✔ history requests deduplicate visible mints and keep missing rows empty (12.173667ms)
+✔ refreshing keeps known same-range history through loading/outages, but invalid rows clear it (0.165583ms)
+✔ network failure is distinguishable from a rejected quote identity (0.222209ms)
+✔ warm history exposes pending refresh and schedules the next completed UTC day (0.155917ms)
+ℹ tests 39
+ℹ suites 0
+ℹ pass 39
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 3110.557167

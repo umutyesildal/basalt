@@ -1,11 +1,6 @@
 use anchor_lang::prelude::*;
-use anchor_lang::solana_program::program_pack::Pack;
 use anchor_spl::associated_token::{
     self, get_associated_token_address_with_program_id, AssociatedToken, Create,
-};
-use anchor_spl::token_2022::spl_token_2022::{
-    extension::{BaseStateWithExtensions, StateWithExtensions},
-    state::Mint as Token2022Mint,
 };
 use anchor_spl::token_2022::ID as TOKEN_2022_PROGRAM_ID;
 use anchor_spl::token_interface::{
@@ -488,6 +483,8 @@ pub mod basket {
         let mut decimals: Vec<u8> = Vec::with_capacity(n);
         for (i, c) in constituents.iter().enumerate() {
             validate_supported_mint_extensions(&c.mint)?;
+            validate_deposit_token_account(&c.user_ata)?;
+            validate_deposit_token_account(&c.vault_ata)?;
             let d = validate_constituent(
                 c,
                 &basket.constituents[i],
@@ -999,22 +996,32 @@ fn read_token_account_amount(account: &AccountInfo) -> Result<u64> {
     Ok(token_account.amount)
 }
 
-/// Current V0 policy accepts extension-free Token-2022 constituent mints only.
-/// This check also runs on `mint_in_kind`, so baskets or whitelist records made
-/// before the policy cannot keep minting against unsupported transfer
-/// semantics. It is deliberately absent from `redeem_in_kind`: exits remain
-/// permissionless and independent of the whitelist/pause policy.
+/// Re-check the shared mint policy before new deposits. Issuer state and hook
+/// configuration can change after admission. This gate is deliberately absent
+/// from redemption, which remains independent of the whitelist and prices.
 fn validate_supported_mint_extensions(mint_ai: &AccountInfo) -> Result<()> {
-    let data = mint_ai.try_borrow_data()?;
-    let mint = StateWithExtensions::<Token2022Mint>::unpack(&data)
-        .map_err(|_| error!(BasketError::UnsupportedMintExtensions))?;
-    let extension_types = mint
-        .get_extension_types()
-        .map_err(|_| error!(BasketError::UnsupportedMintExtensions))?;
-    require!(
-        extension_types.is_empty() && data.len() == Token2022Mint::LEN,
-        BasketError::UnsupportedMintExtensions
+    require_keys_eq!(
+        *mint_ai.owner,
+        TOKEN_2022_PROGRAM_ID,
+        BasketError::InvalidTokenProgram
     );
+    let data = mint_ai.try_borrow_data()?;
+    basalt_token_policy::validate_mint(&data, &mint_ai.key().to_bytes())
+        .map_err(|_| error!(BasketError::UnsupportedMintExtensions))?;
+    Ok(())
+}
+
+/// New deposits require observable initialized accounts with a supported
+/// transfer profile. Do not call this admission gate from redeem_in_kind.
+fn validate_deposit_token_account(account: &AccountInfo) -> Result<()> {
+    require_keys_eq!(
+        *account.owner,
+        TOKEN_2022_PROGRAM_ID,
+        BasketError::InvalidTokenProgram
+    );
+    let data = account.try_borrow_data()?;
+    basalt_token_policy::validate_token_account(&data)
+        .map_err(|_| error!(BasketError::UnsupportedMintExtensions))?;
     Ok(())
 }
 

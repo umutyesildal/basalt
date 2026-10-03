@@ -1,0 +1,37 @@
+✔ removing assets keeps every remaining allocation positive and the total exact (1.1445ms)
+✔ redistribution retains relative allocations and handles tiny remaining weights (0.101542ms)
+✔ slider extremes leave at least one basis point for each other asset (0.233416ms)
+✔ scroll affordance stops at the end, including fractional browser dimensions (0.086ms)
+✔ live grouping preserves decimals and caret positions during middle edits (0.442083ms)
+✔ clear and boundary amounts retain existing validation, without rounding drafts (0.210416ms)
+✔ existing copied amounts keep their precision without widening new input rules (14.391625ms)
+✔ new drafts start empty with the recommended management fee inside the existing cap (0.826792ms)
+✔ copying a basket preserves zero or custom fees, its mix and original amount precision (0.163167ms)
+✔ independent fresh drafts do not share mutable arrays or fee objects (0.074625ms)
+✔ a completed share celebrates once, ordinary links and refreshes do not (0.131792ms)
+✔ storage-restricted browsers still get one-time feedback for the current action (0.088125ms)
+✔ all snapshot assets survive validation without mock prices or wrong-chain rows (4.491125ms)
+✔ search covers the complete catalog by token, underlying, name and mint (3943.844458ms)
+✔ short ticker searches ignore incidental mint substrings but full mint searches still work (7.311542ms)
+✔ verified ETFs include more than SPY and unknown classification stays discoverable (3.504541ms)
+✔ mint validation checks decoded32bytes, rejecting malformed or oversized addresses (0.202708ms)
+✔ v3 links preserve new asset mint identities and legacy v2 stays unchanged (1.001084ms)
+✔ future issuer assets and exchange-qualified or numeric symbols round-trip independently of bundled metadata (0.968667ms)
+✔ known symbol and mint identities cannot be mixed in v3 links (0.549958ms)
+✔ unknown future mint metadata never borrows a known company name or logo (0.432291ms)
+✔ every official symbol can form a shared draft without network lookup (50.896375ms)
+✔ token quotes fail closed for wrong identity, underlying sources and invalid numbers (0.317792ms)
+✔ quote requests contain only the visible page and missing quotes remain null (26.474667ms)
+✔ cached refresh failures preserve same-token prices and their source dates (0.17975ms)
+✔ server cache freshness is parsed independently of source price age (0.133ms)
+✔ provider omission and malformed refresh payloads retain the prior quote through fetch and merge (0.793625ms)
+✔ 24h movement requires a recent traceable source price even when the cache just refreshed (0.117333ms)
+✔ closed-market metadata accompanies cached reads without changing quote source dates (0.428959ms)
+ℹ tests 29
+ℹ suites 0
+ℹ pass 29
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 4283.496833

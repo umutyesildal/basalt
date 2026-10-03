@@ -176,7 +176,7 @@ pub mod basket_factory {
             require_keys_eq!(mint_ai.key(), constituents[i], FactoryError::MintMismatch);
             let mint_decimals = {
                 let data = mint_ai.try_borrow_data()?;
-                decode_mint_decimals(&data)?
+                decode_mint_decimals(&data, &mint_ai.key())?
             };
             require!(
                 rec.decimals == mint_decimals,
@@ -200,6 +200,8 @@ pub mod basket_factory {
             let (ata_mint, ata_owner, ata_amount) = {
                 let data = creator_ata_ai.try_borrow_data()?;
                 let ata = TokenAccount::try_deserialize_unchecked(&mut &data[..])?;
+                basalt_token_policy::validate_token_account(&data)
+                    .map_err(|_| error!(FactoryError::InvalidCreatorAta))?;
                 (ata.mint, ata.owner, ata.amount)
             };
             require_keys_eq!(ata_mint, constituents[i], FactoryError::InvalidCreatorAta);
@@ -330,6 +332,8 @@ pub mod basket_factory {
             let (vault_mint, vault_owner) = {
                 let data = vault_ata_ai.try_borrow_data()?;
                 let ata = TokenAccount::try_deserialize_unchecked(&mut &data[..])?;
+                basalt_token_policy::validate_token_account(&data)
+                    .map_err(|_| error!(FactoryError::InvalidVaultAta))?;
                 (ata.mint, ata.owner)
             };
             require_keys_eq!(vault_mint, constituents[i], FactoryError::InvalidVaultAta);
@@ -629,8 +633,8 @@ pub fn vault_authority_pda(basket_key: &Pubkey) -> (Pubkey, u8) {
 /// policy and returns the mint decimals. Re-validating here prevents Active
 /// whitelist records created by an older program version from bypassing the
 /// current policy during basket creation.
-pub fn decode_mint_decimals(data: &[u8]) -> Result<u8> {
-    whitelist::decode_mint_decimals(data)
+pub fn decode_mint_decimals(data: &[u8], mint_key: &Pubkey) -> Result<u8> {
+    whitelist::decode_mint_decimals(data, mint_key)
         .map_err(|_| error!(FactoryError::UnsupportedMintExtensions))
 }
 
@@ -1306,14 +1310,14 @@ mod tests {
         let mut buf = [0u8; 82];
         buf[44] = 6;
         buf[45] = 1;
-        assert_eq!(decode_mint_decimals(&buf).unwrap(), 6);
+        assert_eq!(decode_mint_decimals(&buf, &Pubkey::default()).unwrap(), 6);
         buf[44] = 9;
-        assert_eq!(decode_mint_decimals(&buf).unwrap(), 9);
+        assert_eq!(decode_mint_decimals(&buf, &Pubkey::default()).unwrap(), 9);
     }
     #[test]
     fn test_decode_mint_decimals_truncated_fails() {
         let buf = [0u8; 40];
-        assert!(decode_mint_decimals(&buf).is_err());
+        assert!(decode_mint_decimals(&buf, &Pubkey::default()).is_err());
     }
 
     fn token2022_mint_data_with_extension(extension: u16, value_len: usize) -> Vec<u8> {
@@ -1332,7 +1336,7 @@ mod tests {
         // permissive WhitelistedMint record cannot bypass the current deny-by-
         // default extension policy.
         let data = token2022_mint_data_with_extension(1, 0);
-        assert!(decode_mint_decimals(&data).is_err());
+        assert!(decode_mint_decimals(&data, &Pubkey::default()).is_err());
     }
 
     fn braced_block(src: &str, anchor: &str) -> String {
@@ -1360,8 +1364,8 @@ mod tests {
     fn test_create_entrypoint_reapplies_fail_closed_mint_policy() {
         let src = include_str!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/lib.rs"));
         let create = braced_block(src, "pub fn create_basket");
-        assert!(create.contains("decode_mint_decimals(&data)"));
-        assert!(src.contains("whitelist::decode_mint_decimals(data)"));
+        assert!(create.contains("decode_mint_decimals(&data, &mint_ai.key())"));
+        assert!(src.contains("whitelist::decode_mint_decimals(data, mint_key)"));
     }
 
     // ========== VAULT AUTHORITY PDA (basket program id) ==========

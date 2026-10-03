@@ -1,0 +1,582 @@
+{
+  "observedAt": "2026-10-02T23:39:24.159Z",
+  "rpcCommitment": "finalized",
+  "readsOnly": true,
+  "officialMintSource": "backend/src/catalog/xstocks.snapshot.json",
+  "devnet": {
+    "slot": 506801833,
+    "accounts": [
+      {
+        "kind": "program",
+        "name": "whitelist",
+        "address": "FRavMcYQb2FVAHbbG6fGieQHdKk1UrQqgKsAAXTPRQeS",
+        "exists": true,
+        "owner": "BPFLoaderUpgradeab1e11111111111111111111111",
+        "executable": true,
+        "dataLength": 36,
+        "sha256": "0dd9713969dea323b08270ebf9277cd2e76359400e40e19fff502b128e88600c"
+      },
+      {
+        "kind": "program",
+        "name": "basket_factory",
+        "address": "3hzoPep9JKgTmzLT6CNW5x3EN7WNYDevM6KHVM7pLgMF",
+        "exists": true,
+        "owner": "BPFLoaderUpgradeab1e11111111111111111111111",
+        "executable": true,
+        "dataLength": 36,
+        "sha256": "bd73514a36cead65e4e206ed0ef077019007b05a6e52a4b709f7a04a04739d37"
+      },
+      {
+        "kind": "program",
+        "name": "basket",
+        "address": "6Q43vFh4aqGxzvtU2vQwJX9PmX3skfYsGWZdA3fwJB9k",
+        "exists": true,
+        "owner": "BPFLoaderUpgradeab1e11111111111111111111111",
+        "executable": true,
+        "dataLength": 36,
+        "sha256": "9ff14a761c28e2fc943b13b9635b97a03363bbff79be3fd5f14b240b6d814b2e"
+      },
+      {
+        "kind": "program",
+        "name": "managed_basket",
+        "address": "CZ3eG8JutryawXTcA1h97PMrhAGuWzsrYSgssMH43cKL",
+        "exists": false
+      },
+      {
+        "kind": "programData",
+        "name": "whitelist",
+        "address": "DtNwP5QCJZXTVTs5BkA2GHY1Ys2j2xdERrvBJBdiW1Kz",
+        "exists": true,
+        "owner": "BPFLoaderUpgradeab1e11111111111111111111111",
+        "executable": false,
+        "dataLength": 261861,
+        "sha256": "e99a5c09b857fb2f127afa65f807f4eb59b9b82b38a44e3e25c0fe0f9ee024f1",
+        "lastDeployedSlot": 493110585,
+        "upgradeAuthority": "y72KA263br7MtZw7BqC2dx5QYCBUciJGzShE8BRSwRE",
+        "deployedElfSha256": "9ec412eb3541c02ef7b053b1d78c1f9663d018574bf90d21ef4879a6c52718a3"
+      },
+      {
+        "kind": "programData",
+        "name": "basket_factory",
+        "address": "C9g9HdnPpYy4HA9ivPhJKctTQ2YBNpran4fW5n3nPCmf",
+        "exists": true,
+        "owner": "BPFLoaderUpgradeab1e11111111111111111111111",
+        "executable": false,
+        "dataLength": 537781,
+        "sha256": "b0e80062d7a7eb5076eebbb1c5ca6d80c06e1cf638a85cf526b12fe8f9f75f23",
+        "lastDeployedSlot": 493110824,
+        "upgradeAuthority": "y72KA263br7MtZw7BqC2dx5QYCBUciJGzShE8BRSwRE",
+        "deployedElfSha256": "5c0345c6f662d435a8ccffc4966259aff986b441135159aa0fd6e9f63b821e17"
+      },
+      {
+        "kind": "programData",
+        "name": "basket",
+        "address": "wgr99UCBVZWm7h9jswno2p9owpD8RSYE5iiUTyNFhJA",
+        "exists": true,
+        "owner": "BPFLoaderUpgradeab1e11111111111111111111111",
+        "executable": false,
+        "dataLength": 593461,
+        "sha256": "0936432803868460097a93708999d297a805cd8ba6c4f68d83d94d5b631e75e5",
+        "lastDeployedSlot": 493111012,
+        "upgradeAuthority": "y72KA263br7MtZw7BqC2dx5QYCBUciJGzShE8BRSwRE",
+        "deployedElfSha256": "e5f2690e0a1d772235436e75d256e05672006c2cf2e3091ca458aa306d8b5a4c"
+      },
+      {
+        "kind": "whitelistConfig",
+        "address": "ESRwG8qoKaLM17dLEM6MJDRpKVYtkd9M2zUmbud2uXZd",
+        "exists": true,
+        "owner": "FRavMcYQb2FVAHbbG6fGieQHdKk1UrQqgKsAAXTPRQeS",
+        "executable": false,
+        "dataLength": 78,
+        "sha256": "730c916f33a50281dd9a8538203d539673ad240f313e364da92872e3cd8a705a",
+        "authority": "y72KA263br7MtZw7BqC2dx5QYCBUciJGzShE8BRSwRE",
+        "pendingAuthority": null
+      },
+      {
+        "kind": "officialMint",
+        "symbol": "AAPLx",
+        "address": "XsbEhLAtcf6HdfpFZ5xEMdqW8nfAvcsP5bdudRLJzJp",
+        "exists": false
+      },
+      {
+        "kind": "officialMint",
+        "symbol": "NVDAx",
+        "address": "Xsc9qvGR1efVDFGLrVsmkzv3qi45LTBjeUKSPmx9qEh",
+        "exists": false
+      },
+      {
+        "kind": "officialMint",
+        "symbol": "SPYx",
+        "address": "XsoCS1TfEyfFhfvj8EtZ528L3CaKBDBRqRapnBbDF2W",
+        "exists": false
+      },
+      {
+        "kind": "officialMint",
+        "symbol": "TSLAx",
+        "address": "XsDoVfqeBukxuZHWhdvWHBhgEHjGNst4MLodqsJHzoB",
+        "exists": true,
+        "owner": "11111111111111111111111111111111",
+        "dataLength": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "initialized": false,
+        "extensions": []
+      },
+      {
+        "kind": "mockMint",
+        "symbol": "AAPLx",
+        "address": "7T5QwHsqHd5YmMSoJqg69kGsUVF7MMVzmy2bAumgPD23",
+        "exists": true,
+        "owner": "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb",
+        "dataLength": 226,
+        "sha256": "5ca58e20cdca24504ab92bc7296007b70d9d50ff8f8d5b40bfe261efa57f7dd1",
+        "decimals": 6,
+        "initialized": true,
+        "extensions": [
+          {
+            "type": 25,
+            "length": 56,
+            "multiplier": 1,
+            "newMultiplierEffectiveTimestamp": "0",
+            "newMultiplier": 1
+          }
+        ]
+      },
+      {
+        "kind": "mockMint",
+        "symbol": "NVDAx",
+        "address": "Duagr7hYLnUcG42gu3xqhbSj1E6xwEvRMEN14CG5BKwn",
+        "exists": true,
+        "owner": "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb",
+        "dataLength": 226,
+        "sha256": "d02975e7cfae314a59bf1bb359a20e7a27f532731e46e7c0945e8e7069f6e9f0",
+        "decimals": 6,
+        "initialized": true,
+        "extensions": [
+          {
+            "type": 25,
+            "length": 56,
+            "multiplier": 1,
+            "newMultiplierEffectiveTimestamp": "0",
+            "newMultiplier": 1
+          }
+        ]
+      },
+      {
+        "kind": "mockMint",
+        "symbol": "TSLAx",
+        "address": "3NwEDKm1bRspo7FPAQd4LxZTmpfbjUx4mWvkrjPP7KFW",
+        "exists": true,
+        "owner": "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb",
+        "dataLength": 226,
+        "sha256": "ea7c26d6f5e4f7b5cab01b4051500cfe8e00c3e65b902340ed2d70e554b79f15",
+        "decimals": 6,
+        "initialized": true,
+        "extensions": [
+          {
+            "type": 25,
+            "length": 56,
+            "multiplier": 1,
+            "newMultiplierEffectiveTimestamp": "0",
+            "newMultiplier": 1
+          }
+        ]
+      },
+      {
+        "kind": "mockMint",
+        "symbol": "SPYx",
+        "address": "9o6it8d2QXmKpZbkSXGHPpaQ7P1zFMDd3geTrecVuYon",
+        "exists": true,
+        "owner": "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb",
+        "dataLength": 226,
+        "sha256": "ea7c26d6f5e4f7b5cab01b4051500cfe8e00c3e65b902340ed2d70e554b79f15",
+        "decimals": 6,
+        "initialized": true,
+        "extensions": [
+          {
+            "type": 25,
+            "length": 56,
+            "multiplier": 1,
+            "newMultiplierEffectiveTimestamp": "0",
+            "newMultiplier": 1
+          }
+        ]
+      },
+      {
+        "kind": "basket",
+        "address": "9u5eEx1CLQd68ZTdcDKy3BqqT6FKGR3CvrApmdgb5btg",
+        "exists": true,
+        "owner": "6Q43vFh4aqGxzvtU2vQwJX9PmX3skfYsGWZdA3fwJB9k",
+        "executable": false,
+        "dataLength": 888,
+        "sha256": "cfde207d9170e39ecb436286daa558c1ffae7c2c61053d5d3380c2bfdc87c61f",
+        "discriminator": "db4f6b87e7f3daf8",
+        "numConstituents": 3,
+        "constituents": [
+          "Duagr7hYLnUcG42gu3xqhbSj1E6xwEvRMEN14CG5BKwn",
+          "7T5QwHsqHd5YmMSoJqg69kGsUVF7MMVzmy2bAumgPD23",
+          "4gZh5JxhrfKMg7x14evWcrhM3hWHfrtcq6cNgFPH5kQa"
+        ],
+        "weightsBps": [
+          4000,
+          3200,
+          2800
+        ]
+      },
+      {
+        "kind": "basket",
+        "address": "CZCHnprMPvBFLCs5jwApLMPj1MEUMGJ4SWr4WWzKXYCo",
+        "exists": true,
+        "owner": "6Q43vFh4aqGxzvtU2vQwJX9PmX3skfYsGWZdA3fwJB9k",
+        "executable": false,
+        "dataLength": 888,
+        "sha256": "cbb32b9873f2b1d1825a38cb1cf9ce6e0142a3971de4ae22f90b081bddb39e6c",
+        "discriminator": "db4f6b87e7f3daf8",
+        "numConstituents": 6,
+        "constituents": [
+          "Duagr7hYLnUcG42gu3xqhbSj1E6xwEvRMEN14CG5BKwn",
+          "7T5QwHsqHd5YmMSoJqg69kGsUVF7MMVzmy2bAumgPD23",
+          "4gZh5JxhrfKMg7x14evWcrhM3hWHfrtcq6cNgFPH5kQa",
+          "E4SnZpaaQorTGtZNznYEFNTp3U1a3au9B4cwJBdjvZjG",
+          "6JjHTTUediahYntYLyrrBtbThqcrNRkFMa3MvkBQAM1h",
+          "cwKxRhYYZyeZSkgLX3JT1KERSTFkzua2RcgaDucSsvj"
+        ],
+        "weightsBps": [
+          2500,
+          2000,
+          1500,
+          1500,
+          1250,
+          1250
+        ]
+      },
+      {
+        "kind": "basket",
+        "address": "78jbGZHDiH1jSdctS9bxVkKQgNzuzt1nCX9DiimyYLir",
+        "exists": true,
+        "owner": "6Q43vFh4aqGxzvtU2vQwJX9PmX3skfYsGWZdA3fwJB9k",
+        "executable": false,
+        "dataLength": 888,
+        "sha256": "73fb72de95efdcdd35caa4081d7d3a293aec9566891ad5566bc3d6e8f6d02d18",
+        "discriminator": "db4f6b87e7f3daf8",
+        "numConstituents": 6,
+        "constituents": [
+          "3NwEDKm1bRspo7FPAQd4LxZTmpfbjUx4mWvkrjPP7KFW",
+          "Duagr7hYLnUcG42gu3xqhbSj1E6xwEvRMEN14CG5BKwn",
+          "7T5QwHsqHd5YmMSoJqg69kGsUVF7MMVzmy2bAumgPD23",
+          "4gZh5JxhrfKMg7x14evWcrhM3hWHfrtcq6cNgFPH5kQa",
+          "6JjHTTUediahYntYLyrrBtbThqcrNRkFMa3MvkBQAM1h",
+          "cwKxRhYYZyeZSkgLX3JT1KERSTFkzua2RcgaDucSsvj"
+        ],
+        "weightsBps": [
+          2500,
+          2000,
+          1500,
+          1500,
+          1250,
+          1250
+        ]
+      }
+    ],
+    "transactionStatuses": [
+      {
+        "label": "create3",
+        "signature": "5bds3tN1ZwSUPAGxGif7EWAbpzRMni4DjbiRf6Q3H7iwmMRUzbNSpKfxAUSpGYEv7qXUv8F38LUASRX9dd1jojne",
+        "status": {
+          "confirmationStatus": "finalized",
+          "confirmations": null,
+          "err": null,
+          "slot": 493114770,
+          "status": {
+            "Ok": null
+          }
+        }
+      },
+      {
+        "label": "create6",
+        "signature": "2NCetomsTGQdJMBESG2YaaNmzvaF6XeR6KwRZvmhLus81MqmszGHRj3v5gN2LSYFN74mEme453sqqhajiD3CQAD7",
+        "status": {
+          "confirmationStatus": "finalized",
+          "confirmations": null,
+          "err": null,
+          "slot": 493176364,
+          "status": {
+            "Ok": null
+          }
+        }
+      },
+      {
+        "label": "mint3",
+        "signature": "5gc6qYrudyvkRFcvKN98ui1mxGVdQs2J4pK3pAQi2VjYuTUJ2b4WiNUtTQdorsTxmwamWZgiftdSyHnrd4uQS7t3",
+        "status": {
+          "confirmationStatus": "finalized",
+          "confirmations": null,
+          "err": null,
+          "slot": 493184004,
+          "status": {
+            "Ok": null
+          }
+        }
+      },
+      {
+        "label": "redeem3",
+        "signature": "5MRGfrWTZrxbvkfVLodK7kfQPthEbKSkAnHgxBXfK7S5VnWNiwzHsAuoPDTejFuXvMerPb6N119GQZVHdWKa4Qjz",
+        "status": {
+          "confirmationStatus": "finalized",
+          "confirmations": null,
+          "err": null,
+          "slot": 493184009,
+          "status": {
+            "Ok": null
+          }
+        }
+      },
+      {
+        "label": "mint6",
+        "signature": "5P5ge92vEL7LYNmtRET4NZqMSbtMqMpau9tFQJGTsGfBmLfeq59eQfbhSFkmUuqRihiSV5EvAaiEAyDSRa1RERSp",
+        "status": {
+          "confirmationStatus": "finalized",
+          "confirmations": null,
+          "err": null,
+          "slot": 493239464,
+          "status": {
+            "Ok": null
+          }
+        }
+      },
+      {
+        "label": "redeem6",
+        "signature": "5qNfyDyQn1sG6NrAcpvojDXRA5wkTjQtNqYrupu22mfqz3okuXMrGFVywXDiRdKjBHiiVsbxMDgPvCLoJSYibT79",
+        "status": {
+          "confirmationStatus": "finalized",
+          "confirmations": null,
+          "err": null,
+          "slot": 493239537,
+          "status": {
+            "Ok": null
+          }
+        }
+      }
+    ]
+  },
+  "mainnet": {
+    "slot": 452760484,
+    "mints": [
+      {
+        "symbol": "AAPLx",
+        "address": "XsbEhLAtcf6HdfpFZ5xEMdqW8nfAvcsP5bdudRLJzJp",
+        "exists": true,
+        "owner": "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb",
+        "dataLength": 678,
+        "sha256": "e4475186095238e31f36fed63d5465759ec12ae09eabaa87fc76ad08e6b6e28f",
+        "decimals": 8,
+        "initialized": true,
+        "extensions": [
+          {
+            "type": 18,
+            "length": 64
+          },
+          {
+            "type": 12,
+            "length": 32
+          },
+          {
+            "type": 6,
+            "length": 1
+          },
+          {
+            "type": 25,
+            "length": 56,
+            "multiplier": 1.0026642075893797,
+            "newMultiplierEffectiveTimestamp": "1786149000",
+            "newMultiplier": 1.0032690125398187
+          },
+          {
+            "type": 26,
+            "length": 33,
+            "paused": false
+          },
+          {
+            "type": 4,
+            "length": 65
+          },
+          {
+            "type": 14,
+            "length": 64,
+            "activeHookProgram": null
+          },
+          {
+            "type": 19,
+            "length": 165
+          }
+        ]
+      },
+      {
+        "symbol": "NVDAx",
+        "address": "Xsc9qvGR1efVDFGLrVsmkzv3qi45LTBjeUKSPmx9qEh",
+        "exists": true,
+        "owner": "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb",
+        "dataLength": 679,
+        "sha256": "c071171036523098123503b38db0afb2d2214f3e80b8524c4a37c6b7e53f2912",
+        "decimals": 8,
+        "initialized": true,
+        "extensions": [
+          {
+            "type": 18,
+            "length": 64
+          },
+          {
+            "type": 12,
+            "length": 32
+          },
+          {
+            "type": 6,
+            "length": 1
+          },
+          {
+            "type": 25,
+            "length": 56,
+            "multiplier": 1.0009180758490996,
+            "newMultiplierEffectiveTimestamp": "1789000200",
+            "newMultiplier": 1.001701196801074
+          },
+          {
+            "type": 26,
+            "length": 33,
+            "paused": false
+          },
+          {
+            "type": 4,
+            "length": 65
+          },
+          {
+            "type": 14,
+            "length": 64,
+            "activeHookProgram": null
+          },
+          {
+            "type": 19,
+            "length": 166
+          }
+        ]
+      },
+      {
+        "symbol": "SPYx",
+        "address": "XsoCS1TfEyfFhfvj8EtZ528L3CaKBDBRqRapnBbDF2W",
+        "exists": true,
+        "owner": "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb",
+        "dataLength": 676,
+        "sha256": "1689871bf35d9d7c4f32e3365596e6ec318b15babde68638aa7ea301d1aabdf6",
+        "decimals": 8,
+        "initialized": true,
+        "extensions": [
+          {
+            "type": 18,
+            "length": 64
+          },
+          {
+            "type": 12,
+            "length": 32
+          },
+          {
+            "type": 6,
+            "length": 1
+          },
+          {
+            "type": 25,
+            "length": 56,
+            "multiplier": 1.003909240011759,
+            "newMultiplierEffectiveTimestamp": "1781755200",
+            "newMultiplier": 1.005714560286254
+          },
+          {
+            "type": 26,
+            "length": 33,
+            "paused": false
+          },
+          {
+            "type": 4,
+            "length": 65
+          },
+          {
+            "type": 14,
+            "length": 64,
+            "activeHookProgram": null
+          },
+          {
+            "type": 19,
+            "length": 163
+          }
+        ]
+      },
+      {
+        "symbol": "TSLAx",
+        "address": "XsDoVfqeBukxuZHWhdvWHBhgEHjGNst4MLodqsJHzoB",
+        "exists": true,
+        "owner": "TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb",
+        "dataLength": 678,
+        "sha256": "19400666e8d1103bdf5280baa775de31eecac31bb9beac84c2c011f30c64e6bb",
+        "decimals": 8,
+        "initialized": true,
+        "extensions": [
+          {
+            "type": 18,
+            "length": 64
+          },
+          {
+            "type": 12,
+            "length": 32
+          },
+          {
+            "type": 6,
+            "length": 1
+          },
+          {
+            "type": 25,
+            "length": 56,
+            "multiplier": 1,
+            "newMultiplierEffectiveTimestamp": "0",
+            "newMultiplier": 1
+          },
+          {
+            "type": 26,
+            "length": 33,
+            "paused": false
+          },
+          {
+            "type": 4,
+            "length": 65
+          },
+          {
+            "type": 14,
+            "length": 64,
+            "activeHookProgram": null
+          },
+          {
+            "type": 19,
+            "length": 165
+          }
+        ]
+      }
+    ]
+  },
+  "programDeployBlockTimes": [
+    {
+      "slot": 493110585,
+      "blockTime": 1788540048,
+      "utc": "2026-09-04T16:40:48.000Z",
+      "error": null
+    },
+    {
+      "slot": 493110824,
+      "blockTime": 1788540087,
+      "utc": "2026-09-04T16:41:27.000Z",
+      "error": null
+    },
+    {
+      "slot": 493111012,
+      "blockTime": 1788540118,
+      "utc": "2026-09-04T16:41:58.000Z",
+      "error": null
+    }
+  ]
+}

@@ -1,0 +1,30 @@
+/* Native scrollbars stay inside the catalog and follow the app's theme tokens. */
+.catalogScroll {
+  scrollbar-width: thin;
+  scrollbar-color: hsl(var(--border-strong)) hsl(var(--card));
+  scrollbar-gutter: stable;
+}
+:global(.dark) .catalogScroll { color-scheme: dark; }
+.catalogScroll::-webkit-scrollbar { width: 8px; height: 8px; }
+.catalogScroll::-webkit-scrollbar-track { background: hsl(var(--card)); }
+.catalogScroll::-webkit-scrollbar-thumb {
+  border: 2px solid hsl(var(--card));
+  border-radius: 8px;
+  background: hsl(var(--border-strong));
+}
+.catalogScroll::-webkit-scrollbar-thumb:hover { background: hsl(var(--muted-foreground)); }
+.catalogScroll::-webkit-scrollbar-corner { background: hsl(var(--card)); }
+
+.feeRange { position: relative; margin-top: .25rem; }
+.feeRecommendation {
+  position: absolute;
+  top: 1.9375rem;
+  width: 2px;
+  height: .625rem;
+  border-radius: 1px;
+  background: hsl(var(--chart-2));
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+.recommendationLabel { display: inline-flex; align-items: center; gap: .375rem; color: hsl(var(--chart-2)); }
+.recommendationLabel::before { width: .375rem; height: .375rem; border-radius: 50%; background: currentColor; content: ""; }

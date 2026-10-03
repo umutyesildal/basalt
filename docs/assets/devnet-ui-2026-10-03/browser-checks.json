@@ -1,0 +1,35 @@
+{
+  "date": "2026-10-03",
+  "environment": "local production Next.js, devnet RPC, disconnected wallet",
+  "sizes": [
+    {
+      "width": 775,
+      "documentWidth": 775
+    },
+    {
+      "width": 1280,
+      "height": 900,
+      "documentWidth": 1280
+    },
+    {
+      "width": 375,
+      "height": 812,
+      "documentWidth": 375
+    }
+  ],
+  "observations": [
+    "Actual public proof basket loaded: 9PoTEPsCjew9NtYA9MLTjDapMsW1ZdW4dgokdGzmPimB, supply 1.7 and scaled vaults 42.5/53.125/85/425",
+    "Starting token amount defaults to 1,000; management fee defaults to 2%",
+    "1234.00000001 formats to 1,234.00000001 on blur",
+    "105% total, 4% management fee and malformed 1,00 grouping block valid creation; Equal weights restores 100%",
+    "Mint and redemption previews render; redemption 0.1 returns 2.5 unscaled per mint at observed state",
+    "Disconnected claim/create/trade review and Half/Max buttons are disabled with no insufficient-balance warning",
+    "Phone form and redemption actions stay within viewport and remain reachable above bottom navigation",
+    "Public Create Try on devnet navigates into workspace with name and 200bps management fee"
+  ],
+  "limits": [
+    "Owner Phantom/Solflare extension signing was not performed",
+    "Preview UI reads exact devnet accounts; monetary NAV is not fabricated"
+  ],
+  "viewportOverrideReset": true
+}

@@ -682,13 +682,13 @@ describe("db/init — schema bootstrap", () => {
 
 // --- 9. priceFetch: typed response, 30s cache, source/asOf markers -----------
 
-const FIXED_NOW = (): Date => new Date("2026-09-01T12:00:00.000Z");
+const FIXED_NOW = (): Date => new Date("2026-09-01T15:00:00.000Z");
 
 function jupiterRes(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), { status });
 }
 
-describe("workers/priceFetch — Jupiter v6 + cache + markers", () => {
+describe("workers/priceFetch — Jupiter V3 + cache + markers", () => {
   beforeEach(() => clearPriceCache());
 
   it("returns typed PricePoints with source 'jupiter' and asOf timestamps", async () => {
@@ -696,15 +696,13 @@ describe("workers/priceFetch — Jupiter v6 + cache + markers", () => {
     const fetchImpl = (async (): Promise<Response> => {
       fetchCalls++;
       return jupiterRes({
-        data: {
-          MINT_A: { id: "MINT_A", type: "price", price: "123.45" },
-          MINT_B: { id: "MINT_B", price: 7 },
-        },
+        MINT_A: { usdPrice: 123.45 },
+        MINT_B: { usdPrice: 7 },
       });
     }) as typeof fetch;
     const quotes = await fetchPriceQuotes(["MINT_A", "MINT_B"], { fetchImpl, now: FIXED_NOW });
     expect(fetchCalls).toBe(1);
-    expect(quotes.MINT_A).toEqual({ mint: "MINT_A", price: 123.45, source: "jupiter", asOf: "2026-09-01T12:00:00.000Z" });
+    expect(quotes.MINT_A).toEqual({ mint: "MINT_A", price: 123.45, source: "jupiter", asOf: "2026-09-01T15:00:00.000Z", unit: "scaled-ui" });
     expect(quotes.MINT_B.price).toBe(7);
     expect(quotes.MINT_B.source).toBe("jupiter");
   });
@@ -713,7 +711,7 @@ describe("workers/priceFetch — Jupiter v6 + cache + markers", () => {
     let fetchCalls = 0;
     const fetchImpl = (async (): Promise<Response> => {
       fetchCalls++;
-      return jupiterRes({ data: { MINT_A: { id: "MINT_A", price: "1" } } });
+      return jupiterRes({ MINT_A: { usdPrice: 1 } });
     }) as typeof fetch;
     await fetchPriceQuotes(["MINT_A", "MINT_B"], { fetchImpl, now: FIXED_NOW });
     // same set, different order -> cache hit
@@ -739,7 +737,7 @@ describe("workers/priceFetch — Jupiter v6 + cache + markers", () => {
       throw new Error("connection refused");
     }) as typeof fetch;
     const quotes = await fetchPriceQuotes(["MINT_A", "MINT_B"], { fetchImpl, now: FIXED_NOW, fallback: "mock" });
-    expect(quotes.MINT_A).toEqual({ mint: "MINT_A", price: 0, source: "mock", asOf: "2026-09-01T12:00:00.000Z" });
+    expect(quotes.MINT_A).toEqual({ mint: "MINT_A", price: 0, source: "mock", asOf: "2026-09-01T15:00:00.000Z" });
     expect(quotes.MINT_B.source).toBe("mock");
 
     // env-driven opt-in
@@ -758,7 +756,7 @@ describe("workers/priceFetch — Jupiter v6 + cache + markers", () => {
   it("fills only missing mints with mock when Jupiter partially responds", async () => {
     clearPriceCache();
     const fetchImpl = (async (): Promise<Response> =>
-      jupiterRes({ data: { MINT_A: { id: "MINT_A", price: "50" } } })) as typeof fetch;
+      jupiterRes({ MINT_A: { usdPrice: 50 } })) as typeof fetch;
     const quotes = await fetchPriceQuotes(["MINT_A", "MINT_B"], { fetchImpl, now: FIXED_NOW, fallback: "mock" });
     expect(quotes.MINT_A.source).toBe("jupiter");
     expect(quotes.MINT_B.source).toBe("mock");
@@ -767,7 +765,7 @@ describe("workers/priceFetch — Jupiter v6 + cache + markers", () => {
   it("legacy fetchPrices keeps the numeric map contract (missing -> 0)", async () => {
     clearPriceCache();
     const fetchImpl = (async (): Promise<Response> =>
-      jupiterRes({ data: { MINT_A: { id: "MINT_A", price: "123.45" } } })) as typeof fetch;
+      jupiterRes({ MINT_A: { usdPrice: 123.45 } })) as typeof fetch;
     const map = await fetchPrices(["MINT_A", "MINT_MISSING"], { fetchImpl, now: FIXED_NOW });
     expect(map.MINT_A).toBe(123.45);
     expect(map.MINT_MISSING).toBe(0);
@@ -782,7 +780,7 @@ describe("workers/priceFetch — Jupiter v6 + cache + markers", () => {
 
   it("mockPriceQuotes marks every price as mock with asOf; mockPrices unchanged", () => {
     const quotes = mockPriceQuotes(["A"], 12, FIXED_NOW);
-    expect(quotes.A).toEqual({ mint: "A", price: 12, source: "mock", asOf: "2026-09-01T12:00:00.000Z" });
+    expect(quotes.A).toEqual({ mint: "A", price: 12, source: "mock", asOf: "2026-09-01T15:00:00.000Z" });
     expect(mockPrices(["x", "y"], 5)).toEqual({ x: 5, y: 5 });
     expect(mockPrices(["z"])).toEqual({ z: 100 });
   });

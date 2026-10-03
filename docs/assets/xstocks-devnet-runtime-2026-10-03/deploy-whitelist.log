@@ -1,0 +1,5 @@
+[2026-10-03T00:42:24.807912000Z WARN  solana_tpu_client_next::node_address_service::leader_tpu_cache_service] Slot receiver channel closed: Unexpectedly dropped a channel.
+{
+  "programId": "FRavMcYQb2FVAHbbG6fGieQHdKk1UrQqgKsAAXTPRQeS",
+  "signature": "5WvW8oQQ7PMFhe7WCkWg6eurboY3BwB4PKg8SCmmQpu46xj7JyrZTXu1Kn1CRUN49eoAVUgKS56QtpJTfkRdkVdx"
+}

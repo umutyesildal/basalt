@@ -11,6 +11,7 @@ import {
   type ReactNode,
   type RefObject,
 } from "react";
+import { usePathname } from "next/navigation";
 import { ConnectionProvider, WalletProvider } from "@solana/wallet-adapter-react";
 import type { WalletError } from "@solana/wallet-adapter-base";
 import { PhantomWalletAdapter } from "@solana/wallet-adapter-phantom";
@@ -32,6 +33,8 @@ import { CLUSTER, RPC_ENDPOINT, describeWalletError } from "@/lib/wallet";
  * any component can render an inline state — no toast library dependency.
  */
 export function AppProviders({ children }: { children: ReactNode }) {
+  const pathname = usePathname();
+  const testWorkspace = pathname.startsWith("/devnet") || pathname.startsWith("/create/onchain");
   // Stable adapter instances — WalletProvider requires a memoized list.
   const wallets = useMemo(
     () => [
@@ -64,7 +67,7 @@ export function AppProviders({ children }: { children: ReactNode }) {
         <WalletFeedbackProvider sinkRef={feedbackSinkRef}>
           {children}
           {/* Non-modal handle-claim nudge — needs the wallet context above. */}
-          {!(process.env.NODE_ENV === "development" && isLocalManagedEndpoint(CLUSTER, RPC_ENDPOINT)) && <HandleOnboarding />}
+          {!testWorkspace && !(process.env.NODE_ENV === "development" && isLocalManagedEndpoint(CLUSTER, RPC_ENDPOINT)) && <HandleOnboarding />}
         </WalletFeedbackProvider>
       </WalletProvider>
     </ConnectionProvider>

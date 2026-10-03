@@ -189,7 +189,7 @@ export function useTransactionFlow() {
     async (
       build: TransactionBuild,
       prepare?: () => Promise<unknown>,
-      options?: { onComplete?: () => void; describe?: PendingTxDescribe; sendViaConnection?: boolean },
+      options?: { onComplete?: () => void; describe?: PendingTxDescribe; sendViaConnection?: boolean; beforeSign?: () => void | Promise<void> },
     ): Promise<boolean> => {
       if (inFlight.current) return false;
       if (!publicKey) {
@@ -352,6 +352,8 @@ export function useTransactionFlow() {
       setState((s) => ({ ...s, status: "awaiting-signature", progress: null }));
       let signature: TransactionSignature;
       try {
+        // A caller can recheck its wallet and network after an async simulation.
+        await options?.beforeSign?.();
         if (options?.sendViaConnection) {
           // Local lab wallets can have an unrelated extension network selected.
           // Sign only in the wallet, then broadcast on the connection that just
@@ -362,6 +364,7 @@ export function useTransactionFlow() {
             signTransaction,
             connection,
             onRetryEvent,
+            options?.beforeSign,
           );
         } else {
           signature = await withRetry(

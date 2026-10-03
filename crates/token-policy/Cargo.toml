@@ -1,0 +1,9 @@
+[package]
+name = "basalt-token-policy"
+version = "0.1.0"
+edition = "2021"
+description = "Strict Token-2022 wire policy for Basalt raw-balance basket admission"
+license = "Apache-2.0"
+
+[lib]
+path = "src/lib.rs"

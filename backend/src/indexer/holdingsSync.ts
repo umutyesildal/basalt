@@ -105,10 +105,14 @@ export async function fetchMintFacts(rpc: SolanaRpc, mint: PublicKey): Promise<M
 
 /**
  * Parse the ScaledUiAmountConfig multiplier out of raw Token-2022 mint account
- * data. Pure function — fixture-testable. Returns null when the account is
- * legacy (no extensions) or the extension is missing.
+ * data. The scheduled multiplier becomes effective at its Unix timestamp,
+ * including the exact activation second. The clock is injectable for fixtures.
+ * Returns null for legacy accounts, missing extensions, or invalid active data.
  */
-export function parseScaledUiMultiplierFromMintData(data: Buffer): number | null {
+export function parseScaledUiMultiplierFromMintData(
+  data: Buffer,
+  now: () => Date = () => new Date(),
+): number | null {
   try {
     if (data.length <= 82) return null; // base mint only, no TLV stream
     // Extended token-2022 mints are larger than a token account (165) and not
@@ -123,7 +127,11 @@ export function parseScaledUiMultiplierFromMintData(data: Buffer): number | null
     }, TOKEN_2022_PROGRAM_ID);
     const cfg = getScaledUiAmountConfig(mint);
     if (!cfg) return null;
-    const multiplier = Number(cfg.multiplier);
+    const nowSeconds = Math.floor(now().getTime() / 1_000);
+    if (!Number.isFinite(nowSeconds)) return null;
+    const multiplier = BigInt(nowSeconds) >= cfg.newMultiplierEffectiveTimestamp
+      ? cfg.newMultiplier
+      : cfg.multiplier;
     if (!Number.isFinite(multiplier) || multiplier <= 0) return null;
     return multiplier;
   } catch {

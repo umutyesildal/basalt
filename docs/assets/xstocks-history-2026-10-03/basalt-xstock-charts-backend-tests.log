@@ -1,0 +1,160 @@
+
+> basalt-backend@0.1.0 test
+> vitest run
+
+
+ RUN  v1.6.1 /Users/umutyesildal/orca/workspaces/createyouretf/createyouretf/backend
+
+stderr | tests/positions.test.ts > positions — applyMinted > credits the user netShares and sets cost_basis from the latest share_price (marked 'reference')
+[positions] fee split skipped (basket not indexed): gBxS1f6uyyGPuW5MzGBukidSb71jdsCb5fZaoSzULE5
+
+stderr | tests/positions.test.ts > positions — applyMinted > blends cost_basis across mints at the then-current share_price
+[positions] fee split skipped (basket not indexed): gBxS1f6uyyGPuW5MzGBukidSb71jdsCb5fZaoSzULE5
+
+stderr | tests/positions.test.ts > positions — applyRedeemed > decreases balance by sharesBurned + exitFeeShares and scales cost_basis proportionally
+[positions] fee split skipped (basket not indexed): gBxS1f6uyyGPuW5MzGBukidSb71jdsCb5fZaoSzULE5
+[positions] fee split skipped (basket not indexed): gBxS1f6uyyGPuW5MzGBukidSb71jdsCb5fZaoSzULE5
+
+stderr | tests/positions.test.ts > positions — applyRedeemed > deletes the row on a full redeem so holders COUNT stays honest
+[positions] fee split skipped (basket not indexed): gBxS1f6uyyGPuW5MzGBukidSb71jdsCb5fZaoSzULE5
+
+stderr | tests/positions.test.ts > positions — applyRedeemed > redeem without an indexed position writes nothing for the user but still pays the fee split
+[positions] redeem without indexed position — skipping: 2MNus2KCpxwXnp19iyXNpWSFtBD2UGjQBAL8AbtywfT9/gBxS1f6uyyGPuW5MzGBukidSb71jdsCb5fZaoSzULE5
+
+stderr | tests/positions.test.ts > positions — applyFeeAccrued > degrades when the basket is not indexed yet — no fabricated recipients
+[positions] fee split skipped (basket not indexed): gBxS1f6uyyGPuW5MzGBukidSb71jdsCb5fZaoSzULE5
+
+stderr | tests/positions.test.ts > positions — idempotency, degradation, dispatch > replaying the same (sig, kind) is a no-op — no double count
+[positions] fee split skipped (basket not indexed): gBxS1f6uyyGPuW5MzGBukidSb71jdsCb5fZaoSzULE5
+[positions] fee split skipped (basket not indexed): gBxS1f6uyyGPuW5MzGBukidSb71jdsCb5fZaoSzULE5
+
+stderr | tests/positions.test.ts > positions — idempotency, degradation, dispatch > null DB degrades honestly: false, no throw, for every apply*
+[positions] applyMinted skipped (no DB): S
+[positions] applyRedeemed skipped (no DB): S
+[positions] applyFeeAccrued skipped (no DB): S
+[positions] applyMinted skipped (no DB): S
+
+ ✓ tests/positions.test.ts  (19 tests) 26ms
+ ✓ tests/social.test.ts  (39 tests) 104ms
+stderr | tests/backend-truth.test.ts > indexer/holdingsSync — syncHoldings > upsertVaultHoldings is a no-op without a db (DB-less)
+[holdings] upsertVaultHoldings skipped (no DB)
+
+stderr | tests/backend-truth.test.ts > indexer/listener — pollOnce + DB upserts > works fully DB-less: decodes and returns events without persistence
+[indexer] insertEvent skipped (no DB): SIG1 BasketCreated
+
+stderr | tests/backend-truth.test.ts > indexer/listener — pollOnce + DB upserts > RPC failure in pollOnce degrades to an empty result
+[indexer] getSignaturesForAddress failed for 3hzoPep9JKgTmzLT6CNW5x3EN7WNYDevM6KHVM7pLgMF: rpc unreachable
+
+stderr | tests/backend-truth.test.ts > indexer/listener — pollOnce + DB upserts > insertEvent / insertEvents skip writes without a db
+[indexer] insertEvent skipped (no DB): S Minted
+[indexer] insertEvent skipped (no DB): S Minted
+
+stderr | tests/backend-truth.test.ts > db/init — schema bootstrap > applySchema and ensureSchemaFromEnv degrade honestly without Postgres
+[db] applySchema skipped: no Postgres client (DB-less mode)
+[db] applySchema skipped: no Postgres client (DB-less mode)
+[db] DATABASE_URL not set — skipping schema bootstrap (DB-less mode)
+
+stderr | tests/backend-truth.test.ts > workers/priceFetch — Jupiter V3 + cache + markers > without PRICE_FALLBACK=mock, a Jupiter outage degrades to an empty map
+[priceFetch] Jupiter V3 unavailable: connection refused
+
+stderr | tests/backend-truth.test.ts > workers/priceFetch — Jupiter V3 + cache + markers > mock fallback exists only behind PRICE_FALLBACK=mock and is labeled source 'mock'
+[priceFetch] Jupiter V3 unavailable: connection refused
+[priceFetch] Jupiter V3 unavailable: connection refused
+
+ ✓ tests/backend-truth.test.ts  (42 tests) 56ms
+stderr | tests/devnet-catalog.test.ts > .env.devnet.example — tracked profile parses with the exact env names from code > factories gate honestly on the profile: no DB ⇒ no engines (never started here)
+[navEngine] disabled — no Postgres (DB-less mode)
+[feeCrank] disabled — no Postgres (DB-less mode)
+
+ ✓ tests/devnet-catalog.test.ts  (42 tests) 44ms
+stderr | tests/waveb-nav-api.test.ts > server — GET routes (fake PgLike) > DB-less mode: DB routes answer 503 DB_UNAVAILABLE, /health stays ok with subsystems off
+[db] DATABASE_URL not set — running without Postgres persistence
+[db] DATABASE_URL not set — running without Postgres persistence
+[db] DATABASE_URL not set — running without Postgres persistence
+
+ ✓ tests/waveb-nav-api.test.ts  (45 tests) 37ms
+stderr | tests/positionsSync.test.ts > positionsSync — token account parsing > provider fallback: gPA secondary-index exclusion → enhanced getTokenAccounts enumeration
+[positionsSync] provider blocks token-program getProgramAccounts — falling back to enhanced getTokenAccounts for mint k7FaK87WHGVXzkaoHb7CdVPgkKDQhZ29VLDeBVbDfYn
+
+stderr | tests/positionsSync.test.ts > positionsSync — token account parsing > no fallback on 429s: a rate-limited gPA propagates after backoff (contained per basket)
+[rpc] 429 rate-limited — backing off 1638ms before retry 1/2 (cap 60000ms, jittered; ≤1 log/min per key)
+[positionsSync] share holders read failed for basket gBxS1f6uyyGPuW5MzGBukidSb71jdsCb5fZaoSzULE5 — retrying next tick: 429 Too Many Requests
+
+stderr | tests/positionsSync.test.ts > positionsSync — chain-truth reconciliation > partial failure: a basket whose gPA 429s is skipped, its DB rows untouched, others still sync
+[positionsSync] share holders read failed for basket gBxS1f6uyyGPuW5MzGBukidSb71jdsCb5fZaoSzULE5 — retrying next tick: 429 Too Many Requests
+
+stderr | tests/positionsSync.test.ts > positionsSync — chain-truth reconciliation > null DB degrades honestly (no throw, zero stats)
+[positionsSync] skipped (no DB)
+
+stderr | tests/positionsSync.test.ts > listener — err guard (failed txs are never indexed) > meta.err non-null: the Minted log in the tx is NOT indexed — no events, no position, counter increments
+[indexer] skipping failed tx FAILED-SIG (meta.err set) — no events indexed from failed transactions (skipped so far: 1)
+
+stderr | tests/positionsSync.test.ts > positions API — userPositionsByWallet + route > handler: DB-less mode → 503 DB_UNAVAILABLE
+[db] DATABASE_URL not set — running without Postgres persistence
+
+ ✓ tests/positionsSync.test.ts  (22 tests) 26ms
+ ✓ tests/xstocks-history.test.ts  (24 tests) 147ms
+ ✓ tests/managed-projection.test.ts  (12 tests) 13ms
+ ✓ tests/deployment-verifier.test.ts  (13 tests) 77ms
+ ✓ tests/xstock-quote-cache.test.ts  (14 tests) 170ms
+ ✓ tests/events-route.test.ts  (27 tests) 15ms
+stderr | tests/events-route.test.ts > events route — handler plumbing > DB-less mode answers 503 DB_UNAVAILABLE (same pattern as the other routes)
+[db] DATABASE_URL not set — running without Postgres persistence
+
+ ✓ tests/xstocks-catalog.test.ts  (35 tests) 356ms
+stderr | tests/market-session.test.ts > shared provider session gate > direct NAV-style reads reuse the last valid quote after close, including after an open-session outage
+[priceFetch] Jupiter V3 unavailable: HTTP 503
+
+ ✓ tests/market-session.test.ts  (15 tests) 50ms
+stderr | tests/livewire.test.ts > listener — retry on processing failure > retries a signature whose transaction fetch 429s — in-place backoff, then caches it
+[rpc] 429 rate-limited — backing off 1723ms before retry 1/2 (cap 60000ms, jittered; ≤1 log/min per key)
+
+stderr | tests/livewire.test.ts > listener — retry on processing failure > keeps an always-429 signature unseen for the next poll after backoff is exhausted
+[indexer] failed to process SIG429X (attempt 1/5, will retry): 429 Too Many Requests
+[indexer] failed to process SIG429X (attempt 2/5, will retry): 429 Too Many Requests
+
+stderr | tests/livewire.test.ts > listener — retry on processing failure > propagates non-429 failures immediately and retries the signature next poll
+[indexer] failed to process SIGDOWN (attempt 1/5, will retry): rpc unreachable
+
+stderr | tests/livewire.test.ts > whitelistSync — program account sweep > upserts valid rows and skips unknown status bytes
+[whitelistSync] 8qbHbw2BbbTHBW1sbeqakYXVKRQM8Ne7pLK7m6CVfeR: unknown status byte 99 — skipped
+
+ ✓ tests/livewire.test.ts  (10 tests) 66ms
+ ✓ tests/basalt.test.ts  (41 tests) 14ms
+ ↓ tests/basket-returns.sql.test.ts  (18 tests | 18 skipped)
+ ✓ tests/zap-balance-delta.test.ts  (15 tests) 7ms
+stderr | tests/xstocks-prices.test.ts > real xStock token pricing > does not cache mock fallbacks as real prices or relabel expired quotes after failure
+[priceFetch] Jupiter V3 unavailable: HTTP 401
+
+stderr | tests/xstocks-prices.test.ts > real xStock token pricing > older overlapping completion (503) cannot regress a newer cached quote
+[priceFetch] Jupiter V3 unavailable: HTTP 503
+
+stderr | tests/xstocks-prices.test.ts > real xStock token pricing > distinguishes metadata-only responses from provider outages and honors rate-limit retry headers
+[priceFetch] Jupiter V3 unavailable: HTTP 429
+
+ ✓ tests/xstocks-prices.test.ts  (13 tests) 51ms
+ ✓ tests/super.integration.test.ts  (22 tests) 62ms
+ ✓ tests/rpc-backoff.test.ts  (13 tests) 37ms
+stderr | tests/rpc-backoff.test.ts > rpc/backoff — withRpcBackoff > retries rate-limited calls in place with backoff until they succeed
+[rpc] 429 rate-limited — backing off 2000ms before retry 1/2 (cap 60000ms, jittered; ≤1 log/min per key)
+
+ ✓ tests/xstocks-api.test.ts  (13 tests) 98ms
+stderr | tests/xstocks-api.test.ts > official xStocks HTTP contracts > does not substitute an equity quote or mock after Jupiter authentication failure
+[priceFetch] Jupiter V3 unavailable: HTTP 401
+
+ ✓ tests/governance-rehearsal.test.ts  (15 tests) 8ms
+ ✓ tests/basket-returns.test.ts  (27 tests) 8ms
+ ✓ tests/nav-shareprice.test.ts  (4 tests) 13ms
+ ✓ tests/wallet-connect-scheduling.test.ts  (2 tests) 4ms
+ ✓ tests/redeem-display.test.ts  (2 tests) 20ms
+ ✓ tests/protocol-policy.test.ts  (3 tests) 3ms
+ ✓ tests/mega.test.ts  (230 tests) 66ms
+ ✓ tests/holdings-multiplier.test.ts  (11 tests) 7ms
+ ✓ tests/script-builders.test.ts  (2 tests) 4ms
+ ✓ tests/create-percent.test.ts  (2 tests) 2ms
+ ✓ tests/deployment-manifest-v2.test.ts  (5 tests) 1201ms
+
+ Test Files  31 passed | 1 skipped (32)
+      Tests  779 passed | 18 skipped (797)
+   Start at  02:02:02
+   Duration  3.72s (transform 1.56s, setup 1ms, collect 10.45s, tests 2.79s, environment 8ms, prepare 4.10s)

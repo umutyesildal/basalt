@@ -1,0 +1,23 @@
+✔ fixed mock identities match the public fixture and omit invented market prices (0.8225ms)
+✔ immutable decoder preserves u64 nonce and checks real factory/creator/share/vault PDA derivations (8.584459ms)
+✔ immutable decoder refuses substituted owner, discriminator, PDA, share mint and bumps (7.766334ms)
+✔ immutable decoder refuses invalid composition, fees, metadata and remainder (5.491417ms)
+✔ scaled display keeps raw quantities above Number precision exact and handles exponent notation (0.278709ms)
+✔ wrong cluster fails before fixture account reads (8.127208ms)
+✔ fresh read batches actual raw supply and holdings, permits whitelist pause, and coalesces inflight requests (1629.630042ms)
+✔ a fee checkpoint between discovery and batching uses the new checkpoint alongside current supply (815.552375ms)
+✔ substituted and uninitialized wallets fail, while frozen balances remain visible (2443.769875ms)
+✔ wrong whitelist mint identity and invalid mint multiplier fail closed (1639.737167ms)
+✔ wallet prerequisites read SOL, all four current mint multipliers and missing ATAs in one batch (413.86225ms)
+✔ discovery excludes malformed and unrelated baskets instead of using mock catalog data (823.380417ms)
+✔ accrual estimate reuses carried dust and does not accrue for earlier clocks or zero-rate baskets (818.656583ms)
+✔ local browser metadata is displayed only after byte-exact onchain hash verification (14.571875ms)
+✔ verified metadata survives denied browser storage without blocking create (8.659542ms)
+ℹ tests 15
+ℹ suites 0
+ℹ pass 15
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 8879.37725

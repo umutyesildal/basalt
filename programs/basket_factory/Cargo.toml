@@ -25,3 +25,5 @@ anchor-spl = { workspace = true }
 # are unaffected.
 whitelist = { path = "../whitelist", features = ["cpi"] }
 basket = { path = "../basket", features = ["cpi"] }
+
+basalt-token-policy = { path = "../../crates/token-policy" }

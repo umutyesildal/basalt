@@ -1,14 +1,19 @@
 import { logoUrl } from "@/lib/logos";
+import { XSTOCK_SNAPSHOT, sortXStocksForDiscovery } from "@/lib/xstock-catalog";
+import type { XStockAsset } from "@/lib/xstock-types";
 
 export interface ConceptAsset {
   symbol: string;
   name: string;
   category: string;
   logoUrl: string;
+  mint?: string;
+  tokenSymbol?: string;
+  assetClass?: "stock" | "etf" | "unknown";
 }
 
-/** Curated presentation catalog for the wallet-free concept builder. */
-export const CONCEPT_ASSETS: readonly ConceptAsset[] = [
+/** Retained metadata for every previously shared basket link. */
+export const LEGACY_CONCEPT_ASSETS: readonly ConceptAsset[] = [
   { symbol: "ABNB", name: "Airbnb", category: "Travel", logoUrl: logoUrl("ABNB") },
   { symbol: "AAPL", name: "Apple", category: "Technology", logoUrl: logoUrl("AAPL") },
   { symbol: "AMZN", name: "Amazon", category: "Technology", logoUrl: logoUrl("AMZN") },
@@ -52,29 +57,50 @@ export const CONCEPT_ASSETS: readonly ConceptAsset[] = [
   { symbol: "TSLA", name: "Tesla", category: "Mobility", logoUrl: logoUrl("TSLA") },
 ] as const;
 
-/** Editorial discovery order, not a claim about live trading volume. */
-const DISCOVERY_ORDER = [
-  "AAPL", "MSFT", "NVDA", "AMZN", "GOOGL", "META", "TSLA", "SPY",
-  "QQQ", "NFLX", "DIS", "JPM", "V", "WMT", "COST", "UBER",
-] as const;
-const discoveryRank = new Map<string, number>(DISCOVERY_ORDER.map((symbol, index) => [symbol, index]));
-
-export const DISCOVERY_ASSETS: readonly ConceptAsset[] = [...CONCEPT_ASSETS].sort((a, b) =>
-  (discoveryRank.get(a.symbol) ?? Number.MAX_SAFE_INTEGER) - (discoveryRank.get(b.symbol) ?? Number.MAX_SAFE_INTEGER)
-  || a.name.localeCompare(b.name),
-);
-
-const ASSETS_BY_SYMBOL = new Map(CONCEPT_ASSETS.map((asset) => [asset.symbol, asset]));
-
-export function getConceptAsset(symbol: string): ConceptAsset | undefined {
-  return ASSETS_BY_SYMBOL.get(symbol.toUpperCase());
+/** Official issuer assets are selectable; legacy metadata remains resolvable for old links. */
+export function toConceptAsset(asset: XStockAsset): ConceptAsset {
+  return {
+    symbol: asset.underlyingSymbol.toUpperCase(),
+    name: asset.name.replace(/ xStock$/i, ""),
+    category: asset.assetClass === "etf" ? "ETF" : asset.assetClass === "stock" ? "Stock" : "xStock",
+    logoUrl: asset.logoUrl ?? logoUrl(asset.underlyingSymbol),
+    mint: asset.mint,
+    tokenSymbol: asset.symbol,
+    assetClass: asset.assetClass,
+  };
 }
 
-export function getConceptAssetName(symbol: string): string {
-  return getConceptAsset(symbol)?.name ?? symbol;
+export const DISCOVERY_ASSETS: readonly ConceptAsset[] = sortXStocksForDiscovery(XSTOCK_SNAPSHOT.data).map(toConceptAsset);
+const ASSETS_BY_SYMBOL = new Map(LEGACY_CONCEPT_ASSETS.map((asset) => [asset.symbol, asset]));
+for (const asset of DISCOVERY_ASSETS) ASSETS_BY_SYMBOL.set(asset.symbol, { ...ASSETS_BY_SYMBOL.get(asset.symbol), ...asset });
+const ASSETS_BY_MINT = new Map(DISCOVERY_ASSETS.filter((asset) => asset.mint).map((asset) => [asset.mint!, asset]));
+export const CONCEPT_ASSETS: readonly ConceptAsset[] = [...ASSETS_BY_SYMBOL.values()];
+
+/** Runtime metadata enriches names and logos. Link validity never depends on this cache. */
+export function registerConceptAssets(assets: readonly XStockAsset[]): void {
+  for (const row of assets) {
+    const asset = toConceptAsset(row);
+    ASSETS_BY_SYMBOL.set(asset.symbol, asset);
+    if (asset.mint) ASSETS_BY_MINT.set(asset.mint, asset);
+  }
 }
 
-/** Shared logo helper name for consumers that render the ticker badge. */
-export function getConceptAssetLogo(symbol: string): string | null {
-  return getConceptAsset(symbol)?.logoUrl ?? null;
+/** A mint-bearing draft must not inherit unrelated metadata from its text symbol. */
+export function getConceptAsset(symbol: string, mint?: string): ConceptAsset | undefined {
+  return mint === undefined ? ASSETS_BY_SYMBOL.get(symbol.toUpperCase()) : ASSETS_BY_MINT.get(mint);
+}
+
+/** Unknown future pairs remain shareable; a contradiction with known issuer identity does not. */
+export function hasConceptAssetIdentityConflict(symbol: string, mint: string): boolean {
+  const bySymbol = ASSETS_BY_SYMBOL.get(symbol.toUpperCase());
+  const byMint = ASSETS_BY_MINT.get(mint);
+  return Boolean((bySymbol?.mint && bySymbol.mint !== mint) || (byMint && byMint.symbol !== symbol.toUpperCase()));
+}
+
+export function getConceptAssetName(symbol: string, mint?: string): string {
+  return getConceptAsset(symbol, mint)?.name ?? symbol;
+}
+
+export function getConceptAssetLogo(symbol: string, mint?: string): string | null {
+  return getConceptAsset(symbol, mint)?.logoUrl ?? null;
 }

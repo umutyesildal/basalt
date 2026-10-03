@@ -1,0 +1,95 @@
+{
+  "signatures": [
+    {
+      "blockTime": 1790988761,
+      "confirmationStatus": "finalized",
+      "err": {
+        "InstructionError": [
+          1,
+          {
+            "Custom": 67
+          }
+        ]
+      },
+      "memo": null,
+      "signature": "J5DjvMq3N8dUg72yordZKRAM2E7BiHE4idcopeFynh7LLirHhxpH3uiUGzoMVm2RjyVKpFxXmCMPGiuY5mrQ5X2",
+      "slot": 506819830,
+      "transactionIndex": 28
+    },
+    {
+      "blockTime": 1790988745,
+      "confirmationStatus": "finalized",
+      "err": {
+        "InstructionError": [
+          1,
+          {
+            "Custom": 6014
+          }
+        ]
+      },
+      "memo": null,
+      "signature": "4LWE6eTsiF39yxV7a96XLrXozDLkdYTiemytjxUNHXVesp2NDzUg77iyaWYKmjsjFNuFBFtrcMy4d6NTf7kMZBgc",
+      "slot": 506819764,
+      "transactionIndex": 55
+    },
+    {
+      "blockTime": 1790988728,
+      "confirmationStatus": "finalized",
+      "err": null,
+      "memo": null,
+      "signature": "4i5NmN9gSUnqfdqQMm7mtj98FY1u1PHSSg6dG29ENtrRxt2z2QxJ8UUEgJXm7o2199SaiNPhdJMqNepqP9Hwoapt",
+      "slot": 506819698,
+      "transactionIndex": 12
+    }
+  ],
+  "latest": {
+    "signature": "J5DjvMq3N8dUg72yordZKRAM2E7BiHE4idcopeFynh7LLirHhxpH3uiUGzoMVm2RjyVKpFxXmCMPGiuY5mrQ5X2",
+    "slot": 506819830,
+    "err": {
+      "InstructionError": [
+        1,
+        {
+          "Custom": 67
+        }
+      ]
+    },
+    "logs": [
+      "Program ComputeBudget111111111111111111111111111111 invoke [1]",
+      "Program ComputeBudget111111111111111111111111111111 success",
+      "Program 6Q43vFh4aqGxzvtU2vQwJX9PmX3skfYsGWZdA3fwJB9k invoke [1]",
+      "Program log: Instruction: RedeemInKind",
+      "Program ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL invoke [2]",
+      "Program log: CreateIdempotent",
+      "Program ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL consumed 7456 of 673033 compute units",
+      "Program ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL success",
+      "Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb invoke [2]",
+      "Program log: Instruction: MintTo",
+      "Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb consumed 1289 of 663175 compute units",
+      "Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb success",
+      "Program ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL invoke [2]",
+      "Program log: CreateIdempotent",
+      "Program ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL consumed 5956 of 653389 compute units",
+      "Program ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL success",
+      "Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb invoke [2]",
+      "Program log: Instruction: MintTo",
+      "Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb consumed 1289 of 645030 compute units",
+      "Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb success",
+      "Program data: PVMwkJAymS1NOvG13UDZmMEZDpd67qpXr52QQVg8GG+RViznOv5qGRMAAAAAAAAAIQAAAAAAAAA=",
+      "Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb invoke [2]",
+      "Program log: Instruction: TransferChecked",
+      "Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb consumed 4224 of 603578 compute units",
+      "Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb success",
+      "Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb invoke [2]",
+      "Program log: Instruction: TransferChecked",
+      "Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb consumed 4224 of 597106 compute units",
+      "Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb success",
+      "Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb invoke [2]",
+      "Program log: Instruction: TransferChecked",
+      "Program log: Transferring, minting, and burning is paused on this mint",
+      "Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb consumed 2988 of 590634 compute units",
+      "Program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb failed: custom program error: 0x43",
+      "Program 6Q43vFh4aqGxzvtU2vQwJX9PmX3skfYsGWZdA3fwJB9k consumed 112204 of 699850 compute units",
+      "Program 6Q43vFh4aqGxzvtU2vQwJX9PmX3skfYsGWZdA3fwJB9k failed: custom program error: 0x43"
+    ]
+  }
+}
