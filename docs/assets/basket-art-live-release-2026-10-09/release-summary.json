@@ -1,0 +1,24 @@
+{
+  "sourceSha": "fa87cffc60dd83dad8d6d3814b51f7109fb1d9a5",
+  "deploymentId": "dpl_HqonEZv8C7qJujVtYhCTS9SYREvi",
+  "immutableUrl": "https://basalt-otjozkzd2-yesildaladams-projects.vercel.app",
+  "state": "READY",
+  "target": "production",
+  "publicOrigin": "https://basalt.markets",
+  "domainObservedDeploymentId": "dpl_HqonEZv8C7qJujVtYhCTS9SYREvi",
+  "previousDeploymentId": "dpl_Hh5GFqbNvwCY2SCSaNEwjsbuCGt2",
+  "ciRun": "https://github.com/umutyesildal/basalt/actions/runs/37995651908",
+  "ciConclusion": "success",
+  "ciJobsPassed": 6,
+  "localNodeTests": 272,
+  "localVitestTests": 57,
+  "localConceptIntegrity": "passed",
+  "staticPages": 29,
+  "liveApiChecksPassed": 66,
+  "observedColors": {
+    "NVDA": "#72AE0B",
+    "QQQ": "#484FD6",
+    "WMT": "#0D57D6",
+    "GLD": "#E8D543"
+  }
+}

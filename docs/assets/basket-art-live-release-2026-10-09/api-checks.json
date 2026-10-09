@@ -1,0 +1,541 @@
+{
+  "checkedAt": "2026-10-09T21:52:59.895516+00:00",
+  "origin": "https://basalt.markets",
+  "checks": 66,
+  "passed": 66,
+  "results": [
+    {
+      "path": "/api/basket-image/social?d=4.WzQsIk15IHN0b2NrIGJhc2tldCIsMTAwMCxbIk5WREEiLDI1MDAsbnVsbCwiUVFRIiwyNTAwLG51bGwsIldNVCIsMjUwMCxudWxsLCJHTEQiLDI1MDAsbnVsbF0sIkFJLCBldmVyeWRheSBlc3NlbnRpYWxzIGFuZCBhIGxpdHRsZSBnb2xkLiBGb3VyIGRpZmZlcmVudCBpZGVhcywgb25lIGJhbGFuY2VkIG1peC4iLFswLDAsMjAwXSwibW9vbi1zaG90Il0",
+      "method": "GET",
+      "status": 200,
+      "expected": 200,
+      "contentType": "image/png",
+      "passed": true,
+      "dimensions": [
+        1200,
+        630
+      ],
+      "sha256": "7e0e3cea27cd0f39bbf9712d5a2a70e765271d8b56ac4ee6dcf92cc0e2776aea"
+    },
+    {
+      "path": "/api/basket-image/social?d=bad",
+      "method": "GET",
+      "status": 400,
+      "expected": 400,
+      "contentType": "text/plain",
+      "passed": true
+    },
+    {
+      "path": "/api/basket-image/logo?url=https://example.com/logo.png",
+      "method": "GET",
+      "status": 404,
+      "expected": 404,
+      "contentType": "text/plain",
+      "passed": true
+    },
+    {
+      "path": "/api/basket-image/logo?symbol=NVDA",
+      "method": "GET",
+      "status": 200,
+      "expected": 200,
+      "contentType": "image/png",
+      "passed": true
+    },
+    {
+      "path": "/api/basket-image/logo?symbol=QQQ",
+      "method": "GET",
+      "status": 200,
+      "expected": 200,
+      "contentType": "image/png",
+      "passed": true
+    },
+    {
+      "path": "/api/basket-image/logo?symbol=WMT",
+      "method": "GET",
+      "status": 200,
+      "expected": 200,
+      "contentType": "image/png",
+      "passed": true
+    },
+    {
+      "path": "/api/basket-image/logo?symbol=GLD",
+      "method": "GET",
+      "status": 200,
+      "expected": 200,
+      "contentType": "image/png",
+      "passed": true
+    },
+    {
+      "path": "/images/baskets/robot-shift.webp",
+      "method": "HEAD",
+      "status": 200,
+      "expected": 200,
+      "contentType": "image/webp",
+      "passed": true
+    },
+    {
+      "path": "/images/baskets/hard-assets.webp",
+      "method": "HEAD",
+      "status": 200,
+      "expected": 200,
+      "contentType": "image/webp",
+      "passed": true
+    },
+    {
+      "path": "/images/baskets/cold-storage.webp",
+      "method": "HEAD",
+      "status": 200,
+      "expected": 200,
+      "contentType": "image/webp",
+      "passed": true
+    },
+    {
+      "path": "/images/baskets/slow-burn.webp",
+      "method": "HEAD",
+      "status": 200,
+      "expected": 200,
+      "contentType": "image/webp",
+      "passed": true
+    },
+    {
+      "path": "/images/baskets/full-charge.webp",
+      "method": "HEAD",
+      "status": 200,
+      "expected": 200,
+      "contentType": "image/webp",
+      "passed": true
+    },
+    {
+      "path": "/images/baskets/green-light.webp",
+      "method": "HEAD",
+      "status": 200,
+      "expected": 200,
+      "contentType": "image/webp",
+      "passed": true
+    },
+    {
+      "path": "/images/baskets/signal-noise.webp",
+      "method": "HEAD",
+      "status": 200,
+      "expected": 200,
+      "contentType": "image/webp",
+      "passed": true
+    },
+    {
+      "path": "/images/baskets/bear-with-me.webp",
+      "method": "HEAD",
+      "status": 200,
+      "expected": 200,
+      "contentType": "image/webp",
+      "passed": true
+    },
+    {
+      "path": "/images/baskets/world-tour.webp",
+      "method": "HEAD",
+      "status": 200,
+      "expected": 200,
+      "contentType": "image/webp",
+      "passed": true
+    },
+    {
+      "path": "/images/baskets/side-quest.webp",
+      "method": "HEAD",
+      "status": 200,
+      "expected": 200,
+      "contentType": "image/webp",
+      "passed": true
+    },
+    {
+      "path": "/images/baskets/supply-chain.webp",
+      "method": "HEAD",
+      "status": 200,
+      "expected": 200,
+      "contentType": "image/webp",
+      "passed": true
+    },
+    {
+      "path": "/images/baskets/deep-value.webp",
+      "method": "HEAD",
+      "status": 200,
+      "expected": 200,
+      "contentType": "image/webp",
+      "passed": true
+    },
+    {
+      "path": "/images/baskets/gold-standard.webp",
+      "method": "HEAD",
+      "status": 200,
+      "expected": 200,
+      "contentType": "image/webp",
+      "passed": true
+    },
+    {
+      "path": "/images/baskets/open-tab.webp",
+      "method": "HEAD",
+      "status": 200,
+      "expected": 200,
+      "contentType": "image/webp",
+      "passed": true
+    },
+    {
+      "path": "/images/baskets/paper-hands.webp",
+      "method": "HEAD",
+      "status": 200,
+      "expected": 200,
+      "contentType": "image/webp",
+      "passed": true
+    },
+    {
+      "path": "/images/baskets/deep-focus.webp",
+      "method": "HEAD",
+      "status": 200,
+      "expected": 200,
+      "contentType": "image/webp",
+      "passed": true
+    },
+    {
+      "path": "/images/baskets/long-game.webp",
+      "method": "HEAD",
+      "status": 200,
+      "expected": 200,
+      "contentType": "image/webp",
+      "passed": true
+    },
+    {
+      "path": "/images/baskets/home-team.webp",
+      "method": "HEAD",
+      "status": 200,
+      "expected": 200,
+      "contentType": "image/webp",
+      "passed": true
+    },
+    {
+      "path": "/images/baskets/diamond-hands.webp",
+      "method": "HEAD",
+      "status": 200,
+      "expected": 200,
+      "contentType": "image/webp",
+      "passed": true
+    },
+    {
+      "path": "/images/baskets/fresh-start.webp",
+      "method": "HEAD",
+      "status": 200,
+      "expected": 200,
+      "contentType": "image/webp",
+      "passed": true
+    },
+    {
+      "path": "/images/baskets/cloud-nine.webp",
+      "method": "HEAD",
+      "status": 200,
+      "expected": 200,
+      "contentType": "image/webp",
+      "passed": true
+    },
+    {
+      "path": "/images/baskets/moon-shot.webp",
+      "method": "HEAD",
+      "status": 200,
+      "expected": 200,
+      "contentType": "image/webp",
+      "passed": true
+    },
+    {
+      "path": "/images/baskets/bull-case.webp",
+      "method": "HEAD",
+      "status": 200,
+      "expected": 200,
+      "contentType": "image/webp",
+      "passed": true
+    },
+    {
+      "path": "/images/baskets/orbit.webp",
+      "method": "HEAD",
+      "status": 200,
+      "expected": 200,
+      "contentType": "image/webp",
+      "passed": true
+    },
+    {
+      "path": "/images/baskets/social/hard-assets.jpg",
+      "method": "HEAD",
+      "status": 200,
+      "expected": 200,
+      "contentType": "image/jpeg",
+      "passed": true
+    },
+    {
+      "path": "/images/baskets/social/after-hours.jpg",
+      "method": "HEAD",
+      "status": 200,
+      "expected": 200,
+      "contentType": "image/jpeg",
+      "passed": true
+    },
+    {
+      "path": "/images/baskets/social/robot-shift.jpg",
+      "method": "HEAD",
+      "status": 200,
+      "expected": 200,
+      "contentType": "image/jpeg",
+      "passed": true
+    },
+    {
+      "path": "/images/baskets/social/green-light.jpg",
+      "method": "HEAD",
+      "status": 200,
+      "expected": 200,
+      "contentType": "image/jpeg",
+      "passed": true
+    },
+    {
+      "path": "/images/baskets/social/main-character.jpg",
+      "method": "HEAD",
+      "status": 200,
+      "expected": 200,
+      "contentType": "image/jpeg",
+      "passed": true
+    },
+    {
+      "path": "/images/baskets/social/long-game.jpg",
+      "method": "HEAD",
+      "status": 200,
+      "expected": 200,
+      "contentType": "image/jpeg",
+      "passed": true
+    },
+    {
+      "path": "/images/baskets/social/orbit.jpg",
+      "method": "HEAD",
+      "status": 200,
+      "expected": 200,
+      "contentType": "image/jpeg",
+      "passed": true
+    },
+    {
+      "path": "/images/baskets/social/open-tab.jpg",
+      "method": "HEAD",
+      "status": 200,
+      "expected": 200,
+      "contentType": "image/jpeg",
+      "passed": true
+    },
+    {
+      "path": "/images/baskets/social/moon-shot.jpg",
+      "method": "HEAD",
+      "status": 200,
+      "expected": 200,
+      "contentType": "image/jpeg",
+      "passed": true
+    },
+    {
+      "path": "/images/baskets/social/signal-noise.jpg",
+      "method": "HEAD",
+      "status": 200,
+      "expected": 200,
+      "contentType": "image/jpeg",
+      "passed": true
+    },
+    {
+      "path": "/images/baskets/social/no-hands.jpg",
+      "method": "HEAD",
+      "status": 200,
+      "expected": 200,
+      "contentType": "image/jpeg",
+      "passed": true
+    },
+    {
+      "path": "/images/baskets/social/payday.jpg",
+      "method": "HEAD",
+      "status": 200,
+      "expected": 200,
+      "contentType": "image/jpeg",
+      "passed": true
+    },
+    {
+      "path": "/images/baskets/social/paper-hands.jpg",
+      "method": "HEAD",
+      "status": 200,
+      "expected": 200,
+      "contentType": "image/jpeg",
+      "passed": true
+    },
+    {
+      "path": "/images/baskets/social/full-charge.jpg",
+      "method": "HEAD",
+      "status": 200,
+      "expected": 200,
+      "contentType": "image/jpeg",
+      "passed": true
+    },
+    {
+      "path": "/images/baskets/social/terminally-online.jpg",
+      "method": "HEAD",
+      "status": 200,
+      "expected": 200,
+      "contentType": "image/jpeg",
+      "passed": true
+    },
+    {
+      "path": "/images/baskets/social/chip-happens.jpg",
+      "method": "HEAD",
+      "status": 200,
+      "expected": 200,
+      "contentType": "image/jpeg",
+      "passed": true
+    },
+    {
+      "path": "/images/baskets/social/gold-standard.jpg",
+      "method": "HEAD",
+      "status": 200,
+      "expected": 200,
+      "contentType": "image/jpeg",
+      "passed": true
+    },
+    {
+      "path": "/images/baskets/social/cold-storage.jpg",
+      "method": "HEAD",
+      "status": 200,
+      "expected": 200,
+      "contentType": "image/jpeg",
+      "passed": true
+    },
+    {
+      "path": "/images/baskets/social/power-hungry.jpg",
+      "method": "HEAD",
+      "status": 200,
+      "expected": 200,
+      "contentType": "image/jpeg",
+      "passed": true
+    },
+    {
+      "path": "/images/baskets/social/diamond-hands.jpg",
+      "method": "HEAD",
+      "status": 200,
+      "expected": 200,
+      "contentType": "image/jpeg",
+      "passed": true
+    },
+    {
+      "path": "/images/baskets/social/touch-grass.jpg",
+      "method": "HEAD",
+      "status": 200,
+      "expected": 200,
+      "contentType": "image/jpeg",
+      "passed": true
+    },
+    {
+      "path": "/images/baskets/social/offline-mode.jpg",
+      "method": "HEAD",
+      "status": 200,
+      "expected": 200,
+      "contentType": "image/jpeg",
+      "passed": true
+    },
+    {
+      "path": "/images/baskets/social/fresh-start.jpg",
+      "method": "HEAD",
+      "status": 200,
+      "expected": 200,
+      "contentType": "image/jpeg",
+      "passed": true
+    },
+    {
+      "path": "/images/baskets/social/slow-burn.jpg",
+      "method": "HEAD",
+      "status": 200,
+      "expected": 200,
+      "contentType": "image/jpeg",
+      "passed": true
+    },
+    {
+      "path": "/images/baskets/social/side-quest.jpg",
+      "method": "HEAD",
+      "status": 200,
+      "expected": 200,
+      "contentType": "image/jpeg",
+      "passed": true
+    },
+    {
+      "path": "/images/baskets/social/cloud-nine.jpg",
+      "method": "HEAD",
+      "status": 200,
+      "expected": 200,
+      "contentType": "image/jpeg",
+      "passed": true
+    },
+    {
+      "path": "/images/baskets/social/deep-focus.jpg",
+      "method": "HEAD",
+      "status": 200,
+      "expected": 200,
+      "contentType": "image/jpeg",
+      "passed": true
+    },
+    {
+      "path": "/images/baskets/social/bear-with-me.jpg",
+      "method": "HEAD",
+      "status": 200,
+      "expected": 200,
+      "contentType": "image/jpeg",
+      "passed": true
+    },
+    {
+      "path": "/images/baskets/social/home-team.jpg",
+      "method": "HEAD",
+      "status": 200,
+      "expected": 200,
+      "contentType": "image/jpeg",
+      "passed": true
+    },
+    {
+      "path": "/images/baskets/social/supply-chain.jpg",
+      "method": "HEAD",
+      "status": 200,
+      "expected": 200,
+      "contentType": "image/jpeg",
+      "passed": true
+    },
+    {
+      "path": "/images/baskets/social/deep-value.jpg",
+      "method": "HEAD",
+      "status": 200,
+      "expected": 200,
+      "contentType": "image/jpeg",
+      "passed": true
+    },
+    {
+      "path": "/images/baskets/social/world-tour.jpg",
+      "method": "HEAD",
+      "status": 200,
+      "expected": 200,
+      "contentType": "image/jpeg",
+      "passed": true
+    },
+    {
+      "path": "/images/baskets/social/bull-case.jpg",
+      "method": "HEAD",
+      "status": 200,
+      "expected": 200,
+      "contentType": "image/jpeg",
+      "passed": true
+    },
+    {
+      "path": "/images/baskets/social/daily-ritual.jpg",
+      "method": "HEAD",
+      "status": 200,
+      "expected": 200,
+      "contentType": "image/jpeg",
+      "passed": true
+    },
+    {
+      "path": "/api/managed/lab/fixture",
+      "method": "POST",
+      "status": 404,
+      "expected": 404,
+      "contentType": "text/plain",
+      "passed": true
+    }
+  ]
+}

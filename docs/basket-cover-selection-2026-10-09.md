@@ -1,5 +1,7 @@
 # Required basket artwork, 2026-10-09
 
+> **Release update:** This accepted implementation is now live on https://basalt.markets. [Exact published source, deployment and final live checks](basket-art-live-release-2026-10-09.md). Local-only statements below record the earlier implementation checkpoint.
+
 ## Implemented scope
 
 Fresh baskets now require an explicit image choice in public `/create` and both devnet entry points, `/create/onchain` and `/devnet`.

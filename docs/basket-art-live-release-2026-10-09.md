@@ -1,6 +1,6 @@
 # Basket artwork frontend release, 2026-10-09
 
-Status: integrated source checks passed. Hosted build, production promotion and live evidence are still pending.
+**Status: live and verified at https://basalt.markets.** GitHub source, all six CI jobs, hosted Vercel build, exact promotion and 66 public API/asset checks passed.
 
 ## Scope and preserved baseline
 
@@ -25,3 +25,35 @@ The frozen canonical install completed with npm 11.6.2 and 805 packages. `npm --
 Independent merge review verified that factory readiness, exact namespace fingerprinting, wallet-intent, trade execution and confirmation paths remain the latest main baseline. Only the cover guard and cover-aware immutable metadata helper differ in fresh creation.
 
 The initial dry upload check found an unrelated tracked pitch-deck backup among the otherwise expected upload inputs. `.vercelignore` now excludes every root pitch-deck variant and the unnecessary vendored Rust source tree. Root documentation/brand exclusions are anchored so they do not discard the public app docs route or product brand assets. Private env files, key material, caches, node_modules and build output remain excluded. The final upload report must be checked before publication.
+
+## Published source and exact deployment
+
+- Application source: [`fa87cffc60dd83dad8d6d3814b51f7109fb1d9a5`](https://github.com/umutyesildal/basalt/commit/fa87cffc60dd83dad8d6d3814b51f7109fb1d9a5), fast-forward pushed onto the newer main baseline.
+- Vercel deployment: `dpl_HqonEZv8C7qJujVtYhCTS9SYREvi`, Ready production target; immutable URL `https://basalt-otjozkzd2-yesildaladams-projects.vercel.app`.
+- Authenticated deployment metadata confirms both `sourceSha` and `gitCommitSha` exactly match the published application source. The CLI's compact inspect JSON omits metadata, so the actual read-only Vercel deployment API was used for this check.
+- Hosted logs confirm npm 11.6.2 frozen canonical root installation, 809 packages and Next.js 15.5.27 production build. The production candidate's social-card endpoint produced a valid 1200 × 630 PNG before promotion, using the existing authenticated CLI because immutable candidate URLs retain Vercel protection.
+- Exact deployment promoted successfully. A fresh public-domain inspect resolves `https://basalt.markets` to this deployment. Existing production settings and protection were preserved.
+- [GitHub CI run 37995651908](https://github.com/umutyesildal/basalt/actions/runs/37995651908) passed all six jobs, including the full Node workspace, Rust/Clippy, backend Node 20 container, dependency audits and secret scan. The later evidence-only documentation commit does not change the deployed application source.
+
+The final dry-upload report contained 708 files, 54,526,604 bytes, zero private/unrelated matches, all 24 new WebPs, all 34 social thumbnails and all required runtime/installer inputs. Only changed bytes needed upload. No private environment/configuration values are included in published evidence.
+
+## Final live checks
+
+At `2026-10-09T21:52:59.895516+00:00`, all **66 public API/asset checks passed**: social PNG generation and dimensions, four real logo requests, all 24 new WebP covers, all 34 social thumbnails, malformed-social 400, arbitrary-logo-URL 404 and the disabled production local-lab POST 404. [API proof](assets/basket-art-live-release-2026-10-09/api-checks.json), [sanitized release identity](assets/basket-art-live-release-2026-10-09/release-summary.json).
+
+Live browser verification confirmed:
+
+- The preview's four Bklit SVG fill values are NVIDIA `#72AE0B`, QQQ `#484FD6`, Walmart `#0D57D6` and Gold `#E8D543`.
+- **Create image** produces the Canvas poster on the public domain. Stock logos, matching proportional stacks/ledger colors, selected Moon Shot cover and `basalt.markets` footer are visible. Download PNG and supported native share controls are available. The X draft and `og:image` URL use the custom public domain. No post was published.
+- **Use this mix** opens the live Create setup with all four 25% allocations and the selected cover preserved. The 34-image picker and live summary render.
+- At 375 × 812, the modal image and all share controls remain visible; document width is exactly 375 pixels with no horizontal overflow. Temporary viewport overrides were reset.
+
+![Live share image](assets/basket-art-live-release-2026-10-09/live-share.jpg)
+
+![Live Create setup](assets/basket-art-live-release-2026-10-09/live-create.jpg)
+
+![Live mobile share controls](assets/basket-art-live-release-2026-10-09/live-mobile-share.jpg)
+
+## Handoff
+
+The frontend release is complete. Backend/runtime and chain state were not changed. The original dirty UI checkout and unrelated owner work remain intact; its older local HEAD must not be used as a replacement for current main. The managed `basket-art-release` worktree contains the integrated release baseline for further review. Future work should start from the current remote source and preserve namespace/readiness/owner-wallet safeguards. Earlier local-only statements in artwork documents describe their pre-publication checkpoints; this record is the current release authority.

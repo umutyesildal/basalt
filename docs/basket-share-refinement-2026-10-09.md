@@ -1,5 +1,7 @@
 # Basket share refinement, 2026-10-09
 
+> **Release update:** This accepted implementation is now live on https://basalt.markets. [Exact published source, deployment and final live checks](basket-art-live-release-2026-10-09.md). Local-only statements below record the earlier implementation checkpoint.
+
 > **Palette superseded later on 2026-10-09:** The newest owner direction derives allocation colors from actual stock/ETF logos. Read [the current logo-color record](logo-derived-basket-colors-2026-10-09.md). The fixed four-color palette and its screenshots below document this earlier revision; the domain, selected-cover/stack composition and removal of the exported fee label/footer strip remain current.
 
 ## Domain

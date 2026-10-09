@@ -1,5 +1,7 @@
 # Logo-derived basket colors, 2026-10-09
 
+> **Release update:** This accepted implementation is now live on https://basalt.markets. [Exact published source, deployment and final live checks](basket-art-live-release-2026-10-09.md). Local-only statements below record the earlier implementation checkpoint.
+
 **Status:** implemented, visually verified and served locally on port 3000. All 1,271 official catalog logos have extracted colors. The 35 focused color/layout/share/origin checks and the 28-page production build passed. No commit, push or deployment was performed.
 
 ## Current direction
