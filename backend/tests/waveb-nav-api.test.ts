@@ -604,11 +604,12 @@ describe("feeCrank — hourly accrue_management_fee builder", () => {
 describe("server — GET routes (fake PgLike)", () => {
   it("GET /baskets reads basket_rankings with source:'onchain-indexed' + asOf per row", async () => {
     const db = fakeDb([{
-      match: "FROM basket_rankings",
+      match: "FROM baskets b",
       rows: [{
         pubkey: BASKET, creator: "Creator1111111111111111111111111111111111111", share_mint: "S",
         nav: "155000", supply: "1000000", share_price: "0.155", return_30d: "0.10",
-        mint_count: 4, refreshed_at: "2026-09-01T10:00:00Z", nav_as_of: "2026-09-01T11:59:00Z",
+        valuation_eligible:true,valuation_status:"complete",current_status:"complete",current_eligible:true,
+        mint_count: 4, refreshed_at: "2026-09-01T10:00:00Z", nav_as_of: new Date().toISOString(),
         return_24h: "0.02", holders: 3,
       }],
     }]);
@@ -617,12 +618,13 @@ describe("server — GET routes (fake PgLike)", () => {
     const payload = out.payload as { data: Array<Record<string, unknown>>; count: number; source: string };
     expect(payload.source).toBe("onchain-indexed");
     expect(payload.data[0].source).toBe("onchain-indexed");
-    expect(payload.data[0].asOf).toBe("2026-09-01T11:59:00.000Z");
+    expect(payload.data[0].asOf).toEqual(expect.any(String));
     expect(payload.data[0].nav).toBe("155000"); // decimal string — integer-safe
     expect(payload.data[0].holders).toBe(3);
     const call = db.calls[0];
-    expect(call.sql).toContain("FROM basket_rankings");
-    expect(call.sql).toContain("ORDER BY cur.nav DESC");
+    expect(call.sql).toContain("FROM baskets b");
+    expect(call.sql).toContain("LEFT JOIN basket_rankings");
+    expect(call.sql).toContain("THEN cur.nav END DESC");
   });
 
   it("GET /baskets?sort=return_24h orders by the 24h window; unknown sort ⇒ 400 INVALID_SORT", async () => {

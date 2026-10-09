@@ -13,6 +13,9 @@
  *                  ever fabricated).
  */
 import http from "http";
+import { configureRpcRequestBudgetFromEnv, rpcRequestBudgetEvidence } from "./rpc/requestBudget.js";
+import { configurePositionsProviderFromEnv, positionsRpcEvidence } from "./rpc/positionsProvider.js";
+import { positionsSyncEvidence } from "./indexer/positionsSync.js";
 import { socialAuthSecret } from "./api/auth.js";
 import { XStockQuoteService } from "./workers/xstockQuotes.js";
 import { connectFromEnv, disconnectFromEnv } from "./db/client.js";
@@ -27,6 +30,8 @@ const PORT = Number(process.env.PORT || 3001);
 
 async function main(): Promise<void> {
   const authSecret = socialAuthSecret(); // Fail before starting any worker or opening a listener.
+  configureRpcRequestBudgetFromEnv();
+  await configurePositionsProviderFromEnv();
   console.log(`Basalt backend v${API_VERSION} starting (port ${PORT})`);
 
   // Public mainnet quote caching works independently of DB/devnet transaction readiness.
@@ -72,7 +77,10 @@ async function main(): Promise<void> {
   // 6. API — always listening.
   const status = (): SubsystemStatus => ({
     db: { connected: db !== null, schemaApplied },
-    indexer: { enabled: indexer !== null, running: indexer?.isRunning ?? false, discovery: indexer?.readinessEvidence },
+    rpcRequests: rpcRequestBudgetEvidence(),
+    positionsRpc: positionsRpcEvidence(),
+    positionsSync: positionsSyncEvidence(),
+    indexer: { enabled: indexer !== null, running: indexer?.isRunning ?? false, discovery: indexer?.readinessEvidence, collection: indexer?.collectionEvidence },
     navEngine: { enabled: navEngine !== null, running: navEngine?.isRunning ?? false },
     feeCrank: { enabled: feeCrank !== null, running: feeCrank?.isRunning ?? false },
     userSnapshot: { enabled: userSnapshotter !== null, running: userSnapshotter?.isRunning ?? false },

@@ -1,0 +1,2 @@
+# Preserve checksum-verified upstream source bytes; this header ends with a blank line.
+vendor/rust/solana-sdk-1.18.26/bpf/c/inc/string.h whitespace=-blank-at-eof

@@ -118,13 +118,13 @@ describe.skipIf(!url)("durable finalized indexer history", () => {
     const reads:string[]=[],source=orderedRpc({[program]:[{signature:'later-after-gap',slot:8},{signature:'gap-redeem',slot:7}]},{7:['gap-redeem'],8:['later-after-gap']},reads,{'gap-redeem':eventTx});
     const cfg={...config,signaturesPerPoll:4};
     await new EventIndexer(source,cfg,db).pollOnce();
-    expect(reads).toEqual(['gap-redeem']);
+    expect(reads).toEqual(['gap-redeem','later-after-gap']);
     expect((await pool.query('SELECT reason,activated_run_id FROM position_rebuild_required WHERE basket=$1',[basket.toBase58()])).rows[0]).toEqual({reason:'position-projection-gap',activated_run_id:null});
     expect((await pool.query("SELECT status,last_error FROM indexer_signature_queue WHERE sig='gap-redeem'")).rows[0]).toMatchObject({status:'pending',last_error:expect.stringMatching(/position-projection-gap:missing-position/)});
     expect((await pool.query('SELECT COUNT(*)::int AS n FROM position_events')).rows[0].n).toBe(0);
     expect((await pool.query('SELECT COUNT(*)::int AS n FROM user_positions')).rows[0].n).toBe(0);
     await new EventIndexer(source,{...cfg,replayOnly:true},db).pollOnce();
-    expect(reads).toEqual(['gap-redeem','gap-redeem','later-after-gap']);
+    expect(reads).toEqual(['gap-redeem','later-after-gap','gap-redeem','later-after-gap']);
     expect((await pool.query("SELECT COUNT(*)::int AS n FROM indexer_signature_queue WHERE status<>'processed'")).rows[0].n).toBe(0);
     expect((await pool.query('SELECT COUNT(*)::int AS n FROM events')).rows[0].n).toBe(1);
     expect((await pool.query('SELECT COUNT(*)::int AS n FROM position_events')).rows[0].n).toBe(0);
@@ -332,4 +332,80 @@ describe.skipIf(!url)("durable finalized indexer history", () => {
     const row = (await pool.query("SELECT status,last_error FROM indexer_signature_queue")).rows[0];
     expect(row.status).toBe("quarantined"); expect(row.last_error).toMatch(/truncated/);
   });
+  async function evidenceBasket(id=120) {
+    const key=(n:number)=>new PublicKey(Buffer.alloc(32,n)),basket=key(id),user=key(id+1),owner=key(id+2),ts=new Date();
+    await pool.query(`INSERT INTO baskets(pubkey,factory,creator,treasury,share_mint,nonce,created_at,metadata_hash,num_constituents,constituents,weights_bps,entry_fee_bps,exit_fee_bps,management_fee_bps,last_fee_accrual_ts)
+      VALUES($1,$2,$2,$2,$3,1,$4,'test',2,$5,ARRAY[5000,5000],0,0,0,$4)`,[basket.toBase58(),owner.toBase58(),key(id+3).toBase58(),ts,[key(id+4).toBase58(),key(id+5).toBase58()]]);
+    const u64=(n:bigint)=>{const b=Buffer.alloc(8);b.writeBigUInt64LE(n);return b;};
+    const payload=Buffer.concat([ANCHOR_EVENT_DISCRIMINATORS.Minted,basket.toBuffer(),user.toBuffer(),u64(100n),u64(100n),u64(0n)]);
+    const minted={...tx,meta:{...tx.meta!,logMessages:[`Program ${program} invoke [1]`,`Program data: ${payload.toString('base64')}`,`Program ${program} success`]}};
+    return {basket:basket.toBase58(),user:user.toBase58(),minted};
+  }
+
+  it("collects later canonical facts without processing a blocked ledger or retrying its RPC head",async()=>{
+    const f=await evidenceBasket();
+    await pool.query("INSERT INTO position_rebuild_required(basket,reason) VALUES($1,'legacy-ledger')",[f.basket]);
+    await pool.query('INSERT INTO user_positions("user",basket,share_balance,cost_basis) VALUES($1,$2,777,12)',[f.user,f.basket]);
+    const reads:string[]=[],source=orderedRpc({[program]:[{signature:'later',slot:2},{signature:'blocked',slot:1}]},{1:['blocked'],2:['later']},reads,{blocked:f.minted,later:f.minted});
+    const indexer=new EventIndexer(source,{...config,signaturesPerPoll:4},db);
+    await indexer.pollOnce();await indexer.pollOnce();
+    expect(reads).toEqual(['blocked','later']);
+    expect((await pool.query('SELECT sig,status,canonical_event_count,canonical_collected_at IS NOT NULL AS collected FROM indexer_signature_queue ORDER BY slot')).rows)
+      .toEqual([{sig:'blocked',status:'pending',canonical_event_count:1,collected:true},{sig:'later',status:'pending',canonical_event_count:1,collected:true}]);
+    expect((await pool.query('SELECT COUNT(*)::int AS n FROM events')).rows[0].n).toBe(2);
+    expect((await pool.query('SELECT COUNT(*)::int AS n FROM position_events')).rows[0].n).toBe(0);
+    expect((await pool.query('SELECT share_balance::text,cost_basis::text FROM user_positions')).rows).toEqual([{share_balance:'777',cost_basis:'12'}]);
+    expect((await pool.query('SELECT activated_run_id FROM position_rebuild_required')).rows[0].activated_run_id).toBeNull();
+  });
+
+  it("collects evidence past a truncated predecessor without clearing its quarantine or publishing later positions",async()=>{
+    const f=await evidenceBasket(),reads:string[]=[];
+    const truncated={...tx,meta:{...tx.meta!,logMessages:['Log truncated']}};
+    const source=orderedRpc({[program]:[{signature:'later',slot:2},{signature:'truncated',slot:1}]},{1:['truncated'],2:['later']},reads,{truncated,later:f.minted});
+    const indexer=new EventIndexer(source,{...config,signaturesPerPoll:4},db);
+    await indexer.pollOnce();await indexer.pollOnce();
+    expect(reads).toEqual(['truncated','later']);
+    expect((await pool.query('SELECT sig,status,canonical_event_count FROM indexer_signature_queue ORDER BY slot')).rows)
+      .toEqual([{sig:'truncated',status:'quarantined',canonical_event_count:null},{sig:'later',status:'pending',canonical_event_count:1}]);
+    expect((await pool.query('SELECT COUNT(*)::int AS n FROM user_positions')).rows[0].n).toBe(0);
+    expect((await pool.query('SELECT COUNT(*)::int AS n FROM position_events')).rows[0].n).toBe(0);
+  });
+
+  it("does not label a signature with mismatching RPC identity as collected",async()=>{
+    const f=await evidenceBasket(),reads:string[]=[];
+    const truncated={...tx,meta:{...tx.meta!,logMessages:['Log truncated']}};
+    const source=orderedRpc({[program]:[{signature:'later',slot:2},{signature:'truncated',slot:1}]},{1:['truncated'],2:['later']},reads,{truncated,later:f.minted});
+    const read=source.getParsedTransaction.bind(source);
+    source.getParsedTransaction=async(sig,cfg)=>{const value=await read(sig,cfg);return sig==='later'?{...value!,transaction:{...value!.transaction,signatures:['wrong-signature']}}:value;};
+    const indexer=new EventIndexer(source,{...config,signaturesPerPoll:4},db);
+    await indexer.pollOnce();await indexer.pollOnce();
+    expect(reads).toContain('later');
+    expect((await pool.query("SELECT canonical_collected_at,status FROM indexer_signature_queue WHERE sig='later'")).rows[0]).toEqual({canonical_collected_at:null,status:'pending'});
+    expect((await pool.query('SELECT COUNT(*)::int AS n FROM events')).rows[0].n).toBe(0);
+  });
+
+  it("commits no canonical facts when their collection marker fails, then retries once",async()=>{
+    const f=await evidenceBasket(),reads:string[]=[];
+    const source=orderedRpc({[program]:[{signature:'mint',slot:1}]},{1:['mint']},reads,{mint:f.minted});
+    const broken:PgLike={query:db.query.bind(db),async connect(){const client=await pool.connect();return {release:()=>client.release(),async query(sql,values){if(sql.includes('SET canonical_collected_at='))throw new Error('injected marker fault');return client.query(sql,values);}};}};
+    await new EventIndexer(source,{...config,signaturesPerPoll:4},broken).pollOnce();
+    expect((await pool.query('SELECT COUNT(*)::int AS n FROM events')).rows[0].n).toBe(0);
+    expect((await pool.query('SELECT canonical_collected_at FROM indexer_signature_queue')).rows[0].canonical_collected_at).toBeNull();
+    expect((await pool.query('SELECT COUNT(*)::int AS n FROM position_events')).rows[0].n).toBe(0);
+    await new EventIndexer(source,{...config,signaturesPerPoll:4},db).pollOnce();
+    expect((await pool.query('SELECT COUNT(*)::int AS n FROM events')).rows[0].n).toBe(1);
+    expect((await pool.query('SELECT COUNT(*)::int AS n FROM position_events')).rows[0].n).toBe(1);
+  });
+
+  it("records genuine zero-event and failed transactions as evidence without processing them past quarantine",async()=>{
+    const reads:string[]=[],truncated={...tx,meta:{...tx.meta!,logMessages:['Log truncated']}},failed={...tx,meta:{...tx.meta!,err:{InstructionError:[0,'Custom']}}};
+    const source=orderedRpc({[program]:[{signature:'failed',slot:3},{signature:'empty',slot:2},{signature:'truncated',slot:1}]},{1:['truncated'],2:['empty'],3:['failed']},reads,{truncated,failed});
+    const indexer=new EventIndexer(source,{...config,signaturesPerPoll:5},db);
+    await indexer.pollOnce();await indexer.pollOnce();
+    expect(reads).toEqual(['truncated','empty','failed']);
+    expect((await pool.query('SELECT sig,status,canonical_event_count FROM indexer_signature_queue ORDER BY slot')).rows)
+      .toEqual([{sig:'truncated',status:'quarantined',canonical_event_count:null},{sig:'empty',status:'pending',canonical_event_count:0},{sig:'failed',status:'pending',canonical_event_count:0}]);
+    expect((await pool.query('SELECT COUNT(*)::int AS n FROM events')).rows[0].n).toBe(0);
+  });
+
 });

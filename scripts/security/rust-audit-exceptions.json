@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "lockfileSha256": "807773e4aabeb5945172fbffbaf4f89a8336435342702e45ce881f2c6cb64691",
+  "lockfileSha256": "4641c3d8ec3f9a18cd281318d46c69084ce0649097c5c838258505cb4e5b2f21",
   "exceptions": [
     {
       "advisory": "RUSTSEC-2024-0344",
@@ -25,18 +25,6 @@
       "expiresAt": "2026-10-23",
       "scope": "Current devnet-compatible Anchor 0.30.1 / Solana 1.18.26 workspace only; never a mainnet risk approval",
       "justification": "Only via Solana SDK/zk-token-sdk host dependency; no Basalt Rust Keypair/signing or caller-controlled secret/public-key assembly. On-chain programs validate transaction signers through the runtime; operational signers use JS/hardware tooling. Major 2.x cannot replace the SDK 1.x API directly."
-    },
-    {
-      "advisory": "RUSTSEC-2024-0375",
-      "package": "atty",
-      "version": "0.2.14",
-      "checksum": "d9b39be18770d11421cdb1b9947a45dd3f37e93092cbf377614828a319d5fee8",
-      "kind": "unmaintained",
-      "owner": "Basalt protocol maintainers",
-      "reviewedAt": "2026-10-09",
-      "expiresAt": "2026-10-23",
-      "scope": "Current devnet-compatible Anchor 0.30.1 / Solana 1.18.26 workspace only; never a mainnet risk approval",
-      "justification": "Solana host logging transitive dependency; unsupported Windows/custom-global-allocator combination is not a deployed runtime. No Basalt custom allocator or terminal-dependent transaction logic."
     },
     {
       "advisory": "RUSTSEC-2025-0141",
@@ -123,18 +111,6 @@
       "justification": "Solana host im/frozen ABI transitive path; no project collection elements with panicking Drop and no sized_chunks APIs. SBF program handlers do not run the host frozen ABI collection discovery."
     },
     {
-      "advisory": "RUSTSEC-2021-0145",
-      "package": "atty",
-      "version": "0.2.14",
-      "checksum": "d9b39be18770d11421cdb1b9947a45dd3f37e93092cbf377614828a319d5fee8",
-      "kind": "unsound",
-      "owner": "Basalt protocol maintainers",
-      "reviewedAt": "2026-10-09",
-      "expiresAt": "2026-10-23",
-      "scope": "Current devnet-compatible Anchor 0.30.1 / Solana 1.18.26 workspace only; never a mainnet risk approval",
-      "justification": "Solana host logging transitive dependency; unsupported Windows/custom-global-allocator combination is not a deployed runtime. No Basalt custom allocator or terminal-dependent transaction logic."
-    },
-    {
       "advisory": "RUSTSEC-2023-0033",
       "package": "borsh",
       "version": "0.9.3",
@@ -157,18 +133,6 @@
       "expiresAt": "2026-10-23",
       "scope": "Current devnet-compatible Anchor 0.30.1 / Solana 1.18.26 workspace only; never a mainnet risk approval",
       "justification": "Solana frozen ABI/host SDK transitive collections; project program sources do not instantiate OrdSet or im collections. SBF custody instructions do not execute host frozen ABI discovery."
-    },
-    {
-      "advisory": "RUSTSEC-2026-0186",
-      "package": "memmap2",
-      "version": "0.5.10",
-      "checksum": "83faa42c0a078c393f6b29d5db232d8be22776a891f8f56e5284faee4a20b327",
-      "kind": "unsound",
-      "owner": "Basalt protocol maintainers",
-      "reviewedAt": "2026-10-09",
-      "expiresAt": "2026-10-23",
-      "scope": "Current devnet-compatible Anchor 0.30.1 / Solana 1.18.26 workspace only; never a mainnet risk approval",
-      "justification": "Solana frozen ABI/host SDK transitive memory mapping; project sources do not call map advise_range/flush_range APIs. No remotely supplied mmap range service."
     },
     {
       "advisory": "RUSTSEC-2026-0097",

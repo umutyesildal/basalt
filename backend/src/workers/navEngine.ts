@@ -22,13 +22,14 @@
  * without prices nothing is persisted (never a fabricated NAV=0 snapshot).
  */
 
-import { Connection, PublicKey, type AccountInfo } from "@solana/web3.js";
+import { PublicKey, type AccountInfo } from "@solana/web3.js";
 import { TOKEN_2022_PROGRAM_ID, unpackMint } from "@solana/spl-token";
 import { isPgLike, type PgLike } from "../db/client.js";
 import { fetchPriceQuotes, type PriceQuoteMap } from "./priceFetch.js";
 import { createMockAwareQuoteFetcher } from "./mockPriceFill.js";
 import { withRpcBackoff, createPacer } from "../rpc/backoff.js";
 import { deriveVaultAuthority } from "../indexer/holdingsSync.js";
+import { createReadOnlyRpcConnection } from "../rpc/requestBudget.js";
 import { NAV_INPUT_MAX_AGE_MS, recordValuationAttempt } from "../api/valuation-quality.js";
 
 // ---------------------------------------------------------------------------
@@ -634,6 +635,7 @@ export class NavEngine {
           complete: !computation.skipReason,
           reason: computation.skipReason ?? null,
           attemptedAt: computation.asOf,
+          missingPriceMints: computation.quality.invalidQuotes,
         });
         if (!stateRecorded) {
           computation.skipReason = "newer-valuation-state";
@@ -886,7 +888,7 @@ export function createNavEngineFromEnv(opts: {
     // Real on-chain supply first; events-derived estimate as fallback.
     // Sequential reads are staggered (NAV_SUPPLY_RPC_GAP_MS) so a multi-basket
     // pass spreads its RPC load instead of bursting it.
-    const conn = new Connection(rpcUrl, { commitment: "finalized", disableRetryOnRateLimit: true });
+    const conn = createReadOnlyRpcConnection(rpcUrl);
     const supplyPacer = createPacer(NAV_SUPPLY_RPC_GAP_MS);
     fetchSupply = async (shareMint: string, basket: string) => {
       await supplyPacer.wait();

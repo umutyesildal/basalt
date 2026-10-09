@@ -16,6 +16,7 @@ import { apiFetch } from "@/lib/api-client";
 import { categoryOf, compareBasketCategories } from "@/lib/categories";
 import { CLUSTER } from "@/lib/wallet";
 import { cn } from "@/lib/utils";
+import { parseBasketDataQuality } from "@/lib/basket-data-quality";
 import { ConceptGallery } from "./concept-gallery";
 
 const DEVNET_PREVIEW = CLUSTER === "devnet" || CLUSTER === "localnet";
@@ -37,6 +38,8 @@ interface ConstituentLike {
 }
 
 interface BasketRow {
+  dataQuality?: unknown;
+  quality?: unknown;
   pubkey: string;
   creator?: string | null;
   /** Off-chain name/description JSON from the indexer list feed (backend selects metadata_json). */
@@ -99,6 +102,11 @@ function num(v: Numeric): number | null {
   if (v === null || v === undefined || v === "") return null;
   const n = Number(v);
   return Number.isFinite(n) ? n : null;
+}
+
+/** Sorting respects the same current eligibility as the card. */
+function eligibleValue(basket: BasketRow, value: Numeric): number | null {
+  return parseBasketDataQuality(basket.dataQuality, basket.quality).valuation.eligible ? num(value) : null;
 }
 
 /** The list API preserves fractional return ratios: 0.04 displays as 4%. */
@@ -259,7 +267,7 @@ function compareOf(basketReturn: number | null, benchValue: number | null): numb
 
 /** Sort and cards use one benchmark window; missing matching history stays unavailable. */
 function comparisonOf(basket: BasketRow, bench: Bench | null): BasketCardCompare | null {
-  if (!bench) return null;
+  if (!bench || !parseBasketDataQuality(basket.dataQuality, basket.quality).valuation.eligible) return null;
   const window = bench.d24 !== null ? "24h" : "30d";
   const basketReturn = returnPercent(window === "24h" ? basket.return_24h : basket.return_30d);
   const value = compareOf(basketReturn, window === "24h" ? bench.d24 : bench.d30);
@@ -449,9 +457,9 @@ export default function ExploreClient() {
     rows = [...rows].sort((a, b) => {
       switch (sortKey) {
         case "return_24h":
-          return (returnPercent(b.return_24h) ?? -Infinity) - (returnPercent(a.return_24h) ?? -Infinity);
+          return (returnPercent(eligibleValue(b, b.return_24h)) ?? -Infinity) - (returnPercent(eligibleValue(a, a.return_24h)) ?? -Infinity);
         case "return_30d":
-          return (returnPercent(b.return_30d) ?? -Infinity) - (returnPercent(a.return_30d) ?? -Infinity);
+          return (returnPercent(eligibleValue(b, b.return_30d)) ?? -Infinity) - (returnPercent(eligibleValue(a, a.return_30d)) ?? -Infinity);
         case "vs_spy":
           return (comparisonOf(b, bench)?.value ?? -Infinity) - (comparisonOf(a, bench)?.value ?? -Infinity);
         case "popular":
@@ -459,7 +467,7 @@ export default function ExploreClient() {
           // Most popular: holders first, AUM as tiebreaker.
           return (
             (b.holders ?? -1) - (a.holders ?? -1) ||
-            (num(b.nav) ?? -1) - (num(a.nav) ?? -1)
+            (eligibleValue(b, b.nav) ?? -1) - (eligibleValue(a, a.nav) ?? -1)
           );
       }
     });
@@ -485,15 +493,9 @@ export default function ExploreClient() {
             Onchain baskets
           </h2>
           <p className="max-w-2xl text-sm leading-6 text-muted-foreground">
-            Deployed on {CLUSTER}.
+            Deployed on {CLUSTER}.{DEVNET_PREVIEW ? " Project test tokens have no USD market value." : ""}
           </p>
         </div>
-
-      {DEVNET_PREVIEW ? (
-        <aside className="rounded-lg border border-primary/25 bg-primary/5 px-4 py-3 text-sm leading-6 text-muted-foreground">
-          Devnet uses project-created mock tokens. Price and return figures are reference estimates, not live xStocks data.
-        </aside>
-      ) : null}
 
       {status === "loading" ? (
         <div
@@ -637,6 +639,7 @@ export default function ExploreClient() {
                       context={info?.category ?? null}
                       tickers={info?.tickers ?? []}
                       weights={weightSlices && weightSlices.length > 0 ? weightSlices : undefined}
+                      quality={parseBasketDataQuality(b.dataQuality, b.quality)}
                       price={sharePriceUsd(b.share_price)}
                       aum={num(b.nav)}
                       devnetPreview={DEVNET_PREVIEW}

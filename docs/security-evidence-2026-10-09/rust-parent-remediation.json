@@ -1,0 +1,311 @@
+{
+  "schemaVersion": 1,
+  "observedAt": "2026-10-09",
+  "sourceBaseCommit": "3e2312304d147d407dab9f4dc136e1bf90021d4c",
+  "scope": "Bounded host dependency parent patches only; no program source or deployed SBF change",
+  "tool": {
+    "cargoAudit": "0.22.0",
+    "rustc": "1.98.0",
+    "cargo": "1.98.0",
+    "host": "aarch64-apple-darwin"
+  },
+  "database": {
+    "advisory-count": 1296,
+    "last-commit": "7eebec69c352c7191b1f13eb95dd510eeca5d1de",
+    "last-updated": "2026-10-09T10:12:02+02:00"
+  },
+  "baselineLockfileSha256": "807773e4aabeb5945172fbffbaf4f89a8336435342702e45ce881f2c6cb64691",
+  "lockfileSha256": "4641c3d8ec3f9a18cd281318d46c69084ce0649097c5c838258505cb4e5b2f21",
+  "baselineFindings": 16,
+  "currentFindings": 13,
+  "removedAdvisories": [
+    "RUSTSEC-2021-0145",
+    "RUSTSEC-2024-0375",
+    "RUSTSEC-2026-0186"
+  ],
+  "remainingFindings": [
+    {
+      "advisory": "RUSTSEC-2024-0344",
+      "package": "curve25519-dalek",
+      "version": "3.2.1",
+      "checksum": "90f9d052967f590a76e62eb387bd0bbb1b000182c3cefe5364db6b7211651bc0",
+      "kind": "vulnerability",
+      "source": "https://rustsec.org/advisories/RUSTSEC-2024-0344.html"
+    },
+    {
+      "advisory": "RUSTSEC-2022-0093",
+      "package": "ed25519-dalek",
+      "version": "1.0.1",
+      "checksum": "c762bae6dcaf24c4c84667b8579785430908723d5c889f469d76a41d59cc7a9d",
+      "kind": "vulnerability",
+      "source": "https://rustsec.org/advisories/RUSTSEC-2022-0093.html"
+    },
+    {
+      "advisory": "RUSTSEC-2025-0141",
+      "package": "bincode",
+      "version": "1.3.3",
+      "checksum": "b1f45e9417d87227c7a56d22e471c6206462cba514c7590c09aff4cf6d1ddcad",
+      "kind": "unmaintained",
+      "source": "https://rustsec.org/advisories/RUSTSEC-2025-0141.html"
+    },
+    {
+      "advisory": "RUSTSEC-2026-0247",
+      "package": "bitmaps",
+      "version": "2.1.0",
+      "checksum": "031043d04099746d8db04daf1fa424b2bc8bd69d92b25962dcde24da39ab64a2",
+      "kind": "unmaintained",
+      "source": "https://rustsec.org/advisories/RUSTSEC-2026-0247.html"
+    },
+    {
+      "advisory": "RUSTSEC-2024-0388",
+      "package": "derivative",
+      "version": "2.2.0",
+      "checksum": "fcc3dd5e9e9c0b295d6e1e4d811fb6f157d5ffd784b8d202fc62eac8035a770b",
+      "kind": "unmaintained",
+      "source": "https://rustsec.org/advisories/RUSTSEC-2024-0388.html"
+    },
+    {
+      "advisory": "RUSTSEC-2026-0248",
+      "package": "im",
+      "version": "15.1.0",
+      "checksum": "d0acd33ff0285af998aaf9b57342af478078f53492322fafc47450e09397e0e9",
+      "kind": "unmaintained",
+      "source": "https://rustsec.org/advisories/RUSTSEC-2026-0248.html"
+    },
+    {
+      "advisory": "RUSTSEC-2025-0161",
+      "package": "libsecp256k1",
+      "version": "0.6.0",
+      "checksum": "c9d220bc1feda2ac231cb78c3d26f27676b8cf82c96971f7aeef3d0cf2797c73",
+      "kind": "unmaintained",
+      "source": "https://rustsec.org/advisories/RUSTSEC-2025-0161.html"
+    },
+    {
+      "advisory": "RUSTSEC-2024-0436",
+      "package": "paste",
+      "version": "1.0.15",
+      "checksum": "57c0d7b74b563b49d38dae00a0c37d4d6de9b432382b2892f0574ddcae73fd0a",
+      "kind": "unmaintained",
+      "source": "https://rustsec.org/advisories/RUSTSEC-2024-0436.html"
+    },
+    {
+      "advisory": "RUSTSEC-2026-0251",
+      "package": "sized-chunks",
+      "version": "0.6.5",
+      "checksum": "16d69225bde7a69b235da73377861095455d298f2b970996eec25ddbb42b3d1e",
+      "kind": "unmaintained",
+      "source": "https://rustsec.org/advisories/RUSTSEC-2026-0251.html"
+    },
+    {
+      "advisory": "RUSTSEC-2023-0033",
+      "package": "borsh",
+      "version": "0.9.3",
+      "checksum": "15bf3650200d8bffa99015595e10f1fbd17de07abbc25bb067da79e769939bfa",
+      "kind": "unsound",
+      "source": "https://rustsec.org/advisories/RUSTSEC-2023-0033.html"
+    },
+    {
+      "advisory": "RUSTSEC-2023-0126",
+      "package": "im",
+      "version": "15.1.0",
+      "checksum": "d0acd33ff0285af998aaf9b57342af478078f53492322fafc47450e09397e0e9",
+      "kind": "unsound",
+      "source": "https://rustsec.org/advisories/RUSTSEC-2023-0126.html"
+    },
+    {
+      "advisory": "RUSTSEC-2026-0097",
+      "package": "rand",
+      "version": "0.7.3",
+      "checksum": "6a6b1679d49b24bbfe0c803429aa1874472f50d9b363131f0e89fc356b544d03",
+      "kind": "unsound",
+      "source": "https://rustsec.org/advisories/RUSTSEC-2026-0097.html"
+    },
+    {
+      "advisory": "RUSTSEC-2026-0255",
+      "package": "sized-chunks",
+      "version": "0.6.5",
+      "checksum": "16d69225bde7a69b235da73377861095455d298f2b970996eec25ddbb42b3d1e",
+      "kind": "unsound",
+      "source": "https://rustsec.org/advisories/RUSTSEC-2026-0255.html"
+    }
+  ],
+  "policy": {
+    "remainingExceptions": 13,
+    "unchangedRemainingEntries": true,
+    "expiresAt": "2026-10-23T00:00:00Z",
+    "mainnetApproved": false
+  },
+  "dependencyChanges": {
+    "added": [
+      {
+        "package": "basalt-rust-parent-verification",
+        "version": "0.1.0"
+      },
+      {
+        "package": "env_logger",
+        "version": "0.10.2"
+      },
+      {
+        "package": "hermit-abi",
+        "version": "0.5.3"
+      },
+      {
+        "package": "is-terminal",
+        "version": "0.4.17"
+      },
+      {
+        "package": "memmap2",
+        "version": "0.9.11"
+      }
+    ],
+    "removed": [
+      {
+        "package": "atty",
+        "version": "0.2.14"
+      },
+      {
+        "package": "env_logger",
+        "version": "0.9.3"
+      },
+      {
+        "package": "hermit-abi",
+        "version": "0.1.19"
+      },
+      {
+        "package": "memmap2",
+        "version": "0.5.10"
+      },
+      {
+        "package": "winapi",
+        "version": "0.3.9"
+      },
+      {
+        "package": "winapi-i686-pc-windows-gnu",
+        "version": "0.4.0"
+      },
+      {
+        "package": "winapi-x86_64-pc-windows-gnu",
+        "version": "0.4.0"
+      }
+    ],
+    "localParents": [
+      "solana-frozen-abi",
+      "solana-logger",
+      "solana-sdk"
+    ],
+    "unrelatedPackagesUnchanged": true
+  },
+  "validation": {
+    "format": {
+      "exitCode": 0
+    },
+    "workspaceCheckAllTargets": {
+      "exitCode": 0
+    },
+    "workspaceTests": {
+      "exitCode": 0,
+      "passed": 247
+    },
+    "clippyAllTargets": {
+      "exitCode": 0,
+      "warnings": "Existing Anchor/Solana cfg/deprecation/style warnings remain; no source edits to suppress them"
+    },
+    "hostRegressionFixtures": {
+      "exitCode": 0,
+      "passed": 4
+    },
+    "securityAndProvenanceTests": {
+      "exitCode": 0,
+      "passed": 19
+    },
+    "upstreamProvenance": {
+      "exitCode": 0,
+      "files": 187,
+      "changedRustSources": 0,
+      "manifestDependencyChanges": 3
+    },
+    "auditGate": {
+      "exitCode": 0,
+      "accepted": 13,
+      "blockers": []
+    },
+    "sbfBuild": {
+      "verified": false,
+      "trackedLockAttempt": {
+        "exitCode": 1,
+        "phase": "before compilation",
+        "reason": "Cached platform-tools1.41 Cargo/Rust1.75 cannot parse lockfile format4, already present in HEAD"
+      },
+      "isolatedRetry": "Same dependency graph with disposable format3 header retry in progress; result not claimed"
+    }
+  },
+  "buildEnvironment": {
+    "CARGO_PROFILE_DEV_DEBUG": "0",
+    "CARGO_PROFILE_TEST_DEBUG": "0",
+    "CARGO_INCREMENTAL": "0",
+    "CARGO_BUILD_JOBS": "2",
+    "minimumFreeDiskBytes": 734003200
+  },
+  "notPerformed": [
+    "Successful SBF build not yet verified; same-graph disposable retry pending",
+    "Program deployment or authority changes",
+    "Mainnet approval",
+    "Coordinated Anchor/Solana/SPL migration"
+  ],
+  "files": {
+    "Cargo.toml": "086a7cb2ae85d52f2a82257df861150cdcbd7b81cb3ae9a9085ebe19361e9da3",
+    "Cargo.lock": "4641c3d8ec3f9a18cd281318d46c69084ce0649097c5c838258505cb4e5b2f21",
+    "scripts/security/audit-rust.mjs": "851d28c4608a62339435fdc452d18dcd41c008becae05cedd7943883c7b7f684",
+    "scripts/security/rust-audit-exceptions.json": "dd599e60a870830a4b92fc342264e67c07ce7ffa4fc431e5d1461237b274f54d",
+    "scripts/security/verify-rust-parents.mjs": "4bd2117f6436ba8afe3bf322b48a6a2f92bd926982bbba86416943d13b8db8b9",
+    "scripts/security/rust-parent-provenance.test.mjs": "a792adc6b63f4e5b14dfd47352833faa62cae614d1193732d7a80c46c4f31e09",
+    "scripts/security/rust-parent-verification/Cargo.toml": "f391313f5979297e074643cf2cd5fefb13b2b23df2ebf212ce9914175d7c2376",
+    "scripts/security/rust-parent-verification/src/lib.rs": "20f2ea50d10ed7393674270023cab82cfdb17377e3283231a1e9bdfe673c2a5f",
+    "vendor/rust/manifest.json": "a54e01dcf6edd7fad56a03c8172701c604f2f27562cefc228220a54275fee97b",
+    "vendor/rust/LICENSE-APACHE": "048838ecab23173fe6db9b3a4f5d9e2f5480b8692dfca556fed4aa039ca06bc8",
+    "vendor/rust/README.md": "6ba6b83363ed258a645154b5c340ee75c6da33dddfd59cdf49b0f19c73556124",
+    "docs/dependency-security-2026-10-09.md": "97d64a9f2752f5cfedc696947e7e2e3f67353de55a744ac4be918f8cc34780eb"
+  },
+  "artifacts": {
+    "rust-parent-fixtures.txt": {
+      "sha256": "91f029649dbc7e238610e35e0a58b78f5c11fe6d9ad2c8749348c9c47693c8d0",
+      "bytes": 56433
+    },
+    "rust-parent-workspace-tests.txt": {
+      "sha256": "e879f0da68250a8ea9b8fb88d167ce1dc006e61bd500b0314ed38b1004de1560",
+      "bytes": 102426
+    },
+    "rust-parent-check.txt": {
+      "sha256": "ff623183b187f88d79d321a6d7509a943ef95804c6bc762ab2e8555aa66c1539",
+      "bytes": 85785
+    },
+    "rust-parent-clippy.txt": {
+      "sha256": "31d8f977826bf31314b6fea1dcfb8bac2efb121a0aa15ec907084d5407022d8f",
+      "bytes": 94481
+    },
+    "rust-parent-fmt.txt": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    "rust-parent-security-tests.txt": {
+      "sha256": "71d3c274a8c813b138566e328cba1937b61573eec054714b59781464802933d7",
+      "bytes": 1882
+    },
+    "rust-parent-provenance.json": {
+      "sha256": "def412e385286f09decafaf0fef091e9bf8003ab143acb21b808de9057b6b27d",
+      "bytes": 700
+    },
+    "rust-parent-audit.json": {
+      "sha256": "36ede29973d04c668f7f437d3e5a81e6ade746be9a73ef3a4069d5ed6a3dbad6",
+      "bytes": 23910
+    },
+    "rust-parent-audit-gate.json": {
+      "sha256": "0cda2db487bce1b9e5152ba60c87e973f2417c4a636796ccd3a6fab2901fe255",
+      "bytes": 2336
+    },
+    "rust-parent-sbf-attempt.txt": {
+      "sha256": "827b364e22594fb0d61d123a7ead3e710b22dfc8991b1cb712d4638abf4a3e6f",
+      "bytes": 292
+    }
+  }
+}

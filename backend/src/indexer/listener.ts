@@ -1,3 +1,4 @@
+import { createReadOnlyRpcConnection, guardedRpcFetch } from "../rpc/requestBudget.js";
 import { readIndexerGenesisHash } from "./rpcIdentity.js";
 /**
  * indexer/listener.ts — read-only event indexer for the three Basalt programs.
@@ -19,8 +20,8 @@ import { readIndexerGenesisHash } from "./rpcIdentity.js";
  * baskets upsert as decimal STRINGS (see ./events.ts). `nonce` is bound to a
  * BIGINT column from a string parameter — never a JS number.
  */
-import { Connection, PublicKey, type AccountInfo, type ParsedTransactionWithMeta } from "@solana/web3.js";
-import { connectFromEnv, isPgLike, type PgLike } from "../db/client.js";
+import { PublicKey, type AccountInfo, type ParsedTransactionWithMeta } from "@solana/web3.js";
+import { connectFromEnv, isPgLike, withTransaction, type PgLike } from "../db/client.js";
 import { syncIndexedBaskets } from "./holdingsSync.js";
 import {
   decodeAnchorEvent,
@@ -31,7 +32,7 @@ import {
   type DecodedFolioxEvent,
   type FolioxEventType,
 } from "./events.js";
-import { applyPositionEvent, markPositionRebuildRequired, PositionProjectionGapError } from "./positions.js";
+import { applyPositionEvent, markPositionRebuildRequired, PositionProjectionGapError, PositionRebuildRequiredError } from "./positions.js";
 import { syncPositionsFromChain, type JsonRpcInvoker, type PositionsSyncRpc } from "./positionsSync.js";
 import { syncWhitelistedMints, type WhitelistRpc } from "./whitelistSync.js";
 import { createPacer, rateLimitedWarn, withRpcBackoff, type Pacer } from "../rpc/backoff.js";
@@ -106,11 +107,7 @@ export interface IndexerConfig {
    * N-constituent baskets.
    */
   positionsSyncIntervalMs?: number;
-  /**
-   * Raw JSON-RPC invoker used ONLY as the positions-sync provider fallback
-   * (enhanced getTokenAccounts when the provider blocks token-program gPA).
-   * Wired from RPC_URL by createIndexerFromEnv; tests may inject their own.
-   */
+  /** Legacy injected test surface; production holder reads use authenticated raw snapshots. */
   jsonRpcInvoke?: JsonRpcInvoker;
   /**
    * Minimum spacing between sequential RPC reads inside the periodic state
@@ -143,6 +140,8 @@ const POSITIONS_SYNC_INTERVAL_MS = 120_000;
 const STATE_SYNC_SPACING_MS = 100;
 /** Leave public-RPC headroom for the independent NAV and state workers. */
 const TRANSACTION_SPACING_MS = 400;
+class CanonicalLogsIncompleteError extends Error {}
+
 type SignatureInfo = Awaited<ReturnType<SolanaRpc["getSignaturesForAddress"]>>[number];
 
 export const DEFAULT_INDEXER_CONFIG: IndexerConfig = {
@@ -313,6 +312,8 @@ export class EventIndexer {
   private completedDiscoverySlot: number | null = null;
   private completedDiscoveryAt: string | null = null;
   private discoveryGeneration = 0;
+  private collection = { lastAttemptAt:null as string|null,lastCompletedAt:null as string|null,collectedTransactions:0,blockedReason:null as string|null };
+  get collectionEvidence() { return { ...this.collection, positionPublicationEnabled:!this.cfg.replayOnly }; }
 
   /** Fresh successful discovery in the latest durable poll only; busy/failure resets it. */
   get lastCompletedDiscoverySlot(): number | null { return this.completedDiscoverySlot; }
@@ -495,15 +496,29 @@ export class EventIndexer {
       if (await this.discoverProgram(program,watermark)) await this.history!.markVerifiedThrough(program,watermark);
       else ready = false;
     }
-    if (!ready || await this.history!.hasQuarantined(this.cfg.programIds)) return [...results.values()];
+    if (!ready) return [...results.values()];
+    const quarantined=await this.history!.hasQuarantined(this.cfg.programIds);
     if (generation === this.discoveryGeneration) {
       this.completedDiscoverySlot = watermark;
       this.completedDiscoveryAt = new Date().toISOString();
     }
+    // A history gap blocks position effects, not collection of later authentic
+    // facts. Collection never processes the queue or publishes positions.
+    if (quarantined) {
+      this.collection.blockedReason="quarantined-history";
+      if (!this.cfg.replayOnly) await this.collectRecoveryFacts(watermark);
+      return [...results.values()];
+    }
+    let projectionBlocked=false;
     const budget = Math.max(1,Math.min(1000,this.cfg.signaturesPerPoll));
     for (let i=0;i<budget;i++) {
       let info = await this.history!.nextPendingGlobal(this.cfg.programIds);
       if (!info || info.slot > watermark) break;
+      if (!this.cfg.replayOnly && await this.history!.projectionBlocked(this.cfg.programIds,info.signature)) {
+        this.collection.blockedReason="position-rebuild-required";
+        projectionBlocked=true;
+        break;
+      }
       try {
         if (info.txIndex === null) {
           let signatures = this.finalizedBlocks.get(info.slot);
@@ -523,14 +538,43 @@ export class EventIndexer {
         const processed = await this.processSignatures(info.programId,[info],true);
         const result = results.get(info.programId)!;
         result.signaturesSeen += processed.signaturesSeen; result.events.push(...processed.events);
-        if (processed.blocked) break;
+        if (processed.blocked) { projectionBlocked=await this.history!.projectionBlocked(this.cfg.programIds,info.signature); break; }
       } catch(error) {
         if (info) await this.history!.retryGlobal(this.cfg.programIds,info.signature,error);
         rateLimitedWarn("indexer:global-order",`[indexer] global history retained for retry: ${error instanceof Error ? error.message : String(error)}`);
         break;
       }
     }
+    if (!this.cfg.replayOnly && projectionBlocked) await this.collectRecoveryFacts(watermark);
     return [...results.values()];
+  }
+
+  /** Bounded evidence work past blocked projections; active balances stay untouched. */
+  private async collectRecoveryFacts(watermark:number):Promise<void> {
+    this.collection.lastAttemptAt=new Date().toISOString();
+    const budget=Math.max(1,Math.min(5,this.cfg.signaturesPerPoll));
+    for(let i=0;i<budget;i++) {
+      let info=await this.history!.nextUncollectedGlobal(this.cfg.programIds);
+      if(!info || info.slot>watermark) { this.collection.lastCompletedAt=new Date().toISOString(); return; }
+      try {
+        if(info.txIndex===null) {
+          if(!this.rpc.getBlockSignatures) throw new Error("Canonical evidence requires finalized block order");
+          const block=await withRpcBackoff(()=>this.pacedRead(()=>this.rpc.getBlockSignatures!(info!.slot,"finalized")),{logKey:"indexer:evidence-block",sleep:this.cfg.backoffSleep});
+          await this.history!.assignTransactionIndices(this.cfg.programIds,info.slot,block.signatures);
+          info=await this.history!.nextUncollectedGlobal(this.cfg.programIds);
+          if(!info || info.txIndex===null) throw new Error("Canonical evidence signature absent from finalized block");
+        }
+        const result=await this.processSignatures(info.programId,[info],true,true);
+        if(result.blocked) return;
+        this.collection.collectedTransactions++;
+      } catch(error) {
+        if(info) await this.history!.retryGlobal(this.cfg.programIds,info.signature,error);
+        this.collection.blockedReason="evidence-read-unavailable";
+        rateLimitedWarn("indexer:evidence","[indexer] canonical evidence read retained for retry");
+        return;
+      }
+    }
+    this.collection.lastCompletedAt=new Date().toISOString();
   }
 
   private async pollProgram(programId: string): Promise<PollResult> {
@@ -543,7 +587,7 @@ export class EventIndexer {
     }
   }
 
-  private async processSignatures(programId: string, sigInfos: SignatureInfo[], globalDrain: boolean): Promise<PollResult & {blocked:boolean}> {
+  private async processSignatures(programId: string, sigInfos: SignatureInfo[], globalDrain: boolean, evidenceOnly=false): Promise<PollResult & {blocked:boolean}> {
     const events: DecodedFolioxEvent[] = [];
     let signaturesSeen = 0;
     // getSignaturesForAddress returns NEWEST-first; process OLDEST-first so a
@@ -554,7 +598,7 @@ export class EventIndexer {
     const candidates = new Map([...pending, ...sigInfos].map((info) => [info.signature, info]));
     const ordered = [...candidates.values()];
     if (!globalDrain) ordered.sort((a,b) => a.slot-b.slot); // DB-less decoder mode only.
-    const finish = (sig: string, quarantine?: string) => globalDrain ? this.history!.finishGlobal(this.cfg.programIds,sig,quarantine) : this.history?.finish(programId,sig,quarantine);
+    const finish = (sig: string, quarantine?: string) => evidenceOnly && !quarantine ? Promise.resolve() : globalDrain ? this.history!.finishGlobal(this.cfg.programIds,sig,quarantine) : this.history?.finish(programId,sig,quarantine);
     const retry = (sig: string, error: unknown) => globalDrain ? this.history!.retryGlobal(this.cfg.programIds,sig,error) : this.history?.retry(programId,sig,error);
     let blocked = false;
     for (const sigInfo of ordered) {
@@ -565,7 +609,7 @@ export class EventIndexer {
         this.failedTxSkips++;
         continue;
       }
-      if (this.seen.has(sigInfo.signature)) {
+      if (!evidenceOnly && this.seen.has(sigInfo.signature)) {
         await finish(sigInfo.signature);
         continue;
       }
@@ -606,12 +650,13 @@ export class EventIndexer {
             `[indexer] skipping failed tx ${sigInfo.signature} (meta.err set) — ` +
               `no events indexed from failed transactions (skipped so far: ${this.failedTxSkips})`,
           );
+          if (evidenceOnly && this.history) await this.history.markCanonicalCollected(this.cfg.programIds,sigInfo.signature,sigInfo.slot,0);
           await finish(sigInfo.signature);
-          this.markSeen(sigInfo.signature);
+          if (!evidenceOnly) this.markSeen(sigInfo.signature);
           continue;
         }
         if (tx.meta.logMessages.some((line) => /log truncated/i.test(line))) {
-          throw new BasketStateDecodeError("truncated-account", "Runtime logs truncated; canonical event history is incomplete");
+          throw new CanonicalLogsIncompleteError("Runtime logs truncated; canonical event history is incomplete");
         }
         const rows: EventRow[] = [];
         // Events decoded from THIS transaction only (for the positions sync).
@@ -671,18 +716,24 @@ export class EventIndexer {
           }
           // Only persist downstream rows when the event insert is fresh, so
           // re-processing a signature can never double-count creator_stats.
-          for (const row of rows) await insertEvent(this.db, row);
-          for (const { event } of creations) await incrementCreatorStats(this.db, event.creator);
         }
+        if (globalDrain && this.history && isPgLike(this.db)) {
+          // Full-log facts and marker commit together, including genuine zero-event transactions.
+          await withTransaction(this.db,async client=>{
+            for (const row of rows) await insertEvent(client,row);
+            await new DurableHistory(client).markCanonicalCollected(this.cfg.programIds,sigInfo.signature,sigInfo.slot,rows.length);
+          });
+        } else for (const row of rows) await insertEvent(this.db,row);
+        if (!evidenceOnly) for (const { event } of creations) await incrementCreatorStats(this.db,event.creator);
 
-        events.push(...txEvents.map(({ event }) => event));
+        if (!evidenceOnly) events.push(...txEvents.map(({ event }) => event));
 
         // user_positions sync — AFTER the core upserts. The position_events
         // (sig, kind) ledger makes each write idempotent on its own, so this
         // runs even when the events row insert above was not fresh (recovery
         // after a crash between the two writes). Degrades to a warn when db
         // is null; per-event failures never break the poll loop.
-        if (!this.cfg.replayOnly) for (const { event, logIndex } of txEvents) {
+        if (!this.cfg.replayOnly && !evidenceOnly) for (const { event, logIndex } of txEvents) {
           // Failure retains the signature in the durable queue; successful earlier
           // effects are independently idempotent and safe to retry after a crash.
           await applyPositionEvent(this.db, sigInfo.signature, event, logIndex, sigInfo.slot);
@@ -694,12 +745,15 @@ export class EventIndexer {
           // resolve legitimate genesis/transfer projection gaps.
           await markPositionRebuildRequired(this.db, err.basket, "position-projection-gap");
         }
-        if (err instanceof BasketStateDecodeError) {
+        if (err instanceof PositionRebuildRequiredError || err instanceof PositionProjectionGapError) {
+          if (globalDrain) await this.history!.markProjectionBlocked(this.cfg.programIds,sigInfo.signature,err.basket);
+        }
+        if (err instanceof BasketStateDecodeError || err instanceof CanonicalLogsIncompleteError) {
           // A malformed/wrong-program account is explicit quarantine, never
           // an invented FK parent. Transport and DB errors take the retry path.
-          console.warn(`[indexer] rejected basket state for ${sigInfo.signature}: ${err.reason}`);
+          console.warn(`[indexer] rejected basket state for ${sigInfo.signature}: ${err instanceof BasketStateDecodeError ? err.reason : "truncated-runtime-logs"}`);
           await finish(sigInfo.signature, err.message);
-          this.markSeen(sigInfo.signature);
+          if (!evidenceOnly) this.markSeen(sigInfo.signature);
           if (globalDrain) { blocked = true; break; }
           continue;
         }
@@ -715,8 +769,10 @@ export class EventIndexer {
         continue; // transient RPC/FK/DB failures are never marked successfully seen
       }
       await finish(sigInfo.signature);
-      this.markSeen(sigInfo.signature);
-      this.attempts.delete(sigInfo.signature);
+      if (!evidenceOnly) {
+        this.markSeen(sigInfo.signature);
+        this.attempts.delete(sigInfo.signature);
+      }
     }
     return { programId, signaturesSeen, events, blocked };
   }
@@ -903,24 +959,9 @@ export async function createIndexerFromEnv(env: NodeJS.ProcessEnv = process.env)
     return null;
   }
   const db = await connectFromEnv();
-  // Raw JSON-RPC invoker (read-only POST) for the positions-sync provider
-  // fallback: web3.js Connection has no custom-method surface, and some
-  // providers block token-program getProgramAccounts while offering an
-  // enhanced getTokenAccounts instead.
-  const jsonRpcInvoke: JsonRpcInvoker = async (method, params) => {
-    const res = await fetch(cfg.rpcUrl, {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ jsonrpc: "2.0", id: 1, method, params }),
-    });
-    if (!res.ok) throw new Error(`jsonrpc ${method}: HTTP ${res.status}`);
-    const body = (await res.json()) as { result?: unknown; error?: { message?: string } };
-    if (body.error) throw new Error(`jsonrpc ${method} failed: ${body.error.message}`);
-    return body.result;
-  };
   let genesisHash: string | undefined;
   try {
-    genesisHash = await readIndexerGenesisHash(cfg.rpcUrl);
+    genesisHash = await readIndexerGenesisHash(cfg.rpcUrl,guardedRpcFetch(cfg.rpcUrl));
   } catch { console.warn("[indexer] RPC identity unverified; release readiness will fail closed"); }
-  return new EventIndexer(new Connection(cfg.rpcUrl, { commitment: "finalized", disableRetryOnRateLimit: true }), { ...cfg, jsonRpcInvoke, genesisHash }, db);
+  return new EventIndexer(createReadOnlyRpcConnection(cfg.rpcUrl), { ...cfg, genesisHash }, db);
 }

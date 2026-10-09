@@ -49,11 +49,13 @@ export interface BasketDetail {
   exit_fee_bps: number;
   management_fee_bps: number;
   last_fee_accrual_ts: Numeric;
+  dataQuality?: unknown;
   nav: {
     value: string;
     supply: string;
     sharePrice: string;
     priceSource?: unknown;
+    quality?: unknown;
     asOf: string;
     source: string;
   } | null;

@@ -11,6 +11,8 @@ import {
 import { ChangeValue } from "@/components/stocks/change-value";
 import { formatUsd } from "@/lib/format";
 import { cn } from "@/lib/utils";
+import { BasketDataNote } from "@/components/basket/basket-data-note";
+import type { BasketDataQuality } from "@/lib/basket-data-quality";
 
 /**
  * Shared basket card — the /explore grid anatomy (Cesto-derived, monochrome
@@ -35,6 +37,7 @@ export interface BasketCardCompare {
 }
 
 export interface BasketCardProps {
+  quality: BasketDataQuality;
   href: string;
   /** Basket name when indexed, else the composition string / pubkey fragment. */
   headline: string;
@@ -50,9 +53,9 @@ export interface BasketCardProps {
    * without weight data keep the chips path untouched.
    */
   weights?: WeightBarConstituent[];
-  /** Share price; null renders an em dash plus the explicit "not indexed" chip. */
+  /** Share price; null renders an em dash with a public availability reason. */
   price: number | null;
-  /** Basket AUM; always shown for baskets (em dash when not indexed). */
+  /** Basket USD value; unavailable values remain an em dash. */
   aum: number | null;
   /** True when the visible indexer data describes devnet/localnet mock tokens. */
   devnetPreview?: boolean;
@@ -69,13 +72,20 @@ export function BasketCard({
   context,
   tickers = [],
   weights,
-  price,
-  aum,
+  quality,
+  price: suppliedPrice,
+  aum: suppliedAum,
   devnetPreview = false,
-  return24h = null,
-  return30d = null,
-  compare = null,
+  return24h: suppliedReturn24h = null,
+  return30d: suppliedReturn30d = null,
+  compare: suppliedCompare = null,
 }: BasketCardProps) {
+  const eligible = quality.valuation.eligible;
+  const price = eligible ? suppliedPrice : null;
+  const aum = eligible ? suppliedAum : null;
+  const return24h = eligible ? suppliedReturn24h : null;
+  const return30d = eligible ? suppliedReturn30d : null;
+  const compare = eligible ? suppliedCompare : null;
   const unavailable = price === null;
   // Composition dedupe: the weight strip and the avatar chips say the same
   // thing, so only one renders. Weights win (they carry the proportions);
@@ -106,11 +116,6 @@ export function BasketCard({
             <span className={cn("mt-1 block", MICRO_LABEL_CLASS)}>{context}</span>
           ) : null}
         </div>
-        {unavailable ? (
-          <span className="shrink-0 rounded-md border border-border px-1.5 py-0.5 font-mono text-[10px] uppercase tracking-wide text-muted-foreground">
-            not indexed
-          </span>
-        ) : null}
       </div>
 
       {shownWeights ? (
@@ -146,8 +151,10 @@ export function BasketCard({
         ) : null}
       </span>
       <span className="mt-0.5 font-mono text-xs tabular-nums text-muted-foreground">
-        AUM {formatUsd(aum, { maximumFractionDigits: 0 })}
+        Basket value {formatUsd(aum, { maximumFractionDigits: 0 })}
       </span>
+
+      {!eligible ? <div className="mt-auto pt-4"><BasketDataNote quality={quality} /></div> : null}
 
       {/* Bottom zone: the 30d/vs-SPY footer (when any figure exists) and a
           concise NAV provenance line. Do not imply mock-token valuations are

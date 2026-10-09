@@ -14,6 +14,7 @@ import {
 import { truncateAddress } from "@/lib/format";
 import { apiFetch } from "@/lib/api-client";
 import { cn } from "@/lib/utils";
+import { indexedDataState } from "@/lib/basket-data-quality";
 
 export const metadata: Metadata = {
   title: "Data providers | Basalt",
@@ -134,15 +135,17 @@ function UnknownChip() {
 }
 
 export default async function ProvidersPage() {
-  const [providersRes, xstocksRes, healthRes] = await Promise.all([
+  const [providersRes, xstocksRes, healthRes, readinessRes] = await Promise.all([
     getJson<ProvidersPayload>("/api/v1/providers"),
     getJson<{ data?: XStockRow[] }>("/api/v1/xstocks"),
     getJson<HealthPayload>("/api/v1/health"),
+    getJson<unknown>("/api/v1/ready"),
   ]);
 
   const registryReachable = providersRes?.data != null;
   const rows = registryReachable ? (providersRes?.data as ProviderRow[]) : STATIC_REGISTRY;
   const health = healthRes;
+  const indexed = indexedDataState(readinessRes);
   const apiHealthy = healthRes !== null;
   const dbConnected = health?.db?.connected === true;
   const dbDegraded = health?.db?.degraded === true;
@@ -171,7 +174,7 @@ export default async function ProvidersPage() {
       <header className="pb-10">
         <h1 className="font-display text-3xl font-semibold">Providers</h1>
         <p className="mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">
-          Every quoted figure names its source — issuer, token price, equity price, benchmark.
+          Sources for issuer metadata, token prices, stock models and benchmarks.
         </p>
       </header>
 
@@ -190,13 +193,10 @@ export default async function ProvidersPage() {
             state={indexerState}
             label={!apiHealthy ? "Indexer unknown" : indexerState === "on" ? "Indexer on" : "Indexer off"}
           />
+          <StatusItem state={indexed.state} label={indexed.label} />
           {apiHealthy && health?.ts ? <FreshnessBadge source="live" asOf={health.ts} /> : null}
         </div>
-        {apiHealthy && indexerState === "off" ? (
-          <p className="mt-3 text-xs text-muted-foreground">
-            Indexer offline — basket pages stay empty.
-          </p>
-        ) : null}
+        {indexed.message ? <p className="mt-3 max-w-2xl text-sm leading-6 text-muted-foreground">{indexed.message}</p> : null}
       </section>
 
       {/* Source registry */}

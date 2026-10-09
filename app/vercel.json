@@ -1,0 +1,4 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "installCommand": "node -e \"import(require('node:fs').existsSync('app/scripts/vercel-install.mjs') ? './app/scripts/vercel-install.mjs' : './scripts/vercel-install.mjs')\""
+}

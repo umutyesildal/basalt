@@ -99,6 +99,7 @@ describe.skipIf(!url)("position reconciliation against disposable PostgreSQL", (
     if(mode==="coverage-old") await pool.query("UPDATE indexer_program_state SET finalized_through_slot=99 WHERE program_id=$1",[f.programs.ids[0]]);
     if(mode==="legacy-unresolved") await pool.query("INSERT INTO position_rebuild_required(basket,reason) VALUES($1,'legacy')",[f.basket.toBase58()]);
     await expectFailurePreserves(f);
+    if (mode !== "coverage-old") expect(f.calls).toEqual([]);
   });
   it("catches canonical discovery up on an advancing chain before taking reconciliation locks",async()=>{
     const f=positionRecoveryFixture({slot:101});await seed(f,100);await position(f);

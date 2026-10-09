@@ -1,5 +1,7 @@
 # Basalt Backend — Devnet/Demo Deployment Runbook (VPS + Docker + Caddy)
 
+> **Current follow-up, 2026-10-09:** The previous contained devnet website/backend release is complete. The [data-repair source and verification](../docs/devnet-data-repair-2026-10-09.md) are ready for a new rollout; hosted build and live evidence remain pending. This guide retains bootstrap instructions below and the exact candidate/release boundaries in §9.
+
 This runbook brings the Basalt backend (indexer + NAV engine + REST API) online
 24/7 on a VPS. The frontend (Vercel) and Solana programs (devnet) are already
 live; this runbook installs only the backend + PostgreSQL.
@@ -184,6 +186,14 @@ Production uses `NEXT_PUBLIC_API=https://basalt.178.104.34.252.sslip.io`,
 `NEXT_PUBLIC_SITE_URL=https://basalt-coral.vercel.app`. Preserve the existing
 home-demo setting when updating infrastructure.
 
+The checked-in `app/vercel.json` now invokes the frozen root-workspace installer,
+`app/scripts/vercel-install.mjs`, from either build working directory. It validates
+the root lock/local codec and pins npm 11.6.2 with `npm ci --legacy-peer-deps=false`.
+Include the root package/lock, app, backend fee helper and vendor codec in the
+upload. Local build success does not establish that Vercel used this install path:
+check the exact new hosted build log before promotion. Hosted proof for this
+follow-up is still pending.
+
 The VPS uses rsync source updates under `/opt/basalt`, with no Git checkout.
 Preserve `deploy/.env`, `backend/.env.production` and existing database/Caddy
 volumes. Back up the DB, source, Compose file and running backend image, then
@@ -320,12 +330,57 @@ rollback after new chain events. A later historical-position publication needs
 its own exact review and a new consistent cutover plan. Never use `down -v` or
 volume pruning. Website rollback promotes the retained previous Vercel deployment.
 
+### Shared RPC and collection operations (new data-repair source)
+
+The backend environment supports the following bounded settings:
+
+```dotenv
+# Optional private devnet endpoint supporting finalized Token-2022 holder enumeration.
+# Leave empty when no provider is configured; never expose this in NEXT_PUBLIC variables.
+POSITIONS_RPC_URL=
+POSITIONS_RPC_UNSUPPORTED_COOLDOWN_MS=900000
+RPC_MAX_CONCURRENCY=2
+RPC_MAX_QUEUE=32
+RPC_MIN_INTERVAL_MS=250
+RPC_QUEUE_TIMEOUT_MS=2000
+RPC_REQUEST_TIMEOUT_MS=8000
+```
+
+The secondary endpoint must pass full devnet genesis verification before workers
+start and supplies the whole basket/holder/mint snapshot; no enhanced API fallback
+or cross-provider account mixing is allowed. An account-index exclusion starts the
+configured cooldown. Unsupported providers are skipped until the next probe, and
+known history/rebuild blockers skip unnecessary holder scans before any RPC.
+Configuration support does not provide credentials or make public RPC enumeration
+available. Inspect sanitized subsystem `positionsRpc`, `rpcRequests` and
+`positionsSync` evidence; do not paste endpoint credentials into logs or docs.
+
+Normal discovery still retains the ordered financial queue. When its head requires
+a rebuild, or quarantine blocks it, a separate bounded collector can persist later
+canonical event facts. `db.history.pendingEvidence` tracks facts still unread;
+`collectedPendingEffects` tracks authenticated facts whose financial work remains
+pending. Collection keeps queue status, claims, balances and all recovery guards
+unchanged. At most five signatures are collected per poll, and truncated/unverified
+logs remain quarantined. An unchanged pending total can coexist with successful
+fact collection. Do not interpret collection completion as activation, complete
+balances, complete transaction history or eligible USD valuations.
+
+Candidate replay remains explicit maintenance under the identity-bound manifest
+commands above. Never clear a quarantine or operational guard just to advance
+readiness; retained incomplete history still blocks staged financial recovery.
+Health/ready and basket `dataQuality` must disclose those gaps. Missing exact-mint
+prices, including project-issued mocks without USD market prices, remain
+unavailable. Permissionless direct-RPC redemption is independent of these metrics.
+
 ## 10. Remaining mainnet prerequisites
 
 - Complete the separate governance ceremony with real hardware signer/vault
   identities, exact approvals and upgrade rehearsal; no keys are invented here.
-- Complete the Rust migration/reachability work before the existing exception
-  expiry; the Node devnet release does not extend it.
+- Complete the remaining Rust migration/reachability work before the existing
+  exception expiry. The bounded host logger/mmap changes reduce findings from 16
+  to 13; the remaining scope/2026-10-23 expiry is unchanged. A new SBF build and
+  any program deployment still require separate verification/approval; the Node
+  devnet release does not attest deployed binaries.
 - Complete external security and legal review and the mainnet go/no-go record.
 - Reassess trusted-proxy identities/shared quotas before replicas or proxy changes.
 - Configure the desired provider backup policy separately from the retained,

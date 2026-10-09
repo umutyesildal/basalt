@@ -110,8 +110,10 @@ export function BasketPageHistory({
   asOf,
   range,
   onRangeChange,
+  valuationUnavailable = false,
 }: {
   pubkey: string;
+  valuationUnavailable?: boolean;
   navRows: NavHistoryRow[] | null;
   navSource: string | null;
   navFailed: boolean;
@@ -395,8 +397,9 @@ export function BasketPageHistory({
           ) : data.length < 2 ? (
             <div className={`flex ${chartHeightClass} w-full items-center justify-center px-6`} data-slot="basket-nav-chart">
               <p className="text-center font-mono text-xs text-muted-foreground">
-                {data.length === 0
-                  ? "No share-price snapshots indexed yet"
+                {valuationUnavailable
+                  ? "USD price history needs verified market prices for this basket."
+                  : data.length === 0 ? "No share-price snapshots indexed yet"
                   : "One snapshot indexed — a line appears at two"}
               </p>
             </div>
