@@ -8,6 +8,7 @@
  * This is a prototype proof using two locally minted, extension-free Token-2022
  * mints. It does not represent live assets or production deployment readiness.
  */
+import { assertNotRetiredPublicKey } from "./security/retired-keys.mjs";
 import {
   TOKEN_2022_PROGRAM_ID,
   createMint,
@@ -467,9 +468,11 @@ type RunState = {
 function loadWallet(name: string): Keypair {
   const file = path.join(STATE_DIR, name + ".json");
   if (!fs.existsSync(file)) throw new Error("Missing persisted wallet: " + name);
-  return Keypair.fromSecretKey(
+  const keypair = Keypair.fromSecretKey(
     Uint8Array.from(JSON.parse(fs.readFileSync(file, "utf8")) as number[]),
   );
+  assertNotRetiredPublicKey(keypair.publicKey, "managed localnet test actor");
+  return keypair;
 }
 
 function readRunState(): RunState {

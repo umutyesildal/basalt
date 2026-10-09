@@ -1,0 +1,26 @@
+{
+  "version": 1,
+  "reason": "BAS-AUD-01: publicly exposed historical keypairs; permanently retired, never reuse for any role",
+  "keys": [
+    {
+      "historicalPath": "scripts/.e2e-devnet/treasury.json",
+      "gitBlob": "e538af1cd14357b002437b190a72dc50d2ee3e9b",
+      "publicKey": "AAb2TXLQCPFvnUoJFSBe9PFs28w5kvAukH4Gaiia3eiJ"
+    },
+    {
+      "historicalPath": "scripts/.e2e-devnet/user2.json",
+      "gitBlob": "2679ebb3dd8d21ed7564c76a58a194c94116471e",
+      "publicKey": "48CUGMWkw49EDkVQBq5TEb3M43oej9bJf7z8aF3zA3bg"
+    },
+    {
+      "historicalPath": "scripts/.e2e/payer.json",
+      "gitBlob": "ab7a693f97130da198e017616b0e7fe816ca1b36",
+      "publicKey": "6N9Pf5PGLYp45vrDfK6wTkHP6HeFqHB65akvXaXukbLA"
+    },
+    {
+      "historicalPath": "scripts/.e2e/user2.json",
+      "gitBlob": "6121bfe78fd4f75068e24cc7fdacfe35577e2438",
+      "publicKey": "3UAR6aEz4GxVuCwrbUM938BNYg6dSrUTeJb6d7V6GJkT"
+    }
+  ]
+}

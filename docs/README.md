@@ -1,6 +1,6 @@
 # Basalt documentation map
 
-- [Backend/devnet security remediation, 2026-10-09](backend-devnet-security-2026-10-09.md): recovered audit, first auth/resource package, 946-test evidence and ordered remaining work; local branch only.
+- [Backend/devnet security remediation, 2026-10-09](backend-devnet-security-2026-10-09.md): all ten findings mapped to implemented controls, real database tests, current devnet proof, source recovery approval and rollout gates; local branch only.
 
 Current wallet UX: [one-action devnet flow](devnet-single-pipeline-2026-10-03.md), including partial account-setup recovery and verification.
 

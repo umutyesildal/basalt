@@ -15,7 +15,10 @@
     "proof:retryflow": "tsx --tsconfig app/tsconfig.json scripts/verifyRetryFlow.ts",
     "proof:txsize": "tsx --tsconfig app/tsconfig.json scripts/checkTxSize.ts",
     "manifest": "node scripts/generate-deployment-manifest.mjs",
-    "lint": "cargo clippy"
+    "lint": "cargo clippy",
+    "test:security": "node --test scripts/security/*.test.mjs",
+    "check:secrets": "node scripts/security/check-secret-history.mjs",
+    "audit:rust": "node scripts/security/audit-rust.mjs"
   },
   "dependencies": {
     "@base-ui/react": "^1.7.0",
@@ -23,7 +26,8 @@
     "clsx": "^2.1.1",
     "lucide-react": "^1.39.0",
     "tailwind-merge": "^3.6.0",
-    "tw-animate-css": "^1.4.0"
+    "tw-animate-css": "^1.4.0",
+    "bigint-buffer": "file:vendor/basalt-bigint-buffer-1.0.0.tgz"
   },
   "devDependencies": {
     "ajv": "^8.20.0",
@@ -33,6 +37,11 @@
   },
   "overrides": {
     "lodash": "4.18.1",
-    "postcss": "8.5.28"
+    "postcss": "8.5.28",
+    "bigint-buffer": "$bigint-buffer",
+    "jayson": "5.0.0",
+    "source-map-js": "1.2.2",
+    "uuid@<11.1.1": "11.1.1",
+    "sharp": "0.35.5"
   }
 }

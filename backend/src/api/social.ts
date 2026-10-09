@@ -1,3 +1,4 @@
+import { navEligibilitySql, valuationQuality, currentNavEligibilitySql, positionProjectionReadySql } from "./valuation-quality.js";
 /**
  * api/social.ts — the social trading surface (V0.2): profiles, follows,
  * thesis posts, likes, comments, the unified trade+thesis feed, per-wallet
@@ -69,28 +70,24 @@ function clampLimit(raw: string | null, fallback = 20, max = 50): number {
   return Math.min(Math.max(Math.floor(n), 1), max);
 }
 
-/**
- * Feed/history cursor: base64url of `v1:<iso timestamp>`. Pagination is
- * keyset-on-ts (strictly older than the cursor); rows sharing an exact
- * timestamp across page boundaries are rare and accepted for v1.
- */
-function encodeCursor(ts: Date): string {
-  return Buffer.from(`v1:${ts.toISOString()}`, "utf8").toString("base64url");
+/** A timestamp alone loses same-transaction events at a page boundary. */
+function encodeCursor(ts: Date, key: string): string {
+  return Buffer.from(JSON.stringify({ v: 2, ts: ts.toISOString(), key }), "utf8").toString("base64url");
 }
-
-function decodeCursor(raw: string | null): { ts: Date } | { error: string } {
-  if (raw === null) return { ts: new Date(8640000000000000) }; // +∞ sentinel: no filter
-  let decoded: string;
-  try {
-    decoded = Buffer.from(raw, "base64url").toString("utf8");
-  } catch {
-    return { error: "cursor is not valid base64url" };
+function decodeCursor(raw: string | null): { ts: Date; key: string | null } | { error: string } {
+  if (raw === null) return { ts: new Date(8640000000000000), key: null };
+  if (raw.length > 2048) return { error: "cursor is too long" };
+  const decoded = Buffer.from(raw, "base64url").toString("utf8");
+  if (decoded.startsWith("v1:")) {
+    const ts = new Date(decoded.slice(3));
+    return Number.isFinite(ts.getTime()) ? { ts, key: null } : { error: "invalid cursor timestamp" };
   }
-  const match = /^v1:(.+)$/.exec(decoded);
-  if (!match) return { error: "cursor must be v1:<iso timestamp>" };
-  const ts = new Date(match[1]);
-  if (Number.isNaN(ts.getTime())) return { error: `cursor timestamp is not ISO: ${match[1]}` };
-  return { ts };
+  try {
+    const value = JSON.parse(decoded);
+    const ts = new Date(value.ts);
+    if (value.v !== 2 || typeof value.key !== "string" || value.key.length > 256 || !Number.isFinite(ts.getTime())) throw new Error();
+    return { ts, key: value.key };
+  } catch { return { error: "cursor must contain a valid timestamp and event key" }; }
 }
 
 /** Canonicalize a path-parameter pubkey; throws on invalid input. */
@@ -105,9 +102,9 @@ const HANDLE_RE = /^[a-z0-9_]{3,20}$/;
 // --- profile -----------------------------------------------------------------
 
 const PROFILE_STATS_SQL = `
-  SELECT COUNT(DISTINCT e.sig) AS trade_count
+  SELECT COUNT(*) AS trade_count
   FROM events e
-  WHERE e.data->>'user' = $1 AND e.type IN ('Minted','Redeemed')`;
+  WHERE e.log_index >= 0 AND e.data->>'user' = $1 AND e.type IN ('Minted','Redeemed')`;
 
 const PROFILE_ROW_SQL = `
   SELECT p.wallet, p.handle, p.display_name, p.avatar_url, p.bio, p.is_public, p.created_at,
@@ -301,12 +298,12 @@ export async function putMyProfile(
  * usdValue becomes a display number in JS (2dp) or stays null.
  */
 const HISTORY_BASE_SQL = `
-  SELECT h.sig, h.ts, h.trade_type, h.basket, h.basket_name,
+  SELECT h.sig, h.log_index, (h.sig || ':' || h.log_index::text) AS item_key, h.ts, h.trade_type, h.basket, h.basket_name,
          (h.shares_raw / ${SHARE_DECIMALS})::text AS shares,
          (h.share_price * ${SHARE_DECIMALS})::text AS share_price,
          (h.shares_raw * h.share_price)::text AS usd_value
   FROM (
-    SELECT e.sig, e.ts, e.type AS trade_type, e.basket,
+    SELECT e.sig, e.log_index, e.ts, e.type AS trade_type, e.basket,
            b.metadata_json->>'name' AS basket_name,
            CASE WHEN e.type = 'Minted' THEN (e.data->>'netShares')::numeric
                 ELSE ((e.data->>'sharesBurned')::numeric - (e.data->>'exitFeeShares')::numeric) END AS shares_raw,
@@ -314,9 +311,9 @@ const HISTORY_BASE_SQL = `
     FROM events e
     JOIN baskets b ON b.pubkey = e.basket
     LEFT JOIN LATERAL (
-      SELECT share_price FROM nav_snapshots WHERE basket = e.basket AND ts <= e.ts ORDER BY ts DESC LIMIT 1
+      SELECT share_price FROM nav_snapshots WHERE ${navEligibilitySql()} AND basket = e.basket AND ts <= e.ts AND ts >= e.ts - interval '5 minutes' ORDER BY ts DESC LIMIT 1
     ) sp ON true
-    WHERE e.type IN ('Minted','Redeemed') AND e.data->>'user' = $1
+    WHERE e.log_index >= 0 AND e.type IN ('Minted','Redeemed') AND e.data->>'user' = $1
   ) h`;
 
 export async function getUserHistory(
@@ -332,13 +329,15 @@ export async function getUserHistory(
   const limit = Math.min(Math.max(params.limit ?? 20, 1), 50);
   const hasCursor = params.cursor != null;
   const sql = hasCursor
-    ? `${HISTORY_BASE_SQL} WHERE h.ts < $2 ORDER BY h.ts DESC, h.sig DESC LIMIT $3`
-    : `${HISTORY_BASE_SQL} ORDER BY h.ts DESC, h.sig DESC LIMIT $2`;
-  const values = hasCursor ? [canonical, cursor.ts, limit] : [canonical, limit];
+    ? `${HISTORY_BASE_SQL} WHERE (h.ts < $2 OR ($3::text IS NOT NULL AND h.ts = $2 AND (h.sig || ':' || h.log_index::text) < $3)) ORDER BY h.ts DESC, item_key DESC LIMIT $4`
+    : `${HISTORY_BASE_SQL} ORDER BY h.ts DESC, item_key DESC LIMIT $2`;
+  const values = hasCursor ? [canonical, cursor.ts, cursor.key, limit] : [canonical, limit];
   const res = await db.query(sql, values);
   const rows = res.rows as Array<Record<string, unknown>>;
   const items = rows.map((r) => ({
     sig: r.sig as string,
+    logIndex: Number(r.log_index),
+    eventId: r.item_key as string,
     ts: new Date(r.ts as string).toISOString(),
     type: r.trade_type as "Minted" | "Redeemed",
     basket: r.basket as string,
@@ -353,7 +352,7 @@ export async function getUserHistory(
     payload: {
       wallet: canonical,
       items,
-      nextCursor: items.length === limit && last ? encodeCursor(new Date(last.ts as string)) : null,
+      nextCursor: items.length === limit && last ? encodeCursor(new Date(last.ts as string), String(last.item_key)) : null,
     },
   };
 }
@@ -361,7 +360,7 @@ export async function getUserHistory(
 const EQUITY_CURVE_SQL = `
   SELECT ts, value_usd::text AS value_usd, cost_basis::text AS cost_basis
   FROM user_value_snapshots
-  WHERE wallet = $1 AND ts >= NOW() - make_interval(days => $2::int)
+  WHERE ${navEligibilitySql()} AND wallet = $1 AND ts >= NOW() - make_interval(days => $2::int)
   ORDER BY ts ASC LIMIT 2000`;
 
 /** GET /users/:wallet/equity-curve?days=30 — empty until the snapshotter runs. */
@@ -396,7 +395,7 @@ export async function getUserEquityCurve(
  * ($1 cursor ts, $2 follow list when scope=following, $3 limit).
  */
 const FEED_TRADES_INNER = `
-    SELECT e.sig, e.ts, e.type AS trade_type, (e.data->>'user') AS wallet, e.basket,
+    SELECT e.sig, e.log_index, e.ts, e.type AS trade_type, (e.data->>'user') AS wallet, e.basket,
            b.metadata_json->>'name' AS basket_name,
            CASE WHEN e.type = 'Minted' THEN (e.data->>'netShares')::numeric
                 ELSE ((e.data->>'sharesBurned')::numeric - (e.data->>'exitFeeShares')::numeric) END AS shares_raw,
@@ -404,10 +403,10 @@ const FEED_TRADES_INNER = `
     FROM events e
     JOIN baskets b ON b.pubkey = e.basket
     LEFT JOIN LATERAL (
-      SELECT share_price FROM nav_snapshots WHERE basket = e.basket AND ts <= e.ts ORDER BY ts DESC LIMIT 1
+      SELECT share_price FROM nav_snapshots WHERE ${navEligibilitySql()} AND basket = e.basket AND ts <= e.ts AND ts >= e.ts - interval '5 minutes' ORDER BY ts DESC LIMIT 1
     ) sp ON true
     LEFT JOIN profiles p ON p.wallet = e.data->>'user'
-    WHERE e.type IN ('Minted','Redeemed')
+    WHERE e.log_index >= 0 AND e.type IN ('Minted','Redeemed')
       AND NOT EXISTS (SELECT 1 FROM profiles px WHERE px.wallet = e.data->>'user' AND px.is_public = false)`;
 
 export interface FeedItem {
@@ -421,6 +420,8 @@ export interface FeedItem {
   basketName: string | null;
   // trade-only
   sig?: string;
+  logIndex?: number;
+  eventId?: string;
   type?: "Minted" | "Redeemed";
   shares?: string | null;
   usdValue?: number | null;
@@ -472,13 +473,14 @@ export async function getFeed(
   // (cursor × following) keeps its numbering consistent.
   let nextParam = 1;
   const cursorParam = hasCursor ? `$${nextParam++}` : null;
+  const cursorKeyParam = hasCursor ? `$${nextParam++}` : null;
   const followParam = following ? `$${nextParam++}` : null;
   const limitParam = `$${nextParam++}`;
 
   // Static fragment assembly — branch selection and the cursor predicate are
   // chosen by validated keys; the follow list and cursor ts are bound params.
   const tradeSelect = `
-    SELECT 'trade'::text AS kind, s.sig AS item_key, s.ts, s.wallet,
+    SELECT 'trade'::text AS kind, (s.sig || ':' || s.log_index::text) AS item_key, s.sig, s.log_index, s.ts, s.wallet,
            s.handle, s.display_name, s.avatar_url, s.basket, s.basket_name,
            s.trade_type, (s.shares_raw / ${SHARE_DECIMALS})::text AS shares,
            (s.shares_raw * s.share_price)::text AS usd_value,
@@ -486,7 +488,7 @@ export async function getFeed(
            NULL::bigint AS like_count, NULL::bigint AS comment_count
     FROM (${FEED_TRADES_INNER}${following ? ` AND (e.data->>'user') = ANY(${followParam}::text[])` : ""}) s`;
   const postSelect = `
-    SELECT 'thesis'::text AS kind, po.id::text AS item_key, po.created_at AS ts, po.wallet,
+    SELECT 'thesis'::text AS kind, po.id::text AS item_key, NULL::text AS sig, NULL::int AS log_index, po.created_at AS ts, po.wallet,
            p.handle, p.display_name, p.avatar_url, po.basket,
            b.metadata_json->>'name' AS basket_name,
            NULL::text AS trade_type, NULL::text AS shares, NULL::text AS usd_value,
@@ -500,11 +502,11 @@ export async function getFeed(
   const unionSql = [tradesBranch ? tradeSelect : null, postsBranch ? postSelect : null]
     .filter((s): s is string => s !== null)
     .join("\n  UNION ALL\n");
-  const cursorClause = cursorParam ? `WHERE ts < ${cursorParam}::timestamptz\n  ` : "";
+  const cursorClause = cursorParam ? `WHERE (ts < ${cursorParam}::timestamptz OR (${cursorKeyParam}::text IS NOT NULL AND ts = ${cursorParam}::timestamptz AND item_key < ${cursorKeyParam}))\n  ` : "";
   const sql = `SELECT * FROM (\n${unionSql}\n) feed\n  ${cursorClause}ORDER BY ts DESC, item_key DESC\n  LIMIT ${limitParam}`;
 
   const values: unknown[] = [];
-  if (cursorParam) values.push(cursor.ts);
+  if (cursorParam) values.push(cursor.ts, cursor.key);
   if (followParam) values.push(followList);
   values.push(limit);
 
@@ -524,7 +526,9 @@ export async function getFeed(
       return {
         ...base,
         kind: "trade" as const,
-        sig: r.item_key as string,
+        sig: (r.sig as string) ?? r.item_key as string,
+        logIndex: Number(r.log_index),
+        eventId: r.item_key as string,
         type: r.trade_type as "Minted" | "Redeemed",
         shares: trimDecimals(r.shares as string),
         usdValue: usdNumber(r.usd_value as string | null),
@@ -548,7 +552,7 @@ export async function getFeed(
     status: 200,
     payload: {
       items,
-      nextCursor: items.length === limit && last ? encodeCursor(new Date(last.ts as string)) : null,
+      nextCursor: items.length === limit && last ? encodeCursor(new Date(last.ts as string), String(last.item_key)) : null,
       scope: params.scope,
       type: params.type,
       note: "Feed items come from the on-chain event ledger and thesis posts — never fabricated. Privacy-hidden profiles are excluded.",
@@ -565,18 +569,20 @@ const LEADERBOARD_ELIGIBILITY_VAL = `
            SUM(up.cost_basis) AS cost_basis,
            COUNT(*) AS position_count
     FROM user_positions up
-    JOIN LATERAL (
-      SELECT share_price FROM nav_snapshots WHERE basket = up.basket ORDER BY ts DESC LIMIT 1
+    LEFT JOIN LATERAL (
+      SELECT share_price FROM nav_snapshots ns WHERE ${navEligibilitySql()} AND ${currentNavEligibilitySql('up.basket','ns')} AND ts <= NOW() AND ts >= NOW() - interval '15 minutes' AND basket = up.basket ORDER BY ts DESC LIMIT 1
     ) sp ON true
     WHERE up.share_balance > 0
     GROUP BY 1
+    HAVING COUNT(sp.share_price) = COUNT(*) AND COUNT(up.cost_basis) = COUNT(*)
+      AND BOOL_AND(${positionProjectionReadySql("up.basket")})
   ),
   eligibility AS (
     SELECT e.data->>'user' AS wallet,
-           COUNT(*) FILTER (WHERE e.type = 'Minted') AS mint_count,
+           COUNT(*) FILTER (WHERE e.log_index >= 0 AND e.type = 'Minted') AS mint_count,
            MIN(e.ts) AS first_trade
     FROM events e
-    WHERE e.type IN ('Minted','Redeemed')
+    WHERE e.log_index >= 0 AND e.type IN ('Minted','Redeemed')
     GROUP BY 1
   )`;
 
@@ -617,13 +623,19 @@ export async function getLeaderboard(db: PgLike, window: string): Promise<{ stat
     sql = `
       WITH ${LEADERBOARD_ELIGIBILITY_VAL},
       win AS (
-        SELECT s.wallet,
-               (ARRAY_AGG(s.value_usd ORDER BY s.ts ASC))[1] AS start_value,
-               (ARRAY_AGG(s.value_usd ORDER BY s.ts DESC))[1] AS current_value,
-               COUNT(*) AS snapshot_count
-        FROM user_value_snapshots s
-        WHERE s.ts >= NOW() - make_interval(days => $1::int)
-        GROUP BY s.wallet
+        SELECT cur.wallet, base.value_usd AS start_value, cur.value_usd AS current_value, 2 AS snapshot_count
+        FROM (
+          SELECT DISTINCT ON (s.wallet) s.wallet,s.ts,s.value_usd FROM user_value_snapshots s
+          WHERE ${navEligibilitySql("s")} AND s.ts <= NOW() AND s.ts >= NOW() - interval '15 minutes'
+          ORDER BY s.wallet,s.ts DESC
+        ) cur
+        JOIN LATERAL (
+          SELECT value_usd FROM user_value_snapshots s
+          WHERE s.wallet=cur.wallet AND ${navEligibilitySql("s")}
+            AND s.ts <= cur.ts - make_interval(days => $1::int)
+            AND s.ts >= cur.ts - make_interval(days => $1::int) - interval '1 hour'
+          ORDER BY s.ts DESC LIMIT 1
+        ) base ON true
       )
       SELECT w.wallet, p.handle, p.display_name, p.avatar_url,
              w.current_value::text AS value_usd, v.cost_basis::text AS cost_basis_usd,
@@ -687,10 +699,10 @@ const BASKET_LEADERBOARD_7D_SQL = `
   FROM basket_rankings r
   JOIN baskets b ON b.pubkey = r.pubkey
   JOIN LATERAL (
-    SELECT nav, supply, share_price, ts FROM nav_snapshots WHERE basket = r.pubkey ORDER BY ts DESC LIMIT 1
+    SELECT basket, nav, supply, share_price, ts, valuation_eligible, valuation_status FROM nav_snapshots WHERE ${navEligibilitySql()} AND basket = r.pubkey ORDER BY ts DESC LIMIT 1
   ) cur ON true
   JOIN LATERAL (
-    SELECT supply, share_price, ts FROM nav_snapshots WHERE basket = r.pubkey
+    SELECT supply, share_price, ts, valuation_eligible, valuation_status FROM nav_snapshots WHERE ${navEligibilitySql()} AND basket = r.pubkey
       AND ts <= cur.ts - interval '7 days'
       AND ts >= cur.ts - interval '7 days' - interval '1 hour' ORDER BY ts DESC LIMIT 1
   ) base ON true
@@ -698,7 +710,7 @@ const BASKET_LEADERBOARD_7D_SQL = `
     SELECT basket, COUNT(*)::int AS holders FROM user_positions GROUP BY basket
   ) h ON h.basket = r.pubkey
   WHERE ${BASKET_RETURN_CURRENT_SQL}
-    AND base.supply > 0 AND base.share_price > 0 AND base.ts < cur.ts
+    AND ${navEligibilitySql('base')} AND base.supply > 0 AND base.share_price > 0 AND base.ts < cur.ts
     AND base.share_price::text NOT IN ('NaN', 'Infinity', '-Infinity')
   ORDER BY roi DESC NULLS LAST, r.pubkey ASC
   LIMIT 50`;
@@ -716,10 +728,10 @@ const BASKET_LEADERBOARD_30D_SQL = `
   FROM basket_rankings r
   JOIN baskets b ON b.pubkey = r.pubkey
   JOIN LATERAL (
-    SELECT nav, supply, share_price, ts FROM nav_snapshots WHERE basket = r.pubkey ORDER BY ts DESC LIMIT 1
+    SELECT basket, nav, supply, share_price, ts, valuation_eligible, valuation_status FROM nav_snapshots WHERE ${navEligibilitySql()} AND basket = r.pubkey ORDER BY ts DESC LIMIT 1
   ) cur ON true
   JOIN LATERAL (
-    SELECT supply, share_price, ts FROM nav_snapshots WHERE basket = r.pubkey
+    SELECT supply, share_price, ts, valuation_eligible, valuation_status FROM nav_snapshots WHERE ${navEligibilitySql()} AND basket = r.pubkey
       AND ts <= cur.ts - interval '30 days'
       AND ts >= cur.ts - interval '30 days' - interval '1 hour' ORDER BY ts DESC LIMIT 1
   ) base ON true
@@ -727,7 +739,7 @@ const BASKET_LEADERBOARD_30D_SQL = `
     SELECT basket, COUNT(*)::int AS holders FROM user_positions GROUP BY basket
   ) h ON h.basket = r.pubkey
   WHERE ${BASKET_RETURN_CURRENT_SQL}
-    AND base.supply > 0 AND base.share_price > 0 AND base.ts < cur.ts
+    AND ${navEligibilitySql('base')} AND base.supply > 0 AND base.share_price > 0 AND base.ts < cur.ts
     AND base.share_price::text NOT IN ('NaN', 'Infinity', '-Infinity')
   ORDER BY roi DESC NULLS LAST, r.pubkey ASC
   LIMIT 50`;
@@ -745,10 +757,10 @@ const BASKET_LEADERBOARD_ALL_SQL = `
   FROM basket_rankings r
   JOIN baskets b ON b.pubkey = r.pubkey
   JOIN LATERAL (
-    SELECT nav, supply, share_price, ts FROM nav_snapshots WHERE basket = r.pubkey ORDER BY ts DESC LIMIT 1
+    SELECT basket, nav, supply, share_price, ts, valuation_eligible, valuation_status FROM nav_snapshots WHERE ${navEligibilitySql()} AND basket = r.pubkey ORDER BY ts DESC LIMIT 1
   ) cur ON true
   JOIN LATERAL (
-    SELECT supply, share_price, ts FROM nav_snapshots WHERE basket = r.pubkey
+    SELECT supply, share_price, ts, valuation_eligible, valuation_status FROM nav_snapshots WHERE ${navEligibilitySql()} AND basket = r.pubkey
     AND supply > 0 AND nav >= 0 AND share_price > 0
     AND nav::text NOT IN ('NaN', 'Infinity', '-Infinity')
     AND share_price::text NOT IN ('NaN', 'Infinity', '-Infinity')
@@ -758,7 +770,7 @@ const BASKET_LEADERBOARD_ALL_SQL = `
     SELECT basket, COUNT(*)::int AS holders FROM user_positions GROUP BY basket
   ) h ON h.basket = r.pubkey
   WHERE ${BASKET_RETURN_CURRENT_SQL}
-    AND base.supply > 0 AND base.share_price > 0 AND base.ts < cur.ts
+    AND ${navEligibilitySql('base')} AND base.supply > 0 AND base.share_price > 0 AND base.ts < cur.ts
     AND base.share_price::text NOT IN ('NaN', 'Infinity', '-Infinity')
   ORDER BY roi DESC NULLS LAST, r.pubkey ASC
   LIMIT 50`;
@@ -835,10 +847,11 @@ export async function getFollowList(
   const limit = Math.min(Math.max(params.limit ?? 20, 1), 50);
   const hasCursor = params.cursor != null;
   const base = direction === "followers" ? FOLLOWERS_SQL : FOLLOWING_SQL;
+  const orderKey = direction === "followers" ? "f.follower" : "f.followee";
   const sql = hasCursor
-    ? `${base} AND f.created_at < $2 ORDER BY f.created_at DESC LIMIT $3`
-    : `${base} ORDER BY f.created_at DESC LIMIT $2`;
-  const values = hasCursor ? [canonical, cursor.ts, limit] : [canonical, limit];
+    ? `${base} AND (f.created_at < $2 OR ($3::text IS NOT NULL AND f.created_at = $2 AND ${orderKey} < $3)) ORDER BY f.created_at DESC, ${orderKey} DESC LIMIT $4`
+    : `${base} ORDER BY f.created_at DESC, ${orderKey} DESC LIMIT $2`;
+  const values = hasCursor ? [canonical, cursor.ts, cursor.key, limit] : [canonical, limit];
   const res = await db.query(sql, values);
   const rows = res.rows as Array<Record<string, unknown>>;
   const items = rows.map((r) => ({
@@ -851,7 +864,7 @@ export async function getFollowList(
   const last = rows[rows.length - 1];
   return {
     status: 200,
-    payload: { wallet: canonical, direction, items, nextCursor: items.length === limit && last ? encodeCursor(new Date(last.ts as string)) : null },
+    payload: { wallet: canonical, direction, items, nextCursor: items.length === limit && last ? encodeCursor(new Date(last.ts as string), String(last.wallet)) : null },
   };
 }
 

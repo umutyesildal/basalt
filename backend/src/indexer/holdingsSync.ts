@@ -3,7 +3,7 @@
  *
  * Reads vault ATAs in batches via `getMultipleAccountsInfo`, reads each
  * constituent's Token-2022 mint ScaledUiAmountConfig multiplier via
- * unpackMint/getScaledUiAmountConfig (fallback 1.0 when absent/legacy/error),
+ * unpackMint/getScaledUiAmountConfig (1.0 only for a verified plain mint),
  * and produces rows carrying raw + multiplier + scaled + decimals.
  *
  * INTEGER-SAFETY CONVENTION (AGENTS.md §2 #7 — crosses module boundaries):
@@ -25,13 +25,15 @@
 import { PublicKey, type AccountInfo } from "@solana/web3.js";
 import {
   getAssociatedTokenAddressSync,
+  ExtensionType,
+  ScaledUiAmountConfigLayout,
   getScaledUiAmountConfig,
   TOKEN_2022_PROGRAM_ID,
-  TOKEN_PROGRAM_ID,
   unpackAccount,
   unpackMint,
 } from "@solana/spl-token";
 import { isPgLike } from "../db/client.js";
+import { recordValuationAttempt } from "../api/valuation-quality.js";
 import { withRpcBackoff, createPacer } from "../rpc/backoff.js";
 
 /** Minimal structural slice of @solana/web3.js Connection used here. */
@@ -50,13 +52,17 @@ export interface HoldingsRow {
   raw: bigint;
   /** Same u64 as a decimal string for BIGINT-safe SQL binding. */
   rawAmount: string;
-  /** Token-2022 ScaledUiAmountConfig multiplier; 1.0 fallback. */
+  /** Token-2022 ScaledUiAmountConfig multiplier; 1.0 for verified plain mints. */
   multiplier: number;
   /** Display/NAV units: raw × multiplier ÷ 10^decimals (Number rounding). */
   scaled: number;
   /** Exact decimal string of `scaled` for the NUMERIC column. */
   scaledAmount: string;
   decimals: number;
+  /** True only after checking the mint, canonical vault ATA and authority. */
+  authenticated: true;
+  /** Conservative observation time: taken before this RPC read pass starts. */
+  observedAt: string;
 }
 
 const MULTISIG_SIZE = 355; // spl-token: extended mints must not collide with multisig size
@@ -79,27 +85,29 @@ export function parseMintDecimalsFromMintData(data: Buffer): number | null {
 }
 
 /**
- * Multiplier + decimals for one mint. Both degrade honestly: multiplier 1.0
- * (spec §4.3 fallback) and the 6-decimal share-mint standard when the mint
- * account cannot be read (warned, never thrown).
+ * Authenticate Token-2022 mint facts. Missing/invalid/failed reads return null;
+ * only a valid initialized mint without a scaled extension has multiplier 1.
+ * Active multipliers outside the existing fixed-point representation fail closed.
  */
-export async function fetchMintFacts(rpc: SolanaRpc, mint: PublicKey): Promise<MintFacts> {
+export async function fetchMintFacts(rpc: SolanaRpc, mint: PublicKey, now: () => Date = () => new Date()): Promise<MintFacts | null> {
   try {
     const info = await withRpcBackoff(() => rpc.getAccountInfo(mint), {
       logKey: "holdings:getAccountInfo",
     });
-    if (!info) {
-      console.warn(`[holdings] mint ${mint.toBase58()} not found — multiplier 1.0, decimals 6 (fallback)`);
-      return { multiplier: 1.0, decimals: 6 };
-    }
-    const multiplier = info.owner.equals(TOKEN_2022_PROGRAM_ID)
-      ? parseScaledUiMultiplierFromMintData(info.data) ?? 1.0
-      : 1.0; // legacy SPL token mints have no ScaledUiAmountConfig
-    const decimals = parseMintDecimalsFromMintData(info.data) ?? 6;
-    return { multiplier, decimals };
+    if (!info || info.executable || !info.owner.equals(TOKEN_2022_PROGRAM_ID)) return null;
+    const parsed = unpackMint(mint, info, TOKEN_2022_PROGRAM_ID);
+    if (!parsed.isInitialized || info.data[45] !== 1 || parsed.decimals > 12 ||
+        info.data.readUInt32LE(0) > 1 || info.data.readUInt32LE(46) > 1) return null;
+    const extensions = validatedTlvTypes(parsed.tlvData);
+    if (!extensions) return null;
+    const multiplier = extensions.has(ExtensionType.ScaledUiAmountConfig)
+      ? parseScaledUiMultiplierFromMintData(info.data, now)
+      : 1;
+    if (multiplier === null || !Number.isFinite(Math.round(multiplier * 1e9)) || Math.round(multiplier * 1e9) < 1) return null;
+    return { multiplier, decimals: parsed.decimals };
   } catch (err) {
-    console.warn(`[holdings] mint ${mint.toBase58()} read failed — fallback:`, err instanceof Error ? err.message : err);
-    return { multiplier: 1.0, decimals: 6 };
+    console.warn(`[holdings] mint ${mint.toBase58()} could not be verified:`, err instanceof Error ? err.message : err);
+    return null;
   }
 }
 
@@ -141,20 +149,27 @@ export function parseScaledUiMultiplierFromMintData(
 
 /**
  * Read the ScaledUiAmountConfig multiplier for `mint` from RPC.
- * Fallback is 1.0 (spec §4.3): legacy Token mints, missing extension, RPC
- * error, or malformed data all degrade to 1.0.
+ * A verified plain mint returns 1.0. Invalid/missing facts return null.
  */
-export async function fetchMultiplier(rpc: SolanaRpc, mint: PublicKey): Promise<number> {
-  try {
-    const info = await withRpcBackoff(() => rpc.getAccountInfo(mint), {
-      logKey: "holdings:getAccountInfo",
-    });
-    if (!info) return 1.0;
-    if (!info.owner.equals(TOKEN_2022_PROGRAM_ID)) return 1.0; // legacy SPL token
-    return parseScaledUiMultiplierFromMintData(info.data) ?? 1.0;
-  } catch {
-    return 1.0;
+export async function fetchMultiplier(rpc: SolanaRpc, mint: PublicKey): Promise<number | null> {
+  return (await fetchMintFacts(rpc, mint))?.multiplier ?? null;
+}
+
+/** Distinguish an absent extension from truncated/duplicate/invalid TLV data. */
+function validatedTlvTypes(data: Buffer): Set<number> | null {
+  const types = new Set<number>();
+  let offset = 0;
+  while (offset < data.length) {
+    if (data.subarray(offset).every((byte) => byte === 0)) break;
+    if (offset + 4 > data.length) return null;
+    const type = data.readUInt16LE(offset);
+    const length = data.readUInt16LE(offset + 2);
+    if (type === 0 || types.has(type) || offset + 4 + length > data.length) return null;
+    if (type === ExtensionType.ScaledUiAmountConfig && length !== ScaledUiAmountConfigLayout.span) return null;
+    types.add(type);
+    offset += 4 + length;
   }
+  return types;
 }
 
 /**
@@ -184,7 +199,10 @@ function chunk<T>(items: T[], size: number): T[][] {
 /** Multipliers for many mints (sequential — one getAccountInfo each). */
 export async function fetchMultipliers(rpc: SolanaRpc, mints: PublicKey[]): Promise<Map<string, number>> {
   const map = new Map<string, number>();
-  for (const mint of mints) map.set(mint.toBase58(), await fetchMultiplier(rpc, mint));
+  for (const mint of mints) {
+    const multiplier = await fetchMultiplier(rpc, mint);
+    if (multiplier !== null) map.set(mint.toBase58(), multiplier);
+  }
   return map;
 }
 
@@ -199,9 +217,15 @@ export async function syncHoldings(
   basket: PublicKey,
   vaultAtas: PublicKey[],
   mints: PublicKey[],
-  opts: { db?: unknown; spacingMs?: number } = {},
+  opts: { db?: unknown; spacingMs?: number; now?: () => Date } = {},
 ): Promise<HoldingsRow[]> {
   const db = isPgLike(opts?.db) ? opts.db : null;
+  if (mints.length !== vaultAtas.length || new Set(mints.map((mint) => mint.toBase58())).size !== mints.length) {
+    throw new Error("Vault and constituent identities must be unique and aligned");
+  }
+  const now = opts.now ?? (() => new Date());
+  const observedAt = now().toISOString();
+  const authority = deriveVaultAuthority(basket);
   // Optional pacing: minimum spacing between sequential RPC reads so a
   // holdings pass cannot burst 10+ reads at a public RPC (default 0 = the
   // unspaced legacy behavior; the devnet listener wires a small gap).
@@ -209,17 +233,22 @@ export async function syncHoldings(
   const facts = new Map<string, MintFacts>();
   for (const mint of mints) {
     await pacer.wait();
-    facts.set(mint.toBase58(), await fetchMintFacts(rpc, mint));
+    const verified = await fetchMintFacts(rpc, mint, now);
+    if (verified) facts.set(mint.toBase58(), verified);
   }
 
   const infos: Array<AccountInfo<Buffer> | null> = [];
   for (const batch of chunk(vaultAtas, 100)) {
     await pacer.wait();
-    infos.push(
-      ...(await withRpcBackoff(() => rpc.getMultipleAccountsInfo(batch), {
+    try {
+      const result = await withRpcBackoff(() => rpc.getMultipleAccountsInfo(batch), {
         logKey: "holdings:getMultipleAccountsInfo",
-      })),
-    );
+      });
+      infos.push(...batch.map((_key, index) => result[index] ?? null));
+    } catch (error) {
+      console.warn("[holdings] vault RPC batch unavailable:", error instanceof Error ? error.message : error);
+      infos.push(...batch.map(() => null));
+    }
   }
 
   const rows: HoldingsRow[] = [];
@@ -227,21 +256,20 @@ export async function syncHoldings(
     const mint = mints[i];
     const mintKey = mint.toBase58();
     const info = infos[i] ?? null;
-    let raw = 0n;
-    const mintFacts = facts.get(mintKey) ?? { multiplier: 1.0, decimals: 6 };
-    let decimals = mintFacts.decimals;
-    if (info) {
-      try {
-        const programId = info.owner.equals(TOKEN_PROGRAM_ID) ? TOKEN_PROGRAM_ID : TOKEN_2022_PROGRAM_ID;
-        const account = unpackAccount(vaultAtas[i], info, programId);
-        raw = account.amount; // bigint — u64 safe
-        if (account.mint.toBase58() !== mintKey) {
-          console.warn(`[holdings] ATA ${vaultAtas[i].toBase58()} holds mint ${account.mint.toBase58()}, expected ${mintKey}`);
-        }
-      } catch (err) {
-        console.warn(`[holdings] failed to unpack ATA ${vaultAtas[i].toBase58()}:`, err instanceof Error ? err.message : err);
-      }
+    const mintFacts = facts.get(mintKey);
+    if (!mintFacts || !info || info.executable || !info.owner.equals(TOKEN_2022_PROGRAM_ID)) continue;
+    if (!vaultAtas[i].equals(getAssociatedTokenAddressSync(mint, authority, true, TOKEN_2022_PROGRAM_ID))) continue;
+    let raw: bigint;
+    try {
+      const account = unpackAccount(vaultAtas[i], info, TOKEN_2022_PROGRAM_ID);
+      if (!account.mint.equals(mint) || !account.owner.equals(authority) ||
+          !account.isInitialized || ![1, 2].includes(info.data[108]) || !validatedTlvTypes(account.tlvData)) continue;
+      raw = account.amount;
+    } catch (err) {
+      console.warn(`[holdings] failed to verify vault ${vaultAtas[i].toBase58()}:`, err instanceof Error ? err.message : err);
+      continue;
     }
+    const decimals = mintFacts.decimals;
     const multiplier = mintFacts.multiplier;
     const scaledAmount = exactScaledDecimalString(raw, multiplier, decimals);
     rows.push({
@@ -253,10 +281,38 @@ export async function syncHoldings(
       scaled: Number(scaledAmount), // display rounding — NAV engine input
       scaledAmount,
       decimals,
+      authenticated: true,
+      observedAt,
     });
   }
 
-  if (db) await upsertVaultHoldings(db, rows);
+  if (db) {
+    const verified = new Set(rows.map((row) => row.mint));
+    const invalid = mints.map((mint) => mint.toBase58()).filter((mint) => !verified.has(mint));
+    if (invalid.length > 0) {
+      // Preserve last-good values AND their actual observation time. A known
+      // failed refresh immediately disqualifies them until authentication recovers.
+      await db.query("UPDATE vault_holdings SET authenticated = false WHERE basket = $1 AND mint = ANY($2::text[])",
+        [basket.toBase58(), invalid]);
+      await recordValuationAttempt(db, basket.toBase58(), { complete: false, reason: "holdings-unavailable", attemptedAt: now().toISOString() });
+    }
+    try {
+      await upsertVaultHoldings(db, rows);
+    } catch (error) {
+      // A known write failure must not leave an older successful observation
+      // eligible merely because its timestamp still falls inside the TTL.
+      try {
+        await db.query("UPDATE vault_holdings SET authenticated = false WHERE basket = $1 AND mint = ANY($2::text[])",
+          [basket.toBase58(), mints.map((mint) => mint.toBase58())]);
+        await recordValuationAttempt(db, basket.toBase58(), {
+          complete: false, reason: "holdings-persist-failed", attemptedAt: now().toISOString(),
+        });
+      } catch (markError) {
+        console.warn("[holdings] could not record failed persistence:", markError instanceof Error ? markError.message : markError);
+      }
+      throw error;
+    }
+  }
   return rows;
 }
 
@@ -271,24 +327,28 @@ export async function upsertVaultHoldings(db: unknown, rows: HoldingsRow[]): Pro
     return false;
   }
   for (const row of rows) {
+    if (row.authenticated !== true || !Number.isFinite(Date.parse(row.observedAt))) {
+      throw new Error("Only authenticated observed holdings may be persisted");
+    }
     await db.query(
-      `INSERT INTO whitelisted_mints (mint, decimals, status, multiplier)
-       VALUES ($1, $2, 'Active', $3)
+      `INSERT INTO whitelisted_mints (mint, decimals, status, multiplier, updated_at)
+       VALUES ($1, $2, 'Active', $3, $4)
        ON CONFLICT (mint) DO UPDATE
          SET decimals = EXCLUDED.decimals,
              multiplier = EXCLUDED.multiplier,
-             updated_at = NOW()`,
-      [row.mint, row.decimals, row.multiplier],
+             updated_at = $4`,
+      [row.mint, row.decimals, row.multiplier, new Date(row.observedAt)],
     );
     await db.query(
-      `INSERT INTO vault_holdings (basket, mint, raw_amount, multiplier, scaled_amount, decimals, updated_at)
-       VALUES ($1, $2, $3, $4, $5, $6, NOW())
+      `INSERT INTO vault_holdings (basket, mint, raw_amount, multiplier, scaled_amount, decimals, updated_at, authenticated)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, true)
        ON CONFLICT (basket, mint) DO UPDATE
          SET raw_amount = EXCLUDED.raw_amount,
              multiplier = EXCLUDED.multiplier,
              scaled_amount = EXCLUDED.scaled_amount,
              decimals = EXCLUDED.decimals,
-             updated_at = NOW()`,
+             updated_at = EXCLUDED.updated_at,
+             authenticated = true`,
       [
         row.basket,
         row.mint,
@@ -296,6 +356,7 @@ export async function upsertVaultHoldings(db: unknown, rows: HoldingsRow[]): Pro
         row.multiplier,
         row.scaledAmount, // exact decimal string → NUMERIC
         row.decimals,
+        new Date(row.observedAt),
       ],
     );
   }
@@ -379,10 +440,11 @@ export async function syncIndexedBaskets(
   for (const b of baskets) {
     try {
       const basketPda = deriveBasketPda(new PublicKey(b.factory), new PublicKey(b.creator), b.nonce);
+      if (basketPda.toBase58() !== b.pubkey) throw new Error("Indexed basket address does not match its PDA seeds");
       const mints = b.constituents.map((m) => new PublicKey(m));
       const atas = getVaultAtas(basketPda, mints);
-      await syncHoldings(rpc, basketPda, atas, mints, { db, spacingMs: opts.spacingMs });
-      refreshed++;
+      const rows = await syncHoldings(rpc, basketPda, atas, mints, { db, spacingMs: opts.spacingMs });
+      if (rows.length === mints.length) refreshed++;
     } catch (err) {
       console.warn(`[holdings] refresh failed for basket ${b.pubkey}:`,
         err instanceof Error ? err.message : err);

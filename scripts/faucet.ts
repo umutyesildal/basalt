@@ -23,6 +23,7 @@
  * public RPC rate-limits — do not remove the spacing).
  */
 
+import { assertNotRetiredPublicKey } from "./security/retired-keys.mjs";
 import { Keypair, PublicKey } from "@solana/web3.js";
 import fs from "fs";
 
@@ -72,6 +73,7 @@ async function main() {
   const argIndex = process.argv.indexOf("--to");
   const targetArg = argIndex >= 0 ? process.argv[argIndex + 1] : undefined;
   const { pubkey: target, label } = parseTarget(targetArg ?? process.env.FOLIOX_FAUCET_TO);
+  assertNotRetiredPublicKey(target, "faucet recipient");
 
   const conn = newConnection();
   const payer = payerKeypair();

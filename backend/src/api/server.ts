@@ -20,7 +20,7 @@ import { XStockQuoteService } from "../workers/xstockQuotes.js";
 import { XStockHistoryService } from "../workers/xstockHistory.js";
 import { fetchYahooSeries } from "../workers/yahooFetch.js";
 import { connectFromEnv, isPgLike, type PgLike } from "../db/client.js";
-import { computeDriftExact, type KeyValueCache } from "../workers/navEngine.js";
+import { computeDriftExact, decimalToFixedUnits, fixedUnitsToDecimalString, NAV_SCALE, type KeyValueCache } from "../workers/navEngine.js";
 import {
   BASKET_RETURN_CURRENT_SQL,
   indexedShareReturnPct,
@@ -28,6 +28,7 @@ import {
   snapshotIsFresh,
   snapshotTime,
 } from "./basket-returns.js";
+import { navEligibilitySql, valuationQuality, currentNavEligibilitySql, positionProjectionReadySql } from "./valuation-quality.js";
 import { DEVNET_FLAGSHIP_BASKET, MOCK_XSTOCKS } from "../catalog/mockStocks.js";
 import { handleZapIn, handleZapOut, type QuoteContext } from "./quotes.js";
 import { tryHandleSocialRoute } from "./social.js";
@@ -100,7 +101,7 @@ const NAV_HISTORY_BIN_ALL_SQL = `SELECT date_bin($1::interval, ts, TIMESTAMPTZ '
         (array_agg(share_price ORDER BY ts))[1]::text AS share_price_open,
         (array_agg(share_price ORDER BY ts DESC))[1]::text AS share_price,
         COUNT(*) AS points
- FROM nav_snapshots WHERE basket = $2
+ FROM nav_snapshots WHERE ${navEligibilitySql()} AND basket = $2
  GROUP BY bucket ORDER BY bucket ASC LIMIT 5000`;
 const NAV_HISTORY_BIN_FROM_SQL = `SELECT date_bin($1::interval, ts, TIMESTAMPTZ '2000-01-01') AS bucket,
         (array_agg(nav ORDER BY ts))[1]::text AS open,
@@ -110,7 +111,7 @@ const NAV_HISTORY_BIN_FROM_SQL = `SELECT date_bin($1::interval, ts, TIMESTAMPTZ 
         (array_agg(share_price ORDER BY ts))[1]::text AS share_price_open,
         (array_agg(share_price ORDER BY ts DESC))[1]::text AS share_price,
         COUNT(*) AS points
- FROM nav_snapshots WHERE basket = $2 AND ts >= $3
+ FROM nav_snapshots WHERE ${navEligibilitySql()} AND basket = $2 AND ts >= $3
  GROUP BY bucket ORDER BY bucket ASC LIMIT 5000`;
 const NAV_HISTORY_BIN_TO_SQL = `SELECT date_bin($1::interval, ts, TIMESTAMPTZ '2000-01-01') AS bucket,
         (array_agg(nav ORDER BY ts))[1]::text AS open,
@@ -120,7 +121,7 @@ const NAV_HISTORY_BIN_TO_SQL = `SELECT date_bin($1::interval, ts, TIMESTAMPTZ '2
         (array_agg(share_price ORDER BY ts))[1]::text AS share_price_open,
         (array_agg(share_price ORDER BY ts DESC))[1]::text AS share_price,
         COUNT(*) AS points
- FROM nav_snapshots WHERE basket = $2 AND ts <= $3
+ FROM nav_snapshots WHERE ${navEligibilitySql()} AND basket = $2 AND ts <= $3
  GROUP BY bucket ORDER BY bucket ASC LIMIT 5000`;
 const NAV_HISTORY_BIN_FROM_TO_SQL = `SELECT date_bin($1::interval, ts, TIMESTAMPTZ '2000-01-01') AS bucket,
         (array_agg(nav ORDER BY ts))[1]::text AS open,
@@ -130,19 +131,19 @@ const NAV_HISTORY_BIN_FROM_TO_SQL = `SELECT date_bin($1::interval, ts, TIMESTAMP
         (array_agg(share_price ORDER BY ts))[1]::text AS share_price_open,
         (array_agg(share_price ORDER BY ts DESC))[1]::text AS share_price,
         COUNT(*) AS points
- FROM nav_snapshots WHERE basket = $2 AND ts >= $3 AND ts <= $4
+ FROM nav_snapshots WHERE ${navEligibilitySql()} AND basket = $2 AND ts >= $3 AND ts <= $4
  GROUP BY bucket ORDER BY bucket ASC LIMIT 5000`;
 const NAV_HISTORY_RAW_ALL_SQL = `SELECT ts, nav::text AS nav, supply::text AS supply, share_price::text AS share_price, price_source
- FROM nav_snapshots WHERE basket = $1
+ FROM nav_snapshots WHERE ${navEligibilitySql()} AND basket = $1
  ORDER BY ts ASC LIMIT 5000`;
 const NAV_HISTORY_RAW_FROM_SQL = `SELECT ts, nav::text AS nav, supply::text AS supply, share_price::text AS share_price, price_source
- FROM nav_snapshots WHERE basket = $1 AND ts >= $2
+ FROM nav_snapshots WHERE ${navEligibilitySql()} AND basket = $1 AND ts >= $2
  ORDER BY ts ASC LIMIT 5000`;
 const NAV_HISTORY_RAW_TO_SQL = `SELECT ts, nav::text AS nav, supply::text AS supply, share_price::text AS share_price, price_source
- FROM nav_snapshots WHERE basket = $1 AND ts <= $2
+ FROM nav_snapshots WHERE ${navEligibilitySql()} AND basket = $1 AND ts <= $2
  ORDER BY ts ASC LIMIT 5000`;
 const NAV_HISTORY_RAW_FROM_TO_SQL = `SELECT ts, nav::text AS nav, supply::text AS supply, share_price::text AS share_price, price_source
- FROM nav_snapshots WHERE basket = $1 AND ts >= $2 AND ts <= $3
+ FROM nav_snapshots WHERE ${navEligibilitySql()} AND basket = $1 AND ts >= $2 AND ts <= $3
  ORDER BY ts ASC LIMIT 5000`;
 
 function isValidPubkey(s: string): boolean {
@@ -197,8 +198,8 @@ const BASKETS_LIST_SQL = `
          b.constituents, b.weights_bps, b.metadata_json,
          cur.nav::text AS nav, cur.supply::text AS supply,
          cur.share_price::text AS share_price,
-         r.mint_count, r.refreshed_at, cur.ts AS nav_as_of,
-         NOT (cur.ts <= NOW() AND cur.ts >= NOW() - interval '15 minutes') AS stale,
+         r.mint_count, r.refreshed_at, cur.ts AS nav_as_of, cur.valuation_eligible, cur.valuation_status, vq.status AS current_status, vq.reason AS current_reason, ${currentNavEligibilitySql("cur.basket", "cur")} AS current_eligible,
+         NOT (COALESCE(vq.status='complete' AND vq.last_complete_at=cur.ts,false) AND cur.ts <= NOW() AND cur.ts >= NOW() - interval '15 minutes') AS stale,
          CASE WHEN ${BASKET_RETURN_CURRENT_SQL} AND h24.supply > 0 AND h24.share_price > 0 AND h24.share_price::text NOT IN ('NaN', 'Infinity', '-Infinity')
            THEN (cur.share_price - h24.share_price) / NULLIF(h24.share_price, 0) END AS return_24h,
          CASE WHEN ${BASKET_RETURN_CURRENT_SQL} AND h168.supply > 0 AND h168.share_price > 0 AND h168.share_price::text NOT IN ('NaN', 'Infinity', '-Infinity')
@@ -208,21 +209,22 @@ const BASKETS_LIST_SQL = `
          COALESCE(h.holders, 0) AS holders
   FROM basket_rankings r
   JOIN baskets b ON b.pubkey = r.pubkey
+  LEFT JOIN basket_valuation_state vq ON vq.basket=r.pubkey
   JOIN LATERAL (
-    SELECT nav, supply, share_price, ts FROM nav_snapshots WHERE basket = r.pubkey ORDER BY ts DESC LIMIT 1
+    SELECT basket, nav, supply, share_price, ts, valuation_eligible, valuation_status FROM nav_snapshots WHERE ${navEligibilitySql()} AND basket = r.pubkey ORDER BY ts DESC LIMIT 1
   ) cur ON true
   LEFT JOIN LATERAL (
-    SELECT supply, share_price FROM nav_snapshots WHERE basket = r.pubkey
+    SELECT supply, share_price, valuation_eligible, valuation_status FROM nav_snapshots WHERE ${navEligibilitySql()} AND basket = r.pubkey
       AND ts <= cur.ts - interval '24 hours'
       AND ts >= cur.ts - interval '24 hours' - interval '1 hour' ORDER BY ts DESC LIMIT 1
   ) h24 ON true
   LEFT JOIN LATERAL (
-    SELECT supply, share_price FROM nav_snapshots WHERE basket = r.pubkey
+    SELECT supply, share_price, valuation_eligible, valuation_status FROM nav_snapshots WHERE ${navEligibilitySql()} AND basket = r.pubkey
       AND ts <= cur.ts - interval '7 days'
       AND ts >= cur.ts - interval '7 days' - interval '1 hour' ORDER BY ts DESC LIMIT 1
   ) h168 ON true
   LEFT JOIN LATERAL (
-    SELECT supply, share_price FROM nav_snapshots WHERE basket = r.pubkey
+    SELECT supply, share_price, valuation_eligible, valuation_status FROM nav_snapshots WHERE ${navEligibilitySql()} AND basket = r.pubkey
       AND ts <= cur.ts - interval '30 days'
       AND ts >= cur.ts - interval '30 days' - interval '1 hour' ORDER BY ts DESC LIMIT 1
   ) h720 ON true
@@ -295,6 +297,7 @@ export async function listBaskets(
     ...row,
     source: "onchain-indexed",
     asOf: snapshotTime(row.nav_as_of),
+    quality: valuationQuality({ ...row, ts: row.nav_as_of }),
   }));
   return {
     status: 200,
@@ -325,18 +328,20 @@ export async function basketDetail(db: PgLike, pubkey: string): Promise<{ status
   }
   const navRes = await db.query(
     `SELECT nav::text AS nav, supply::text AS supply, share_price::text AS share_price,
-            price_source, ts FROM nav_snapshots WHERE basket = $1 ORDER BY ts DESC LIMIT 1`,
+            price_source, ts, valuation_eligible, valuation_status, (SELECT CASE WHEN status='complete' AND last_complete_at=ns.ts THEN 'complete' ELSE 'incomplete' END FROM basket_valuation_state WHERE basket=$1) AS current_status, (SELECT reason FROM basket_valuation_state WHERE basket=$1) AS current_reason FROM nav_snapshots ns WHERE ${navEligibilitySql()} AND basket = $1 ORDER BY ts DESC LIMIT 1`,
     [pubkey],
   );
   const hRes = await db.query(
     `SELECT mint, raw_amount::text AS raw_amount, multiplier::text AS multiplier,
-            scaled_amount::text AS scaled_amount, decimals, updated_at
+            scaled_amount::text AS scaled_amount, decimals, updated_at, authenticated
      FROM vault_holdings WHERE basket = $1`,
     [pubkey],
   );
-  const holdings = hRes.rows as Array<{ mint: string; scaled_amount: string }>;
+  const byMint = new Map(hRes.rows.map((row) => [row.mint, row]));
+  const holdings = ((basket.constituents as string[]) ?? []).map((mint) => byMint.get(mint)).filter((row): row is Record<string, any> => Boolean(row));
   const weights = (basket.weights_bps as number[]) ?? [];
-  const drift = holdings.length > 0 ? computeDriftExact(holdings.map((h) => h.scaled_amount), weights) : null;
+  const holdingsComplete = holdings.length === weights.length && holdings.every((h) => h.authenticated === true && Date.now() - new Date(h.updated_at).getTime() >= 0 && Date.now() - new Date(h.updated_at).getTime() <= 300_000);
+  const drift = holdingsComplete ? computeDriftExact(holdings.map((h) => h.scaled_amount), weights) : null;
   const navRow = (navRes.rows[0] ?? null) as Record<string, unknown> | null;
   return {
     status: 200,
@@ -351,6 +356,7 @@ export async function basketDetail(db: PgLike, pubkey: string): Promise<{ status
               priceSource: navRow.price_source,
               asOf: navRow.ts,
               source: "onchain-indexed",
+              quality: valuationQuality({ ...navRow, current_eligible: holdingsComplete && navRow.current_status === "complete" }),
             }
           : null,
         drift: drift ? { actualWeightsBps: drift.actualWeightsBps, driftBps: drift.driftBps, basis: "vault_holdings.scaled_amount vs baskets.weights_bps (AGENTS §17)" } : null,
@@ -371,7 +377,7 @@ export async function basketHoldings(db: PgLike, pubkey: string): Promise<{ stat
   }
   const res = await db.query(
     `SELECT mint, raw_amount::text AS raw_amount, multiplier::text AS multiplier,
-            scaled_amount::text AS scaled_amount, decimals, updated_at
+            scaled_amount::text AS scaled_amount, decimals, updated_at, authenticated
      FROM vault_holdings WHERE basket = $1 ORDER BY mint`,
     [pubkey],
   );
@@ -474,45 +480,46 @@ export async function basketPerformance(
   }
   const res = await db.query(
     `WITH cur AS (
-       SELECT nav, supply, share_price, ts FROM nav_snapshots
-       WHERE basket = $1 ORDER BY ts DESC LIMIT 1
+       SELECT basket, nav, supply, share_price, ts, valuation_eligible, valuation_status FROM nav_snapshots
+       WHERE ${navEligibilitySql()} AND basket = $1 ORDER BY ts DESC LIMIT 1
      )
      SELECT cur.nav::text AS latest_nav, cur.supply::text AS latest_supply,
-            cur.share_price::text AS latest_share_price, cur.ts AS latest_ts,
-            NOW() AS evaluated_at,
+            cur.share_price::text AS latest_share_price, cur.ts AS latest_ts, cur.valuation_eligible AS latest_valuation_eligible, cur.valuation_status AS latest_valuation_status,
+            NOW() AS evaluated_at, vq.status AS current_status, vq.reason AS current_reason, ${currentNavEligibilitySql("cur.basket", "cur")} AS current_eligible,
             h24.nav::text AS b24_nav, h24.supply::text AS b24_supply,
-            h24.share_price::text AS b24_share_price, h24.ts AS b24_ts,
+            h24.share_price::text AS b24_share_price, h24.ts AS b24_ts, h24.valuation_eligible AS b24_valuation_eligible, h24.valuation_status AS b24_valuation_status,
             h7.nav::text AS b7d_nav, h7.supply::text AS b7d_supply,
-            h7.share_price::text AS b7d_share_price, h7.ts AS b7d_ts,
+            h7.share_price::text AS b7d_share_price, h7.ts AS b7d_ts, h7.valuation_eligible AS b7d_valuation_eligible, h7.valuation_status AS b7d_valuation_status,
             h30.nav::text AS b30d_nav, h30.supply::text AS b30d_supply,
-            h30.share_price::text AS b30d_share_price, h30.ts AS b30d_ts,
+            h30.share_price::text AS b30d_share_price, h30.ts AS b30d_ts, h30.valuation_eligible AS b30d_valuation_eligible, h30.valuation_status AS b30d_valuation_status,
             h90.nav::text AS b90d_nav, h90.supply::text AS b90d_supply,
-            h90.share_price::text AS b90d_share_price, h90.ts AS b90d_ts,
+            h90.share_price::text AS b90d_share_price, h90.ts AS b90d_ts, h90.valuation_eligible AS b90d_valuation_eligible, h90.valuation_status AS b90d_valuation_status,
             first.nav::text AS b_inception_nav, first.supply::text AS b_inception_supply,
-            first.share_price::text AS b_inception_share_price, first.ts AS b_inception_ts
+            first.share_price::text AS b_inception_share_price, first.ts AS b_inception_ts, first.valuation_eligible AS b_inception_valuation_eligible, first.valuation_status AS b_inception_valuation_status
      FROM cur
+     LEFT JOIN basket_valuation_state vq ON vq.basket=cur.basket
      LEFT JOIN LATERAL (
-       SELECT nav, supply, share_price, ts FROM nav_snapshots WHERE basket = $1
+       SELECT basket, nav, supply, share_price, ts, valuation_eligible, valuation_status FROM nav_snapshots WHERE ${navEligibilitySql()} AND basket = $1
        AND ts <= cur.ts - interval '24 hours'
        AND ts >= cur.ts - interval '24 hours' - interval '1 hour' ORDER BY ts DESC LIMIT 1
      ) h24 ON true
      LEFT JOIN LATERAL (
-       SELECT nav, supply, share_price, ts FROM nav_snapshots WHERE basket = $1
+       SELECT basket, nav, supply, share_price, ts, valuation_eligible, valuation_status FROM nav_snapshots WHERE ${navEligibilitySql()} AND basket = $1
        AND ts <= cur.ts - interval '7 days'
        AND ts >= cur.ts - interval '7 days' - interval '1 hour' ORDER BY ts DESC LIMIT 1
      ) h7 ON true
      LEFT JOIN LATERAL (
-       SELECT nav, supply, share_price, ts FROM nav_snapshots WHERE basket = $1
+       SELECT basket, nav, supply, share_price, ts, valuation_eligible, valuation_status FROM nav_snapshots WHERE ${navEligibilitySql()} AND basket = $1
        AND ts <= cur.ts - interval '30 days'
        AND ts >= cur.ts - interval '30 days' - interval '1 hour' ORDER BY ts DESC LIMIT 1
      ) h30 ON true
      LEFT JOIN LATERAL (
-       SELECT nav, supply, share_price, ts FROM nav_snapshots WHERE basket = $1
+       SELECT basket, nav, supply, share_price, ts, valuation_eligible, valuation_status FROM nav_snapshots WHERE ${navEligibilitySql()} AND basket = $1
        AND ts <= cur.ts - interval '90 days'
        AND ts >= cur.ts - interval '90 days' - interval '1 hour' ORDER BY ts DESC LIMIT 1
      ) h90 ON true
      LEFT JOIN LATERAL (
-       SELECT nav, supply, share_price, ts FROM nav_snapshots WHERE basket = $1
+       SELECT basket, nav, supply, share_price, ts, valuation_eligible, valuation_status FROM nav_snapshots WHERE ${navEligibilitySql()} AND basket = $1
        AND supply > 0 AND nav >= 0 AND share_price > 0
        AND nav::text NOT IN ('NaN', 'Infinity', '-Infinity')
        AND share_price::text NOT IN ('NaN', 'Infinity', '-Infinity')
@@ -523,6 +530,7 @@ export async function basketPerformance(
   );
   const row = res.rows[0] as Record<string, unknown> | undefined;
   const latest = row ? returnSnapshot(row, "latest_") : null;
+  if (latest && (row?.current_status !== "complete" || row.current_eligible !== true)) latest.valuationEligible = false;
   if (!row || !latest || latest.nav === null || latest.ts === null) {
     return { status: 404, payload: { error: { code: "NOT_INDEXED", message: `no usable NAV snapshots indexed yet for ${pubkey}` } } };
   }
@@ -556,7 +564,9 @@ export async function basketPerformance(
         basis: "reference share-price return: (latest share_price - baseline share_price) / baseline share_price; pct is percent, share_price is USD per raw share unit",
         source: "onchain-indexed",
         asOf: latest.ts,
-        stale: !snapshotIsFresh(latest, evaluatedNow),
+        stale: !latest.valuationEligible || !snapshotIsFresh(latest, evaluatedNow),
+        currentStatus: row.current_status ?? "unknown",
+        currentReason: row.current_reason ?? null,
       },
     },
   };
@@ -567,10 +577,10 @@ export async function basketPerformance(
  * value is a bound parameter. `data` is JSONB (pg parses it to a JS object)
  * and `slot` stays a BIGINT decimal string (integer-safe convention).
  */
-const EVENTS_BY_BASKET_SQL = `SELECT sig, slot, basket, type, data, ts
- FROM events WHERE basket = $1 ORDER BY ts DESC, slot DESC, sig ASC LIMIT $2`;
-const EVENTS_BY_BASKET_TYPE_SQL = `SELECT sig, slot, basket, type, data, ts
- FROM events WHERE basket = $1 AND type = $2 ORDER BY ts DESC, slot DESC, sig ASC LIMIT $3`;
+const EVENTS_BY_BASKET_SQL = `SELECT sig, log_index, slot, basket, type, data, ts
+ FROM events WHERE log_index >= 0 AND basket = $1 ORDER BY ts DESC, slot DESC, sig ASC, log_index ASC LIMIT $2`;
+const EVENTS_BY_BASKET_TYPE_SQL = `SELECT sig, log_index, slot, basket, type, data, ts
+ FROM events WHERE log_index >= 0 AND basket = $1 AND type = $2 ORDER BY ts DESC, slot DESC, sig ASC, log_index ASC LIMIT $3`;
 
 const EVENT_TYPES = ["BasketCreated", "Minted", "Redeemed", "FeeAccrued"] as const;
 
@@ -621,7 +631,7 @@ export async function basketEvents(
       ...(params.type ? { type: params.type } : {}),
       limit,
       source: "onchain-indexed",
-      note: "Rows come from the indexer events ledger (sig-deduped, u64 amounts as decimal strings in data). Empty list means no events indexed for this basket yet — never fabricated.",
+      note: "Rows come from the indexer events ledger ((sig, log_index)-deduped, u64 amounts as decimal strings in data). Empty list means no events indexed for this basket yet — never fabricated.",
     },
   };
 }
@@ -651,9 +661,17 @@ export async function creatorDetail(db: PgLike, creator: string): Promise<{ stat
     [creator],
   );
   const basketsRes = await db.query(
-    `SELECT b.pubkey, b.share_mint, b.created_at, r.nav::text AS nav, r.refreshed_at
+    `SELECT b.pubkey, b.share_mint, b.created_at, cur.nav::text AS nav, cur.ts AS nav_as_of,
+            cur.valuation_eligible, cur.valuation_status, vq.status AS current_status,
+            vq.reason AS current_reason, ${currentNavEligibilitySql("cur.basket","cur")} AS current_eligible,
+            r.refreshed_at
      FROM baskets b
      LEFT JOIN basket_rankings r ON r.pubkey = b.pubkey
+     LEFT JOIN LATERAL (
+       SELECT basket,nav,ts,valuation_eligible,valuation_status FROM nav_snapshots
+       WHERE basket=b.pubkey AND ${navEligibilitySql()} ORDER BY ts DESC LIMIT 1
+     ) cur ON true
+     LEFT JOIN basket_valuation_state vq ON vq.basket=b.pubkey
      WHERE b.creator = $1 ORDER BY b.created_at ASC`,
     [creator],
   );
@@ -662,15 +680,23 @@ export async function creatorDetail(db: PgLike, creator: string): Promise<{ stat
   if (!stats && baskets.length === 0) {
     return { status: 404, payload: { error: { code: "NOT_INDEXED", message: `creator ${creator} has no indexed baskets` } } };
   }
+  const observed = baskets.flatMap((b) => {
+    const ts = snapshotTime(b.nav_as_of);
+    return ts === null ? [] : [Date.parse(ts)];
+  });
+  const statsAsOf = stats ? snapshotTime(stats.updated_at) : null;
   return {
     status: 200,
     payload: {
       data: {
         creator,
-        stats,
-        baskets: baskets.map((b) => ({ ...b, source: "onchain-indexed" })),
+        // Cached creator totals do not establish current valuation provenance.
+        stats: stats ? { ...stats, source:"onchain-indexed", asOf:statsAsOf,
+          quality:valuationQuality({ts:stats.updated_at,valuation_eligible:false,valuation_status:"aggregate-unverified"}) } : null,
+        baskets: baskets.map((b) => ({ ...b, source:"onchain-indexed", asOf:snapshotTime(b.nav_as_of),
+          quality:valuationQuality({...b,ts:b.nav_as_of}) })),
         source: "onchain-indexed",
-        asOf: baskets[0]?.refreshed_at ?? stats?.updated_at ?? null,
+        asOf: observed.length ? new Date(Math.max(...observed)).toISOString() : statsAsOf,
       },
     },
   };
@@ -679,7 +705,7 @@ export async function creatorDetail(db: PgLike, creator: string): Promise<{ stat
 /** GET /users/:pubkey/portfolio — user_positions + latest nav per basket. */
 export async function userPortfolio(db: PgLike, user: string): Promise<{ status: number; payload: unknown }> {
   const res = await db.query(
-    `SELECT up.basket, up.share_balance::text AS share_balance, up.cost_basis::text AS cost_basis, up.updated_at
+    `SELECT up.basket, up.share_balance::text AS share_balance, up.cost_basis::text AS cost_basis, up.updated_at, EXISTS(SELECT 1 FROM position_rebuild_required pr WHERE pr.basket=up.basket) AS legacy_projection_pending, NOT (${positionProjectionReadySql("up.basket")}) AS projection_pending
      FROM user_positions up WHERE up."user" = $1 ORDER BY up.basket`,
     [user],
   );
@@ -688,21 +714,24 @@ export async function userPortfolio(db: PgLike, user: string): Promise<{ status:
     return { status: 200, payload: { data: [], count: 0, source: "onchain-indexed", note: "no indexed positions for this wallet" } };
   }
   const navs = await db.query(
-    `SELECT DISTINCT ON (basket) basket, nav::text AS nav, supply::text AS supply,
-            share_price::text AS share_price, ts
-     FROM nav_snapshots WHERE basket = ANY($1) ORDER BY basket, ts DESC`,
+    `SELECT DISTINCT ON (ns.basket) ns.basket, nav::text AS nav, supply::text AS supply,
+            share_price::text AS share_price, ts, valuation_eligible, valuation_status,
+            vq.status AS current_status, vq.reason AS current_reason, ${currentNavEligibilitySql("ns.basket", "ns")} AS current_eligible
+     FROM nav_snapshots ns LEFT JOIN basket_valuation_state vq ON vq.basket=ns.basket WHERE ${navEligibilitySql()} AND ns.basket = ANY($1) ORDER BY ns.basket, ts DESC`,
     [positions.map((p) => p.basket as string)],
   );
   const navByBasket = new Map((navs.rows as Array<Record<string, unknown>>).map((n) => [n.basket as string, n]));
   const data = positions.map((p) => {
     const nav = navByBasket.get(p.basket as string) ?? null;
     const balance = BigInt(p.share_balance as string);
-    const sharePrice = nav ? BigInt((nav.share_price as string).split(".")[0] || "0") : 0n;
+    const sharePrice = nav ? decimalToFixedUnits(nav.share_price as string, NAV_SCALE) : 0n;
     return {
       ...p,
       nav: nav ? { value: nav.nav, supply: nav.supply, asOf: nav.ts } : null,
       // value estimate in the same raw terms as share_price = nav/supply
-      estimatedValue: nav && sharePrice > 0n ? (balance * sharePrice).toString() : null,
+      estimatedValue: nav && !p.projection_pending && sharePrice > 0n ? fixedUnitsToDecimalString(balance * sharePrice, NAV_SCALE) : null,
+      projectionStatus: p.legacy_projection_pending ? "rebuild-required" : p.projection_pending ? "history-pending" : "indexed",
+      quality: valuationQuality(nav ?? {}),
       source: "onchain-indexed",
       asOf: nav?.ts ?? p.updated_at,
     };
@@ -724,14 +753,15 @@ const POSITIONS_BY_WALLET_SQL = `
          up.share_balance::text AS share_balance,
          up.cost_basis::text AS cost_basis,
          up.cost_basis_source AS cost_basis_source,
+         EXISTS(SELECT 1 FROM position_rebuild_required pr WHERE pr.basket=up.basket) AS legacy_projection_pending, NOT (${positionProjectionReadySql("up.basket")}) AS projection_pending,
          sp.share_price::text AS share_price,
-         sp.ts AS share_price_as_of,
+         sp.ts AS share_price_as_of, sp.valuation_eligible, sp.valuation_status, sp.current_status, sp.current_reason, sp.current_eligible,
          (up.share_balance * sp.share_price)::text AS value_usd,
          up.updated_at
   FROM user_positions up
   JOIN baskets b ON b.pubkey = up.basket
   LEFT JOIN LATERAL (
-    SELECT share_price, ts FROM nav_snapshots WHERE basket = up.basket ORDER BY ts DESC LIMIT 1
+    SELECT share_price, ts, valuation_eligible, valuation_status, (SELECT status FROM basket_valuation_state WHERE basket=up.basket) AS current_status, ${currentNavEligibilitySql("up.basket", "ns")} AS current_eligible, (SELECT reason FROM basket_valuation_state WHERE basket=up.basket) AS current_reason FROM nav_snapshots ns WHERE ${navEligibilitySql()} AND basket = up.basket ORDER BY ts DESC LIMIT 1
   ) sp ON true
   WHERE up."user" = $1
   ORDER BY up.basket`;
@@ -752,6 +782,8 @@ export interface WalletPositionItem {
   source: string | null;
   /** Freshness of sharePrice. */
   sharePriceAsOf: string | null;
+  quality: ReturnType<typeof valuationQuality>;
+  projectionStatus: "rebuild-required" | "history-pending" | "indexed";
 }
 
 /**
@@ -771,10 +803,12 @@ export async function userPositionsByWallet(
     basketSymbol: (r.basket_symbol as string | null) ?? null,
     shareBalance: r.share_balance as string,
     sharePrice: (r.share_price as string | null) ?? null,
-    valueUsd: (r.value_usd as string | null) ?? null,
+    valueUsd: r.projection_pending ? null : (r.value_usd as string | null) ?? null,
     costBasis: (r.cost_basis as string | null) ?? null,
     source: (r.cost_basis_source as string | null) ?? null,
     sharePriceAsOf: r.share_price_as_of ? new Date(r.share_price_as_of as string).toISOString() : null,
+    quality: valuationQuality({ ...r, ts: r.share_price_as_of }),
+    projectionStatus: r.legacy_projection_pending ? "rebuild-required" : r.projection_pending ? "history-pending" : "indexed",
   }));
   return {
     status: 200,
@@ -813,7 +847,13 @@ export async function healthReport(
               (SELECT MAX(slot) FROM events) AS last_slot,
               (SELECT MAX(ts) FROM events) AS last_event_ts,
               (SELECT COUNT(*) FROM vault_holdings) AS holdings_rows,
-              (SELECT MAX(updated_at) FROM vault_holdings) AS holdings_updated_at`,
+              (SELECT MAX(updated_at) FROM vault_holdings WHERE authenticated IS TRUE) AS holdings_updated_at,
+              (SELECT COUNT(*) FROM indexer_signature_queue WHERE status='pending') AS pending_signatures,
+              (SELECT MIN(discovered_at) FROM indexer_signature_queue WHERE status='pending') AS oldest_pending_at,
+              (SELECT MIN(block_time) FROM indexer_signature_queue WHERE status='pending') AS oldest_pending_chain_at,
+              (SELECT COUNT(*) FROM indexer_signature_queue WHERE status='quarantined') AS quarantined_signatures,
+              (SELECT COUNT(*) FROM indexer_program_state WHERE history_complete IS NOT TRUE OR scan_before IS NOT NULL OR scan_head IS NOT NULL) AS history_scans_pending,
+              (SELECT COUNT(*) FROM position_rebuild_required) AS rebuild_required_baskets`,
     );
     const row = res.rows[0] as Record<string, unknown>;
     const lastEventTs = row.last_event_ts ? new Date(row.last_event_ts as string) : null;
@@ -829,6 +869,15 @@ export async function healthReport(
           lastSlot: row.last_slot ?? null,
           lastEventTs: lastEventTs?.toISOString() ?? null,
           indexerLagSeconds: lastEventTs ? Math.floor((nowMs - lastEventTs.getTime()) / 1000) : null,
+          history: {
+            pendingSignatures: Number(row.pending_signatures ?? 0),
+            oldestPendingAt: row.oldest_pending_at ?? null,
+            oldestPendingChainAt: row.oldest_pending_chain_at ?? null,
+            quarantinedSignatures: Number(row.quarantined_signatures ?? 0),
+            scansPending: Number(row.history_scans_pending ?? 0),
+            rebuildRequiredBaskets: Number(row.rebuild_required_baskets ?? 0),
+            reconciliationWritesEnabled: false,
+          },
           holdings: {
             rows: Number(row.holdings_rows),
             lastUpdatedAt: holdingsUpdatedAt?.toISOString() ?? null,

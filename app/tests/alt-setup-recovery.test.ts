@@ -12,6 +12,7 @@ import {
 } from "../lib/transactions";
 import { PROGRAMS } from "../lib/solana";
 import type { CreateBasketArgs } from "../lib/create-basket";
+import { FACTORY_FIXTURE_ADDRESS, factoryFixture } from "./factory-fixture";
 
 const GENESIS = "EtWTRABZaYq6iMfeYKouRu166VU2xqa1wcaWoxPkrZBG";
 const SIGNATURE = "2".repeat(87);
@@ -47,8 +48,8 @@ function fixture() {
   const rpc = {
     getGenesisHash: async () => f.genesis,
     getSlot: async () => { f.slotReads += 1; return f.slot; },
-    getAccountInfo: async (address: PublicKey) => tables.has(address.toBase58())
-      ? { owner: f.owner, executable: false, lamports: 1, data: Buffer.alloc(56) } : null,
+    getAccountInfo: async (address: PublicKey) => address.equals(FACTORY_FIXTURE_ADDRESS) ? factoryFixture(f.keys.treasury)
+      : tables.has(address.toBase58()) ? { owner: f.owner, executable: false, lamports: 1, data: Buffer.alloc(56) } : null,
     getAddressLookupTable: async (address: PublicKey) => ({ context: { slot: f.slot }, value: tables.get(address.toBase58()) ?? null }),
     getLatestBlockhash: async () => ({ blockhash: key(1).toBase58(), lastValidBlockHeight: 1_000 }),
     confirmTransaction: async () => {

@@ -1,0 +1,21 @@
+
+> basalt@0.1.0 test:security
+> node --test scripts/security/*.test.mjs
+
+✔ bounded unsigned codec round trips full-width layouts and endian vectors (0.999041ms)
+✔ codec rejects overflow, negative, malformed and large work before conversion (0.201583ms)
+✔ all exposed public identities are permanently rejected for every role (0.203417ms)
+✔ history scanner detects committed and staged key arrays and reveals only metadata (138.516834ms)
+✔ oversized text stays blocked while real compiler binary headers are recognized (146.722041ms)
+✔ ceremony preflight rejects missing/invalid policy, spoofed vaults, retired or duplicate signers (5.031541ms)
+✔ Squads decoder supports both Borsh option lengths and rejects truncation (0.978333ms)
+✔ RPC preflight proves all authorities and Squads state with read methods only (14.259458ms)
+✔ Rust gate fails unknown advisories, changed locks, secret API reachability and expired exceptions (0.434084ms)
+ℹ tests 9
+ℹ suites 0
+ℹ pass 9
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 394.708333

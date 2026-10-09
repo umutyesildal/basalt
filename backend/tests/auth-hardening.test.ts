@@ -4,8 +4,10 @@ import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import type http from "node:http";
 import bs58 from "bs58";
+import nacl from "tweetnacl";
 import {
   AuthRateLimitError,
+  buildAuthMessage,
   clearNonces,
   consumeNonce,
   issueNonce,
@@ -15,6 +17,7 @@ import {
   signToken,
   socialAuthSecret,
   verifyToken,
+  verifyWalletSignature,
 } from "../src/api/auth";
 import { tryHandleSocialRoute } from "../src/api/social";
 
@@ -183,5 +186,23 @@ describe("bounded authentication nonce storage", () => {
     expect(JSON.parse(state.body).error.code).toBe("AUTH_RATE_LIMITED");
     expect(Number(headers.get("Retry-After"))).toBeGreaterThan(0);
     expect(Number(headers.get("Retry-After"))).toBeLessThanOrEqual(NONCE_TTL_MS / 1000);
+  });
+});
+
+describe("bounded wallet signature decoding", () => {
+  it.each([63,89,64000])("rejects a %i-character signature before base58 decoding its contents", (length) => {
+    const signature = "z".repeat(length);
+    const decode = vi.spyOn(bs58,"decode");
+    try {
+      expect(verifyWalletSignature(wallet(),"nonce",signature)).toBe(false);
+      expect(decode).not.toHaveBeenCalledWith(signature);
+    } finally { decode.mockRestore(); }
+  });
+  it("continues verifying a valid wallet-adapter signature", () => {
+    const pair = nacl.sign.keyPair.fromSeed(Buffer.alloc(32,7));
+    const pubkey = bs58.encode(pair.publicKey);
+    const signature = bs58.encode(nacl.sign.detached(Buffer.from(buildAuthMessage(pubkey,"nonce")),pair.secretKey));
+    expect(verifyWalletSignature(pubkey,"nonce",signature)).toBe(true);
+    expect(verifyWalletSignature(pubkey,"other-nonce",signature)).toBe(false);
   });
 });

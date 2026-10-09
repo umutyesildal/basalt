@@ -1,0 +1,67 @@
+
+> basalt-app@0.1.0 build
+> next build
+
+ ⚠ Warning: Next.js inferred your workspace root, but it may not be correct.
+ We detected multiple lockfiles and selected the directory of /Users/umutyesildal/.codex/worktrees/backend-devnet-security/createyouretf/package-lock.json as the root directory.
+ To silence this warning, set `outputFileTracingRoot` in your Next.js config, or consider removing one of the lockfiles if it's not needed.
+   See https://nextjs.org/docs/app/api-reference/config/next-config-js/output#caveats for more information.
+ Detected additional lockfiles:
+   * /Users/umutyesildal/.codex/worktrees/backend-devnet-security/createyouretf/app/package-lock.json
+
+   ▲ Next.js 15.5.27
+
+   Creating an optimized production build ...
+ ✓ Compiled successfully in 6.1s
+   Linting and checking validity of types ...
+   Collecting page data ...
+   Generating static pages (0/26) ...
+   Generating static pages (6/26)
+   Generating static pages (12/26)
+   Generating static pages (19/26)
+ ✓ Generating static pages (26/26)
+   Finalizing page optimization ...
+   Collecting build traces ...
+
+Route (app)                                 Size  First Load JS
+┌ ○ /                                    6.53 kB         286 kB
+├ ○ /_not-found                            162 B         103 kB
+├ ○ /activity                            5.25 kB         126 kB
+├ ƒ /api/agent/basket/[pubkey]             162 B         103 kB
+├ ƒ /api/basket-performance                162 B         103 kB
+├ ƒ /api/managed/lab/fixture               162 B         103 kB
+├ ○ /apple-icon                            162 B         103 kB
+├ ƒ /basket/[pubkey]                     19.5 kB         352 kB
+├ ƒ /basket/[pubkey]/buy                 15.4 kB         287 kB
+├ ƒ /basket/[pubkey]/opengraph-image       162 B         103 kB
+├ ƒ /basket/[pubkey]/redeem              7.52 kB         236 kB
+├ ƒ /create                              15.4 kB         261 kB
+├ ○ /create/onchain                        159 B         344 kB
+├ ƒ /creator/[pubkey]                    8.55 kB         477 kB
+├ ○ /devnet                                159 B         344 kB
+├ ○ /docs                                1.58 kB         117 kB
+├ ○ /etfs                                  139 B         199 kB
+├ ○ /explore                             10.2 kB         224 kB
+├ ○ /feed                                4.46 kB         212 kB
+├ ○ /icon.svg                                0 B            0 B
+├ ƒ /leaderboard                         7.16 kB         218 kB
+├ ○ /legal                                 162 B         103 kB
+├ ○ /managed                             1.49 kB         108 kB
+├ ○ /managed/lab                         10.8 kB         286 kB
+├ ƒ /market                               4.6 kB         225 kB
+├ ○ /opengraph-image                       162 B         103 kB
+├ ○ /portfolio                           5.29 kB         337 kB
+├ ƒ /preview                             9.29 kB         285 kB
+├ ƒ /providers                           1.59 kB         120 kB
+├ ○ /robots.txt                            162 B         103 kB
+├ ○ /sitemap.xml                           162 B         103 kB
+├ ƒ /stock/[ticker]                      7.04 kB         222 kB
+└ ○ /stocks                                140 B         199 kB
++ First Load JS shared by all             103 kB
+  ├ chunks/3131-6b8d1d9a92528951.js      46.7 kB
+  ├ chunks/c7879cf7-fabe25011515220e.js  54.2 kB
+  └ other shared chunks (total)          2.06 kB
+
+
+○  (Static)   prerendered as static content
+ƒ  (Dynamic)  server-rendered on demand

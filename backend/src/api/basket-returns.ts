@@ -5,12 +5,13 @@
  * These indexer quality rules never gate mint or redeem.
  */
 import { decimalToFixedUnits, NAV_SCALE, pctReturnExact } from "../workers/navEngine.js";
+import { navEligibilitySql, currentNavEligibilitySql } from "./valuation-quality.js";
 
 export const BASKET_RETURN_MAX_AGE_MS = 15 * 60_000;
 export const BASKET_RETURN_BASELINE_TOLERANCE_MS = 60 * 60_000;
 
 /** Trusted static fragment. Every caller uses the fixed current alias cur. */
-export const BASKET_RETURN_CURRENT_SQL = `cur.supply > 0
+export const BASKET_RETURN_CURRENT_SQL = `${navEligibilitySql("cur")} AND ${currentNavEligibilitySql("cur.basket", "cur")} AND cur.supply > 0
     AND cur.nav >= 0 AND cur.share_price >= 0
     AND cur.nav::text NOT IN ('NaN', 'Infinity', '-Infinity')
     AND cur.share_price::text NOT IN ('NaN', 'Infinity', '-Infinity')
@@ -21,6 +22,7 @@ export interface ReturnSnapshot {
   supply: string | null;
   sharePrice: string | null;
   ts: string | null;
+  valuationEligible: boolean;
 }
 
 /** Validate exact NUMERIC text without a Number round-trip. */
@@ -51,6 +53,7 @@ export function returnSnapshot(row: Record<string, unknown>, prefix: string): Re
     supply: rawSupply(row[prefix + "supply"]),
     sharePrice: snapshotDecimal(row[prefix + "share_price"]),
     ts: snapshotTime(row[prefix + "ts"]),
+    valuationEligible: row[prefix + "valuation_eligible"] === true && row[prefix + "valuation_status"] === "complete",
   };
 }
 
@@ -61,7 +64,7 @@ export function snapshotIsFresh(snapshot: ReturnSnapshot, now: Date): boolean {
 }
 
 function usablePrice(snapshot: ReturnSnapshot, baseline: boolean): boolean {
-  if (snapshot.supply === null || BigInt(snapshot.supply) <= 0n ||
+  if (snapshot.valuationEligible !== true || snapshot.supply === null || BigInt(snapshot.supply) <= 0n ||
       snapshot.nav === null || snapshot.sharePrice === null || snapshot.ts === null) return false;
   const nav = decimalToFixedUnits(snapshot.nav, NAV_SCALE);
   const price = decimalToFixedUnits(snapshot.sharePrice, NAV_SCALE);

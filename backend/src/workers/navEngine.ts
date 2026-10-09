@@ -12,8 +12,8 @@
  *
  * 2. NavEngine worker: one pass loads baskets + vault_holdings from Postgres,
  *    prices them via fetchPriceQuotes (workers/priceFetch.ts — Jupiter Price
- *    v6, source-marked), reads share supply (RPC getTokenSupply, falling back
- *    to an events-derived estimate), persists nav_snapshots (with per-mint
+ *    v6, source-marked), reads share supply from an authenticated finalized Token-2022 mint
+ *    (events-derived estimates are ineligible for persisted NAV), persists nav_snapshots (with per-mint
  *    price provenance in price_source JSONB), caches nav:{basket} (Redis when
  *    REDIS_URL is set, else an in-memory TTL map), and REFRESHes the
  *    basket_rankings materialized view on its own ~5m cadence (spec §7).
@@ -22,11 +22,14 @@
  * without prices nothing is persisted (never a fabricated NAV=0 snapshot).
  */
 
-import { Connection, PublicKey } from "@solana/web3.js";
+import { Connection, PublicKey, type AccountInfo } from "@solana/web3.js";
+import { TOKEN_2022_PROGRAM_ID, unpackMint } from "@solana/spl-token";
 import { isPgLike, type PgLike } from "../db/client.js";
 import { fetchPriceQuotes, type PriceQuoteMap } from "./priceFetch.js";
 import { createMockAwareQuoteFetcher } from "./mockPriceFill.js";
 import { withRpcBackoff, createPacer } from "../rpc/backoff.js";
+import { deriveVaultAuthority } from "../indexer/holdingsSync.js";
+import { NAV_INPUT_MAX_AGE_MS, recordValuationAttempt } from "../api/valuation-quality.js";
 
 // ---------------------------------------------------------------------------
 // Legacy numeric API — kept byte-for-byte compatible (existing vitest suite
@@ -270,22 +273,67 @@ export interface KeyValueCache {
   set(key: string, value: string, ttlSeconds: number): Promise<void>;
 }
 
-export class InMemoryCache implements KeyValueCache {
-  private readonly store = new Map<string, { value: string; expiresAt: number }>();
-  constructor(private readonly now: () => number = () => Date.now()) {}
+export interface InMemoryCacheOptions {
+  maxEntries?: number;
+  maxBytes?: number;
+  cleanupBatchSize?: number;
+}
+interface MemoryCacheEntry { value: string; expiresAt: number; bytes: number }
 
+/** Optional cache writes are dropped at capacity; live entries are never evicted. */
+export class InMemoryCache implements KeyValueCache {
+  private readonly store = new Map<string, MemoryCacheEntry>();
+  private readonly maxEntries: number;
+  private readonly maxBytes: number;
+  private readonly cleanupBatchSize: number;
+  private cleanupIterator: IterableIterator<[string, MemoryCacheEntry]> | undefined;
+  private bytes = 0;
+  constructor(private readonly now: () => number = () => Date.now(), options: InMemoryCacheOptions = {}) {
+    this.maxEntries = options.maxEntries ?? 1024;
+    this.maxBytes = options.maxBytes ?? 16 * 1024 * 1024;
+    this.cleanupBatchSize = options.cleanupBatchSize ?? 16;
+    for (const [name,value] of Object.entries({maxEntries:this.maxEntries,maxBytes:this.maxBytes,cleanupBatchSize:this.cleanupBatchSize})) {
+      if (!Number.isSafeInteger(value) || value <= 0) throw new Error(`${name} must be a positive safe integer`);
+    }
+  }
+  get entryCount(): number { return this.store.size; }
+  get storedBytes(): number { return this.bytes; }
+
+  private remove(key: string, entry: MemoryCacheEntry): void {
+    this.store.delete(key);
+    this.bytes -= entry.bytes;
+  }
+  private pruneExpired(now: number): void {
+    this.cleanupIterator ??= this.store.entries();
+    for (let inspected=0; inspected<this.cleanupBatchSize; inspected++) {
+      const item = this.cleanupIterator.next();
+      if (item.done) { this.cleanupIterator = undefined; break; }
+      const [key,entry] = item.value;
+      if (entry.expiresAt <= now) this.remove(key,entry);
+    }
+  }
   async get(key: string): Promise<string | null> {
+    const now = this.now();
+    this.pruneExpired(now);
     const hit = this.store.get(key);
     if (!hit) return null;
-    if (hit.expiresAt <= this.now()) {
-      this.store.delete(key);
+    if (hit.expiresAt <= now) {
+      this.remove(key,hit);
       return null;
     }
     return hit.value;
   }
-
   async set(key: string, value: string, ttlSeconds: number): Promise<void> {
-    this.store.set(key, { value, expiresAt: this.now() + ttlSeconds * 1000 });
+    const now = this.now();
+    this.pruneExpired(now);
+    const expiresAt = now + ttlSeconds * 1000;
+    if (!Number.isFinite(expiresAt) || ttlSeconds <= 0) return;
+    const bytes = Buffer.byteLength(key,"utf8") + Buffer.byteLength(value,"utf8");
+    const existing = this.store.get(key);
+    if ((!existing && this.store.size >= this.maxEntries) || bytes > this.maxBytes ||
+        this.bytes - (existing?.bytes ?? 0) + bytes > this.maxBytes) return;
+    this.store.set(key,{value,expiresAt,bytes});
+    this.bytes += bytes - (existing?.bytes ?? 0);
   }
 }
 
@@ -362,25 +410,29 @@ const GENESIS_SHARES_RAW = 1_000_000n;
 export interface SupplyFetch {
   supply: string; // raw u64 base units, decimal string
   source: "rpc" | "events-derived";
+  authenticated?: boolean;
 }
 
 export type SupplyFetcher = (shareMint: string, basket: string) => Promise<SupplyFetch | null>;
 
 /** Structural slice of @solana/web3.js Connection used for supply reads. */
 export interface SupplyRpc {
-  getTokenSupply(mint: PublicKey): Promise<{ value: { amount: string; decimals: number; uiAmount: number | null } }>;
+  getAccountInfo(mint: PublicKey, commitment?: "finalized"): Promise<AccountInfo<Buffer> | null>;
 }
 
 /** Real on-chain supply via getTokenSupply (u64 → decimal string). 429s go
  *  through the shared RPC backoff before the events-derived fallback runs. */
-export async function fetchSupplyRawFromRpc(rpc: SupplyRpc, shareMint: string): Promise<SupplyFetch | null> {
+export async function fetchSupplyRawFromRpc(rpc: SupplyRpc, shareMint: string, basket: string): Promise<SupplyFetch | null> {
   try {
-    const res = await withRpcBackoff(() => rpc.getTokenSupply(new PublicKey(shareMint)), {
-      logKey: "navEngine:getTokenSupply",
+    const address = new PublicKey(shareMint);
+    const info = await withRpcBackoff(() => rpc.getAccountInfo(address, "finalized"), {
+      logKey: "navEngine:getShareMint",
     });
-    const amount = res.value?.amount;
-    if (typeof amount !== "string" || amount === "") return null;
-    return { supply: amount, source: "rpc" };
+    if (!info || info.executable || !info.owner.equals(TOKEN_2022_PROGRAM_ID)) return null;
+    const mint = unpackMint(address, info, TOKEN_2022_PROGRAM_ID);
+    if (!mint.isInitialized || info.data[45] !== 1 || mint.decimals !== 6 ||
+        !mint.mintAuthority?.equals(deriveVaultAuthority(new PublicKey(basket)))) return null;
+    return { supply: mint.supply.toString(), source: "rpc", authenticated: true };
   } catch (err) {
     console.warn(`[navEngine] getTokenSupply failed for ${shareMint}:`,
       err instanceof Error ? err.message : err);
@@ -429,6 +481,7 @@ export interface NavEngineDeps {
   intervalMs?: number;
   /** basket_rankings REFRESH cadence ms (spec §7: ~5m). */
   rankingsRefreshMs?: number;
+  inputMaxAgeMs?: number;
   log?: (msg: string) => void;
 }
 
@@ -444,6 +497,19 @@ export interface BasketNavComputation {
   asOf: string;
   /** Why nothing was persisted (holdings/supply/prices missing). */
   skipReason?: string;
+  quality: {
+    eligible: boolean;
+    complete: boolean;
+    status: string;
+    expectedConstituents: number;
+    authenticatedHoldings: number;
+    validQuotes: number;
+    supplyAuthenticated: boolean;
+    missingHoldings: string[];
+    invalidHoldings: string[];
+    invalidQuotes: string[];
+    holdingsObservedAt: Record<string, string>;
+  };
 }
 
 export interface NavRunSummary {
@@ -475,12 +541,15 @@ interface BasketCoreRow {
 interface HoldingsRowLite {
   mint: string;
   scaled_amount: string;
+  authenticated: boolean;
+  updated_at: Date | string;
 }
 
 export class NavEngine {
   private timer: ReturnType<typeof setInterval> | null = null;
   private running = false;
   private lastRankingsRefreshMs = 0;
+  private passInFlight: Promise<NavRunSummary> | null = null;
 
   constructor(private readonly deps: NavEngineDeps) {}
 
@@ -513,6 +582,14 @@ export class NavEngine {
    * against real holdings, so we persist nothing and say so.
    */
   async runOnce(): Promise<NavRunSummary> {
+    if (this.passInFlight) return this.passInFlight;
+    const pass = this.runPass();
+    this.passInFlight = pass;
+    try { return await pass; }
+    finally { if (this.passInFlight === pass) this.passInFlight = null; }
+  }
+
+  private async runPass(): Promise<NavRunSummary> {
     const db = this.deps.db;
     const now = this.deps.now ?? (() => new Date());
     const summary: NavRunSummary = {
@@ -546,6 +623,26 @@ export class NavEngine {
       if (!computation.skipReason) {
         const persisted = await this.persistSnapshot(db, computation);
         if (persisted) summary.snapshotsPersisted++;
+        else {
+          computation.skipReason = "snapshot-persist-failed";
+          computation.quality.eligible = false;
+          computation.quality.complete = false;
+        }
+      }
+      try {
+        const stateRecorded = await recordValuationAttempt(db, basket.pubkey, {
+          complete: !computation.skipReason,
+          reason: computation.skipReason ?? null,
+          attemptedAt: computation.asOf,
+        });
+        if (!stateRecorded) {
+          computation.skipReason = "newer-valuation-state";
+          computation.quality.eligible = false;
+        }
+      } catch (error) {
+        computation.skipReason = "valuation-state-write-failed";
+        computation.quality.eligible = false;
+        console.warn(`[navEngine] valuation state write failed for ${basket.pubkey}:`, error instanceof Error ? error.message : error);
       }
     }
 
@@ -554,7 +651,7 @@ export class NavEngine {
     const cache = this.deps.cache;
     if (cache) {
       for (const c of summary.computations) {
-        if (c.skipReason === "no-holdings") continue;
+        if (c.skipReason || !c.quality.eligible) continue;
         try {
           await cache.set(
             `nav:${c.basket}`,
@@ -569,6 +666,7 @@ export class NavEngine {
               asOf: c.asOf,
               source: "onchain-indexed",
               skipped: c.skipReason ?? null,
+              valuation: c.quality,
             }),
             NAV_SNAPSHOT_TTL_SECONDS,
           );
@@ -603,12 +701,17 @@ export class NavEngine {
       driftBps: [],
       priceSource: {},
       asOf,
+      quality: {
+        eligible: false, complete: false, status: "incomplete", expectedConstituents: basket.constituents?.length ?? 0,
+        authenticatedHoldings: 0, validQuotes: 0, supplyAuthenticated: false,
+        missingHoldings: [], invalidHoldings: [], invalidQuotes: [], holdingsObservedAt: {},
+      },
     };
 
     let holdings: HoldingsRowLite[];
     try {
       const res = await db.query(
-        "SELECT mint, scaled_amount::text AS scaled_amount FROM vault_holdings WHERE basket = $1",
+        "SELECT mint, scaled_amount::text AS scaled_amount, authenticated, updated_at FROM vault_holdings WHERE basket = $1",
         [basket.pubkey],
       );
       holdings = res.rows as HoldingsRowLite[];
@@ -619,14 +722,43 @@ export class NavEngine {
       return { ...base, skipReason: "no-holdings" };
     }
 
-    const mints = holdings.map((h) => h.mint);
-    const fetchQuotes = this.deps.fetchQuotes ?? ((ms: string[]) => fetchPriceQuotes(ms));
-    const quotes: PriceQuoteMap = await fetchQuotes(mints);
-    const usableQuotes = Object.values(quotes).filter((q) => Number.isFinite(q.price) && q.price > 0);
-    if (usableQuotes.length === 0) {
-      // Never persist a fabricated NAV=0 snapshot — degrade and say why.
-      return { ...base, skipReason: "no-prices" };
+    const mints = basket.constituents;
+    let valuationTime = Date.parse(asOf);
+    const maxAge = this.deps.inputMaxAgeMs ?? NAV_INPUT_MAX_AGE_MS;
+    const fresh = (value: Date | string): boolean => {
+      const timestamp = value instanceof Date ? value.getTime() : typeof value === "string" ? Date.parse(value) : NaN;
+      const age = valuationTime - timestamp;
+      return Number.isFinite(age) && age >= 0 && age <= maxAge;
+    };
+    if (!Array.isArray(mints) || mints.length < 2 || mints.length > 20 || new Set(mints).size !== mints.length ||
+        !Array.isArray(basket.weights_bps) || basket.weights_bps.length !== mints.length ||
+        basket.weights_bps.some((weight) => !Number.isInteger(weight) || weight <= 0) ||
+        basket.weights_bps.reduce((total, weight) => total + weight, 0) !== 10_000) {
+      return { ...base, skipReason: "invalid-constituents" };
     }
+    const byMint = new Map(holdings.map((holding) => [holding.mint, holding]));
+    base.quality.missingHoldings = mints.filter((mint) => !byMint.has(mint));
+    base.quality.invalidHoldings = mints.filter((mint) => {
+      const holding = byMint.get(mint);
+      if (!holding) return false;
+      try {
+        return holding.authenticated !== true || !fresh(holding.updated_at) ||
+          decimalToFixedUnits(holding.scaled_amount, NAV_SCALE) < 0n;
+      } catch { return true; }
+    });
+    base.quality.authenticatedHoldings = mints.length - base.quality.missingHoldings.length - base.quality.invalidHoldings.length;
+    if (byMint.size !== holdings.length || holdings.some((holding) => !mints.includes(holding.mint)) ||
+        base.quality.missingHoldings.length || base.quality.invalidHoldings.length) {
+      return { ...base, skipReason: "incomplete-holdings" };
+    }
+    holdings = mints.map((mint) => byMint.get(mint)!);
+    base.quality.holdingsObservedAt = Object.fromEntries(holdings.map((holding) => [holding.mint, new Date(holding.updated_at).toISOString()]));
+    const fetchQuotes = this.deps.fetchQuotes ?? ((ms: string[]) => fetchPriceQuotes(ms));
+    let quotes: PriceQuoteMap;
+    try { quotes = await fetchQuotes(mints); }
+    catch { return { ...base, skipReason: "prices-unavailable" }; }
+    valuationTime = Math.max(valuationTime, (this.deps.now?.() ?? new Date()).getTime());
+    base.asOf = new Date(valuationTime).toISOString();
 
     // price_source JSONB: map of mint → {price, source, asOf} (spec §7), with
     // absent mints explicitly labeled source "missing" so a partial NAV is
@@ -635,20 +767,34 @@ export class NavEngine {
     const prices: Array<number | null> = [];
     for (const mint of mints) {
       const q = quotes[mint];
-      if (q && Number.isFinite(q.price)) {
+      if (q && q.mint === mint && q.source === "jupiter" && q.unit === "scaled-ui" &&
+          Number.isFinite(q.price) && q.price > 0 && fresh(q.asOf)) {
         priceSource[mint] = { price: q.price, source: q.source, asOf: q.asOf,
           ...(q.unit ? { unit: q.unit } : {}), ...(q.blockId ? { blockId: q.blockId } : {}) };
         prices.push(q.price);
       } else {
-        priceSource[mint] = { price: 0, source: "missing", asOf };
+        base.quality.invalidQuotes.push(mint);
         prices.push(null);
       }
     }
+    base.quality.validQuotes = mints.length - base.quality.invalidQuotes.length;
+    if (base.quality.invalidQuotes.length) {
+      return { ...base, priceSource, skipReason: base.quality.validQuotes ? "incomplete-prices" : "no-prices" };
+    }
 
     const fetchSupply = this.deps.fetchSupply ?? (async () => null);
-    const supplyFetch = await fetchSupply(basket.share_mint, basket.pubkey);
-    if (!supplyFetch) {
-      return { ...base, priceSource, skipReason: "no-supply" };
+    let supplyFetch: SupplyFetch | null;
+    try { supplyFetch = await fetchSupply(basket.share_mint, basket.pubkey); }
+    catch { supplyFetch = null; }
+    if (!supplyFetch || supplyFetch.source !== "rpc" || supplyFetch.authenticated !== true ||
+        !/^\d{1,20}$/.test(supplyFetch.supply) || BigInt(supplyFetch.supply) <= 0n || BigInt(supplyFetch.supply) > 18_446_744_073_709_551_615n) {
+      return { ...base, priceSource, skipReason: "unauthenticated-supply" };
+    }
+    base.quality.supplyAuthenticated = true;
+    valuationTime = Math.max(valuationTime, (this.deps.now?.() ?? new Date()).getTime());
+    base.asOf = new Date(valuationTime).toISOString();
+    if (holdings.some((holding) => !fresh(holding.updated_at)) || mints.some((mint) => !fresh(quotes[mint].asOf))) {
+      return { ...base, priceSource, skipReason: "inputs-expired-during-read" };
     }
 
     const nav = computeNavExact(
@@ -670,17 +816,25 @@ export class NavEngine {
       actualWeightsBps: drift.actualWeightsBps,
       driftBps: drift.driftBps,
       priceSource,
+      quality: { ...base.quality, eligible: true, complete: true, status: "complete" },
     };
   }
 
   private async persistSnapshot(db: PgLike, c: BasketNavComputation): Promise<boolean> {
     try {
-      await db.query(
-        `INSERT INTO nav_snapshots (basket, ts, nav, supply, share_price, price_source)
-         VALUES ($1, $2, $3, $4, $5, $6)`,
-        [c.basket, new Date(c.asOf), c.nav, c.supplyRaw, c.sharePrice, JSON.stringify(c.priceSource)],
+      const result = await db.query(
+        `INSERT INTO nav_snapshots (basket, ts, nav, supply, share_price, price_source, valuation_eligible, valuation_status)
+         SELECT $1, $2, $3, $4, $5, $6, true, 'complete'
+         WHERE NOT EXISTS (
+           SELECT 1 FROM jsonb_each_text($7::jsonb) expected
+           LEFT JOIN vault_holdings h ON h.basket=$1 AND h.mint=expected.key
+           WHERE h.authenticated IS DISTINCT FROM true
+             OR h.updated_at IS DISTINCT FROM expected.value::timestamptz
+         )`,
+        [c.basket, new Date(c.asOf), c.nav, c.supplyRaw, c.sharePrice,
+          JSON.stringify({ ...c.priceSource, __valuation: c.quality }), JSON.stringify(c.quality.holdingsObservedAt)],
       );
-      return true;
+      return result.rowCount === 1;
     } catch (err) {
       console.warn(`[navEngine] snapshot insert failed for ${c.basket}:`,
         err instanceof Error ? err.message : err);
@@ -732,11 +886,11 @@ export function createNavEngineFromEnv(opts: {
     // Real on-chain supply first; events-derived estimate as fallback.
     // Sequential reads are staggered (NAV_SUPPLY_RPC_GAP_MS) so a multi-basket
     // pass spreads its RPC load instead of bursting it.
-    const conn = new Connection(rpcUrl, { disableRetryOnRateLimit: true });
+    const conn = new Connection(rpcUrl, { commitment: "finalized", disableRetryOnRateLimit: true });
     const supplyPacer = createPacer(NAV_SUPPLY_RPC_GAP_MS);
     fetchSupply = async (shareMint: string, basket: string) => {
       await supplyPacer.wait();
-      return (await fetchSupplyRawFromRpc(conn, shareMint)) ?? fetchSupplyFromEvents(db, basket);
+      return (await fetchSupplyRawFromRpc(conn, shareMint, basket)) ?? fetchSupplyFromEvents(db, basket);
     };
   } else {
     fetchSupply = (_shareMint: string, basket: string) => fetchSupplyFromEvents(db, basket);

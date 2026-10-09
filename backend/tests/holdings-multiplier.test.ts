@@ -6,6 +6,8 @@ import {
   TOKEN_2022_PROGRAM_ID,
 } from "@solana/spl-token";
 import {
+  deriveVaultAuthority,
+  getVaultAtas,
   fetchMintFacts,
   fetchMultiplier,
   parseScaledUiMultiplierFromMintData,
@@ -86,10 +88,10 @@ describe("scheduled xStocks multiplier", () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2026-10-03T00:00:00Z"));
     const vault = new PublicKey(Buffer.alloc(32, 2));
-    const ata = new PublicKey(Buffer.alloc(32, 3));
+    const ata = getVaultAtas(vault, [mint])[0];
     const tokenData = Buffer.alloc(165);
     mint.toBuffer().copy(tokenData, 0);
-    vault.toBuffer().copy(tokenData, 32);
+    deriveVaultAuthority(vault).toBuffer().copy(tokenData, 32);
     tokenData.writeBigUInt64LE(100_000_000n, 64);
     tokenData[108] = 1;
     const rpc: SolanaRpc = {

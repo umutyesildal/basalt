@@ -1,6 +1,6 @@
 # Basalt implementation backlog
 
-> **4 October audit continuation, 2026-10-09:** BAS-AUD-02/03 auth/resource controls and regression tests are complete on `codex/backend-devnet-security`; deployment remains pending. BAS-AUD-01/04 and 05–10 remain open. The [dated remediation record](backend-devnet-security-2026-10-09.md) carries exact scope, evidence and dependencies; BAS-019/022 below remain active.
+> **4 October audit continuation, 2026-10-09:** `codex/backend-devnet-security` now implements auth/resource bounds, canonical log identity, atomic position effects, durable finalized history, fail-closed facts/NAV and dependency gates. Historical projection activation/reconciliation source awaits separate explicit approval; live key retirement, governance and rollout remain open. The [dated remediation record](backend-devnet-security-2026-10-09.md) separates implemented source, test evidence, staging and operational gates; BAS-019/022 remain active until their full acceptance is verified.
 
 > **Current devnet wallet UI, 2026-10-03:** `/devnet` and `/create/onchain` now expose wallet-signed test-token claim, atomic basket creation, in-kind mint and redemption. The same four project-issued eight-decimal Token-2022 mocks, BSTESTA–D, back every new test basket; each basket gets its own share mint. `/create` offers **Try on devnet** and a shared preview offers **Create on devnet**. The funded, once-per-wallet faucet is `2GBfjd9jPKLoqNXdX7GDN9MHRKwzwXbHk65xQVf9HAcf`. Verified basket, supply, vault and wallet reads use direct devnet RPC, without a database or backend signer. [The wallet-flow record](devnet-ui-wallet-flow-2026-10-03.md) links the finalized claim and shipped UI-builder proof: **seven finalized transactions and 20 assertions**. Names and theses are browser-local, verified against the immutable onchain metadata hash. An owner extension-wallet signature was not performed; build and responsive checks are recorded separately. This supersedes earlier redirect-only and incomplete mock-UI statements. Official xStocks, mainnet and Managed V2 release boundaries remain unchanged. Source changes remain local and unpushed.
 
@@ -288,11 +288,13 @@ Local workflow evidence (2026-09-18):
 
 ### BAS-019 — Multi-event transaction schema
 
-- [ ] Carry deterministic attributed `log_index` from the actual transaction log and migrate both ledgers.
-- [ ] Enforce `(sig,log_index)` uniqueness in events and position effects, including repeated kinds/multiple baskets.
+- [x] Carry deterministic attributed `log_index` from the actual transaction log and migrate both ledgers (local source and real PostgreSQL migration tests, 2026-10-09).
+- [x] Enforce `(sig,log_index)` uniqueness in events and position effects, including repeated kinds/multiple baskets.
 - [ ] Replay original transaction logs and reconcile lost history; defaulting old rows to index zero does not recover dropped events.
-- [ ] Make claim plus all position/fee effects atomic on a dedicated Pool client, with rollback and concurrency tests (BAS-AUD-06).
-- [ ] Add multi-event regression tests.
+- [x] Make claim plus all position/fee effects atomic on a dedicated Pool client, with rollback and concurrency tests (BAS-AUD-06; local source, historical recovery remains gated).
+- [x] Add multi-event regression tests, including real PostgreSQL rollback, concurrent claims and finalized transaction ordering.
+
+**2026-10-09 source evidence:** Finalized per-program cursor/queue replay retains original runtime offsets and global `(slot, transaction index)` order, retries missing reads, and blocks later effects after an unresolved predecessor. Legacy rows retain negative quarantine offsets; maintenance can stage a separate recovery without publishing it. Full archival replay, explicit safe recovery-source approval and operator activation remain open. See [the recovery/rollout record](backend-devnet-security-2026-10-09.md).
 
 **Acceptance:** No event is lost when one signature emits several events.
 

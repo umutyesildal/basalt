@@ -197,7 +197,8 @@ export function walletFromAuthHeader(header: string | undefined, secret: string,
  * Wallet adapters sign UTF-8 bytes of the displayed message.
  */
 export function verifyWalletSignature(wallet: string, nonce: string, signatureBase58: string): boolean {
-  if (!isValidWalletPubkey(wallet) || typeof signatureBase58 !== "string") return false;
+  if (!isValidWalletPubkey(wallet) || typeof signatureBase58 !== "string" ||
+      signatureBase58.length < 64 || signatureBase58.length > 88) return false;
   let sig: Uint8Array;
   try {
     sig = bs58.decode(signatureBase58);

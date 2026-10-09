@@ -1,0 +1,17 @@
+{
+  "name": "@basalt/bigint-buffer",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Bounded unsigned bigint codecs for the pinned Solana buffer-layout-utils dependency",
+  "main": "index.cjs",
+  "types": "index.d.ts",
+  "license": "MIT",
+  "engines": {
+    "node": ">=20"
+  },
+  "files": [
+    "index.cjs",
+    "index.d.ts",
+    "README.md"
+  ]
+}

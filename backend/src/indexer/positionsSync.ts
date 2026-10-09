@@ -299,85 +299,10 @@ export async function syncPositionsFromChain(
     console.warn("[positionsSync] skipped (no DB)");
     return stats;
   }
-
-  const basketsRes = await db.query(LOAD_BASKETS_SQL);
-  const baskets = basketsRes.rows as Array<{ pubkey: string; share_mint: string }>;
-
-  const posRes = await db.query(LOAD_POSITIONS_SQL);
-  const dbRows = posRes.rows as Array<{ user: string; basket: string }>;
-  const dbKeys = new Set(dbRows.map((r) => `${r.user}|${r.basket}`));
-
-  // Minimum spacing between sequential getProgramAccounts calls — a pass over
-  // many baskets must stream, not burst (same convention as the holdings sync).
-  const pacer = createPacer(opts.spacingMs ?? 0);
-
-  for (const b of baskets) {
-    let holders: ChainHolder[];
-    try {
-      await pacer.wait();
-      holders = await fetchShareHolders(rpc, new PublicKey(b.share_mint), {
-        backoffSleep: opts.backoffSleep,
-        jsonRpcInvoke: opts.jsonRpcInvoke,
-      });
-    } catch (err) {
-      stats.basketsFailed++;
-      console.warn(`[positionsSync] share holders read failed for basket ${b.pubkey} — retrying next tick:`,
-        err instanceof Error ? err.message : err);
-      continue; // contained: DB rows for this basket stay untouched
-    }
-    stats.basketsScanned++;
-
-    const usersOnChain = holders.map((h) => h.user);
-    const amounts = new Map(holders.map((h) => [h.user, h.amount]));
-
-    // Which of these users have event-derived evidence (Minted/Redeemed)?
-    let usersWithEvents = new Set<string>();
-    if (usersOnChain.length > 0) {
-      try {
-        const evRes = await db.query(EVENT_EVIDENCE_SQL, [b.pubkey, usersOnChain]);
-        usersWithEvents = new Set(
-          (evRes.rows as Array<{ user: string | null }>).map((r) => r.user).filter((u): u is string => typeof u === "string"),
-        );
-      } catch (err) {
-        // Evidence lookup failed: treat as NO evidence → 'balance-sync' is the
-        // honest (conservative) provenance; events keep their own write path.
-        console.warn(`[positionsSync] event evidence lookup failed for basket ${b.pubkey}:`,
-          err instanceof Error ? err.message : err);
-      }
-    }
-
-    for (const user of usersOnChain) {
-      const amount = amounts.get(user)!; // positive by construction
-      const exists = dbKeys.has(`${user}|${b.pubkey}`);
-      const hasEvents = usersWithEvents.has(user);
-      if (hasEvents && exists) {
-        await db.query(UPDATE_KEEP_EVENT_SQL, [user, b.pubkey, amount]);
-        stats.eventKept++;
-      } else if (hasEvents && !exists) {
-        await db.query(INSERT_EVENT_PENDING_SQL, [user, b.pubkey, amount]);
-        stats.eventKept++;
-      } else if (!hasEvents && exists) {
-        await db.query(UPDATE_BALANCE_SYNC_SQL, [user, b.pubkey, amount]);
-        stats.balanceSynced++;
-      } else {
-        await db.query(INSERT_BALANCE_SYNC_SQL, [user, b.pubkey, amount]);
-        stats.balanceSynced++;
-      }
-      dbKeys.add(`${user}|${b.pubkey}`);
-    }
-    stats.holders += usersOnChain.length;
-
-    // Zero-out: DB rows for THIS (successfully scanned) basket whose token
-    // account disappeared or drained to zero. History stays in position_events.
-    const gone = dbRows
-      .filter((r) => r.basket === b.pubkey && !amounts.has(r.user))
-      .map((r) => r.user);
-    if (gone.length > 0) {
-      await db.query(ZERO_OUT_SQL, [b.pubkey, gone]);
-      stats.zeroed += gone.length;
-      for (const user of gone) dbKeys.delete(`${user}|${b.pubkey}`);
-    }
-  }
-
+  // Security hold: the old unversioned reconciler can race event accounting and
+  // zero positions from partial RPC results. It stays read-only until the
+  // separately reviewed finalized-snapshot/atomic-ledger recovery is approved.
+  console.warn("[positionsSync] writes disabled pending reviewed ledger reconciliation");
   return stats;
+
 }

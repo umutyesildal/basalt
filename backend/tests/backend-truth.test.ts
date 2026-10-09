@@ -35,6 +35,7 @@ import {
 } from "../src/indexer/listener";
 import {
   deriveBasketPda,
+  deriveVaultAuthority,
   exactScaledDecimalString,
   fetchMultiplier,
   getVaultAtas,
@@ -314,7 +315,7 @@ describe("indexer/holdingsSync — multiplier parsing (fixture bytes)", () => {
     expect(parseMintDecimalsFromMintData(buildToken2022Mint(1.0, 200))).toBeNull(); // implausible decimals
   });
 
-  it("fetchMultiplier degrades to 1.0 on legacy program owner and missing account", async () => {
+  it("fetchMultiplier fails closed on legacy owner, missing account and RPC failure", async () => {
     const mint = pk(3);
     const legacyRpc: SolanaRpc = {
       async getAccountInfo() {
@@ -324,7 +325,7 @@ describe("indexer/holdingsSync — multiplier parsing (fixture bytes)", () => {
         return [];
       },
     };
-    expect(await fetchMultiplier(legacyRpc, mint)).toBe(1.0);
+    expect(await fetchMultiplier(legacyRpc, mint)).toBeNull();
     const emptyRpc: SolanaRpc = {
       async getAccountInfo() {
         return null;
@@ -333,7 +334,7 @@ describe("indexer/holdingsSync — multiplier parsing (fixture bytes)", () => {
         return [];
       },
     };
-    expect(await fetchMultiplier(emptyRpc, mint)).toBe(1.0);
+    expect(await fetchMultiplier(emptyRpc, mint)).toBeNull();
     const throwingRpc: SolanaRpc = {
       async getAccountInfo(): Promise<AccountInfo<Buffer> | null> {
         throw new Error("rpc down");
@@ -342,7 +343,7 @@ describe("indexer/holdingsSync — multiplier parsing (fixture bytes)", () => {
         return [];
       },
     };
-    expect(await fetchMultiplier(throwingRpc, mint)).toBe(1.0);
+    expect(await fetchMultiplier(throwingRpc, mint)).toBeNull();
   });
 });
 
@@ -371,8 +372,8 @@ describe("indexer/holdingsSync — exactScaledDecimalString", () => {
 
 describe("indexer/holdingsSync — syncHoldings", () => {
   const mint = pk(3);
-  const ata = pk(4);
   const basket = pk(5);
+  const ata = getVaultAtas(basket, [mint])[0];
 
   it("stores raw as bigint/string, multiplier, scaled, decimals — no Number truncation", async () => {
     const rawAmount = 9223372036854775808n; // 2^63 — far beyond MAX_SAFE_INTEGER
@@ -382,7 +383,7 @@ describe("indexer/holdingsSync — syncHoldings", () => {
       },
       async getMultipleAccountsInfo(keys) {
         expect(keys).toEqual([ata]);
-        return [buildTokenAccount(mint, basket, rawAmount, TOKEN_2022_PROGRAM_ID)];
+        return [buildTokenAccount(mint, deriveVaultAuthority(basket), rawAmount, TOKEN_2022_PROGRAM_ID)];
       },
     };
     const rows = await syncHoldings(rpc, basket, [ata], [mint]);
@@ -396,7 +397,7 @@ describe("indexer/holdingsSync — syncHoldings", () => {
     expect(row.scaled).toBeCloseTo(18446744073709.551616, 3);
   });
 
-  it("missing ATAs degrade to zero rows without throwing", async () => {
+  it("missing ATAs produce no invented zero holdings", async () => {
     const rpc: SolanaRpc = {
       async getAccountInfo() {
         return accountInfo(TOKEN_2022_PROGRAM_ID, buildToken2022Mint(null, 6));
@@ -406,9 +407,7 @@ describe("indexer/holdingsSync — syncHoldings", () => {
       },
     };
     const rows = await syncHoldings(rpc, basket, [ata], [mint]);
-    expect(rows[0].raw).toBe(0n);
-    expect(rows[0].multiplier).toBe(1.0);
-    expect(rows[0].scaledAmount).toBe("0");
+    expect(rows).toEqual([]);
   });
 
   it("upserts vault_holdings with raw bound as a decimal string", async () => {
@@ -422,6 +421,8 @@ describe("indexer/holdingsSync — syncHoldings", () => {
       scaled: 27670116110564327.4,
       scaledAmount: "27670116110564327.424",
       decimals: 6,
+      authenticated: true,
+      observedAt: new Date().toISOString(),
     };
     expect(await upsertVaultHoldings(db, [row])).toBe(true);
     expect(db.calls).toHaveLength(2); // whitelisted_mints ensure + vault_holdings upsert
@@ -556,12 +557,12 @@ describe("indexer/listener — pollOnce + DB upserts", () => {
     await indexer.pollOnce();
     // The baskets upsert now runs BEFORE the events insert (events.basket has
     // a FK to baskets(pubkey)) but is itself idempotent — ON CONFLICT DO
-    // NOTHING — so a replay can never double-count. creator_stats must stay
-    // gated on the event insert being fresh: absent here.
+    // NOTHING — so a replay can never double-count. creator_stats is recomputed
+    // from immutable basket rows rather than incremented on each event replay.
     const basketCall = db.calls.find((c) => c.sql.includes("INSERT INTO baskets"));
     expect(basketCall).toBeDefined();
     expect(basketCall?.sql).toContain("ON CONFLICT (pubkey) DO NOTHING");
-    expect(db.calls.find((c) => c.sql.includes("creator_stats"))).toBeUndefined();
+    expect(db.calls.find((c) => c.sql.includes("creator_stats"))?.sql).toContain("COUNT(*) FROM baskets");
   });
 
   it("skips failed signatures and caches seen signatures across polls", async () => {
@@ -632,7 +633,7 @@ describe("indexer/listener — pollOnce + DB upserts", () => {
   });
 
   it("insertEvent / insertEvents skip writes without a db", async () => {
-    const row: EventRow = {
+    const row: EventRow = { logIndex: 1,
       sig: "S", slot: 1, basket: null, type: "Minted", data: {}, ts: new Date(0),
     };
     expect(await insertEvent(null, row)).toBe(false);

@@ -1,3 +1,4 @@
+import { navEligibilitySql, currentNavEligibilitySql } from "./valuation-quality.js";
 /**
  * api/quotes.ts — Jupiter zap quote endpoints (spec §8 zap-in / zap-out).
  *
@@ -19,8 +20,9 @@
  * a quote is NEVER fabricated or mocked. Amount math is integer-safe: all raw
  * token amounts are decimal strings, allocations are BigInt splits.
  */
+import { createHash } from "node:crypto";
 import { isPgLike, type PgLike } from "../db/client.js";
-import type { KeyValueCache } from "../workers/navEngine.js";
+import { decimalToFixedUnits, NAV_SCALE, type KeyValueCache } from "../workers/navEngine.js";
 
 export const USDC_MINT_DEFAULT = "EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v";
 export const JUPITER_QUOTE_URL = "https://quote-api.jup.ag/v6/quote";
@@ -249,10 +251,22 @@ async function loadBasket(db: PgLike, basket: string): Promise<BasketRowLite | n
 async function loadLatestNav(db: PgLike, basket: string): Promise<NavLite | null> {
   const res = await db.query(
     `SELECT nav::text AS nav, supply::text AS supply
-     FROM nav_snapshots WHERE basket = $1 ORDER BY ts DESC LIMIT 1`,
+     FROM nav_snapshots ns WHERE ${navEligibilitySql()} AND ${currentNavEligibilitySql("ns.basket", "ns")} AND ts <= NOW() AND ts >= NOW() - interval '5 minutes' AND basket = $1 ORDER BY ts DESC LIMIT 1`,
     [basket],
   );
   return (res.rows[0] as NavLite | undefined) ?? null;
+}
+
+/** Informational estimate only: USDC raw has 6 decimals; NAV is denominated in USD. */
+function estimateShares(amountRaw: bigint, nav: NavLite | null): string | null {
+  if (!nav || !/^[0-9]{1,20}$/.test(nav.supply)) return null;
+  try {
+    const supply = BigInt(nav.supply);
+    const navUnits = decimalToFixedUnits(nav.nav, NAV_SCALE);
+    if (supply <= 0n || supply > 18_446_744_073_709_551_615n || navUnits <= 0n) return null;
+    const usdcValueUnits = amountRaw * 10n ** BigInt(NAV_SCALE - 6);
+    return ((usdcValueUnits * supply) / navUnits).toString();
+  } catch { return null; }
 }
 
 function parseSlippage(body: { slippageBps?: unknown }): number | null {
@@ -315,6 +329,10 @@ export async function handleZapIn(ctx: QuoteContext, body: Record<string, unknow
       const hit = await ctx.cache.get(cacheKey);
       if (hit) {
         const cached = JSON.parse(hit) as QuoteResponse;
+        let currentNav: NavLite | null;
+        try { currentNav = await loadLatestNav(db, basket); } catch { currentNav = null; }
+        cached.expectedShares = estimateShares(amountRaw, currentNav);
+        // The Jupiter quote retains its original observation time on reuse.
         cached.provenance.cached = true;
         return { status: 200, payload: cached };
       }
@@ -398,21 +416,10 @@ export async function handleZapIn(ctx: QuoteContext, body: Record<string, unknow
     });
   }
 
-  // Expected shares estimate: floor(amountUSDC_raw × supplyRaw / nav) — needs
-  // a NAV snapshot; absent NAV ⇒ null (honest) rather than a made-up number.
-  let expectedShares: string | null = null;
+  // Estimates require a current eligible NAV, including fractional USD NAV.
   let nav: NavLite | null = null;
-  try {
-    nav = await loadLatestNav(db, basket);
-  } catch {
-    nav = null;
-  }
-  if (nav && nav.supply !== "0" && /^[0-9]+$/.test(nav.supply)) {
-    const navUnits = BigInt(nav.nav.split(".")[0] || "0");
-    if (navUnits > 0n) {
-      expectedShares = ((amountRaw * BigInt(nav.supply)) / navUnits).toString();
-    }
-  }
+  try { nav = await loadLatestNav(db, basket); } catch { nav = null; }
+  const expectedShares = estimateShares(amountRaw, nav);
 
   const payload: QuoteResponse = {
     side: "zap-in",
@@ -478,26 +485,12 @@ export async function handleZapOut(ctx: QuoteContext, body: Record<string, unkno
   if (!row) return { status: 404, payload: { error: { code: "NOT_INDEXED", message: `basket ${basket} is not indexed` } } };
 
   const asOf = (ctx.now ?? (() => new Date()))().toISOString();
-  const cacheKey = `quote:zap-out:${basket}:${sharesRaw}:${targetMint}:${slippageBps}`;
-  if (ctx.cache) {
-    try {
-      const hit = await ctx.cache.get(cacheKey);
-      if (hit) {
-        const cached = JSON.parse(hit) as QuoteResponse;
-        cached.provenance.cached = true;
-        return { status: 200, payload: cached };
-      }
-    } catch {
-      // cache miss/failure → proceed with a live quote
-    }
-  }
-
   // Pro-rata entitlement from the indexed vault holdings (raw amounts).
   let holdings: Array<{ mint: string; raw_amount: string }>;
   try {
     const res = await db.query(
       `SELECT mint, raw_amount::text AS raw_amount FROM vault_holdings
-       WHERE basket = $1 AND mint = ANY($2::text[])`,
+       WHERE basket = $1 AND mint = ANY($2::text[]) AND authenticated IS TRUE AND updated_at <= NOW() AND updated_at >= NOW() - interval '5 minutes'`,
       [basket, row.constituents],
     );
     holdings = res.rows as Array<{ mint: string; raw_amount: string }>;
@@ -533,6 +526,24 @@ export async function handleZapOut(ctx: QuoteContext, body: Record<string, unkno
   }
 
   const { exitFeeShares, burnShares, outs } = redeemEntitlements(vaultRaw, supplyRaw, sharesRaw, row.exit_fee_bps);
+  // Authentication/freshness checks above always precede reuse. Bind the
+  // cached swap inputs to current raw vault amounts, supply and exit fee.
+  const factsHash = createHash("sha256").update(JSON.stringify({
+    supply: supplyRaw.toString(), vault: vaultRaw.map(String), constituents: row.constituents, exitFeeBps: row.exit_fee_bps,
+  })).digest("hex");
+  const cacheKey = `quote:zap-out:${basket}:${sharesRaw}:${targetMint}:${slippageBps}:${factsHash}`;
+  if (ctx.cache) {
+    try {
+      const hit = await ctx.cache.get(cacheKey);
+      if (hit) {
+        const cached = JSON.parse(hit) as QuoteResponse;
+        cached.provenance.cached = true;
+        return { status: 200, payload: cached };
+      }
+    } catch {
+      // cache miss/failure → proceed with a live quote
+    }
+  }
 
   // Jupiter leg per constituent with a non-zero entitlement; a zero-out leg
   // (dust pro-rata) is skipped rather than sent to Jupiter.

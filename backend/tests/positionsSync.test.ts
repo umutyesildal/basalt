@@ -236,19 +236,15 @@ describe("positionsSync — token account parsing", () => {
       },
     };
     let invocations = 0;
-    const db = syncDb([{ pubkey: BASKET, share_mint: SHARE_MINT }]);
-    const stats = await syncPositionsFromChain(limitedRpc, db, {
-      spacingMs: 0,
+    await expect(fetchShareHolders(limitedRpc, SHARE_MINT, {
       backoffSleep: async () => {},
       jsonRpcInvoke: async () => {
         invocations++;
         return {};
       },
-    });
+    })).rejects.toThrow("429");
     expect(gpaCalls).toBe(3); // 1 initial + 2 backoff retries (the ONE retry layer)
     expect(invocations).toBe(0); // 429s never trigger the provider fallback
-    expect(stats.basketsFailed).toBe(1);
-    expect(db.rows.size).toBe(0); // failed basket touched nothing
   });
 });
 
@@ -256,94 +252,61 @@ describe("positionsSync — token account parsing", () => {
 // 2. syncPositionsFromChain — upsert / keep-event / zero-out / partial failure
 // ============================================================================
 
-describe("positionsSync — chain-truth reconciliation", () => {
-  it("truncation case: on-chain balance with NO indexed events → 'balance-sync' provenance", async () => {
+describe("positionsSync — reconciliation security hold", () => {
+  it("does not create projection rows or issue RPC/SQL while recovery is awaiting review", async () => {
     const db = syncDb([{ pubkey: BASKET, share_mint: SHARE_MINT }]);
     const rpc = gpaRpcByMint({ [SHARE_MINT]: [tokenAccount(USER, SHARE_MINT, 3860n)] });
     const stats = await syncPositionsFromChain(rpc, db, { spacingMs: 0 });
-    expect(stats).toMatchObject({ basketsScanned: 1, holders: 1, balanceSynced: 1, eventKept: 0, zeroed: 0 });
-    expect(db.rows.get(`${USER}|${BASKET}`)).toEqual({
-      user: USER,
-      basket: BASKET,
-      share_balance: "3860",
-      cost_basis: null, // never fabricated — backfilled if events appear later
-      cost_basis_source: "balance-sync",
-    });
+    expect(stats).toEqual({ basketsScanned: 0, basketsFailed: 0, holders: 0, balanceSynced: 0, eventKept: 0, zeroed: 0 });
+    expect(db.rows.size).toBe(0);
+    expect(db.calls).toEqual([]);
+    expect(rpc.calls).toBe(0);
   });
 
-  it("event-derived case: Minted/Redeemed events exist → balance reconciled, cost_basis + source kept", async () => {
+  it("preserves an existing event-derived balance and its cost basis", async () => {
     const db = syncDb([{ pubkey: BASKET, share_mint: SHARE_MINT }]);
-    db.rows.set(`${USER}|${BASKET}`, {
-      user: USER,
-      basket: BASKET,
-      share_balance: "999999", // stale event-derived value
-      cost_basis: "1403.69898413704",
-      cost_basis_source: "reference",
-    });
+    const before = { user: USER, basket: BASKET, share_balance: "999999", cost_basis: "1403.69898413704", cost_basis_source: "reference" };
+    db.rows.set(`${USER}|${BASKET}`, { ...before });
     db.eventUsers.set(BASKET, new Set([USER]));
     const rpc = gpaRpcByMint({ [SHARE_MINT]: [tokenAccount(USER, SHARE_MINT, 3860n)] });
-    const stats = await syncPositionsFromChain(rpc, db, { spacingMs: 0 });
-    expect(stats).toMatchObject({ holders: 1, eventKept: 1, balanceSynced: 0 });
-    expect(db.rows.get(`${USER}|${BASKET}`)).toEqual({
-      user: USER,
-      basket: BASKET,
-      share_balance: "3860", // reconciled to chain truth
-      cost_basis: "1403.69898413704", // event-derived value preserved
-      cost_basis_source: "reference", // provenance preserved
-    });
+    await syncPositionsFromChain(rpc, db, { spacingMs: 0 });
+    expect(db.rows.get(`${USER}|${BASKET}`)).toEqual(before);
+    expect(db.calls).toEqual([]);
+    expect(rpc.calls).toBe(0);
   });
 
-  it("zero-out: a DB row whose token account is gone is deleted (history stays in position_events)", async () => {
+  it("never zeroes existing positions from an empty holder response during the hold", async () => {
     const db = syncDb([{ pubkey: BASKET, share_mint: SHARE_MINT }]);
-    db.rows.set(`${USER}|${BASKET}`, {
-      user: USER,
-      basket: BASKET,
-      share_balance: "1000",
-      cost_basis: "100",
-      cost_basis_source: "balance-sync",
-    });
-    const rpc = gpaRpcByMint({}); // account closed on-chain
+    db.rows.set(`${USER}|${BASKET}`, { user: USER, basket: BASKET, share_balance: "1000", cost_basis: "100", cost_basis_source: "balance-sync" });
+    const rpc = gpaRpcByMint({});
     const stats = await syncPositionsFromChain(rpc, db, { spacingMs: 0 });
-    expect(stats.zeroed).toBe(1);
-    expect(db.rows.has(`${USER}|${BASKET}`)).toBe(false);
+    expect(stats.zeroed).toBe(0);
+    expect(db.rows.get(`${USER}|${BASKET}`)?.share_balance).toBe("1000");
+    expect(db.calls).toEqual([]);
+    expect(rpc.calls).toBe(0);
   });
 
-  it("partial failure: a basket whose gPA 429s is skipped, its DB rows untouched, others still sync", async () => {
+  it("keeps every basket untouched, including baskets configured to fail RPC", async () => {
     const B2 = pk(12).toBase58();
     const SM2 = pk(13).toBase58();
-    const db = syncDb([
-      { pubkey: BASKET, share_mint: SHARE_MINT },
-      { pubkey: B2, share_mint: SM2 },
-    ]);
-    db.rows.set(`${USER3}|${BASKET}`, {
-      user: USER3,
-      basket: BASKET,
-      share_balance: "555",
-      cost_basis: null,
-      cost_basis_source: null,
-    });
-    const rpc = gpaRpcByMint(
-      {
-        [SHARE_MINT]: [tokenAccount(USER, SHARE_MINT, 1n)],
-        [SM2]: [tokenAccount(USER2, SM2, 2n)],
-      },
-      { failMints: new Set([SHARE_MINT]) }, // basket 1 429s through all backoff attempts
-    );
+    const db = syncDb([{ pubkey: BASKET, share_mint: SHARE_MINT }, { pubkey: B2, share_mint: SM2 }]);
+    db.rows.set(`${USER3}|${BASKET}`, { user: USER3, basket: BASKET, share_balance: "555", cost_basis: null, cost_basis_source: null });
+    const rpc = gpaRpcByMint({ [SHARE_MINT]: [tokenAccount(USER, SHARE_MINT, 1n)], [SM2]: [tokenAccount(USER2, SM2, 2n)] }, { failMints: new Set([SHARE_MINT]) });
     const stats = await syncPositionsFromChain(rpc, db, { spacingMs: 0, backoffSleep: async () => {} });
-    expect(stats.basketsFailed).toBe(1);
-    expect(stats.basketsScanned).toBe(1);
-    expect(stats.balanceSynced).toBe(1);
-    // failed basket's row untouched (no zero-out from a pass that could not read it)
-    expect(db.rows.get(`${USER3}|${BASKET}`)).toMatchObject({ share_balance: "555" });
-    // scanned basket reconciled
-    expect(db.rows.get(`${USER2}|${B2}`)).toMatchObject({ share_balance: "2", cost_basis_source: "balance-sync" });
+    expect(stats.basketsFailed).toBe(0);
+    expect(stats.basketsScanned).toBe(0);
+    expect(stats.balanceSynced).toBe(0);
+    expect(db.rows.get(`${USER3}|${BASKET}`)?.share_balance).toBe("555");
+    expect(db.rows.has(`${USER2}|${B2}`)).toBe(false);
+    expect(db.calls).toEqual([]);
+    expect(rpc.calls).toBe(0);
   });
 
-  it("null DB degrades honestly (no throw, zero stats)", async () => {
+  it("null DB degrades honestly with no RPC", async () => {
     const rpc = gpaRpcByMint({ [SHARE_MINT]: [tokenAccount(USER, SHARE_MINT, 1n)] });
     const stats = await syncPositionsFromChain(rpc, null);
     expect(stats).toMatchObject({ basketsScanned: 0, holders: 0 });
-    expect(rpc.calls).toBe(0); // RPC not even touched without a DB
+    expect(rpc.calls).toBe(0);
   });
 });
 
@@ -430,10 +393,11 @@ describe("listener — err guard (failed txs are never indexed)", () => {
     expect(db.calls.filter((c) => c.sql.includes("INSERT INTO events")).length).toBe(0);
   });
 
-  it("healthy tx with meta.err null still indexes normally (guard does not over-skip)", async () => {
+  it("healthy tx with meta.err null reaches event persistence (guard does not over-skip)", async () => {
     const db = syncDb([{ pubkey: BASKET, share_mint: SHARE_MINT }], new Map([[BASKET, new Set([USER])]]));
-    // Seed events + a position so applyMinted has something to blend; the
-    // assertion here is only that the events row insert RAN (guard passed).
+    // This fixture only tests the err guard reaching event persistence.
+    // Its empty claim result represents a duplicate position event.
+    db.connect = async () => ({ query: db.query.bind(db), release() {} });
     const indexer = new EventIndexer(rpcFor(null, fakeTx(log)), CFG, db);
     await indexer.pollOnce();
     expect(indexer.failedTxSkipCount).toBe(0);
@@ -456,6 +420,9 @@ describe("positions API — userPositionsByWallet + route", () => {
     cost_basis_source: "reference",
     share_price: "0.363654972942",
     share_price_as_of: "2026-09-05T19:00:00.000Z",
+    valuation_eligible: true,
+    valuation_status: "complete",
+    projection_pending: false,
     value_usd: "1403.708195555812",
     updated_at: "2026-09-05T19:30:00.000Z",
   };
@@ -497,6 +464,8 @@ describe("positions API — userPositionsByWallet + route", () => {
       costBasis: "1403.69898413704",
       source: "reference",
       sharePriceAsOf: "2026-09-05T19:00:00.000Z",
+      quality: {asOf:"2026-09-05T19:00:00.000Z",eligible:false,complete:true,status:"stale",stale:true},
+      projectionStatus: "indexed",
     });
   });
 
@@ -581,12 +550,16 @@ describe("positions API — userPositionsByWallet + route", () => {
     const cfg = indexerConfigFromEnv({
       RPC_URL: "http://localhost:8899",
       PROGRAM_BASKET: pk(99).toBase58(),
+      PROGRAM_FACTORY: pk(98).toBase58(),
+      PROGRAM_WHITELIST: pk(97).toBase58(),
       POSITIONS_SYNC_MS: "45000",
     });
     expect(cfg?.positionsSyncIntervalMs).toBe(45000);
     const cfgDefault = indexerConfigFromEnv({
       RPC_URL: "http://localhost:8899",
       PROGRAM_BASKET: pk(99).toBase58(),
+      PROGRAM_FACTORY: pk(98).toBase58(),
+      PROGRAM_WHITELIST: pk(97).toBase58(),
     });
     expect(cfgDefault?.positionsSyncIntervalMs).toBe(120000);
   });

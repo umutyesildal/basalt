@@ -215,3 +215,13 @@ state.
 - [Squads settings: vault versus multisig address](https://docs.squads.so/main/navigating-your-squad/settings)
 - [Squads security practices](https://docs.squads.so/main/additional-resources/advanced-security-best-practices)
 - [Squads V4 CLI commands](https://docs.squads.so/main/development/cli/commands)
+
+## 2026-10-09 unsigned preparation
+
+The [public-only preflight and retired-key containment note](retired-key-remediation-2026-10-09.md)
+adds machine-checked ceremony inputs and finalized read-only authority/Squads checks.
+Run `node scripts/security/governance-preflight.mjs --record <public-record.json>
+--rpc-url https://api.devnet.solana.com` after the exact public record is complete.
+It never loads a signer or grants execution authorization. The template deliberately
+contains no proposed vault or human signer addresses. Existing exact approval and
+transaction review requirements above still apply to every write.

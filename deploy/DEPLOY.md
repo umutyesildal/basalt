@@ -219,7 +219,7 @@ docker system prune -af --volumes --filter "until=72h"   # WARNING: read the vol
 
 - Enable a Hetzner snapshot/backup policy for Postgres (in the panel, about a
   20% additional charge)
-- Roll out the [2026-10-09 auth/resource controls](../docs/backend-devnet-security-2026-10-09.md): provide a generated secret, rebuild/recreate backend, validate/reload Caddy, then verify small controlled 413/429 and normal health requests. Rotating the secret invalidates all existing social tokens; users sign in again. Local code/test evidence is not a live rollout.
+- Follow the [2026-10-09 schema, archival replay, valuation and auth rollout order](../docs/backend-devnet-security-2026-10-09.md). Back up the database and stop writers; validate migrations/replay in an isolated candidate first. Legacy position publication and reconciliation remain gated; staging does not replace active rows. Provide a generated auth secret, rebuild/recreate backend, validate/reload Caddy, then verify controlled 413/429, backlog/quarantine and valuation-quality responses. Rotating the secret invalidates existing social tokens. Local test evidence is not a live rollout.
 - Socket-peer quotas are shared behind Caddy; the API ignores arbitrary forwarded headers. Review trusted-proxy identities and shared limits before adding replicas or changing the proxy topology.
 - Complete the `cso` + `review-and-iterate` security passes and legal review
   (README "Legal" section) — required for mainnet.

@@ -1,384 +1,93 @@
 
 > basalt-backend@0.1.0 test
-> vitest run --reporter=verbose
+> vitest run
 
 
  RUN  v1.6.1 /Users/umutyesildal/.codex/worktrees/backend-devnet-security/createyouretf/backend
 
-stderr | Object.<anonymous> (/Users/umutyesildal/.codex/worktrees/backend-devnet-security/createyouretf/backend/node_modules/bigint-buffer/dist/node.js:10:17)
-bigint: Failed to load bindings, pure JS will be used (try npm run rebuild?)
-
-stderr | Object.<anonymous> (/Users/umutyesildal/.codex/worktrees/backend-devnet-security/createyouretf/backend/node_modules/bigint-buffer/dist/node.js:10:17)
-bigint: Failed to load bindings, pure JS will be used (try npm run rebuild?)
-
-stderr | Object.<anonymous> (/Users/umutyesildal/.codex/worktrees/backend-devnet-security/createyouretf/backend/node_modules/bigint-buffer/dist/node.js:10:17)
-bigint: Failed to load bindings, pure JS will be used (try npm run rebuild?)
-
-stderr | Object.<anonymous> (/Users/umutyesildal/.codex/worktrees/backend-devnet-security/createyouretf/backend/node_modules/bigint-buffer/dist/node.js:10:17)
-bigint: Failed to load bindings, pure JS will be used (try npm run rebuild?)
-
-stderr | tests/positions.test.ts > positions — applyMinted > credits the user netShares and sets cost_basis from the latest share_price (marked 'reference')
-[positions] fee split skipped (basket not indexed): gBxS1f6uyyGPuW5MzGBukidSb71jdsCb5fZaoSzULE5
-
-stderr | tests/positions.test.ts > positions — applyMinted > blends cost_basis across mints at the then-current share_price
-[positions] fee split skipped (basket not indexed): gBxS1f6uyyGPuW5MzGBukidSb71jdsCb5fZaoSzULE5
-
-stderr | tests/positions.test.ts > positions — applyRedeemed > decreases balance by sharesBurned + exitFeeShares and scales cost_basis proportionally
-[positions] fee split skipped (basket not indexed): gBxS1f6uyyGPuW5MzGBukidSb71jdsCb5fZaoSzULE5
-[positions] fee split skipped (basket not indexed): gBxS1f6uyyGPuW5MzGBukidSb71jdsCb5fZaoSzULE5
-
-stderr | tests/positions.test.ts > positions — applyRedeemed > deletes the row on a full redeem so holders COUNT stays honest
-[positions] fee split skipped (basket not indexed): gBxS1f6uyyGPuW5MzGBukidSb71jdsCb5fZaoSzULE5
-
-stderr | tests/positions.test.ts > positions — applyRedeemed > redeem without an indexed position writes nothing for the user but still pays the fee split
-[positions] redeem without indexed position — skipping: 2MNus2KCpxwXnp19iyXNpWSFtBD2UGjQBAL8AbtywfT9/gBxS1f6uyyGPuW5MzGBukidSb71jdsCb5fZaoSzULE5
-
-stderr | tests/positions.test.ts > positions — applyFeeAccrued > degrades when the basket is not indexed yet — no fabricated recipients
-[positions] fee split skipped (basket not indexed): gBxS1f6uyyGPuW5MzGBukidSb71jdsCb5fZaoSzULE5
-
-stderr | tests/positions.test.ts > positions — idempotency, degradation, dispatch > replaying the same (sig, kind) is a no-op — no double count
-[positions] fee split skipped (basket not indexed): gBxS1f6uyyGPuW5MzGBukidSb71jdsCb5fZaoSzULE5
-[positions] fee split skipped (basket not indexed): gBxS1f6uyyGPuW5MzGBukidSb71jdsCb5fZaoSzULE5
-
-stderr | tests/positions.test.ts > positions — idempotency, degradation, dispatch > null DB degrades honestly: false, no throw, for every apply*
-[positions] applyMinted skipped (no DB): S
-[positions] applyRedeemed skipped (no DB): S
-[positions] applyFeeAccrued skipped (no DB): S
-[positions] applyMinted skipped (no DB): S
-
- ✓ tests/positions.test.ts > positions — decimal fixed-point helpers > decimalToFixed parses plain decimals, truncates extras, rejects garbage
- ✓ tests/positions.test.ts > positions — decimal fixed-point helpers > fixedToDecimalString round-trips without trailing zeros
- ✓ tests/positions.test.ts > positions — applyMinted > credits the user netShares and sets cost_basis from the latest share_price (marked 'reference')
- ✓ tests/positions.test.ts > positions — applyMinted > entry fee splits 90/10 to creator and treasury with NO cost basis
- ✓ tests/positions.test.ts > positions — applyMinted > leaves cost_basis NULL when no nav snapshot exists (never fabricated)
- ✓ tests/positions.test.ts > positions — applyMinted > blends cost_basis across mints at the then-current share_price
- ✓ tests/positions.test.ts > positions — applyMinted > stays exact beyond Number.MAX_SAFE_INTEGER (2^53+1 twice)
- ✓ tests/positions.test.ts > positions — applyRedeemed > decreases balance by sharesBurned + exitFeeShares and scales cost_basis proportionally
- ✓ tests/positions.test.ts > positions — applyRedeemed > deletes the row on a full redeem so holders COUNT stays honest
- ✓ tests/positions.test.ts > positions — applyRedeemed > redeem without an indexed position writes nothing for the user but still pays the fee split
- ✓ tests/positions.test.ts > positions — applyRedeemed > floors the proportional cost when the division is inexact
- ✓ tests/positions.test.ts > positions — applyFeeAccrued > credits sharesMinted 90/10 to the creator and treasury resolved from the baskets row
- ✓ tests/positions.test.ts > positions — applyFeeAccrued > dust goes to treasury (fee of 1) and skips lookups when nothing accrued
- ✓ tests/positions.test.ts > positions — applyFeeAccrued > degrades when the basket is not indexed yet — no fabricated recipients
- ✓ tests/positions.test.ts > positions — idempotency, degradation, dispatch > replaying the same (sig, kind) is a no-op — no double count
- ✓ tests/positions.test.ts > positions — idempotency, degradation, dispatch > same sig with a different kind is a distinct claim (tx can carry both)
- ✓ tests/positions.test.ts > positions — idempotency, degradation, dispatch > null DB degrades honestly: false, no throw, for every apply*
- ✓ tests/positions.test.ts > positions — idempotency, degradation, dispatch > applyPositionEvent dispatches by type; BasketCreated touches nothing
-stderr | Object.<anonymous> (/Users/umutyesildal/.codex/worktrees/backend-devnet-security/createyouretf/backend/node_modules/bigint-buffer/dist/node.js:10:17)
-bigint: Failed to load bindings, pure JS will be used (try npm run rebuild?)
-
- ✓ tests/social.test.ts > social auth primitives > builds the exact message a wallet signs
- ✓ tests/social.test.ts > social auth primitives > issues and single-use consumes nonces
- ✓ tests/social.test.ts > social auth primitives > rejects expired nonces
- ✓ tests/social.test.ts > social auth primitives > round-trips a token and rejects tampering
- ✓ tests/social.test.ts > social auth primitives > expires tokens after their TTL
- ✓ tests/social.test.ts > social auth primitives > verifies a real ed25519 wallet signature and rejects wrong messages
- ✓ tests/social.test.ts > social auth primitives > extracts the wallet from a bearer header
- ✓ tests/social.test.ts > profile validation > accepts a valid update
- ✓ tests/social.test.ts > profile validation > rejects bad handles, non-https avatars and wrong types
- ✓ tests/social.test.ts > getUserProfile > returns null profile with on-chain trade stats when unclaimed
- ✓ tests/social.test.ts > getUserProfile > returns profile row with counts and viewer state
- ✓ tests/social.test.ts > getUserHistory > maps the ledger to trade items and paginates by cursor
- ✓ tests/social.test.ts > getUserHistory > rejects garbage cursors with 400
- ✓ tests/social.test.ts > getUserHistory > keeps usdValue null when no NAV price existed yet
- ✓ tests/social.test.ts > getFeed > unifies trades and theses with privacy-honest payloads
- ✓ tests/social.test.ts > getFeed > 401s scope=following without an authed viewer
- ✓ tests/social.test.ts > getFeed > scope=following filters by the wallets the viewer follows
- ✓ tests/social.test.ts > getFeed > rejects invalid cursors with 400
- ✓ tests/social.test.ts > getLeaderboard > maps all-time ROI to a percent and validates windows
- ✓ tests/social.test.ts > getLeaderboard > windowed ranking binds the day count
- ✓ tests/social.test.ts > getBasketLeaderboard > maps share-price ROI to returnPct and preserves total NAV context
- ✓ tests/social.test.ts > getBasketLeaderboard > rejects invalid windows with 400 INVALID_WINDOW
- ✓ tests/social.test.ts > getBasketLeaderboard > picks a fully static per-window literal (no bound params, no interpolation)
- ✓ tests/social.test.ts > getBasketLeaderboard > serves GET /leaderboard/baskets through the dispatcher (public read)
- ✓ tests/social.test.ts > posts and interactions > requires a claimed profile before posting
- ✓ tests/social.test.ts > posts and interactions > validates kind, title and body
- ✓ tests/social.test.ts > posts and interactions > creates a thesis post and returns the full payload
- ✓ tests/social.test.ts > posts and interactions > only lets the author delete a post
- ✓ tests/social.test.ts > posts and interactions > likes are idempotent and unlike reports likedByMe=false
- ✓ tests/social.test.ts > posts and interactions > adds and lists comments
- ✓ tests/social.test.ts > follows > blocks self-follow with 400
- ✓ tests/social.test.ts > follows > 404s when the target has no profile
- ✓ tests/social.test.ts > follows > follows and reports the follower count
- ✓ tests/social.test.ts > tryHandleSocialRoute > issues nonces over HTTP
- ✓ tests/social.test.ts > tryHandleSocialRoute > verifies a signed message end-to-end and returns a usable token
- ✓ tests/social.test.ts > tryHandleSocialRoute > rejects a replayed nonce with 401
- ✓ tests/social.test.ts > tryHandleSocialRoute > gates writes behind auth (401) and reads through to the DB
- ✓ tests/social.test.ts > tryHandleSocialRoute > answers 503 DB_UNAVAILABLE (never fabricated) when Postgres is off
- ✓ tests/social.test.ts > tryHandleSocialRoute > falls through for non-social paths
-stderr | tests/backend-truth.test.ts > indexer/holdingsSync — syncHoldings > upsertVaultHoldings is a no-op without a db (DB-less)
-[holdings] upsertVaultHoldings skipped (no DB)
-
- ✓ tests/backend-truth.test.ts > indexer/events — discriminator matcher > derives 8-byte sha256('event:<Name>') discriminators
- ✓ tests/backend-truth.test.ts > indexer/events — discriminator matcher > matches each of the four Basalt events by prefix
- ✓ tests/backend-truth.test.ts > indexer/events — discriminator matcher > returns null for unknown / short payloads
- ✓ tests/backend-truth.test.ts > indexer/events — discriminator matcher > extracts Program data logs from log messages
- ✓ tests/backend-truth.test.ts > indexer/events — Borsh decoding > decodes BasketCreated
- ✓ tests/backend-truth.test.ts > indexer/events — Borsh decoding > decodes Minted with u64-max values as exact decimal strings
- ✓ tests/backend-truth.test.ts > indexer/events — Borsh decoding > decodes Redeemed and FeeAccrued
- ✓ tests/backend-truth.test.ts > indexer/events — Borsh decoding > returns null on truncated bodies and wrong discriminators
- ✓ tests/backend-truth.test.ts > indexer/events — Borsh decoding > decodeEventLog round-trips a Program data log line
- ✓ tests/backend-truth.test.ts > indexer/events — create_basket args decoding > decodes all create_basket args (u64 as strings)
- ✓ tests/backend-truth.test.ts > indexer/events — create_basket args decoding > accepts the base58 instruction-data string from JSON RPC
- ✓ tests/backend-truth.test.ts > indexer/events — create_basket args decoding > rejects foreign instruction data
- ✓ tests/backend-truth.test.ts > indexer/events — create_basket args decoding > decodes the treasury out of a FactoryConfig account
- ✓ tests/backend-truth.test.ts > indexer/holdingsSync — multiplier parsing (fixture bytes) > parses f64 multiplier 2.0 from a Token-2022 mint with the extension
- ✓ tests/backend-truth.test.ts > indexer/holdingsSync — multiplier parsing (fixture bytes) > parses sub-1.0 multipliers (dividend case, 0.95)
- ✓ tests/backend-truth.test.ts > indexer/holdingsSync — multiplier parsing (fixture bytes) > falls back to null (-> 1.0) for legacy / malformed mint data
- ✓ tests/backend-truth.test.ts > indexer/holdingsSync — multiplier parsing (fixture bytes) > fetchMultiplier degrades to 1.0 on legacy program owner and missing account
- ✓ tests/backend-truth.test.ts > indexer/holdingsSync — exactScaledDecimalString > computes display units exactly for normal values
- ✓ tests/backend-truth.test.ts > indexer/holdingsSync — exactScaledDecimalString > keeps u64-max raw exact in the string (never a truncated Number)
- ✓ tests/backend-truth.test.ts > indexer/holdingsSync — exactScaledDecimalString > handles zero and invalid multipliers honestly
- ✓ tests/backend-truth.test.ts > indexer/holdingsSync — syncHoldings > stores raw as bigint/string, multiplier, scaled, decimals — no Number truncation
- ✓ tests/backend-truth.test.ts > indexer/holdingsSync — syncHoldings > missing ATAs degrade to zero rows without throwing
- ✓ tests/backend-truth.test.ts > indexer/holdingsSync — syncHoldings > upserts vault_holdings with raw bound as a decimal string
- ✓ tests/backend-truth.test.ts > indexer/holdingsSync — syncHoldings > upsertVaultHoldings is a no-op without a db (DB-less)
- ✓ tests/backend-truth.test.ts > indexer/holdingsSync — syncHoldings > derives basket PDA and vault ATAs deterministically
- ✓ tests/devnet-catalog.test.ts > catalog/mockStocks — the 36-stock mock universe > has EXACTLY 12 stocks with the exact symbol → price_source mapping
- ✓ tests/devnet-catalog.test.ts > catalog/mockStocks — the 36-stock mock universe > keeps the original 4 (TSLAx/AAPLx/NVDAx/SPYx) and adds the 8 new ones
- ✓ tests/devnet-catalog.test.ts > catalog/mockStocks — the 36-stock mock universe > carries deterministic positive USD prices (stable dev-catalog values)
- ✓ tests/devnet-catalog.test.ts > catalog/mockStocks — the 36-stock mock universe > every price_source matches the on-chain mock:<slug> format and is unique
- ✓ tests/devnet-catalog.test.ts > catalog/mockStocks — the 36-stock mock universe > lookup helpers round-trip and return null for unknown inputs
- ✓ tests/devnet-catalog.test.ts > catalog/mockStocks — the 36-stock mock universe > mockQuoteForPriceSource builds a source-marked quote, null for non-mocks
- ✓ tests/devnet-catalog.test.ts > catalog — MAG SIX flagship NAV math > weights sum to exactly 10_000 bps and every constituent is in the catalog
- ✓ tests/devnet-catalog.test.ts > catalog — MAG SIX flagship NAV math > holdings scaled by weights/100 realize MAG SIX weights exactly: zero drift
- ✓ tests/devnet-catalog.test.ts > catalog — MAG SIX flagship NAV math > NAV via exact fixed point: Σ(scaled × catalog price) = 27425 USD
- ✓ tests/devnet-catalog.test.ts > catalog — MAG SIX flagship NAV math > share price over the 1M genesis supply: 27425 / 1_000_000 = 0.027425
- ✓ tests/devnet-catalog.test.ts > catalog — MAG SIX flagship NAV math > equal-share holdings produce honest (non-zero) drift vs MAG SIX targets
- ✓ tests/devnet-catalog.test.ts > workers/mockPriceFill — catalog fill for mock-labeled whitelist mints > fills Jupiter-missing mints from the catalog when the whitelist says mock:<slug>
- ✓ tests/devnet-catalog.test.ts > workers/mockPriceFill — catalog fill for mock-labeled whitelist mints > never fills a mint whose whitelist row is NOT a mock source (jupiter:*)
- ✓ tests/devnet-catalog.test.ts > workers/mockPriceFill — catalog fill for mock-labeled whitelist mints > a positive provider price is never overwritten by the catalog
- ✓ tests/devnet-catalog.test.ts > workers/mockPriceFill — catalog fill for mock-labeled whitelist mints > replaces price-0 'mock' placeholders (PRICE_FALLBACK=mock shape) with catalog prices
- ✓ tests/devnet-catalog.test.ts > workers/mockPriceFill — catalog fill for mock-labeled whitelist mints > is fail-open: DB errors, unknown mock slugs, and empty whitelists fill nothing
- ✓ tests/devnet-catalog.test.ts > catalog — MOCK_SLUG_TO_TICKER (realistic price path) > maps exactly the 12 catalog slugs to the exact real tickers
- ✓ tests/devnet-catalog.test.ts > catalog — MOCK_SLUG_TO_TICKER (realistic price path) > every catalog price_source slug resolves to a ticker (one-to-one)
- ✓ tests/devnet-catalog.test.ts > catalog — MOCK_SLUG_TO_TICKER (realistic price path) > unknown / malformed slugs never resolve (catalog fallback stays honest)
- ✓ tests/devnet-catalog.test.ts > workers/realisticMockPrices — REALISTIC_MOCK_PRICES gate + Yahoo quote > realisticMockPricesEnabled (default OFF when unset) > is OFF when the env var is unset (deterministic local dev)
- ✓ tests/devnet-catalog.test.ts > workers/realisticMockPrices — REALISTIC_MOCK_PRICES gate + Yahoo quote > realisticMockPricesEnabled (default OFF when unset) > is OFF for 0/empty/false/junk values
- ✓ tests/devnet-catalog.test.ts > workers/realisticMockPrices — REALISTIC_MOCK_PRICES gate + Yahoo quote > realisticMockPricesEnabled (default OFF when unset) > is ON for 1/true/yes/on (case-insensitive)
- ✓ tests/devnet-catalog.test.ts > workers/realisticMockPrices — REALISTIC_MOCK_PRICES gate + Yahoo quote > realisticMockPricesEnabled (default OFF when unset) > reads process.env by default (unset in the test shell ⇒ OFF)
- ✓ tests/devnet-catalog.test.ts > workers/realisticMockPrices — REALISTIC_MOCK_PRICES gate + Yahoo quote > realisticMockQuote > quotes the real ticker price with source-ready provenance fields
- ✓ tests/devnet-catalog.test.ts > workers/realisticMockPrices — REALISTIC_MOCK_PRICES gate + Yahoo quote > realisticMockQuote > caches for REALISTIC_QUOTE_TTL_MS and refetches after expiry
- ✓ tests/devnet-catalog.test.ts > workers/realisticMockPrices — REALISTIC_MOCK_PRICES gate + Yahoo quote > realisticMockQuote > is fail-open: fetch throws, rejects, returns junk, or slug unknown ⇒ null
- ✓ tests/devnet-catalog.test.ts > workers/realisticMockPrices — REALISTIC_MOCK_PRICES gate + Yahoo quote > realisticMockQuote > does NOT cache failures — the next call retries the fetcher
- ✓ tests/devnet-catalog.test.ts > workers/realisticMockPrices — REALISTIC_MOCK_PRICES gate + Yahoo quote > realisticMockQuote > spaces real fetches by REALISTIC_FETCH_GAP_MS (politeness)
- ✓ tests/devnet-catalog.test.ts > workers/mockPriceFill — realistic gating (env on/off, per-symbol fallback) > env ON + Yahoo success ⇒ source 'yahoo' with the real price
- ✓ tests/devnet-catalog.test.ts > workers/mockPriceFill — realistic gating (env on/off, per-symbol fallback) > env ON + Yahoo failure ⇒ per-symbol catalog fallback, source 'mock'
- ✓ tests/devnet-catalog.test.ts > workers/mockPriceFill — realistic gating (env on/off, per-symbol fallback) > mixed batch: each symbol degrades independently — one bad symbol never breaks the run
- ✓ tests/devnet-catalog.test.ts > workers/mockPriceFill — realistic gating (env on/off, per-symbol fallback) > env OFF (unset) ⇒ never calls Yahoo — deterministic catalog, source 'mock'
- ✓ tests/devnet-catalog.test.ts > workers/mockPriceFill — realistic gating (env on/off, per-symbol fallback) > env ON still never overwrites a positive provider (Jupiter) price
- ✓ tests/devnet-catalog.test.ts > NAV math with injected realistic (yahoo) prices — same formulas, real inputs > computeForBasket: NAV/share-price/drift formulas unchanged under yahoo quotes
- ✓ tests/devnet-catalog.test.ts > NAV math with injected realistic (yahoo) prices — same formulas, real inputs > price provenance carries the real source labels into the snapshot payload
- ✓ tests/devnet-catalog.test.ts > NAV math with injected realistic (yahoo) prices — same formulas, real inputs > mixed sources (yahoo / mock / missing) are labeled honestly; NAV sums only priced legs
- ✓ tests/devnet-catalog.test.ts > .env.devnet.example — tracked profile parses with the exact env names from code > sets every env var the backend reads (names verified against code)
- ✓ tests/devnet-catalog.test.ts > .env.devnet.example — tracked profile parses with the exact env names from code > turns REALISTIC_MOCK_PRICES on while keeping PRICE_FALLBACK semantics untouched
- ✓ tests/devnet-catalog.test.ts > .env.devnet.example — tracked profile parses with the exact env names from code > points at devnet RPC, the final program IDs, and a separate foliox_devnet DB (pre-rename local DB name, kept stable)
- ✓ tests/devnet-catalog.test.ts > .env.devnet.example — tracked profile parses with the exact env names from code > holds NO key material — no keypair/secret/private vars, no payer address in values
- ✓ tests/devnet-catalog.test.ts > .env.devnet.example — tracked profile parses with the exact env names from code > indexerConfigFromEnv picks up all three devnet programs from the profile
- ✓ tests/devnet-catalog.test.ts > .env.devnet.example — tracked profile parses with the exact env names from code > factories gate honestly on the profile: no DB ⇒ no engines (never started here)
 stderr | tests/devnet-catalog.test.ts > .env.devnet.example — tracked profile parses with the exact env names from code > factories gate honestly on the profile: no DB ⇒ no engines (never started here)
 [navEngine] disabled — no Postgres (DB-less mode)
 [feeCrank] disabled — no Postgres (DB-less mode)
 
+ ✓ tests/devnet-catalog.test.ts  (42 tests) 17ms
+stderr | tests/backend-truth.test.ts > indexer/holdingsSync — multiplier parsing (fixture bytes) > fetchMultiplier fails closed on legacy owner, missing account and RPC failure
+[holdings] mint CktRuQ2mttgRGkXJtyksdKHjUdc2C4TgDzyB98oEzy8 could not be verified: rpc down
+
+stderr | tests/backend-truth.test.ts > indexer/holdingsSync — syncHoldings > upsertVaultHoldings is a no-op without a db (DB-less)
+[holdings] upsertVaultHoldings skipped (no DB)
+
+ ✓ tests/social.test.ts  (39 tests) 65ms
 stderr | tests/waveb-nav-api.test.ts > server — GET routes (fake PgLike) > DB-less mode: DB routes answer 503 DB_UNAVAILABLE, /health stays ok with subsystems off
 [db] DATABASE_URL not set — running without Postgres persistence
 [db] DATABASE_URL not set — running without Postgres persistence
 [db] DATABASE_URL not set — running without Postgres persistence
 
- ✓ tests/waveb-nav-api.test.ts > navEngine — exact fixed-point math > computeNavExact reproduces the §5 example (500/300/200 @ 250/100/180 = 191k)
- ✓ tests/waveb-nav-api.test.ts > navEngine — exact fixed-point math > computeNavExact stays exact where f64 drifts (0.29 × 100)
- ✓ tests/waveb-nav-api.test.ts > navEngine — exact fixed-point math > computeNavExact preserves u64-scale holdings beyond Number.MAX_SAFE_INTEGER
- ✓ tests/waveb-nav-api.test.ts > navEngine — exact fixed-point math > computeNavExact multiplies huge scaled amounts × fractional prices without drift
- ✓ tests/waveb-nav-api.test.ts > navEngine — exact fixed-point math > missing / null / non-finite prices contribute 0 (provenance records it)
- ✓ tests/waveb-nav-api.test.ts > navEngine — exact fixed-point math > decimalToFixedUnits handles exponent notation and half-up rounding
- ✓ tests/waveb-nav-api.test.ts > navEngine — exact fixed-point math > mulFixed / divFixed round half-up and format back losslessly
- ✓ tests/waveb-nav-api.test.ts > navEngine — exact fixed-point math > computeSharePriceExact matches the §8 example and the schema's nav/supply basis
- ✓ tests/waveb-nav-api.test.ts > navEngine — exact fixed-point math > computeDriftExact matches AGENTS §17: actual = scaled/Σscaled × 10000, drift = actual − target
- ✓ tests/waveb-nav-api.test.ts > navEngine — exact fixed-point math > computeDriftExact stays deterministic on u64-scale holdings
- ✓ tests/waveb-nav-api.test.ts > navEngine — exact fixed-point math > pctReturnExact returns exact pct, null for zero/missing baselines
- ✓ tests/waveb-nav-api.test.ts > navEngine — exact fixed-point math > computePerformanceFromBaselines builds 24h/7d/30d/inception windows with explicit nulls
- ✓ tests/waveb-nav-api.test.ts > NavEngine worker > degrades honestly without DB: reason 'no-db', nothing persisted
- ✓ tests/waveb-nav-api.test.ts > NavEngine worker > persists nav_snapshots with exact NAV + supply string + price provenance, caches nav:{basket}
- ✓ tests/waveb-nav-api.test.ts > NavEngine worker > refreshes basket_rankings only on its ~5m cadence, not every pass
- ✓ tests/waveb-nav-api.test.ts > NavEngine worker > skips persistence when no price is available — never a fabricated NAV=0 snapshot
- ✓ tests/waveb-nav-api.test.ts > NavEngine worker > labels absent per-mint prices source 'missing' so a partial NAV is self-describing
- ✓ tests/waveb-nav-api.test.ts > NavEngine worker > skips baskets without indexed holdings
- ✓ tests/waveb-nav-api.test.ts > quotes — integer-safe leg math > splitByWeightsRaw splits by target weights and the last leg absorbs the remainder
- ✓ tests/waveb-nav-api.test.ts > quotes — integer-safe leg math > redeemEntitlements reproduces the §5 floor example (550M vault, 1M shares, exit 50bps → 54,725,000)
- ✓ tests/waveb-nav-api.test.ts > quotes — integer-safe leg math > redeventitlements stays exact beyond 2^53 (BigInt floor)
- ✓ tests/waveb-nav-api.test.ts > quotes — integer-safe leg math > usdcToRaw parses human USDC amounts to 6-decimal raw units without f64 drift
- ✓ tests/waveb-nav-api.test.ts > quotes — POST /quotes/zap-in (mocked Jupiter) > returns 3 weight-sized USDC legs with provenance, warning and mintAccountsNote
- ✓ tests/waveb-nav-api.test.ts > quotes — POST /quotes/zap-in (mocked Jupiter) > caches the quote for 30s (spec §7 quote:zap-in:{basket}:{amount}) and marks cached hits
- ✓ tests/waveb-nav-api.test.ts > quotes — POST /quotes/zap-in (mocked Jupiter) > any Jupiter leg failure ⇒ 503 QUOTE_UNAVAILABLE — never a partial or fabricated quote
- ✓ tests/waveb-nav-api.test.ts > quotes — POST /quotes/zap-in (mocked Jupiter) > validates input: unknown basket 404 NOT_INDEXED, bad amount/slippage 400, no DB 503
- ✓ tests/waveb-nav-api.test.ts > quotes — POST /quotes/zap-out (mocked Jupiter) > returns pro-rata entitlement legs (§5 numbers) plus the redeem breakdown
- ✓ tests/waveb-nav-api.test.ts > quotes — POST /quotes/zap-out (mocked Jupiter) > rejects shares exceeding indexed supply with INSUFFICIENT_BALANCE and missing holdings with NOT_INDEXED
- ✓ tests/waveb-nav-api.test.ts > quotes — POST /quotes/zap-out (mocked Jupiter) > no supply snapshot ⇒ NOT_INDEXED; bad shares ⇒ 400
- ✓ tests/waveb-nav-api.test.ts > feeCrank — hourly accrue_management_fee builder > buildFeeTx returns an unsigned versioned tx + 11-account descriptor (AccrueFee layout)
- ✓ tests/waveb-nav-api.test.ts > feeCrank — hourly accrue_management_fee builder > without RPC the crank still returns instruction descriptors but transactionBase64 is null
- ✓ tests/waveb-nav-api.test.ts > feeCrank — hourly accrue_management_fee builder > runOnce builds txs for every eligible basket and logs that the keeper must sign
- ✓ tests/waveb-nav-api.test.ts > feeCrank — hourly accrue_management_fee builder > degrades to reason 'no-db' without Postgres and never throws
- ✓ tests/waveb-nav-api.test.ts > feeCrank — hourly accrue_management_fee builder > estimateManagementFeeShares matches spec §6 (10M supply, 200bps, 30d → 16438)
- ✓ tests/waveb-nav-api.test.ts > feeCrank — hourly accrue_management_fee builder > start/stop run on an hourly cadence and are idempotent
- ✓ tests/waveb-nav-api.test.ts > server — GET routes (fake PgLike) > GET /baskets reads basket_rankings with source:'onchain-indexed' + asOf per row
- ✓ tests/waveb-nav-api.test.ts > server — GET routes (fake PgLike) > GET /baskets?sort=return_24h orders by the 24h window; unknown sort ⇒ 400 INVALID_SORT
- ✓ tests/waveb-nav-api.test.ts > server — GET routes (fake PgLike) > GET /baskets/:pubkey unknown ⇒ 404 NOT_INDEXED; known ⇒ detail + NAV + drift
- ✓ tests/waveb-nav-api.test.ts > server — GET routes (fake PgLike) > GET /baskets/:pubkey/holdings returns raw+scaled strings and numeric multiplier; 404 when not indexed
- ✓ tests/waveb-nav-api.test.ts > server — GET routes (fake PgLike) > GET /baskets/:pubkey/nav/history validates interval and returns rows
- ✓ tests/waveb-nav-api.test.ts > server — GET routes (fake PgLike) > GET /baskets/:pubkey/performance computes windows from snapshot baselines; 404 without snapshots
- ✓ tests/waveb-nav-api.test.ts > server — GET routes (fake PgLike) > GET /whitelist returns mints with numeric multiplier; /health reports indexer lag + holdings staleness
- ✓ tests/waveb-nav-api.test.ts > server — GET routes (fake PgLike) > DB-less mode: DB routes answer 503 DB_UNAVAILABLE, /health stays ok with subsystems off
- ✓ tests/waveb-nav-api.test.ts > server — GET routes (fake PgLike) > CORS headers are present on every response and the V0.1 provider routes still work
- ✓ tests/waveb-nav-api.test.ts > server — GET routes (fake PgLike) > POST /quotes/zap-in end-to-end through the handler with a fake DB + mocked Jupiter
+ ✓ tests/waveb-nav-api.test.ts  (45 tests) 41ms
 stderr | tests/positionsSync.test.ts > positionsSync — token account parsing > provider fallback: gPA secondary-index exclusion → enhanced getTokenAccounts enumeration
 [positionsSync] provider blocks token-program getProgramAccounts — falling back to enhanced getTokenAccounts for mint k7FaK87WHGVXzkaoHb7CdVPgkKDQhZ29VLDeBVbDfYn
 
 stderr | tests/positionsSync.test.ts > positionsSync — token account parsing > no fallback on 429s: a rate-limited gPA propagates after backoff (contained per basket)
-[rpc] 429 rate-limited — backing off 1933ms before retry 1/2 (cap 60000ms, jittered; ≤1 log/min per key)
-[positionsSync] share holders read failed for basket gBxS1f6uyyGPuW5MzGBukidSb71jdsCb5fZaoSzULE5 — retrying next tick: 429 Too Many Requests
+[rpc] 429 rate-limited — backing off 1719ms before retry 1/2 (cap 60000ms, jittered; ≤1 log/min per key)
 
-stderr | tests/positionsSync.test.ts > positionsSync — chain-truth reconciliation > partial failure: a basket whose gPA 429s is skipped, its DB rows untouched, others still sync
-[positionsSync] share holders read failed for basket gBxS1f6uyyGPuW5MzGBukidSb71jdsCb5fZaoSzULE5 — retrying next tick: 429 Too Many Requests
+stderr | tests/positionsSync.test.ts > positionsSync — reconciliation security hold > does not create projection rows or issue RPC/SQL while recovery is awaiting review
+[positionsSync] writes disabled pending reviewed ledger reconciliation
 
-stderr | tests/positionsSync.test.ts > positionsSync — chain-truth reconciliation > null DB degrades honestly (no throw, zero stats)
+stderr | tests/positionsSync.test.ts > positionsSync — reconciliation security hold > preserves an existing event-derived balance and its cost basis
+[positionsSync] writes disabled pending reviewed ledger reconciliation
+
+stderr | tests/positionsSync.test.ts > positionsSync — reconciliation security hold > never zeroes existing positions from an empty holder response during the hold
+[positionsSync] writes disabled pending reviewed ledger reconciliation
+
+stderr | tests/positionsSync.test.ts > positionsSync — reconciliation security hold > keeps every basket untouched, including baskets configured to fail RPC
+[positionsSync] writes disabled pending reviewed ledger reconciliation
+
+stderr | tests/positionsSync.test.ts > positionsSync — reconciliation security hold > null DB degrades honestly with no RPC
 [positionsSync] skipped (no DB)
 
- ✓ tests/positionsSync.test.ts > positionsSync — token account parsing > parses owner + amount from a raw token account buffer
- ✓ tests/positionsSync.test.ts > positionsSync — token account parsing > rejects short/malformed buffers (never invents a position)
- ✓ tests/positionsSync.test.ts > positionsSync — token account parsing > parseShareHolders sums multiple accounts per owner and drops zero balances
- ✓ tests/positionsSync.test.ts > positionsSync — token account parsing > fetchShareHolders passes the mint memcmp filter through the backoff pacer
- ✓ tests/positionsSync.test.ts > positionsSync — token account parsing > provider fallback: gPA secondary-index exclusion → enhanced getTokenAccounts enumeration
- ✓ tests/positionsSync.test.ts > positionsSync — token account parsing > no fallback on 429s: a rate-limited gPA propagates after backoff (contained per basket)
- ✓ tests/positionsSync.test.ts > positionsSync — chain-truth reconciliation > truncation case: on-chain balance with NO indexed events → 'balance-sync' provenance
- ✓ tests/positionsSync.test.ts > positionsSync — chain-truth reconciliation > event-derived case: Minted/Redeemed events exist → balance reconciled, cost_basis + source kept
- ✓ tests/positionsSync.test.ts > positionsSync — chain-truth reconciliation > zero-out: a DB row whose token account is gone is deleted (history stays in position_events)
- ✓ tests/positionsSync.test.ts > positionsSync — chain-truth reconciliation > partial failure: a basket whose gPA 429s is skipped, its DB rows untouched, others still sync
- ✓ tests/positionsSync.test.ts > positionsSync — chain-truth reconciliation > null DB degrades honestly (no throw, zero stats)
- ✓ tests/xstocks-history.test.ts > verified Solana history units and boundaries > selects the exact token on either side and prefers established liquid pools
- ✓ tests/xstocks-history.test.ts > verified Solana history units and boundaries > rejects missing liquidity, negative recent volume, and forged pool identity
- ✓ tests/xstocks-history.test.ts > verified Solana history units and boundaries > keeps liquid pools eligible when the last 24 hours had no trades but historical candles exist
- ✓ tests/xstocks-history.test.ts > verified Solana history units and boundaries > proves NFLX raw token units against a real swap and divides by the historical split multiplier
- ✓ tests/xstocks-history.test.ts > verified Solana history units and boundaries > uses each QQQ candle's effective dividend multiplier, not today's multiplier for all dates
- ✓ tests/xstocks-history.test.ts > verified Solana history units and boundaries > accepts a complete empty launch history and fails closed on broken or duplicate event chains
- ✓ tests/xstocks-history.test.ts > verified Solana history units and boundaries > converts starts to close boundaries, drops unfinished and no-trade candles without filling gaps
- ✓ tests/xstocks-history.test.ts > verified Solana history units and boundaries > rejects conflicting timestamps, malformed OHLC and mismatched token metadata
- ✓ tests/xstocks-history.test.ts > verified Solana history units and boundaries > returns a percentage only when the exact requested calendar anchors both exist
- ✓ tests/xstocks-history.test.ts > historical cache and provider contracts > requests exact quote-side mint in USD, with empty-interval filling disabled, even on a closed Saturday
- ✓ tests/xstocks-history.test.ts > historical cache and provider contracts > deduplicates in-flight work across ranges and returns loading within the request budget
- ✓ tests/xstocks-history.test.ts > historical cache and provider contracts > fails closed on unfinished or malformed issuer multiplier history
- ✓ tests/xstocks-history.test.ts > historical cache and provider contracts > fails closed on unfinished or malformed issuer multiplier history
- ✓ tests/xstocks-history.test.ts > historical cache and provider contracts > fails closed on unfinished or malformed issuer multiplier history
- ✓ tests/xstocks-history.test.ts > historical cache and provider contracts > rechecks a provider backoff deadline while the next queued request is already waiting
- ✓ tests/xstocks-history.test.ts > historical cache and provider contracts > negative-caches provider absence instead of repeating failed work on every poll
- ✓ tests/xstocks-history.test.ts > historical cache and provider contracts > refreshes immediately across UTC midnight even if the old cache is only seconds old, then cools failed retries
- ✓ tests/xstocks-history.test.ts > historical cache and provider contracts > restores verified public history from disk and retains original dates during an outage and rollover
- ✓ tests/xstocks-history.test.ts > historical cache and provider contracts > does not trust malformed persisted historical prices
- ✓ tests/xstocks-history.test.ts > history HTTP endpoint > serves a real-shaped cached-catalog request without DB or catalog/RPC/Jupiter calls
- ✓ tests/xstocks-history.test.ts > history HTTP endpoint > rejects missing/malformed/oversized mints before network work
- ✓ tests/xstocks-history.test.ts > history HTTP endpoint > rejects missing/malformed/oversized mints before network work
- ✓ tests/xstocks-history.test.ts > history HTTP endpoint > rejects missing/malformed/oversized mints before network work
- ✓ tests/xstocks-history.test.ts > history HTTP endpoint > rejects unknown official mints and unsupported ranges before network work
- ✓ tests/managed-projection.test.ts > Managed Basket V2 event projection > keeps proposal and approval separate from target version and confirmed actual holdings
- ✓ tests/managed-projection.test.ts > Managed Basket V2 event projection > advances version only on a confirmed successful execution and waits for RPC holdings reconciliation
- ✓ tests/managed-projection.test.ts > Managed Basket V2 event projection > does not infer confirmed holdings from event deltas or accept an RPC snapshot for another state
- ✓ tests/managed-projection.test.ts > Managed Basket V2 event projection > treats mint and redeem events as supply changes, then requires fresh account snapshots for holdings
- ✓ tests/managed-projection.test.ts > Managed Basket V2 event projection > deduplicates replayed events and detects conflicting data under the same event identity
- ✓ tests/managed-projection.test.ts > Managed Basket V2 event projection > ignores processed and failed-transaction events without consuming their identities
- ✓ tests/managed-projection.test.ts > Managed Basket V2 event projection > rejects stale base versions and keeps state available for the next valid proposal
- ✓ tests/managed-projection.test.ts > Managed Basket V2 event projection > rejects out-of-order event delivery and does not allow proposal/approval to overwrite newer actual state
- ✓ tests/managed-projection.test.ts > Managed Basket V2 event projection > rejects invalid final hashes, timing, execution bounds and non-positive post-balances
- ✓ tests/managed-projection.test.ts > Managed Basket V2 event projection > uses inclusive approval and fill deadlines, and expires only after the execution window
- ✓ tests/managed-projection.test.ts > Managed Basket V2 event projection > expires and cancels proposals without changing executed target or actual holdings
- ✓ tests/managed-projection.test.ts > Managed Basket V2 event projection > uses decimal strings beyond Number.MAX_SAFE_INTEGER and rejects numeric raw inputs
- ✓ tests/deployment-verifier.test.ts > deployment verifier binary parsers > parses the exact 36-byte upgradeable Program account
- ✓ tests/deployment-verifier.test.ts > deployment verifier binary parsers > parses ProgramData Some authority with a 45-byte header
- ✓ tests/deployment-verifier.test.ts > deployment verifier binary parsers > parses immutable ProgramData with the loader's padded 45-byte metadata and rejects malformed options
- ✓ tests/deployment-verifier.test.ts > deployment verifier binary parsers > decodes WhitelistConfig authority and pending authority
- ✓ tests/deployment-verifier.test.ts > deployment verifier RPC evidence > reads only finalized getMultipleAccounts and emits sanitized RPC evidence
- ✓ tests/deployment-verifier.test.ts > deployment verifier RPC evidence > requires the expected authority and never turns discovery into proof
- ✓ tests/deployment-verifier.test.ts > deployment verifier RPC evidence > binds evidence to a v2 manifest hash and the declared RPC origin
- ✓ tests/deployment-verifier.test.ts > deployment verifier RPC evidence > rejects a stale per-program deployed-slot declaration
- ✓ tests/deployment-verifier.test.ts > deployment verifier RPC evidence > rejects pending whitelist transfers
- ✓ tests/deployment-verifier.test.ts > deployment verifier RPC evidence > rejects loader owner, executable, pointer, and missing account mismatches
- ✓ tests/deployment-verifier.test.ts > deployment verifier RPC evidence > does not alter an existing sidecar when verification fails
- ✓ tests/deployment-verifier.test.ts > deployment verifier URL and RPC guards > redacts paths, queries, and fragments from evidence origins
- ✓ tests/deployment-verifier.test.ts > deployment verifier URL and RPC guards > allows only account-read RPC methods
- ✓ tests/xstocks-catalog.test.ts > official xStocks Solana catalog > fetches every page, validates Solana deployments and deduplicates repeated mints
- ✓ tests/xstocks-catalog.test.ts > official xStocks Solana catalog > never takes a stablecoin address or decimals as the asset mint metadata
- ✓ tests/xstocks-catalog.test.ts > official xStocks Solana catalog > rejects invalid or noncanonical Solana mint 1
- ✓ tests/xstocks-catalog.test.ts > official xStocks Solana catalog > rejects invalid or noncanonical Solana mint 0x1234567890123456789012345678901234567890
- ✓ tests/xstocks-catalog.test.ts > official xStocks Solana catalog > rejects invalid or noncanonical Solana mint not-a-mint
- ✓ tests/xstocks-catalog.test.ts > official xStocks Solana catalog > rejects invalid or noncanonical Solana mint 00000000000000000000000000000000
- ✓ tests/xstocks-catalog.test.ts > official xStocks Solana catalog > fails closed to the complete snapshot for malformed issuer responses
- ✓ tests/xstocks-catalog.test.ts > official xStocks Solana catalog > fails closed to the complete snapshot for malformed issuer responses
- ✓ tests/xstocks-catalog.test.ts > official xStocks Solana catalog > fails closed to the complete snapshot for malformed issuer responses
- ✓ tests/xstocks-catalog.test.ts > official xStocks Solana catalog > fails closed to the complete snapshot for malformed issuer responses
- ✓ tests/xstocks-catalog.test.ts > official xStocks Solana catalog > fails closed to the complete snapshot for malformed issuer responses
- ✓ tests/xstocks-catalog.test.ts > official xStocks Solana catalog > fails closed to the complete snapshot for malformed issuer responses
- ✓ tests/xstocks-catalog.test.ts > official xStocks Solana catalog > fails closed to the complete snapshot for malformed issuer responses
- ✓ tests/xstocks-catalog.test.ts > official xStocks Solana catalog > fails closed to the complete snapshot for malformed issuer responses
- ✓ tests/xstocks-catalog.test.ts > official xStocks Solana catalog > does not accept a partial catalog when a later page fails
- ✓ tests/xstocks-catalog.test.ts > official xStocks Solana catalog > bounds endless pagination and never presents its partial result as complete
- ✓ tests/xstocks-catalog.test.ts > official xStocks Solana catalog > rejects conflicting metadata for the same mint across pages
- ✓ tests/xstocks-catalog.test.ts > official xStocks Solana catalog > keeps halted assets, marks missing status unknown and removes unsafe logo URLs
- ✓ tests/xstocks-catalog.test.ts > official xStocks Solana catalog > uses explicit issuer types and standalone ETF names without misclassifying Netflix
- ✓ tests/xstocks-catalog.test.ts > official xStocks Solana catalog > retains evidence-backed ETF classifications and mint decimals when issuer type is null
- ✓ tests/xstocks-catalog.test.ts > catalog freshness and lookup > uses a 15-minute cache and refreshes at the boundary
- ✓ tests/xstocks-catalog.test.ts > catalog freshness and lookup > allows forced refresh and returns the complete old cache with stale=true on failure
- ✓ tests/xstocks-catalog.test.ts > catalog freshness and lookup > shares a single refresh between concurrent callers
- ✓ tests/xstocks-catalog.test.ts > catalog freshness and lookup > does not let a cleared in-flight request repopulate the cache
- ✓ tests/xstocks-catalog.test.ts > catalog freshness and lookup > keeps caller mutation out of the cache
- ✓ tests/xstocks-catalog.test.ts > catalog freshness and lookup > ships a complete metadata-only snapshot with canonical unique Solana mints
- ✓ tests/xstocks-catalog.test.ts > catalog freshness and lookup > finds token/underlying aliases case-insensitively and mints exactly
- ✓ tests/xstocks-catalog.test.ts > catalog freshness and lookup > preserves real exchange-qualified issuer aliases
- ✓ tests/xstocks-catalog.test.ts > catalog freshness and lookup > backs off failed refreshes without losing stale provenance (previous cache: false)
- ✓ tests/xstocks-catalog.test.ts > catalog freshness and lookup > backs off failed refreshes without losing stale provenance (previous cache: true)
- ✓ tests/xstocks-catalog.test.ts > catalog freshness and lookup > distinguishes exact Mastercard MAx from the MAX underlying alias
- ✓ tests/xstocks-catalog.test.ts > catalog freshness and lookup > does not resolve ambiguous underlying aliases to an arbitrary mint
- ✓ tests/xstocks-catalog.test.ts > synchronous catalog metadata > returns the complete stale metadata snapshot with its original date and no prices
- ✓ tests/xstocks-catalog.test.ts > synchronous catalog metadata > returns fresh or stale cached metadata immediately without refetching or changing its age
- ✓ tests/xstocks-catalog.test.ts > synchronous catalog metadata > preserves failed-refresh provenance even while the last good metadata is inside its TTL
-stderr | Object.<anonymous> (/Users/umutyesildal/.codex/worktrees/backend-devnet-security/createyouretf/backend/node_modules/bigint-buffer/dist/node.js:10:17)
-bigint: Failed to load bindings, pure JS will be used (try npm run rebuild?)
+stderr | tests/indexer-history.sql.test.ts > durable finalized indexer history > retains a failed transaction across restart and pages, then retries without losing cursor
+[indexer] failed to process signature-1 (attempt 1, retained for retry): transaction or logs temporarily unavailable
 
-stderr | tests/events-route.test.ts > events route — handler plumbing > DB-less mode answers 503 DB_UNAVAILABLE (same pattern as the other routes)
-[db] DATABASE_URL not set — running without Postgres persistence
+ ✓ tests/deployment-verifier.test.ts  (13 tests) 17ms
+stderr | tests/indexer-history.sql.test.ts > durable finalized indexer history > retains an unavailable or incomplete finalized block without later effects
+[indexer] global history retained for retry: Queued signature missing from canonical finalized block
 
- ✓ tests/events-route.test.ts > events route — happy path + provenance > returns ledger rows with source + asOf on every row and honest metadata
- ✓ tests/events-route.test.ts > events route — happy path + provenance > orders by ts DESC, slot DESC, sig ASC and binds limit as the second param
- ✓ tests/events-route.test.ts > events route — happy path + provenance > an indexed basket with zero events answers 200 with an explicit empty list
- ✓ tests/events-route.test.ts > events route — happy path + provenance > empty events on a NOT_INDEXED basket still answers 404, not an empty 200
- ✓ tests/events-route.test.ts > events route — limit clamping > limit (absent) clamps to 100 in the bound param
- ✓ tests/events-route.test.ts > events route — limit clamping > limit 1 clamps to 1 in the bound param
- ✓ tests/events-route.test.ts > events route — limit clamping > limit 0 clamps to 1 in the bound param
- ✓ tests/events-route.test.ts > events route — limit clamping > limit -50 clamps to 1 in the bound param
- ✓ tests/events-route.test.ts > events route — limit clamping > limit 499 clamps to 499 in the bound param
- ✓ tests/events-route.test.ts > events route — limit clamping > limit 500 clamps to 500 in the bound param
- ✓ tests/events-route.test.ts > events route — limit clamping > limit 99999 clamps to 500 in the bound param
- ✓ tests/events-route.test.ts > events route — limit clamping > non-finite and fractional limits answer 400 INVALID_LIMIT and never reach the DB
- ✓ tests/events-route.test.ts > events route — type filter > allowlisted type routes to the type SQL with the type bound as $2
- ✓ tests/events-route.test.ts > events route — type filter > rejects type "minted" with 400 INVALID_TYPE before any query
- ✓ tests/events-route.test.ts > events route — type filter > rejects type "Transfer" with 400 INVALID_TYPE before any query
- ✓ tests/events-route.test.ts > events route — type filter > rejects type "DROP TABLE events" with 400 INVALID_TYPE before any query
- ✓ tests/events-route.test.ts > events route — type filter > empty-string type means 'no filter' (falls through to the unfiltered query)
- ✓ tests/events-route.test.ts > events route — type filter > covers every event type the events-table CHECK allows
- ✓ tests/events-route.test.ts > events route — handler plumbing > serves GET /api/v1/events?basket= end-to-end with clamped query limit
- ✓ tests/events-route.test.ts > events route — handler plumbing > missing basket query answers 400 INVALID_PUBKEY without touching the DB
- ✓ tests/events-route.test.ts > events route — handler plumbing > non-base58 basket answers 400 INVALID_PUBKEY (urlencoded garbage included)
- ✓ tests/events-route.test.ts > events route — handler plumbing > non-base58-safe characters in a pubkey-shaped string answer 400 (trust boundary)
- ✓ tests/events-route.test.ts > events route — handler plumbing > query-string limit=abc answers 400 INVALID_LIMIT through the handler
- ✓ tests/events-route.test.ts > events route — handler plumbing > query-string type=bonus answers 400 INVALID_TYPE through the handler
- ✓ tests/events-route.test.ts > events route — handler plumbing > NOT_INDEXED passes through the handler untouched (404, exact error shape)
- ✓ tests/events-route.test.ts > events route — handler plumbing > DB-less mode answers 503 DB_UNAVAILABLE (same pattern as the other routes)
- ✓ tests/events-route.test.ts > events route — handler plumbing > CORS headers are set on events responses
 stderr | tests/positionsSync.test.ts > listener — err guard (failed txs are never indexed) > meta.err non-null: the Minted log in the tx is NOT indexed — no events, no position, counter increments
 [indexer] skipping failed tx FAILED-SIG (meta.err set) — no events indexed from failed transactions (skipped so far: 1)
 
- ✓ tests/positionsSync.test.ts > listener — err guard (failed txs are never indexed) > meta.err non-null: the Minted log in the tx is NOT indexed — no events, no position, counter increments 403ms
- ✓ tests/positionsSync.test.ts > listener — err guard (failed txs are never indexed) > sig-level err non-null: counted and skipped, tx never even fetched
-stderr | Object.<anonymous> (/Users/umutyesildal/.codex/worktrees/backend-devnet-security/createyouretf/backend/node_modules/bigint-buffer/dist/node.js:10:17)
-bigint: Failed to load bindings, pure JS will be used (try npm run rebuild?)
+ ✓ tests/xstocks-history.test.ts  (24 tests) 134ms
+stderr | tests/indexer-history.sql.test.ts > durable finalized indexer history > attests a fresh empty scan but never advances the attestation after a failed or busy poll
+[indexer] history discovery failed for 75hbt6uvDqjPZ9WgFtMhBnTeyHw7cinoHiz4FD2vEz2d: stale RPC below minContextSlot
 
+ ✓ tests/positionsSync.test.ts  (22 tests) 825ms
+stderr | tests/positionsSync.test.ts > positions API — userPositionsByWallet + route > handler: DB-less mode → 503 DB_UNAVAILABLE
+[db] DATABASE_URL not set — running without Postgres persistence
+
+stderr | tests/indexer-history.sql.test.ts > durable finalized indexer history > quarantines truncated logs without applying a partial event set
+[indexer] rejected basket state for signature-1: truncated-account
+
+ ✓ tests/indexer-history.sql.test.ts  (20 tests) 1033ms
+ ✓ tests/managed-projection.test.ts  (12 tests) 12ms
+ ✓ tests/xstocks-catalog.test.ts  (35 tests) 108ms
+ ✓ tests/positions.test.ts  (20 tests) 814ms
+stderr | tests/holdings-nav-quality.test.ts > authenticated mint and vault observations > rpc-failure mint facts cannot overwrite last-good facts with defaults
+[holdings] mint 2RJD1KnDRGEkvuFfAGrJ7PD28LRE9LRDjZznDywagzmr could not be verified: RPC unavailable
+[holdings] mint 2RJD1KnDRGEkvuFfAGrJ7PD28LRE9LRDjZznDywagzmr could not be verified: RPC unavailable
+
+stderr | tests/holdings-nav-quality.test.ts > authenticated mint and vault observations > short mint facts cannot overwrite last-good facts with defaults
+[holdings] mint 2RJD1KnDRGEkvuFfAGrJ7PD28LRE9LRDjZznDywagzmr could not be verified:
+[holdings] mint 2RJD1KnDRGEkvuFfAGrJ7PD28LRE9LRDjZznDywagzmr could not be verified:
+
+stderr | tests/holdings-nav-quality.test.ts > authenticated mint and vault observations > rpc-failure vault cannot be published as a fresh authenticated balance
+[holdings] vault RPC batch unavailable: RPC unavailable
+
+stderr | tests/holdings-nav-quality.test.ts > authenticated mint and vault observations > malformed vault cannot be published as a fresh authenticated balance
+[holdings] failed to verify vault DdTzZT1Ct5UJCDPx6xNTBYsMGAJGcncWj9XzLm1xPGNW:
+
+ ✓ tests/holdings-nav-quality.test.ts  (57 tests) 45ms
+stderr | tests/events-route.test.ts > events route — handler plumbing > DB-less mode answers 503 DB_UNAVAILABLE (same pattern as the other routes)
+[db] DATABASE_URL not set — running without Postgres persistence
+
+ ✓ tests/events-route.test.ts  (27 tests) 10ms
 stdout | tests/indexer-recovery.test.ts > indexer authenticated parent recovery > recovers a creation outside the history window before an FK event, preserving chain timestamps and no synthetic stats
 [indexer] recovered basket from chain state: 8objv2fRZzugftTAQXjowmTYGG5nXJzCNrgRaJR5Jt5v
 
@@ -404,103 +113,15 @@ stdout | tests/indexer-recovery.test.ts > indexer authenticated parent recovery 
 [indexer] recovered basket from chain state: 8objv2fRZzugftTAQXjowmTYGG5nXJzCNrgRaJR5Jt5v
 
 stderr | tests/indexer-recovery.test.ts > indexer authenticated parent recovery > does not turn an exhausted treasury RPC read into a fabricated parent
-[rpc] 429 rate-limited — backing off 2083ms before retry 1/2 (cap 60000ms, jittered; ≤1 log/min per key)
+[rpc] 429 rate-limited — backing off 1575ms before retry 1/2 (cap 60000ms, jittered; ≤1 log/min per key)
 
 stderr | tests/indexer-recovery.test.ts > web3 with retries disabled makes exactly three HTTP reads under the shared 429 backoff
-[rpc] 429 rate-limited — backing off 1576ms before retry 1/2 (cap 60000ms, jittered; ≤1 log/min per key)
+[rpc] 429 rate-limited — backing off 2147ms before retry 1/2 (cap 60000ms, jittered; ≤1 log/min per key)
 
- ✓ tests/indexer-recovery.test.ts > indexer authenticated parent recovery > recovers a creation outside the history window before an FK event, preserving chain timestamps and no synthetic stats
- ✓ tests/indexer-recovery.test.ts > indexer authenticated parent recovery > quarantines a wrong-owner account and never inserts an FK event
- ✓ tests/indexer-recovery.test.ts > indexer authenticated parent recovery > keeps a temporarily missing account retryable beyond five polls
- ✓ tests/indexer-recovery.test.ts > indexer authenticated parent recovery > retains a temporary null transaction when it leaves the latest page
- ✓ tests/indexer-recovery.test.ts > indexer authenticated parent recovery > indexes trusted basket CPI events even when the whitelist sweep sees the transaction first
- ✓ tests/indexer-recovery.test.ts > indexer authenticated parent recovery > ignores a foreign program with a matching Anchor event discriminator
- ✓ tests/indexer-recovery.test.ts > indexer authenticated parent recovery > retries temporary FK/DB failures beyond five polls without duplicating the immutable parent
- ✓ tests/indexer-recovery.test.ts > indexer authenticated parent recovery > resolves creation against the factory emitter when a whitelist sweep sees a factory-to-basket CPI first
- ✓ tests/indexer-recovery.test.ts > indexer authenticated parent recovery > does not turn an exhausted treasury RPC read into a fabricated parent
- ✓ tests/indexer-recovery.test.ts > web3 with retries disabled makes exactly three HTTP reads under the shared 429 backoff
- ✓ tests/xstock-quote-cache.test.ts > cached public token quotes > returns one scaled token quote and keeps older trade time separate from fresh retrieval
- ✓ tests/xstock-quote-cache.test.ts > cached public token quotes > retains last valid prices and original timestamps after outage, but never invents an unseen price
- ✓ tests/xstock-quote-cache.test.ts > cached public token quotes > retains last valid prices and original timestamps after omitted, but never invents an unseen price
- ✓ tests/xstock-quote-cache.test.ts > cached public token quotes > returns expired cached data immediately while one refresh is in flight
- ✓ tests/xstock-quote-cache.test.ts > cached public token quotes > deduplicates overlapping visible requests per mint
- ✓ tests/xstock-quote-cache.test.ts > cached public token quotes > does not replace a newer observed block with a lagging provider response
- ✓ tests/xstock-quote-cache.test.ts > cached public token quotes > refreshes only hot mints each minute and expires idle subscriptions
- ✓ tests/xstock-quote-cache.test.ts > cached public token quotes > runs the catalog pass once per five minutes without overlapping passes, then stops timers
- ✓ tests/xstock-quote-cache.test.ts > cached public token quotes > paces provider requests globally and delays the next batch after a429reset
- ✓ tests/xstock-quote-cache.test.ts > cached public token quotes > rechecks a newly learned rate-limit deadline while another request is already waiting
- ✓ tests/xstock-quote-cache.test.ts > cached public token quotes > a visible cold request is served before the remainder of the full catalog pass
- ✓ tests/xstock-quote-cache.test.ts > cached public token quotes > bounded cold reads return unavailable while the provider finishes in background
- ✓ tests/xstock-quote-cache.test.ts > cached public token quotes > aborts an active refresh on shutdown and never queues the next background batch
- ✓ tests/xstock-quote-cache.test.ts > cached public token quotes > persists public quotes atomically and restores only validated official token identities as stale
- ✓ tests/basket-state-recovery.test.ts > basket state recovery — current immutable account > returns exact immutable fields and both actual chain timestamps
- ✓ tests/basket-state-recovery.test.ts > basket state recovery — current immutable account > accepts all twenty assets beyond the frontend four-mock pack
- ✓ tests/basket-state-recovery.test.ts > basket state recovery — current immutable account > accepts exactly 886 serialized bytes and ignores allocation padding
- ✓ tests/basket-state-recovery.test.ts > basket state recovery — current immutable account > keeps supported nonce 9007199254740993n exact above Number precision
- ✓ tests/basket-state-recovery.test.ts > basket state recovery — current immutable account > keeps supported nonce 9223372036854775807n exact above Number precision
- ✓ tests/basket-state-recovery.test.ts > basket state recovery — current immutable account > explicitly refuses nonce 9223372036854775808n outside signed PostgreSQL BIGINT
- ✓ tests/basket-state-recovery.test.ts > basket state recovery — current immutable account > explicitly refuses nonce 18446744073709551615n outside signed PostgreSQL BIGINT
- ✓ tests/basket-state-recovery.test.ts > basket state recovery — current immutable account > validates configured owners and rejects executable state
- ✓ tests/basket-state-recovery.test.ts > basket state recovery — current immutable account > rejects substituted identity: invalid-discriminator
- ✓ tests/basket-state-recovery.test.ts > basket state recovery — current immutable account > rejects substituted identity: invalid-factory-pda
- ✓ tests/basket-state-recovery.test.ts > basket state recovery — current immutable account > rejects substituted identity: invalid-basket-pda
- ✓ tests/basket-state-recovery.test.ts > basket state recovery — current immutable account > rejects substituted identity: invalid-share-mint-pda
- ✓ tests/basket-state-recovery.test.ts > basket state recovery — current immutable account > rejects substituted identity: invalid-basket-bump
- ✓ tests/basket-state-recovery.test.ts > basket state recovery — current immutable account > rejects substituted identity: invalid-vault-bump
- ✓ tests/basket-state-recovery.test.ts > basket state recovery — current immutable account > rejects a different account address and a wrong configured factory program
- ✓ tests/basket-state-recovery.test.ts > basket state recovery — current immutable account > rejects constituent count 0
- ✓ tests/basket-state-recovery.test.ts > basket state recovery — current immutable account > rejects constituent count 1
- ✓ tests/basket-state-recovery.test.ts > basket state recovery — current immutable account > rejects constituent count 21
- ✓ tests/basket-state-recovery.test.ts > basket state recovery — current immutable account > rejects constituent count 255
- ✓ tests/basket-state-recovery.test.ts > basket state recovery — current immutable account > rejects duplicate or zero constituent addresses
- ✓ tests/basket-state-recovery.test.ts > basket state recovery — current immutable account > rejects weights 0/10000
- ✓ tests/basket-state-recovery.test.ts > basket state recovery — current immutable account > rejects weights 5000/4999
- ✓ tests/basket-state-recovery.test.ts > basket state recovery — current immutable account > rejects weights 10000/10000
- ✓ tests/basket-state-recovery.test.ts > basket state recovery — current immutable account > rejects fee above cap at byte 873
- ✓ tests/basket-state-recovery.test.ts > basket state recovery — current immutable account > rejects fee above cap at byte 875
- ✓ tests/basket-state-recovery.test.ts > basket state recovery — current immutable account > rejects fee above cap at byte 877
- ✓ tests/basket-state-recovery.test.ts > basket state recovery — current immutable account > rejects empty metadata
- ✓ tests/basket-state-recovery.test.ts > basket state recovery — current immutable account > rejects unsupported or reversed timestamps: { created: -1n, lastAccrual: 0n }
- ✓ tests/basket-state-recovery.test.ts > basket state recovery — current immutable account > rejects unsupported or reversed timestamps: { created: 1725148800n, lastAccrual: 1725148799n }
- ✓ tests/basket-state-recovery.test.ts > basket state recovery — current immutable account > rejects unsupported or reversed timestamps: { created: 1725148800n, lastAccrual: 8640000000001n }
- ✓ tests/basket-state-recovery.test.ts > basket state recovery — current immutable account > rejects unsupported or reversed timestamps: { created: 9223372036854775807n, lastAccrual: 9223372036854775807n }
- ✓ tests/basket-state-recovery.test.ts > basket state recovery — current immutable account > accepts the largest canonical fee remainder and rejects the denominator
- ✓ tests/basket-state-recovery.test.ts > factory treasury recovery — canonical configured account > reads treasury at its actual ABI offset with the fixed policy
- ✓ tests/basket-state-recovery.test.ts > factory treasury recovery — canonical configured account > rejects wrong owner, executable state, short data and invalid address
- ✓ tests/basket-state-recovery.test.ts > factory treasury recovery — canonical configured account > rejects a matching layout under a different discriminator or PDA
- ✓ tests/basket-state-recovery.test.ts > factory treasury recovery — canonical configured account > rejects a corrupted factory bump
- ✓ tests/basket-state-recovery.test.ts > factory treasury recovery — canonical configured account > rejects a substituted split or cap at byte 72
- ✓ tests/basket-state-recovery.test.ts > factory treasury recovery — canonical configured account > rejects a substituted split or cap at byte 74
- ✓ tests/basket-state-recovery.test.ts > factory treasury recovery — canonical configured account > rejects a substituted split or cap at byte 76
- ✓ tests/basket-state-recovery.test.ts > factory treasury recovery — canonical configured account > rejects a substituted split or cap at byte 78
-stderr | tests/market-session.test.ts > shared provider session gate > direct NAV-style reads reuse the last valid quote after close, including after an open-session outage
-[priceFetch] Jupiter V3 unavailable: HTTP 503
-
- ✓ tests/market-session.test.ts > NYSE cash-session calendar > uses inclusive09:30/exclusive16:00NewYork boundaries and correct winter/summer UTC offsets
- ✓ tests/market-session.test.ts > NYSE cash-session calendar > moves the next opening across both DST weekends without a fixed UTC offset
- ✓ tests/market-session.test.ts > NYSE cash-session calendar > excludes weekends, GoodFriday and observed exchange holidays
- ✓ tests/market-session.test.ts > NYSE cash-session calendar > honors every published2026-2028early close at13:00NewYork
- ✓ tests/market-session.test.ts > NYSE cash-session calendar > fails closed outside the verified calendar or for invalid clocks
- ✓ tests/market-session.test.ts > closed market quote cache > start/full/hot/cold reads make no metadata/provider/RPC calls during a closed session
- ✓ tests/market-session.test.ts > closed market quote cache > the actual price API avoids providers for known and unknown mints outside the session
- ✓ tests/market-session.test.ts > closed market quote cache > wakes at the opening bell instead of waiting for the five-minute interval
- ✓ tests/market-session.test.ts > closed market quote cache > retains an existing quote as stale when the market closes without rewriting timestamps
- ✓ tests/market-session.test.ts > closed market quote cache > does not start a paced provider request whose wait crosses the closing bell
- ✓ tests/market-session.test.ts > closed market quote cache > does not request the next issuer metadata page if the session closes mid-pagination
- ✓ tests/market-session.test.ts > closed market quote cache > does not start block RPC when an in-flight quote finishes after the closing bell
- ✓ tests/market-session.test.ts > shared provider session gate > direct NAV-style reads reuse the last valid quote after close, including after an open-session outage
- ✓ tests/market-session.test.ts > shared provider session gate > direct batch loops recheck the market before each outbound batch
- ✓ tests/market-session.test.ts > shared provider session gate > legacy mainnet comparison serves restored token quotes without metadata, Jupiter, or Yahoo calls closed
- ✓ tests/http-hardening.test.ts > bounded JSON request reader > accepts exactly 64 KiB and preserves UTF-8 characters split across chunks
- ✓ tests/http-hardening.test.ts > bounded JSON request reader > counts bytes rather than UTF-16 characters for streamed bodies
- ✓ tests/http-hardening.test.ts > bounded JSON request reader > does not trust a small declared Content-Length when more bytes arrive
- ✓ tests/http-hardening.test.ts > bounded JSON request reader > rejects early oversized declared bodies before attaching a data listener
- ✓ tests/http-hardening.test.ts > bounded JSON request reader > settles aborted reads and removes retained body listeners
- ✓ tests/http-hardening.test.ts > bounded JSON request reader > times out an unfinished body and clears its timer/listeners
- ✓ tests/http-hardening.test.ts > bounded JSON request reader > rejects non-object/invalid JSON: []
- ✓ tests/http-hardening.test.ts > bounded JSON request reader > rejects non-object/invalid JSON: null
- ✓ tests/http-hardening.test.ts > bounded JSON request reader > rejects non-object/invalid JSON: 42
- ✓ tests/http-hardening.test.ts > bounded JSON request reader > rejects non-object/invalid JSON: {
+ ✓ tests/indexer-recovery.test.ts  (10 tests) 48ms
+ ✓ tests/xstock-quote-cache.test.ts  (14 tests) 85ms
+ ✓ tests/basket-state-recovery.test.ts  (40 tests) 115ms
+ ✓ tests/position-events.sql.test.ts  (25 tests) 1187ms
 stderr | tests/http-hardening.test.ts > HTTP auth and resource-limit integration > returns 413 for oversized nonce/quote bodies (chunked=false) and stays responsive
 [db] DATABASE_URL not set — running without Postgres persistence
 
@@ -510,116 +131,29 @@ stderr | tests/http-hardening.test.ts > HTTP auth and resource-limit integration
 stderr | tests/http-hardening.test.ts > HTTP auth and resource-limit integration > enforces the socket peer quota despite changing spoofed forwarding headers
 [db] DATABASE_URL not set — running without Postgres persistence
 
- ✓ tests/http-hardening.test.ts > HTTP auth and resource-limit integration > returns 413 for oversized nonce/quote bodies (chunked=false) and stays responsive
- ✓ tests/http-hardening.test.ts > HTTP auth and resource-limit integration > returns 413 for oversized nonce/quote bodies (chunked=true) and stays responsive
- ✓ tests/http-hardening.test.ts > HTTP auth and resource-limit integration > preserves 413 and closes oversized authenticated PUT /api/v1/me/profile requests
- ✓ tests/http-hardening.test.ts > HTTP auth and resource-limit integration > preserves 413 and closes oversized authenticated POST /api/v1/posts requests
- ✓ tests/http-hardening.test.ts > HTTP auth and resource-limit integration > preserves 413 and closes oversized authenticated POST /api/v1/posts/1/comments requests
- ✓ tests/http-hardening.test.ts > HTTP auth and resource-limit integration > enforces the socket peer quota despite changing spoofed forwarding headers
- ✓ tests/http-hardening.test.ts > HTTP auth and resource-limit integration > enforces wallet quotas and verify-attempt quotas through the dispatcher
- ✓ tests/positions.test.ts > positions — listener wiring > pollOnce applies a Minted log to user_positions and a replayed poll never double-counts 808ms
- ✓ tests/http-hardening.test.ts > HTTP auth and resource-limit integration > still verifies an actual wallet signature and rejects nonce replay
- ✓ tests/http-hardening.test.ts > HTTP auth and resource-limit integration > bounds quote concurrency and releases every slot after success
- ✓ tests/http-hardening.test.ts > HTTP auth and resource-limit integration > caps real upstream leg fetches and maps exhaustion to 429 without sending a partial quote
- ✓ tests/http-hardening.test.ts > HTTP auth and resource-limit integration > releases quote capacity when upstream requests fail
- ✓ tests/backend-truth.test.ts > indexer/listener — pollOnce + DB upserts > decodes events and upserts events + baskets + creator_stats 804ms
-stderr | tests/positionsSync.test.ts > positions API — userPositionsByWallet + route > handler: DB-less mode → 503 DB_UNAVAILABLE
-[db] DATABASE_URL not set — running without Postgres persistence
+ ✓ tests/http-hardening.test.ts  (21 tests) 111ms
+ ✓ tests/basalt.test.ts  (41 tests) 13ms
+stderr | tests/market-session.test.ts > shared provider session gate > direct NAV-style reads reuse the last valid quote after close, including after an open-session outage
+[priceFetch] Jupiter V3 unavailable: HTTP 503
 
- ✓ tests/positionsSync.test.ts > listener — err guard (failed txs are never indexed) > healthy tx with meta.err null still indexes normally (guard does not over-skip) 403ms
- ✓ tests/positionsSync.test.ts > positions API — userPositionsByWallet + route > returns the documented shape: basket/symbol/balance/price/value/costBasis/source + wallet + asOf
- ✓ tests/positionsSync.test.ts > positions API — userPositionsByWallet + route > survives NULL nav/price columns (no NAV snapshots yet → nulls, never fabricated)
- ✓ tests/positionsSync.test.ts > positions API — userPositionsByWallet + route > empty wallet → 200 with an empty data list (never fabricated)
- ✓ tests/positionsSync.test.ts > positions API — userPositionsByWallet + route > handler: valid wallet answers 200 with the position payload
- ✓ tests/positionsSync.test.ts > positions API — userPositionsByWallet + route > handler: invalid wallet → 400 INVALID_PUBKEY (never reaches the DB layer)
- ✓ tests/positionsSync.test.ts > positions API — userPositionsByWallet + route > handler: missing wallet param → 400 INVALID_PUBKEY
- ✓ tests/positionsSync.test.ts > positions API — userPositionsByWallet + route > handler: DB-less mode → 503 DB_UNAVAILABLE
- ✓ tests/positionsSync.test.ts > positions API — userPositionsByWallet + route > env wiring: POSITIONS_SYNC_MS overrides the default cadence
- ✓ tests/basalt.test.ts > feeMath > entry fee exact
- ✓ tests/basalt.test.ts > feeMath > exit fee exact
- ✓ tests/basalt.test.ts > feeMath > uses the fixed 90/10 policy
- ✓ tests/basalt.test.ts > feeMath > split floors to creator, preserves dust, and matches the BigInt helper
- ✓ tests/basalt.test.ts > feeMath > rejects invalid fee inputs rather than applying a different split
- ✓ tests/basalt.test.ts > feeMath > rejects management bps outside the on-chain domain
- ✓ tests/basalt.test.ts > feeMath > never exceeds gross/shares
- ✓ tests/basalt.test.ts > feeMath > management fee 30d of 10M at 200bps = 16438
- ✓ tests/basalt.test.ts > feeMath > management zero cases
- ✓ tests/basalt.test.ts > feeMath > management yearly cap 300bps = 3%
- ✓ tests/basalt.test.ts > feeMath > management remainder makes one thousand 1-second accruals equal one combined accrual
- ✓ tests/basalt.test.ts > feeMath > management remainder is partition-independent for fixed supply
- ✓ tests/basalt.test.ts > feeMath > management fee compounds from the then-current supply at each checkpoint
- ✓ tests/basalt.test.ts > feeMath > management never exceeds cap
- ✓ tests/basalt.test.ts > feeMath > management daily vs single
- ✓ tests/basalt.test.ts > feeMath > management remainder clears carried dust for zero supply and zero bps
- ✓ tests/basalt.test.ts > feeMath > management remainder rejects non-integer and out-of-range bps
- ✓ tests/basalt.test.ts > feeMath > random fuzz fees
- ✓ tests/basalt.test.ts > navEngine > nav = sum scaled*price
- ✓ tests/basalt.test.ts > navEngine > share price
- ✓ tests/basalt.test.ts > navEngine > drift zero when perfect
- ✓ tests/basalt.test.ts > navEngine > drift with deviation
- ✓ tests/basalt.test.ts > navEngine > drift with empty total
- ✓ tests/basalt.test.ts > navEngine > nav with zero price
- ✓ tests/basalt.test.ts > navEngine > nav large numbers
- ✓ tests/basalt.test.ts > navEngine > drift sums to zero (approx)
- ✓ tests/basalt.test.ts > priceFetch mock > mock prices
- ✓ tests/basalt.test.ts > priceFetch mock > mock default
- ✓ tests/basalt.test.ts > gross shares math (JS mirror of Rust) > perfect
- ✓ tests/basalt.test.ts > gross shares math (JS mirror of Rust) > weight mismatch throws
- ✓ tests/basalt.test.ts > gross shares math (JS mirror of Rust) > tolerance pass at 1%
- ✓ tests/basalt.test.ts > gross shares math (JS mirror of Rust) > tolerance fail >1%
- ✓ tests/basalt.test.ts > redeem pro-rata > full
- ✓ tests/basalt.test.ts > redeem pro-rata > floor never exceeds
- ✓ tests/basalt.test.ts > redeem pro-rata > consistency after ops
- ✓ tests/basalt.test.ts > Token-2022 scaled > raw unchanged, scaled doubles on 2x multiplier
- ✓ tests/basalt.test.ts > Token-2022 scaled > decimal mismatch concept
- ✓ tests/basalt.test.ts > factory validation > weights sum 10000
- ✓ tests/basalt.test.ts > factory validation > 2-20 constituents
- ✓ tests/basalt.test.ts > factory validation > duplicate detection
- ✓ tests/basalt.test.ts > factory validation > fee caps
- ✓ tests/resource-limits.test.ts > API resource budgets > limits auth-nonce attempts per peer without extending the window on rejection
- ✓ tests/resource-limits.test.ts > API resource budgets > limits auth-verify attempts per peer without extending the window on rejection
- ✓ tests/resource-limits.test.ts > API resource budgets > limits quote attempts per peer without extending the window on rejection
- ✓ tests/resource-limits.test.ts > API resource budgets > limits auth-nonce attempts across peers for one validated wallet
- ✓ tests/resource-limits.test.ts > API resource budgets > limits auth-verify attempts across peers for one validated wallet
- ✓ tests/resource-limits.test.ts > API resource budgets > keeps operation, peer and wallet budgets separate
- ✓ tests/resource-limits.test.ts > API resource budgets > denies new identities at the hard cap without evicting an existing limit
- ✓ tests/resource-limits.test.ts > API resource budgets > expires state with bounded cleanup work under many changing identities
- ✓ tests/resource-limits.test.ts > API resource budgets > renews a requested expired bucket beyond the bounded cleanup batch
- ✓ tests/resource-limits.test.ts > API resource budgets > never renews an allowance when the supplied clock moves backwards
- ✓ tests/resource-limits.test.ts > API resource budgets > rejects excess quote work immediately and makes release idempotent
- ✓ tests/resource-limits.test.ts > API resource budgets > releases quote work after either a successful or rejected asynchronous operation
- ✓ tests/resource-limits.test.ts > API resource budgets > bounds process-wide quote fanout even when every request uses a fresh peer
- ✓ tests/resource-limits.test.ts > API resource budgets > keeps upstream accounting outside the identity map and rejects a reservation atomically
- ✓ tests/resource-limits.test.ts > API resource budgets > rejects an invalid windowMs instead of silently disabling the bound
- ✓ tests/resource-limits.test.ts > API resource budgets > rejects an invalid maxBuckets instead of silently disabling the bound
- ✓ tests/resource-limits.test.ts > API resource budgets > rejects an invalid cleanupBatchSize instead of silently disabling the bound
- ✓ tests/resource-limits.test.ts > API resource budgets > rejects an invalid maxConcurrentQuotes instead of silently disabling the bound
- ✓ tests/resource-limits.test.ts > API resource budgets > rejects an invalid maxQuoteUpstreamRequests instead of silently disabling the bound
- ✓ tests/resource-limits.test.ts > API resource budgets > rejects invalid action limits and unbounded identities
- ✓ tests/basket-returns.sql.test.ts > basket returns against disposable PostgreSQL > deposit doubles NAV/supply while all API 7d returns stay zero
- ✓ tests/basket-returns.sql.test.ts > basket returns against disposable PostgreSQL > proportional withdrawal has no impact on return
- ✓ tests/basket-returns.sql.test.ts > basket returns against disposable PostgreSQL > genuine price movement ranks numerically with compatible ratio/percent units
- ✓ tests/basket-returns.sql.test.ts > basket returns against disposable PostgreSQL > reads latest NAV/price/timestamp together even when materialized NAV is old
+ ✓ tests/market-session.test.ts  (15 tests) 40ms
+stderr | tests/livewire.test.ts > listener — retry on processing failure > retries a signature whose transaction fetch 429s — in-place backoff, then caches it
+[rpc] 429 rate-limited — backing off 2320ms before retry 1/2 (cap 60000ms, jittered; ≤1 log/min per key)
+
+stderr | tests/livewire.test.ts > listener — retry on processing failure > keeps an always-429 signature unseen for the next poll after backoff is exhausted
+[indexer] failed to process SIG429X (attempt 1, retained for retry): 429 Too Many Requests
+
+ ✓ tests/xstocks-api.test.ts  (13 tests) 34ms
 stderr | tests/xstocks-api.test.ts > official xStocks HTTP contracts > does not substitute an equity quote or mock after Jupiter authentication failure
 [priceFetch] Jupiter V3 unavailable: HTTP 401
 
- ✓ tests/xstocks-api.test.ts > official xStocks HTTP contracts > serves issuer Solana metadata without a database and keeps ETF enrichment
- ✓ tests/xstocks-api.test.ts > official xStocks HTTP contracts > returns the scaled onchain price and separates source time from fetch time
- ✓ tests/xstocks-api.test.ts > official xStocks HTTP contracts > keeps omitted or invalid token prices null even when mock fallback is enabled
- ✓ tests/xstocks-api.test.ts > official xStocks HTTP contracts > keeps omitted or invalid token prices null even when mock fallback is enabled
- ✓ tests/xstocks-api.test.ts > official xStocks HTTP contracts > does not substitute an equity quote or mock after Jupiter authentication failure
- ✓ tests/xstocks-api.test.ts > official xStocks HTTP contracts > rejects a valid mint outside the issuer catalog before asking for its price
- ✓ tests/xstocks-api.test.ts > official xStocks HTTP contracts > rejects missing, malformed or oversized mint requests before any provider call
- ✓ tests/xstocks-api.test.ts > official xStocks HTTP contracts > rejects missing, malformed or oversized mint requests before any provider call
- ✓ tests/xstocks-api.test.ts > official xStocks HTTP contracts > rejects missing, malformed or oversized mint requests before any provider call
- ✓ tests/xstocks-api.test.ts > official xStocks HTTP contracts > rejects missing, malformed or oversized mint requests before any provider call
- ✓ tests/xstocks-api.test.ts > official xStocks HTTP contracts > retains the valid price when source time is unknown without inventing a timestamp
- ✓ tests/xstocks-api.test.ts > official xStocks HTTP contracts > reports catalog fallback provenance while keeping quote prices independent
- ✓ tests/xstocks-api.test.ts > official xStocks HTTP contracts > reuses catalog, quote and block-time caches without refreshing source timestamps
- ✓ tests/basket-returns.sql.test.ts > basket returns against disposable PostgreSQL > single snapshot gives null windows and no invented leaderboard place
- ✓ tests/basket-returns.sql.test.ts > basket returns against disposable PostgreSQL > excludes zero-price history from the 7d ranking and leaves return null
- ✓ tests/basket-returns.sql.test.ts > basket returns against disposable PostgreSQL > excludes zero-supply history from the 7d ranking and leaves return null
- ✓ tests/basket-returns.sql.test.ts > basket returns against disposable PostgreSQL > excludes stale history from the 7d ranking and leaves return null
+ ✓ tests/resource-limits.test.ts  (20 tests) 10ms
+ ✓ tests/basket-returns.sql.test.ts  (41 tests) 2328ms
+stderr | tests/rpc-backoff.test.ts > rpc/backoff — withRpcBackoff > retries rate-limited calls in place with backoff until they succeed
+[rpc] 429 rate-limited — backing off 2000ms before retry 1/2 (cap 60000ms, jittered; ≤1 log/min per key)
+
+ ✓ tests/rpc-backoff.test.ts  (13 tests) 11ms
+ ✓ tests/waveb-zap-quotes.test.ts  (14 tests) 12ms
 stderr | tests/xstocks-prices.test.ts > real xStock token pricing > does not cache mock fallbacks as real prices or relabel expired quotes after failure
 [priceFetch] Jupiter V3 unavailable: HTTP 401
 
@@ -629,468 +163,12 @@ stderr | tests/xstocks-prices.test.ts > real xStock token pricing > older overla
 stderr | tests/xstocks-prices.test.ts > real xStock token pricing > distinguishes metadata-only responses from provider outages and honors rate-limit retry headers
 [priceFetch] Jupiter V3 unavailable: HTTP 429
 
- ✓ tests/xstocks-prices.test.ts > real xStock token pricing > uses already-scaled usdPrice, never stockData reference or a second multiplier
- ✓ tests/xstocks-prices.test.ts > real xStock token pricing > preserves the old multiplier before its scheduled activation
- ✓ tests/xstocks-prices.test.ts > real xStock token pricing > rejects zero, negative, nonfinite or underlying-only prices
- ✓ tests/xstocks-prices.test.ts > real xStock token pricing > batches at fifty mints and caches overlapping queries per mint
- ✓ tests/xstocks-prices.test.ts > real xStock token pricing > does not cache mock fallbacks as real prices or relabel expired quotes after failure
- ✓ tests/xstocks-prices.test.ts > real xStock token pricing > deduplicates concurrent calls and never trusts extra response mints
- ✓ tests/xstocks-prices.test.ts > real xStock token pricing > older overlapping completion (200) cannot regress a newer cached quote
- ✓ tests/xstocks-prices.test.ts > real xStock token pricing > older overlapping completion (503) cannot regress a newer cached quote
- ✓ tests/xstocks-prices.test.ts > real xStock token pricing > distinguishes metadata-only responses from provider outages and honors rate-limit retry headers
- ✓ tests/xstocks-prices.test.ts > real xStock token pricing > keeps API keys server-side in request headers
- ✓ tests/xstocks-prices.test.ts > source block timestamps > batches slots, caches immutable block times and rejects future or missing timestamps
- ✓ tests/xstocks-prices.test.ts > source block timestamps > preserves a known immutable timestamp when an older overlapping lookup fails
- ✓ tests/xstocks-prices.test.ts > source block timestamps > never substitutes fetchedAt on an RPC outage
- ✓ tests/rpc-backoff.test.ts > rpc/backoff — delay math > grows exponentially with jitter and never exceeds the cap
- ✓ tests/rpc-backoff.test.ts > rpc/backoff — delay math > jitters within ±25% of the exponential value
- ✓ tests/rpc-backoff.test.ts > rpc/backoff — delay math > detects 429s from either the status code or the reason phrase
- ✓ tests/rpc-backoff.test.ts > rpc/backoff — withRpcBackoff > retries rate-limited calls in place with backoff until they succeed
- ✓ tests/rpc-backoff.test.ts > rpc/backoff — withRpcBackoff > gives up after maxAttempts and rethrows the last 429
- ✓ tests/rpc-backoff.test.ts > rpc/backoff — withRpcBackoff > propagates non-rate-limit errors immediately — no retry, no sleep
- ✓ tests/rpc-backoff.test.ts > rpc/backoff — rateLimitedWarn + createPacer > logs a key at most once per window
- ✓ tests/rpc-backoff.test.ts > rpc/backoff — rateLimitedWarn + createPacer > pacer spaces sequential reads and is instant when gapMs <= 0
- ✓ tests/rpc-backoff.test.ts > workers/priceCompare — devnet mock mint resolution > resolves a mock ticker to its mint with the catalog price (realistic path off)
- ✓ tests/rpc-backoff.test.ts > workers/priceCompare — devnet mock mint resolution > matches the display symbol form too (TSLAx) and is case-insensitive
- ✓ tests/rpc-backoff.test.ts > workers/priceCompare — devnet mock mint resolution > never resolves a jupiter:<TICKER> whitelist label through the mock path
- ✓ tests/rpc-backoff.test.ts > workers/priceCompare — devnet mock mint resolution > unknown tickers degrade to explicit nulls (source unavailable)
- ✓ tests/rpc-backoff.test.ts > workers/priceCompare — devnet mock mint resolution > mock rows resolve without touching Jupiter when no legacy mint is requested
-stderr | tests/rpc-backoff.test.ts > rpc/backoff — withRpcBackoff > retries rate-limited calls in place with backoff until they succeed
-[rpc] 429 rate-limited — backing off 2000ms before retry 1/2 (cap 60000ms, jittered; ≤1 log/min per key)
-
- ✓ tests/basket-returns.sql.test.ts > basket returns against disposable PostgreSQL > excludes future history from the 7d ranking and leaves return null
-stderr | tests/livewire.test.ts > listener — retry on processing failure > retries a signature whose transaction fetch 429s — in-place backoff, then caches it
-[rpc] 429 rate-limited — backing off 1923ms before retry 1/2 (cap 60000ms, jittered; ≤1 log/min per key)
-
-stderr | tests/livewire.test.ts > listener — retry on processing failure > keeps an always-429 signature unseen for the next poll after backoff is exhausted
-[indexer] failed to process SIG429X (attempt 1, retained for retry): 429 Too Many Requests
-
- ✓ tests/livewire.test.ts > listener — baskets-before-events ordering (FK fix) > upserts the baskets row before inserting the event rows 807ms
- ✓ tests/livewire.test.ts > listener — retry on processing failure > retries a signature whose transaction fetch 429s — in-place backoff, then caches it
- ✓ tests/livewire.test.ts > listener — retry on processing failure > keeps an always-429 signature unseen for the next poll after backoff is exhausted
- ✓ tests/basket-returns.sql.test.ts > basket returns against disposable PostgreSQL > excludes partial history from the 7d ranking and leaves return null
- ✓ tests/basket-returns.sql.test.ts > basket returns against disposable PostgreSQL > excludes old-baseline history from the 7d ranking and leaves return null
- ✓ tests/basket-returns.sql.test.ts > basket returns against disposable PostgreSQL > earliest invalid inception rows are skipped in performance and all ranking
- ✓ tests/xstocks-deployment-attestation.test.ts > read-only deployed executable byte attestation > requires an executable ELF entrypoint, including the observed CPI-only failure mode
- ✓ tests/xstocks-deployment-attestation.test.ts > read-only deployed executable byte attestation > uses offset45 and rejects changed bytes, short data, and nonzero trailing capacity
- ✓ tests/xstocks-deployment-attestation.test.ts > read-only deployed executable byte attestation > rejects wrong loader state, malformed authority option and unexpected authority
- ✓ tests/super.integration.test.ts > SUPER: security invariants > P0: redeem never gated by whitelist (paused still redeem)
- ✓ tests/super.integration.test.ts > SUPER: security invariants > P0: no admin withdraw — vault only via pro-rata
- ✓ tests/super.integration.test.ts > SUPER: security invariants > P0: oracle-free redeem
- ✓ tests/super.integration.test.ts > SUPER: security invariants > P1: initial inflation attack blocked via genesis 1M
- ✓ tests/super.integration.test.ts > SUPER: security invariants > P1: rounding favors remaining holders (floor)
- ✓ tests/super.integration.test.ts > SUPER: security invariants > P1: fee overcharging never
- ✓ tests/super.integration.test.ts > SUPER: security invariants > P1: Token-2022 decimal mismatch caught
- ✓ tests/super.integration.test.ts > SUPER: security invariants > P1: raw/scaled confusion never — raw for transfer, scaled for display
- ✓ tests/super.integration.test.ts > SUPER: security invariants > P1: PDA authority validation
- ✓ tests/super.integration.test.ts > SUPER: security invariants > P2: zap slippage documented
- ✓ tests/super.integration.test.ts > SUPER: security invariants > P2: CPI only to token/system/ata, no reentry
- ✓ tests/super.integration.test.ts > SUPER: factory validation exhaustive > weights sum 10000 for many combos
- ✓ tests/super.integration.test.ts > SUPER: factory validation exhaustive > 2-20 bounds exhaustive
- ✓ tests/super.integration.test.ts > SUPER: factory validation exhaustive > duplicate detection all pairs
- ✓ tests/super.integration.test.ts > SUPER: factory validation exhaustive > metadata hash zero always rejected
- ✓ tests/super.integration.test.ts > SUPER: backend holdings & NAV exhaustive > holdings scaled = raw * multiplier
- ✓ tests/super.integration.test.ts > SUPER: backend holdings & NAV exhaustive > NAV with many constituents
- ✓ tests/super.integration.test.ts > SUPER: backend holdings & NAV exhaustive > drift with 20 constituents
- ✓ tests/super.integration.test.ts > SUPER: backend holdings & NAV exhaustive > share price with huge supply
- ✓ tests/super.integration.test.ts > SUPER: fuzz 200 random mint/redeem sequences > 200 random sequences never over-withdraw
- ✓ tests/super.integration.test.ts > SUPER: fee caps exhaustive > all fees within caps
- ✓ tests/super.integration.test.ts > SUPER: fee caps exhaustive > management fee for 1-365 days monotonic
- ✓ tests/xstocks-deployment-attestation.test.ts > read-only deployed executable byte attestation > attests three exact IDs in one finalized batch and records a bounded source-manifest claim
- ✓ tests/xstocks-deployment-attestation.test.ts > read-only deployed executable byte attestation > stops before account reads on a wrong genesis
- ✓ tests/xstocks-deployment-attestation.test.ts > read-only deployed executable byte attestation > rejects wrong program owner
- ✓ tests/xstocks-deployment-attestation.test.ts > read-only deployed executable byte attestation > rejects wrong ProgramData PDA
- ✓ tests/xstocks-deployment-attestation.test.ts > read-only deployed executable byte attestation > rejects nonfinalized deployment
- ✓ tests/xstocks-deployment-attestation.test.ts > read-only deployed executable byte attestation > rejects pending authority
-stderr | Object.<anonymous> (/Users/umutyesildal/.codex/worktrees/backend-devnet-security/createyouretf/backend/node_modules/bigint-buffer/dist/node.js:10:17)
-bigint: Failed to load bindings, pure JS will be used (try npm run rebuild?)
-
- ✓ tests/xstocks-deployment-attestation.test.ts > read-only deployed executable byte attestation > fails if a concurrent build changes a local artifact during observation
- ✓ tests/xstocks-deployment-attestation.test.ts > read-only deployed executable byte attestation > rejects a local CPI-only artifact before any network call
- ✓ tests/zap-balance-delta.test.ts > zap raw balance delta invariants > parses raw amounts as BigInt without Number precision loss
- ✓ tests/zap-balance-delta.test.ts > zap raw balance delta invariants > rejects malformed, fractional, negative, and unsafe raw amounts
- ✓ tests/zap-balance-delta.test.ts > zap raw balance delta invariants > subtracts pre-existing ATA inventory from the post-swap balance
- ✓ tests/zap-balance-delta.test.ts > zap raw balance delta invariants > rejects negative and zero deltas instead of preparing a mint
- ✓ tests/zap-balance-delta.test.ts > zap leg identity and snapshots > requires quote leg ordering and output mints to match basket constituents
- ✓ tests/zap-balance-delta.test.ts > zap leg identity and snapshots > freezes pre-swap balances and calculates a leg delta by mint identity
- ✓ tests/zap-balance-delta.test.ts > zap leg identity and snapshots > rejects a snapshot with missing, duplicate, or mismatched balances
- ✓ tests/zap-balance-delta.test.ts > zap minimum raw output > prefers Jupiter otherAmountThreshold when present
- ✓ tests/zap-balance-delta.test.ts > zap minimum raw output > uses an integer, floored slippage fallback when Jupiter omits the threshold
- ✓ tests/zap-balance-delta.test.ts > zap minimum raw output > keeps the fallback exact for amounts above Number.MAX_SAFE_INTEGER
- ✓ tests/zap-balance-delta.test.ts > zap minimum raw output > rejects invalid thresholds, slippage, and a zero minimum after slippage
- ✓ tests/zap-balance-delta.test.ts > zap retry reconciliation > skips a leg already settled at or above minimum output
- ✓ tests/zap-balance-delta.test.ts > zap retry reconciliation > allows execution only when no output arrived
- ✓ tests/zap-balance-delta.test.ts > zap retry reconciliation > blocks a positive partial delta to prevent blind duplicate swaps
- ✓ tests/zap-balance-delta.test.ts > zap retry reconciliation > rejects a balance rollback during reconciliation
- ✓ tests/xstocks-devnet-fixtures.test.ts > explicit issuer-profile devnet fixture preparation > matches the independently recorded SPL confidential-mint wire schema without enabling confidential account balances
- ✓ tests/xstocks-devnet-fixtures.test.ts > explicit issuer-profile devnet fixture preparation > allocates fixed extensions first and funds room for variable metadata, with initialization atomic and packet-size safe
- ✓ tests/xstocks-devnet-fixtures.test.ts > explicit issuer-profile devnet fixture preparation > labels fixtures distinctly from official xStocks and refuses unknown fixture names
- ✓ tests/xstocks-devnet-fixtures.test.ts > explicit issuer-profile devnet fixture preparation > starts initialized, unpaused, with no active hook and exposes separate reversible mutation instructions
- ✓ tests/xstocks-devnet-fixtures.test.ts > explicit issuer-profile devnet fixture preparation > validates the full modern readback profile, including SDK metadata and raw confidential configuration
- ✓ tests/xstocks-devnet-fixtures.test.ts > explicit issuer-profile devnet fixture preparation > refuses a run path outside the isolated cache
- ✓ tests/xstocks-devnet-fixtures.test.ts > explicit issuer-profile devnet fixture preparation > refuses a run path outside the isolated cache
- ✓ tests/xstocks-devnet-fixtures.test.ts > explicit issuer-profile devnet fixture preparation > refuses a run path outside the isolated cache
- ✓ tests/xstocks-devnet-fixtures.test.ts > explicit issuer-profile devnet fixture preparation > refuses a run path outside the isolated cache
- ✓ tests/xstocks-devnet-fixtures.test.ts > explicit issuer-profile devnet fixture preparation > refuses a run path outside the isolated cache
- ✓ tests/xstocks-devnet-fixtures.test.ts > explicit issuer-profile devnet fixture preparation > keeps read-only preparation entirely offline, without reading any payer file or creating fixtures
- ✓ tests/backend-truth.test.ts > indexer/listener — pollOnce + DB upserts > does not double-count when the event already existed (rowCount 0) 805ms
- ✓ tests/basket-returns.sql.test.ts > basket returns against disposable PostgreSQL > NUMERIC NaN/Infinity never take a rank or consume the SQL LIMIT 324ms
- ✓ tests/basket-returns.sql.test.ts > basket returns against disposable PostgreSQL > baseline non-finite share prices are unavailable
- ✓ tests/basket-returns.sql.test.ts > basket returns against disposable PostgreSQL > huge NUMERIC values preserve return precision and raw supply text
- ✓ tests/basket-returns.sql.test.ts > basket returns against disposable PostgreSQL > raw shares × stored raw-unit price gives trade value; whole-share display scales once
- ✓ tests/basket-returns.sql.test.ts > basket returns against disposable PostgreSQL > trade feed uses the same raw-share USD value as history
- ✓ tests/basket-returns.sql.test.ts > basket returns against disposable PostgreSQL > 30d view/API uses complete share-price history and upgrades the old derived view once
-stderr | Object.<anonymous> (/Users/umutyesildal/.codex/worktrees/backend-devnet-security/createyouretf/backend/node_modules/bigint-buffer/dist/node.js:10:17)
-bigint: Failed to load bindings, pure JS will be used (try npm run rebuild?)
-
- ✓ tests/nav-shareprice.test.ts > navHistory — share_price contract > raw variant SQL selects share_price::text AS share_price (and only the static SQL ran)
- ✓ tests/nav-shareprice.test.ts > navHistory — share_price contract > bucketed variant SQL adds share_price open/close aggregates next to the untouched nav OHLC columns
- ✓ tests/nav-shareprice.test.ts > navHistory — share_price contract > handler passes share_price through in rows; rows without it (old snapshots) do not crash
- ✓ tests/nav-shareprice.test.ts > navHistory — share_price contract > bucketed handler rows carry share_price_open + share_price from the aggregate columns
- ✓ tests/xstocks-devnet-pacing.test.ts > isolated devnet RPC HTTP pacing > serializes requests, waits for the complete body, and spaces starts at least400ms
- ✓ tests/xstocks-devnet-pacing.test.ts > isolated devnet RPC HTTP pacing > passes429 status, headers and body through without retrying or breaking the queue
- ✓ tests/xstocks-devnet-pacing.test.ts > isolated devnet RPC HTTP pacing > lets the next queued request proceed after a network rejection without resubmitting the failed request
- ✓ tests/xstocks-devnet-pacing.test.ts > isolated devnet RPC HTTP pacing > shutdown aborts active and queued callers and prevents later HTTP requests
- ✓ tests/xstocks-devnet-pacing.test.ts > isolated devnet RPC HTTP pacing > cancels a queued caller without sending it, while other callers keep their place
- ✓ tests/xstocks-devnet-pacing.test.ts > isolated devnet RPC HTTP pacing > retains web3's own429 retry semantics through the devnet-only factory
- ✓ tests/basket-returns.test.ts > indexed basket share-price returns > deposit doubles NAV and raw supply without changing investor return
- ✓ tests/basket-returns.test.ts > indexed basket share-price returns > proportional withdrawal changes NAV and raw supply without changing return
- ✓ tests/basket-returns.test.ts > indexed basket share-price returns > captures genuine reference price appreciation
- ✓ tests/basket-returns.test.ts > indexed basket share-price returns > includes share dilution in reference price return
- ✓ tests/basket-returns.test.ts > indexed basket share-price returns > preserves huge exact decimal values without Number conversion
- ✓ tests/basket-returns.test.ts > indexed basket share-price returns > supports a real zero current share price as a 100% loss
- ✓ tests/basket-returns.test.ts > indexed basket share-price returns > missing or invalid baseline {"supply":"0"} stays unavailable
- ✓ tests/basket-returns.test.ts > indexed basket share-price returns > missing or invalid baseline {"supply":null} stays unavailable
- ✓ tests/basket-returns.test.ts > indexed basket share-price returns > missing or invalid baseline {"sharePrice":"0"} stays unavailable
- ✓ tests/basket-returns.test.ts > indexed basket share-price returns > missing or invalid baseline {"sharePrice":null} stays unavailable
- ✓ tests/basket-returns.test.ts > indexed basket share-price returns > missing or invalid baseline {"nav":null} stays unavailable
- ✓ tests/basket-returns.test.ts > indexed basket share-price returns > missing or invalid baseline {"nav":"-1"} stays unavailable
- ✓ tests/basket-returns.test.ts > indexed basket share-price returns > missing or invalid baseline {"ts":null} stays unavailable
- ✓ tests/basket-returns.test.ts > indexed basket share-price returns > invalid latest {"supply":"0"} stays unavailable
- ✓ tests/basket-returns.test.ts > indexed basket share-price returns > invalid latest {"sharePrice":null} stays unavailable
- ✓ tests/basket-returns.test.ts > indexed basket share-price returns > invalid latest {"nav":"-1"} stays unavailable
- ✓ tests/basket-returns.test.ts > indexed basket share-price returns > invalid latest {"ts":null} stays unavailable
- ✓ tests/basket-returns.test.ts > indexed basket share-price returns > rejects stale and future latest snapshots
- ✓ tests/basket-returns.test.ts > indexed basket share-price returns > accepts the freshness and one-hour baseline boundaries
- ✓ tests/basket-returns.test.ts > indexed basket share-price returns > rejects a partial week and a baseline beyond the cutoff tolerance
- ✓ tests/basket-returns.test.ts > indexed basket share-price returns > one snapshot is not inception history
- ✓ tests/basket-returns.test.ts > indexed basket share-price returns > rejects non-finite decimal text NaN
- ✓ tests/basket-returns.test.ts > indexed basket share-price returns > rejects non-finite decimal text Infinity
- ✓ tests/basket-returns.test.ts > indexed basket share-price returns > rejects non-finite decimal text -Infinity
- ✓ tests/basket-returns.test.ts > indexed basket share-price returns > rejects non-finite decimal text
- ✓ tests/basket-returns.test.ts > indexed basket share-price returns > rejects non-finite decimal text invalid
- ✓ tests/basket-returns.test.ts > indexed basket share-price returns > normalizes PostgreSQL Date timestamps and preserves decimal/raw-supply strings
- ✓ tests/event-attribution.test.ts > Anchor runtime event attribution > attributes nested events and restores the parent after success
- ✓ tests/event-attribution.test.ts > Anchor runtime event attribution > preserves a foreign nested emitter even when its event bytes match
- ✓ tests/event-attribution.test.ts > Anchor runtime event attribution > rejects unattributed bytes and spoofed invocation/data text from user logs
- ✓ tests/event-attribution.test.ts > Anchor runtime event attribution > clears ambiguous depth/completion stacks and recovers at the next root
- ✓ tests/event-attribution.test.ts > Anchor runtime event attribution > failed CPI completion returns to the parent and malformed base64 is ignored
- ✓ tests/event-attribution.test.ts > Anchor runtime event attribution > discards a trusted CPI's rolled-back events when its caller catches failure
- ✓ tests/event-attribution.test.ts > Anchor runtime event attribution > discards successful child events when their parent invocation later fails
- ✓ tests/event-attribution.test.ts > Anchor runtime event attribution > never commits truncated or malformed invocation frames
- ✓ tests/governance-rehearsal.test.ts > governance rehearsal guardrails > accepts loopback RPC http://127.0.0.1:8899
- ✓ tests/governance-rehearsal.test.ts > governance rehearsal guardrails > accepts loopback RPC http://localhost:8899
- ✓ tests/governance-rehearsal.test.ts > governance rehearsal guardrails > accepts loopback RPC https://[::1]:8899
- ✓ tests/governance-rehearsal.test.ts > governance rehearsal guardrails > rejects non-loopback or unsafe RPC https://api.devnet.solana.com
- ✓ tests/governance-rehearsal.test.ts > governance rehearsal guardrails > rejects non-loopback or unsafe RPC https://api.mainnet-beta.solana.com
- ✓ tests/governance-rehearsal.test.ts > governance rehearsal guardrails > rejects non-loopback or unsafe RPC http://192.168.1.10:8899
- ✓ tests/governance-rehearsal.test.ts > governance rehearsal guardrails > rejects non-loopback or unsafe RPC http://127.0.0.1.example.com:8899
- ✓ tests/governance-rehearsal.test.ts > governance rehearsal guardrails > rejects non-loopback or unsafe RPC http://127.0.0.1:8899/rpc
- ✓ tests/governance-rehearsal.test.ts > governance rehearsal guardrails > rejects non-loopback or unsafe RPC http://127.0.0.1:8899/?cluster=devnet
- ✓ tests/governance-rehearsal.test.ts > governance rehearsal guardrails > rejects non-loopback or unsafe RPC ftp://localhost:8899
- ✓ tests/governance-rehearsal.test.ts > governance rehearsal guardrails > rejects non-loopback or unsafe RPC http://user:password@localhost:8899
- ✓ tests/governance-rehearsal.test.ts > governance rehearsal guardrails > requires explicit artifact and program keypair paths
- ✓ tests/governance-rehearsal.test.ts > governance rehearsal guardrails > parses authority evidence and requires executable program accounts
- ✓ tests/governance-rehearsal.test.ts > governance rehearsal guardrails > enforces the complete transfer, rejection, and rollback state machine
- ✓ tests/governance-rehearsal.test.ts > governance rehearsal guardrails > forbids irreversible finalization and keeps it out of the shell commands
-stderr | Object.<anonymous> (/Users/umutyesildal/.codex/worktrees/backend-devnet-security/createyouretf/backend/node_modules/bigint-buffer/dist/node.js:10:17)
-bigint: Failed to load bindings, pure JS will be used (try npm run rebuild?)
-
- ✓ tests/holdings-multiplier.test.ts > scheduled xStocks multiplier > keeps the previous multiplier through the millisecond before activation
- ✓ tests/holdings-multiplier.test.ts > scheduled xStocks multiplier > activates the new multiplier at the exact timestamp
- ✓ tests/holdings-multiplier.test.ts > scheduled xStocks multiplier > continues using the effective value when the stored previous value remains old
- ✓ tests/holdings-multiplier.test.ts > scheduled xStocks multiplier > handles an immediate activation and a reverse split
- ✓ tests/holdings-multiplier.test.ts > scheduled xStocks multiplier > rejects invalid active multiplier 0 instead of returning the obsolete one
- ✓ tests/holdings-multiplier.test.ts > scheduled xStocks multiplier > rejects invalid active multiplier -1 instead of returning the obsolete one
- ✓ tests/holdings-multiplier.test.ts > scheduled xStocks multiplier > rejects invalid active multiplier NaN instead of returning the obsolete one
- ✓ tests/holdings-multiplier.test.ts > scheduled xStocks multiplier > rejects invalid active multiplier Infinity instead of returning the obsolete one
- ✓ tests/holdings-multiplier.test.ts > scheduled xStocks multiplier > does not apply invalid future data before its activation
- ✓ tests/holdings-multiplier.test.ts > scheduled xStocks multiplier > returns null for an invalid clock
- ✓ tests/holdings-multiplier.test.ts > scheduled xStocks multiplier > propagates the active value through mint facts and holdings without changing raw tokens
- ✓ tests/mega.test.ts > MEGA: entryFee 50 cases > entryFee gross 10000 bps 0 never exceeds gross
- ✓ tests/mega.test.ts > MEGA: entryFee 50 cases > entryFee gross 20000 bps 10 never exceeds gross
- ✓ tests/mega.test.ts > MEGA: entryFee 50 cases > entryFee gross 30000 bps 100 never exceeds gross
- ✓ tests/mega.test.ts > MEGA: entryFee 50 cases > entryFee gross 40000 bps 150 never exceeds gross
- ✓ tests/mega.test.ts > MEGA: entryFee 50 cases > entryFee gross 50000 bps 300 never exceeds gross
- ✓ tests/mega.test.ts > MEGA: entryFee 50 cases > entryFee gross 60000 bps 0 never exceeds gross
- ✓ tests/mega.test.ts > MEGA: entryFee 50 cases > entryFee gross 70000 bps 10 never exceeds gross
- ✓ tests/mega.test.ts > MEGA: entryFee 50 cases > entryFee gross 80000 bps 100 never exceeds gross
- ✓ tests/mega.test.ts > MEGA: entryFee 50 cases > entryFee gross 90000 bps 150 never exceeds gross
- ✓ tests/mega.test.ts > MEGA: entryFee 50 cases > entryFee gross 100000 bps 300 never exceeds gross
- ✓ tests/mega.test.ts > MEGA: entryFee 50 cases > entryFee gross 110000 bps 0 never exceeds gross
- ✓ tests/mega.test.ts > MEGA: entryFee 50 cases > entryFee gross 120000 bps 10 never exceeds gross
- ✓ tests/mega.test.ts > MEGA: entryFee 50 cases > entryFee gross 130000 bps 100 never exceeds gross
- ✓ tests/mega.test.ts > MEGA: entryFee 50 cases > entryFee gross 140000 bps 150 never exceeds gross
- ✓ tests/mega.test.ts > MEGA: entryFee 50 cases > entryFee gross 150000 bps 300 never exceeds gross
- ✓ tests/mega.test.ts > MEGA: entryFee 50 cases > entryFee gross 160000 bps 0 never exceeds gross
- ✓ tests/mega.test.ts > MEGA: entryFee 50 cases > entryFee gross 170000 bps 10 never exceeds gross
- ✓ tests/mega.test.ts > MEGA: entryFee 50 cases > entryFee gross 180000 bps 100 never exceeds gross
- ✓ tests/mega.test.ts > MEGA: entryFee 50 cases > entryFee gross 190000 bps 150 never exceeds gross
- ✓ tests/mega.test.ts > MEGA: entryFee 50 cases > entryFee gross 200000 bps 300 never exceeds gross
- ✓ tests/mega.test.ts > MEGA: entryFee 50 cases > entryFee gross 210000 bps 0 never exceeds gross
- ✓ tests/mega.test.ts > MEGA: entryFee 50 cases > entryFee gross 220000 bps 10 never exceeds gross
- ✓ tests/mega.test.ts > MEGA: entryFee 50 cases > entryFee gross 230000 bps 100 never exceeds gross
- ✓ tests/mega.test.ts > MEGA: entryFee 50 cases > entryFee gross 240000 bps 150 never exceeds gross
- ✓ tests/mega.test.ts > MEGA: entryFee 50 cases > entryFee gross 250000 bps 300 never exceeds gross
- ✓ tests/mega.test.ts > MEGA: entryFee 50 cases > entryFee gross 260000 bps 0 never exceeds gross
- ✓ tests/mega.test.ts > MEGA: entryFee 50 cases > entryFee gross 270000 bps 10 never exceeds gross
- ✓ tests/mega.test.ts > MEGA: entryFee 50 cases > entryFee gross 280000 bps 100 never exceeds gross
- ✓ tests/mega.test.ts > MEGA: entryFee 50 cases > entryFee gross 290000 bps 150 never exceeds gross
- ✓ tests/mega.test.ts > MEGA: entryFee 50 cases > entryFee gross 300000 bps 300 never exceeds gross
- ✓ tests/mega.test.ts > MEGA: entryFee 50 cases > entryFee gross 310000 bps 0 never exceeds gross
- ✓ tests/mega.test.ts > MEGA: entryFee 50 cases > entryFee gross 320000 bps 10 never exceeds gross
- ✓ tests/mega.test.ts > MEGA: entryFee 50 cases > entryFee gross 330000 bps 100 never exceeds gross
- ✓ tests/mega.test.ts > MEGA: entryFee 50 cases > entryFee gross 340000 bps 150 never exceeds gross
- ✓ tests/mega.test.ts > MEGA: entryFee 50 cases > entryFee gross 350000 bps 300 never exceeds gross
- ✓ tests/mega.test.ts > MEGA: entryFee 50 cases > entryFee gross 360000 bps 0 never exceeds gross
- ✓ tests/mega.test.ts > MEGA: entryFee 50 cases > entryFee gross 370000 bps 10 never exceeds gross
- ✓ tests/mega.test.ts > MEGA: entryFee 50 cases > entryFee gross 380000 bps 100 never exceeds gross
- ✓ tests/mega.test.ts > MEGA: entryFee 50 cases > entryFee gross 390000 bps 150 never exceeds gross
- ✓ tests/mega.test.ts > MEGA: entryFee 50 cases > entryFee gross 400000 bps 300 never exceeds gross
- ✓ tests/mega.test.ts > MEGA: entryFee 50 cases > entryFee gross 410000 bps 0 never exceeds gross
- ✓ tests/mega.test.ts > MEGA: entryFee 50 cases > entryFee gross 420000 bps 10 never exceeds gross
- ✓ tests/mega.test.ts > MEGA: entryFee 50 cases > entryFee gross 430000 bps 100 never exceeds gross
- ✓ tests/mega.test.ts > MEGA: entryFee 50 cases > entryFee gross 440000 bps 150 never exceeds gross
- ✓ tests/mega.test.ts > MEGA: entryFee 50 cases > entryFee gross 450000 bps 300 never exceeds gross
- ✓ tests/mega.test.ts > MEGA: entryFee 50 cases > entryFee gross 460000 bps 0 never exceeds gross
- ✓ tests/mega.test.ts > MEGA: entryFee 50 cases > entryFee gross 470000 bps 10 never exceeds gross
- ✓ tests/mega.test.ts > MEGA: entryFee 50 cases > entryFee gross 480000 bps 100 never exceeds gross
- ✓ tests/mega.test.ts > MEGA: entryFee 50 cases > entryFee gross 490000 bps 150 never exceeds gross
- ✓ tests/mega.test.ts > MEGA: entryFee 50 cases > entryFee gross 500000 bps 300 never exceeds gross
- ✓ tests/mega.test.ts > MEGA: exitFee 50 cases > exitFee shares 5000 bps 0
- ✓ tests/mega.test.ts > MEGA: exitFee 50 cases > exitFee shares 10000 bps 10
- ✓ tests/mega.test.ts > MEGA: exitFee 50 cases > exitFee shares 15000 bps 50
- ✓ tests/mega.test.ts > MEGA: exitFee 50 cases > exitFee shares 20000 bps 100
- ✓ tests/mega.test.ts > MEGA: exitFee 50 cases > exitFee shares 25000 bps 0
- ✓ tests/mega.test.ts > MEGA: exitFee 50 cases > exitFee shares 30000 bps 10
- ✓ tests/mega.test.ts > MEGA: exitFee 50 cases > exitFee shares 35000 bps 50
- ✓ tests/mega.test.ts > MEGA: exitFee 50 cases > exitFee shares 40000 bps 100
- ✓ tests/mega.test.ts > MEGA: exitFee 50 cases > exitFee shares 45000 bps 0
- ✓ tests/mega.test.ts > MEGA: exitFee 50 cases > exitFee shares 50000 bps 10
- ✓ tests/mega.test.ts > MEGA: exitFee 50 cases > exitFee shares 55000 bps 50
- ✓ tests/mega.test.ts > MEGA: exitFee 50 cases > exitFee shares 60000 bps 100
- ✓ tests/mega.test.ts > MEGA: exitFee 50 cases > exitFee shares 65000 bps 0
- ✓ tests/mega.test.ts > MEGA: exitFee 50 cases > exitFee shares 70000 bps 10
- ✓ tests/mega.test.ts > MEGA: exitFee 50 cases > exitFee shares 75000 bps 50
- ✓ tests/mega.test.ts > MEGA: exitFee 50 cases > exitFee shares 80000 bps 100
- ✓ tests/mega.test.ts > MEGA: exitFee 50 cases > exitFee shares 85000 bps 0
- ✓ tests/mega.test.ts > MEGA: exitFee 50 cases > exitFee shares 90000 bps 10
- ✓ tests/mega.test.ts > MEGA: exitFee 50 cases > exitFee shares 95000 bps 50
- ✓ tests/mega.test.ts > MEGA: exitFee 50 cases > exitFee shares 100000 bps 100
- ✓ tests/mega.test.ts > MEGA: exitFee 50 cases > exitFee shares 105000 bps 0
- ✓ tests/mega.test.ts > MEGA: exitFee 50 cases > exitFee shares 110000 bps 10
- ✓ tests/mega.test.ts > MEGA: exitFee 50 cases > exitFee shares 115000 bps 50
- ✓ tests/mega.test.ts > MEGA: exitFee 50 cases > exitFee shares 120000 bps 100
- ✓ tests/mega.test.ts > MEGA: exitFee 50 cases > exitFee shares 125000 bps 0
- ✓ tests/mega.test.ts > MEGA: exitFee 50 cases > exitFee shares 130000 bps 10
- ✓ tests/mega.test.ts > MEGA: exitFee 50 cases > exitFee shares 135000 bps 50
- ✓ tests/mega.test.ts > MEGA: exitFee 50 cases > exitFee shares 140000 bps 100
- ✓ tests/mega.test.ts > MEGA: exitFee 50 cases > exitFee shares 145000 bps 0
- ✓ tests/mega.test.ts > MEGA: exitFee 50 cases > exitFee shares 150000 bps 10
- ✓ tests/mega.test.ts > MEGA: exitFee 50 cases > exitFee shares 155000 bps 50
- ✓ tests/mega.test.ts > MEGA: exitFee 50 cases > exitFee shares 160000 bps 100
- ✓ tests/mega.test.ts > MEGA: exitFee 50 cases > exitFee shares 165000 bps 0
- ✓ tests/mega.test.ts > MEGA: exitFee 50 cases > exitFee shares 170000 bps 10
- ✓ tests/mega.test.ts > MEGA: exitFee 50 cases > exitFee shares 175000 bps 50
- ✓ tests/mega.test.ts > MEGA: exitFee 50 cases > exitFee shares 180000 bps 100
- ✓ tests/mega.test.ts > MEGA: exitFee 50 cases > exitFee shares 185000 bps 0
- ✓ tests/mega.test.ts > MEGA: exitFee 50 cases > exitFee shares 190000 bps 10
- ✓ tests/mega.test.ts > MEGA: exitFee 50 cases > exitFee shares 195000 bps 50
- ✓ tests/mega.test.ts > MEGA: exitFee 50 cases > exitFee shares 200000 bps 100
- ✓ tests/mega.test.ts > MEGA: exitFee 50 cases > exitFee shares 205000 bps 0
- ✓ tests/mega.test.ts > MEGA: exitFee 50 cases > exitFee shares 210000 bps 10
- ✓ tests/mega.test.ts > MEGA: exitFee 50 cases > exitFee shares 215000 bps 50
- ✓ tests/mega.test.ts > MEGA: exitFee 50 cases > exitFee shares 220000 bps 100
- ✓ tests/mega.test.ts > MEGA: exitFee 50 cases > exitFee shares 225000 bps 0
- ✓ tests/mega.test.ts > MEGA: exitFee 50 cases > exitFee shares 230000 bps 10
- ✓ tests/mega.test.ts > MEGA: exitFee 50 cases > exitFee shares 235000 bps 50
- ✓ tests/mega.test.ts > MEGA: exitFee 50 cases > exitFee shares 240000 bps 100
- ✓ tests/mega.test.ts > MEGA: exitFee 50 cases > exitFee shares 245000 bps 0
- ✓ tests/mega.test.ts > MEGA: exitFee 50 cases > exitFee shares 250000 bps 10
- ✓ tests/mega.test.ts > MEGA: managementFee 50 cases > mgmt supply 1000000 bps 100 days 1
- ✓ tests/mega.test.ts > MEGA: managementFee 50 cases > mgmt supply 2000000 bps 200 days 2
- ✓ tests/mega.test.ts > MEGA: managementFee 50 cases > mgmt supply 3000000 bps 300 days 3
- ✓ tests/mega.test.ts > MEGA: managementFee 50 cases > mgmt supply 4000000 bps 100 days 4
- ✓ tests/mega.test.ts > MEGA: managementFee 50 cases > mgmt supply 5000000 bps 200 days 5
- ✓ tests/mega.test.ts > MEGA: managementFee 50 cases > mgmt supply 6000000 bps 300 days 6
- ✓ tests/mega.test.ts > MEGA: managementFee 50 cases > mgmt supply 7000000 bps 100 days 7
- ✓ tests/mega.test.ts > MEGA: managementFee 50 cases > mgmt supply 8000000 bps 200 days 8
- ✓ tests/mega.test.ts > MEGA: managementFee 50 cases > mgmt supply 9000000 bps 300 days 9
- ✓ tests/mega.test.ts > MEGA: managementFee 50 cases > mgmt supply 10000000 bps 100 days 10
- ✓ tests/mega.test.ts > MEGA: managementFee 50 cases > mgmt supply 11000000 bps 200 days 11
- ✓ tests/mega.test.ts > MEGA: managementFee 50 cases > mgmt supply 12000000 bps 300 days 12
- ✓ tests/mega.test.ts > MEGA: managementFee 50 cases > mgmt supply 13000000 bps 100 days 13
- ✓ tests/mega.test.ts > MEGA: managementFee 50 cases > mgmt supply 14000000 bps 200 days 14
- ✓ tests/mega.test.ts > MEGA: managementFee 50 cases > mgmt supply 15000000 bps 300 days 15
- ✓ tests/mega.test.ts > MEGA: managementFee 50 cases > mgmt supply 16000000 bps 100 days 16
- ✓ tests/mega.test.ts > MEGA: managementFee 50 cases > mgmt supply 17000000 bps 200 days 17
- ✓ tests/mega.test.ts > MEGA: managementFee 50 cases > mgmt supply 18000000 bps 300 days 18
- ✓ tests/mega.test.ts > MEGA: managementFee 50 cases > mgmt supply 19000000 bps 100 days 19
- ✓ tests/mega.test.ts > MEGA: managementFee 50 cases > mgmt supply 20000000 bps 200 days 20
- ✓ tests/mega.test.ts > MEGA: managementFee 50 cases > mgmt supply 21000000 bps 300 days 21
- ✓ tests/mega.test.ts > MEGA: managementFee 50 cases > mgmt supply 22000000 bps 100 days 22
- ✓ tests/mega.test.ts > MEGA: managementFee 50 cases > mgmt supply 23000000 bps 200 days 23
- ✓ tests/mega.test.ts > MEGA: managementFee 50 cases > mgmt supply 24000000 bps 300 days 24
- ✓ tests/mega.test.ts > MEGA: managementFee 50 cases > mgmt supply 25000000 bps 100 days 25
- ✓ tests/mega.test.ts > MEGA: managementFee 50 cases > mgmt supply 26000000 bps 200 days 26
- ✓ tests/mega.test.ts > MEGA: managementFee 50 cases > mgmt supply 27000000 bps 300 days 27
- ✓ tests/mega.test.ts > MEGA: managementFee 50 cases > mgmt supply 28000000 bps 100 days 28
- ✓ tests/mega.test.ts > MEGA: managementFee 50 cases > mgmt supply 29000000 bps 200 days 29
- ✓ tests/mega.test.ts > MEGA: managementFee 50 cases > mgmt supply 30000000 bps 300 days 30
- ✓ tests/mega.test.ts > MEGA: managementFee 50 cases > mgmt supply 31000000 bps 100 days 31
- ✓ tests/mega.test.ts > MEGA: managementFee 50 cases > mgmt supply 32000000 bps 200 days 32
- ✓ tests/mega.test.ts > MEGA: managementFee 50 cases > mgmt supply 33000000 bps 300 days 33
- ✓ tests/mega.test.ts > MEGA: managementFee 50 cases > mgmt supply 34000000 bps 100 days 34
- ✓ tests/mega.test.ts > MEGA: managementFee 50 cases > mgmt supply 35000000 bps 200 days 35
- ✓ tests/mega.test.ts > MEGA: managementFee 50 cases > mgmt supply 36000000 bps 300 days 36
- ✓ tests/mega.test.ts > MEGA: managementFee 50 cases > mgmt supply 37000000 bps 100 days 37
- ✓ tests/mega.test.ts > MEGA: managementFee 50 cases > mgmt supply 38000000 bps 200 days 38
- ✓ tests/mega.test.ts > MEGA: managementFee 50 cases > mgmt supply 39000000 bps 300 days 39
- ✓ tests/mega.test.ts > MEGA: managementFee 50 cases > mgmt supply 40000000 bps 100 days 40
- ✓ tests/mega.test.ts > MEGA: managementFee 50 cases > mgmt supply 41000000 bps 200 days 41
- ✓ tests/mega.test.ts > MEGA: managementFee 50 cases > mgmt supply 42000000 bps 300 days 42
- ✓ tests/mega.test.ts > MEGA: managementFee 50 cases > mgmt supply 43000000 bps 100 days 43
- ✓ tests/mega.test.ts > MEGA: managementFee 50 cases > mgmt supply 44000000 bps 200 days 44
- ✓ tests/mega.test.ts > MEGA: managementFee 50 cases > mgmt supply 45000000 bps 300 days 45
- ✓ tests/mega.test.ts > MEGA: managementFee 50 cases > mgmt supply 46000000 bps 100 days 46
- ✓ tests/mega.test.ts > MEGA: managementFee 50 cases > mgmt supply 47000000 bps 200 days 47
- ✓ tests/mega.test.ts > MEGA: managementFee 50 cases > mgmt supply 48000000 bps 300 days 48
- ✓ tests/mega.test.ts > MEGA: managementFee 50 cases > mgmt supply 49000000 bps 100 days 49
- ✓ tests/mega.test.ts > MEGA: managementFee 50 cases > mgmt supply 50000000 bps 200 days 50
- ✓ tests/mega.test.ts > MEGA: splitFee 20 cases > split fee 1
- ✓ tests/mega.test.ts > MEGA: splitFee 20 cases > split fee 2
- ✓ tests/mega.test.ts > MEGA: splitFee 20 cases > split fee 3
- ✓ tests/mega.test.ts > MEGA: splitFee 20 cases > split fee 4
- ✓ tests/mega.test.ts > MEGA: splitFee 20 cases > split fee 5
- ✓ tests/mega.test.ts > MEGA: splitFee 20 cases > split fee 6
- ✓ tests/mega.test.ts > MEGA: splitFee 20 cases > split fee 7
- ✓ tests/mega.test.ts > MEGA: splitFee 20 cases > split fee 8
- ✓ tests/mega.test.ts > MEGA: splitFee 20 cases > split fee 9
- ✓ tests/mega.test.ts > MEGA: splitFee 20 cases > split fee 10
- ✓ tests/mega.test.ts > MEGA: splitFee 20 cases > split fee 11
- ✓ tests/mega.test.ts > MEGA: splitFee 20 cases > split fee 12
- ✓ tests/mega.test.ts > MEGA: splitFee 20 cases > split fee 13
- ✓ tests/mega.test.ts > MEGA: splitFee 20 cases > split fee 14
- ✓ tests/mega.test.ts > MEGA: splitFee 20 cases > split fee 15
- ✓ tests/mega.test.ts > MEGA: splitFee 20 cases > split fee 16
- ✓ tests/mega.test.ts > MEGA: splitFee 20 cases > split fee 17
- ✓ tests/mega.test.ts > MEGA: splitFee 20 cases > split fee 18
- ✓ tests/mega.test.ts > MEGA: splitFee 20 cases > split fee 19
- ✓ tests/mega.test.ts > MEGA: splitFee 20 cases > split fee 20
- ✓ tests/mega.test.ts > MEGA: NAV 20 cases > nav with 2 constituents
- ✓ tests/mega.test.ts > MEGA: NAV 20 cases > nav with 4 constituents
- ✓ tests/mega.test.ts > MEGA: NAV 20 cases > nav with 6 constituents
- ✓ tests/mega.test.ts > MEGA: NAV 20 cases > nav with 8 constituents
- ✓ tests/mega.test.ts > MEGA: NAV 20 cases > nav with 10 constituents
- ✓ tests/mega.test.ts > MEGA: NAV 20 cases > nav with 12 constituents
- ✓ tests/mega.test.ts > MEGA: NAV 20 cases > nav with 14 constituents
- ✓ tests/mega.test.ts > MEGA: NAV 20 cases > nav with 16 constituents
- ✓ tests/mega.test.ts > MEGA: NAV 20 cases > nav with 18 constituents
- ✓ tests/mega.test.ts > MEGA: NAV 20 cases > nav with 20 constituents
- ✓ tests/mega.test.ts > MEGA: drift 20 cases > drift case 0
- ✓ tests/mega.test.ts > MEGA: drift 20 cases > drift case 1
- ✓ tests/mega.test.ts > MEGA: drift 20 cases > drift case 2
- ✓ tests/mega.test.ts > MEGA: drift 20 cases > drift case 3
- ✓ tests/mega.test.ts > MEGA: drift 20 cases > drift case 4
- ✓ tests/mega.test.ts > MEGA: drift 20 cases > drift case 5
- ✓ tests/mega.test.ts > MEGA: drift 20 cases > drift case 6
- ✓ tests/mega.test.ts > MEGA: drift 20 cases > drift case 7
- ✓ tests/mega.test.ts > MEGA: drift 20 cases > drift case 8
- ✓ tests/mega.test.ts > MEGA: drift 20 cases > drift case 9
- ✓ tests/mega.test.ts > MEGA: drift 20 cases > drift case 10
- ✓ tests/mega.test.ts > MEGA: drift 20 cases > drift case 11
- ✓ tests/mega.test.ts > MEGA: drift 20 cases > drift case 12
- ✓ tests/mega.test.ts > MEGA: drift 20 cases > drift case 13
- ✓ tests/mega.test.ts > MEGA: drift 20 cases > drift case 14
- ✓ tests/mega.test.ts > MEGA: drift 20 cases > drift case 15
- ✓ tests/mega.test.ts > MEGA: drift 20 cases > drift case 16
- ✓ tests/mega.test.ts > MEGA: drift 20 cases > drift case 17
- ✓ tests/mega.test.ts > MEGA: drift 20 cases > drift case 18
- ✓ tests/mega.test.ts > MEGA: drift 20 cases > drift case 19
- ✓ tests/mega.test.ts > MEGA: redeem 30 random > redeem vault 1000000000 burn 1000000
- ✓ tests/mega.test.ts > MEGA: redeem 30 random > redeem vault 1001000000 burn 1001000
- ✓ tests/mega.test.ts > MEGA: redeem 30 random > redeem vault 1002000000 burn 1002000
- ✓ tests/mega.test.ts > MEGA: redeem 30 random > redeem vault 1003000000 burn 1003000
- ✓ tests/mega.test.ts > MEGA: redeem 30 random > redeem vault 1004000000 burn 1004000
- ✓ tests/mega.test.ts > MEGA: redeem 30 random > redeem vault 1005000000 burn 1005000
- ✓ tests/mega.test.ts > MEGA: redeem 30 random > redeem vault 1006000000 burn 1006000
- ✓ tests/mega.test.ts > MEGA: redeem 30 random > redeem vault 1007000000 burn 1007000
- ✓ tests/mega.test.ts > MEGA: redeem 30 random > redeem vault 1008000000 burn 1008000
- ✓ tests/mega.test.ts > MEGA: redeem 30 random > redeem vault 1009000000 burn 1009000
- ✓ tests/mega.test.ts > MEGA: redeem 30 random > redeem vault 1010000000 burn 1010000
- ✓ tests/mega.test.ts > MEGA: redeem 30 random > redeem vault 1011000000 burn 1011000
- ✓ tests/mega.test.ts > MEGA: redeem 30 random > redeem vault 1012000000 burn 1012000
- ✓ tests/mega.test.ts > MEGA: redeem 30 random > redeem vault 1013000000 burn 1013000
- ✓ tests/mega.test.ts > MEGA: redeem 30 random > redeem vault 1014000000 burn 1014000
- ✓ tests/mega.test.ts > MEGA: redeem 30 random > redeem vault 1015000000 burn 1015000
- ✓ tests/mega.test.ts > MEGA: redeem 30 random > redeem vault 1016000000 burn 1016000
- ✓ tests/mega.test.ts > MEGA: redeem 30 random > redeem vault 1017000000 burn 1017000
- ✓ tests/mega.test.ts > MEGA: redeem 30 random > redeem vault 1018000000 burn 1018000
- ✓ tests/mega.test.ts > MEGA: redeem 30 random > redeem vault 1019000000 burn 1019000
- ✓ tests/mega.test.ts > MEGA: redeem 30 random > redeem vault 1020000000 burn 1020000
- ✓ tests/mega.test.ts > MEGA: redeem 30 random > redeem vault 1021000000 burn 1021000
- ✓ tests/mega.test.ts > MEGA: redeem 30 random > redeem vault 1022000000 burn 1022000
- ✓ tests/mega.test.ts > MEGA: redeem 30 random > redeem vault 1023000000 burn 1023000
- ✓ tests/mega.test.ts > MEGA: redeem 30 random > redeem vault 1024000000 burn 1024000
- ✓ tests/mega.test.ts > MEGA: redeem 30 random > redeem vault 1025000000 burn 1025000
- ✓ tests/mega.test.ts > MEGA: redeem 30 random > redeem vault 1026000000 burn 1026000
- ✓ tests/mega.test.ts > MEGA: redeem 30 random > redeem vault 1027000000 burn 1027000
- ✓ tests/mega.test.ts > MEGA: redeem 30 random > redeem vault 1028000000 burn 1028000
- ✓ tests/mega.test.ts > MEGA: redeem 30 random > redeem vault 1029000000 burn 1029000
- ✓ tests/script-builders.test.ts > ixInitFactory V0 wire compatibility > keeps the discriminator + treasury + u16 split layout
- ✓ tests/script-builders.test.ts > ixInitFactory V0 wire compatibility > keeps the legacy argument source-compatible but rejects overrides
- ✓ tests/wallet-connect-scheduling.test.ts > wallet connection scheduling > waits for the provider listener before an already-authorized adapter emits connect
- ✓ tests/wallet-connect-scheduling.test.ts > wallet connection scheduling > cancels a deferred connect when selection changes before the timer fires
- ✓ tests/backend-truth.test.ts > indexer/listener — pollOnce + DB upserts > skips failed signatures and caches seen signatures across polls 805ms
- ✓ tests/protocol-policy.test.ts > client protocol fee policy > exposes only the canonical V0 90/10 split
- ✓ tests/protocol-policy.test.ts > client protocol fee policy > floors the creator leg and conserves every raw fee share
- ✓ tests/protocol-policy.test.ts > client protocol fee policy > rejects negative fees
- ✓ tests/redeem-display.test.ts > redeem share input and displayed consequences > converts human shares to exact six-decimal raw units
- ✓ tests/redeem-display.test.ts > redeem share input and displayed consequences > discloses all shares leaving the wallet and floors the actual exit fee
- ✓ tests/create-percent.test.ts > create allocation boundary > preserves hundredth-percent precision and the exact program total
- ✓ tests/create-percent.test.ts > create allocation boundary > rejects amounts that cannot be submitted exactly
- ✓ tests/deployment-manifest-v2.test.ts > deployment manifest v2 governance evidence > uses honest unknown and not-run defaults 348ms
- ✓ tests/deployment-manifest-v2.test.ts > deployment manifest v2 governance evidence > labels single-key input as operator-declared rather than verified 346ms
- ✓ tests/deployment-manifest-v2.test.ts > deployment manifest v2 governance evidence > records a complete declared multisig policy without turning it into RPC proof 301ms
- ✓ tests/deployment-manifest-v2.test.ts > deployment manifest v2 governance evidence > rejects unsafe threshold and offline RPC-verification claims
- ✓ tests/deployment-manifest-v2.test.ts > deployment manifest v2 governance evidence > keeps the template and schema on version 2
- ✓ tests/auth-hardening.test.ts > auth startup configuration > rejects missing, short and placeholder production secrets ()
- ✓ tests/auth-hardening.test.ts > auth startup configuration > rejects missing, short and placeholder production secrets (short-secret)
- ✓ tests/auth-hardening.test.ts > auth startup configuration > rejects missing, short and placeholder production secrets (change-me-in-production)
- ✓ tests/auth-hardening.test.ts > auth startup configuration > rejects missing, short and placeholder production secrets (CHANGE_ME_WITH_A_GENERATED_PRODUCTION_SECRET)
- ✓ tests/auth-hardening.test.ts > auth startup configuration > rejects missing, short and placeholder production secrets (replace_me_with_a_secure_random_secret)
- ✓ tests/auth-hardening.test.ts > auth startup configuration > rejects missing, short and placeholder production secrets (basalt-test-only-7dfe258b90264aa19c0345e6a8c1fe70)
- ✓ tests/auth-hardening.test.ts > auth startup configuration > rejects missing, short and placeholder production secrets (THIS_IS_A_LONG_PLACEHOLDER_NOT_A_GENERATED_SECRET)
- ✓ tests/auth-hardening.test.ts > auth startup configuration > rejects missing, short and placeholder production secrets (basalt-dev-social-secret-do-not-use-in-prod)
- ✓ tests/auth-hardening.test.ts > auth startup configuration > does not allow development opt-in to bypass production validation
- ✓ tests/auth-hardening.test.ts > auth startup configuration > requires explicit opt-in without a development secret
- ✓ tests/auth-hardening.test.ts > auth startup configuration > accepts a generated production secret and rejects old fallback tokens
- ✓ tests/auth-hardening.test.ts > auth startup configuration > creates a stable process-random local secret only after explicit opt-in
- ✓ tests/auth-hardening.test.ts > auth startup configuration > rejects an explicitly configured weak local secret even with opt-in
- ✓ tests/auth-hardening.test.ts > auth startup configuration > fails the real entrypoint before workers or HTTP startup 637ms
- ✓ tests/auth-hardening.test.ts > auth startup configuration > fails the real entrypoint before workers or HTTP startup 608ms
- ✓ tests/auth-hardening.test.ts > bounded authentication nonce storage > limits outstanding nonces per wallet without revoking earlier challenges
- ✓ tests/auth-hardening.test.ts > bounded authentication nonce storage > enforces a global hard cap, preserves existing nonces and releases consumed capacity
- ✓ tests/auth-hardening.test.ts > bounded authentication nonce storage > reclaims expired global capacity at the TTL boundary
- ✓ tests/auth-hardening.test.ts > bounded authentication nonce storage > keeps fresh challenges valid when older challenges expire
- ✓ tests/auth-hardening.test.ts > bounded authentication nonce storage > cannot consume another wallet's challenge
- ✓ tests/auth-hardening.test.ts > bounded authentication nonce storage > preserves expiry ordering if the wall clock moves backward
- ✓ tests/auth-hardening.test.ts > bounded authentication nonce storage > returns 429 and Retry-After through the social nonce route
+ ✓ tests/xstocks-prices.test.ts  (13 tests) 22ms
 stderr | tests/backend-truth.test.ts > indexer/listener — pollOnce + DB upserts > works fully DB-less: decodes and returns events without persistence
 [indexer] insertEvent skipped (no DB): SIG1 BasketCreated
 
 stderr | tests/backend-truth.test.ts > indexer/listener — pollOnce + DB upserts > RPC failure in pollOnce degrades to an empty result
-[indexer] getSignaturesForAddress failed for 3hzoPep9JKgTmzLT6CNW5x3EN7WNYDevM6KHVM7pLgMF: rpc unreachable
+[indexer] signature read failed for 3hzoPep9JKgTmzLT6CNW5x3EN7WNYDevM6KHVM7pLgMF: rpc unreachable
 
 stderr | tests/backend-truth.test.ts > indexer/listener — pollOnce + DB upserts > insertEvent / insertEvents skip writes without a db
 [indexer] insertEvent skipped (no DB): S Minted
@@ -1108,32 +186,33 @@ stderr | tests/backend-truth.test.ts > workers/priceFetch — Jupiter V3 + cache
 [priceFetch] Jupiter V3 unavailable: connection refused
 [priceFetch] Jupiter V3 unavailable: connection refused
 
- ✓ tests/backend-truth.test.ts > indexer/listener — pollOnce + DB upserts > works fully DB-less: decodes and returns events without persistence 403ms
- ✓ tests/backend-truth.test.ts > indexer/listener — pollOnce + DB upserts > RPC failure in pollOnce degrades to an empty result
- ✓ tests/backend-truth.test.ts > indexer/listener — pollOnce + DB upserts > insertEvent / insertEvents skip writes without a db
- ✓ tests/backend-truth.test.ts > db/init — schema bootstrap > schema.sql is the normative spec §7 shape and idempotent
- ✓ tests/backend-truth.test.ts > db/init — schema bootstrap > applySchema runs the whole script when a client is provided
- ✓ tests/backend-truth.test.ts > db/init — schema bootstrap > applySchema and ensureSchemaFromEnv degrade honestly without Postgres
- ✓ tests/backend-truth.test.ts > workers/priceFetch — Jupiter V3 + cache + markers > returns typed PricePoints with source 'jupiter' and asOf timestamps
- ✓ tests/backend-truth.test.ts > workers/priceFetch — Jupiter V3 + cache + markers > serves identical mint sets from the 30s cache without refetching
- ✓ tests/backend-truth.test.ts > workers/priceFetch — Jupiter V3 + cache + markers > without PRICE_FALLBACK=mock, a Jupiter outage degrades to an empty map
- ✓ tests/backend-truth.test.ts > workers/priceFetch — Jupiter V3 + cache + markers > mock fallback exists only behind PRICE_FALLBACK=mock and is labeled source 'mock'
- ✓ tests/backend-truth.test.ts > workers/priceFetch — Jupiter V3 + cache + markers > fills only missing mints with mock when Jupiter partially responds
- ✓ tests/backend-truth.test.ts > workers/priceFetch — Jupiter V3 + cache + markers > legacy fetchPrices keeps the numeric map contract (missing -> 0)
- ✓ tests/backend-truth.test.ts > workers/priceFetch — Jupiter V3 + cache + markers > rejects malformed Jupiter payloads instead of trusting them
- ✓ tests/backend-truth.test.ts > workers/priceFetch — Jupiter V3 + cache + markers > mockPriceQuotes marks every price as mock with asOf; mockPrices unchanged
+ ✓ tests/backend-truth.test.ts  (42 tests) 2849ms
+ ✓ tests/xstocks-deployment-attestation.test.ts  (11 tests) 352ms
+ ✓ tests/super.integration.test.ts  (22 tests) 21ms
+ ✓ tests/zap-balance-delta.test.ts  (15 tests) 10ms
+ ✓ tests/xstocks-devnet-fixtures.test.ts  (11 tests) 13ms
+ ✓ tests/xstocks-devnet-pacing.test.ts  (6 tests) 26ms
+ ✓ tests/basket-returns.test.ts  (27 tests) 5ms
+ ✓ tests/nav-shareprice.test.ts  (4 tests) 4ms
+ ✓ tests/event-attribution.test.ts  (8 tests) 4ms
+ ✓ tests/governance-rehearsal.test.ts  (15 tests) 4ms
+ ✓ tests/holdings-multiplier.test.ts  (11 tests) 11ms
+ ✓ tests/memory-cache.test.ts  (5 tests) 3ms
+ ✓ tests/mega.test.ts  (230 tests) 14ms
+ ✓ tests/script-builders.test.ts  (2 tests) 5ms
+ ✓ tests/wallet-connect-scheduling.test.ts  (2 tests) 6ms
+ ✓ tests/indexer-finality.test.ts  (2 tests) 14ms
+ ✓ tests/protocol-policy.test.ts  (3 tests) 1ms
+ ✓ tests/redeem-display.test.ts  (2 tests) 1ms
+ ✓ tests/create-percent.test.ts  (2 tests) 2ms
+ ✓ tests/auth-hardening.test.ts  (26 tests) 1701ms
+ ✓ tests/livewire.test.ts  (10 tests) 2830ms
 stderr | tests/livewire.test.ts > whitelistSync — program account sweep > upserts valid rows and skips unknown status bytes
 [whitelistSync] 8qbHbw2BbbTHBW1sbeqakYXVKRQM8Ne7pLK7m6CVfeR: unknown status byte 99 — skipped
 
- ✓ tests/livewire.test.ts > listener — retry on processing failure > propagates non-429 failures immediately and retries the signature next poll 2011ms
- ✓ tests/livewire.test.ts > holdingsSync — devnet PDA derivations > derives the basket PDA under the FACTORY program id (devnet basket)
- ✓ tests/livewire.test.ts > holdingsSync — devnet PDA derivations > derives the vault authority under the BASKET program id (devnet vault)
- ✓ tests/livewire.test.ts > whitelistSync — WhitelistedMint account decoding > decodes mint / decimals / status / price_source
- ✓ tests/livewire.test.ts > whitelistSync — WhitelistedMint account decoding > maps PausedNewMints and leaves unknown status bytes unmapped
- ✓ tests/livewire.test.ts > whitelistSync — WhitelistedMint account decoding > rejects wrong discriminator / truncated payloads
- ✓ tests/livewire.test.ts > whitelistSync — program account sweep > upserts valid rows and skips unknown status bytes
+ ✓ tests/deployment-manifest-v2.test.ts  (5 tests) 1269ms
 
- Test Files  41 passed (41)
-      Tests  946 passed (946)
-   Start at  11:47:22
-   Duration  3.85s (transform 1.33s, setup 4ms, collect 5.91s, tests 11.74s, environment 4ms, prepare 1.88s)
+ Test Files  47 passed (47)
+      Tests  1097 passed (1097)
+   Start at  12:35:33
+   Duration  4.92s (transform 1.21s, setup 2ms, collect 9.03s, tests 16.28s, environment 6ms, prepare 2.80s)
