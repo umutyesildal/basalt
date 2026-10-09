@@ -161,7 +161,7 @@ docker compose logs -f backend   # Look for "[db] schema applied" and indexer li
 4. Test: https://basalt-coral.vercel.app/explore should now load data from the
    live backend.
 
-### Current release path (2026-10-03)
+### Current release path (2026-10-09)
 
 The existing `basalt` Vercel project is not connected to Git. A push alone does
 not deploy it. Build and upload from the repository root: the frontend imports
@@ -173,7 +173,7 @@ After the release checks pass, deploy with production settings, verify the
 returned build, then promote that exact deployment:
 
 ```bash
-cd /Users/umutyesildal/orca/workspaces/createyouretf/createyouretf
+cd /path/to/clean/release-checkout
 vercel deploy --prod --skip-domain --yes --project basalt --scope yesildaladams-projects
 # Use the deployment ID or URL returned above after verification:
 vercel promote DEPLOYMENT_ID_OR_URL --yes --scope yesildaladams-projects
@@ -200,15 +200,11 @@ source/image/deployment identities, rollback material and live checks.
 cd /opt/basalt/deploy
 docker compose logs -f backend            # live logs
 docker compose restart backend            # restart the application
-docker compose pull && docker compose up -d --build   # update
+# Updates follow the verified candidate/release procedure in §9.
 
-# Postgres backup (you can add this to cron):
-docker compose exec postgres pg_dump -U basalt foliox | gzip > backup-$(date +%F).sql.gz
-# Restore:
-# gunzip -c backup-2026-09-17.sql.gz | docker compose exec -T postgres psql -U basalt foliox
-
-# Clean up Docker artifacts if the disk is full:
-docker system prune -af --volumes --filter "until=72h"   # WARNING: read the volume filter
+# Read-only backup/restore rehearsal with retained rollback material is in §9.
+# Never prune volumes during a release or use `docker compose down -v`.
+# Review unused images individually; retain the running and rollback image IDs.
 ```
 
 ## 8. Troubleshooting
@@ -217,15 +213,120 @@ docker system prune -af --volumes --filter "until=72h"   # WARNING: read the vol
 |---|---|
 | `docker compose ps` backend `unhealthy` | Check `docker compose logs backend`. Auth configuration failures intentionally stop before workers/listen: provide a generated `SOCIAL_AUTH_SECRET` in `backend/.env.production`, then recreate the backend. Restarting alone does not repair missing/weak/placeholder configuration. Diagnose DB failures separately. |
 | Certificate could not be obtained | Is the DNS A record using the proxy-free (gray cloud) setting? `dig api.domain +short` should return the server IP. |
-| `/api/v1/health` returns `DB_UNAVAILABLE` | Run `docker compose logs postgres`; verify that the password matches `deploy/.env`. |
+| `/api/v1/ready` returns 503 | Inspect its checks: DB/schema failures require PostgreSQL/migration diagnosis; network failures require the configured devnet RPC to recover and then a backend restart (RPC genesis is verified once at boot). `/health` is process liveness and may stay 200. |
 | Indexer is not progressing | Check the `indexer lag` field in the `/api/v1/health` output; the public devnet RPC may be rate-limited → add `HELIUS_API_KEY`. |
 | Vercel site still shows old data | `NEXT_PUBLIC_API` is a build-time value — was the deployment redeployed? |
 
-## 9. Next steps (before mainnet — OUTSIDE THE SCOPE of this runbook)
+## 9. Existing devnet release: backup, isolated rehearsal and rollout
 
-- Enable a Hetzner snapshot/backup policy for Postgres (in the panel, about a
-  20% additional charge)
-- Follow the [2026-10-09 schema, archival replay, valuation and auth rollout order](../docs/backend-devnet-security-2026-10-09.md). Back up the database and stop writers; validate migrations/replay in an isolated candidate first. The approved recovery source supports authenticated reconciliation and an explicit backup-preserving activation API; the replay CLI stages only. Review the exact candidate run/hash and operator publication scope before any live activation. See the [recovery implementation](../docs/ledger-recovery-2026-10-09.md). Provide a generated auth secret, rebuild/recreate backend, validate/reload Caddy, then verify controlled 413/429, backlog/quarantine and valuation-quality responses. Rotating the secret invalidates existing social tokens. Local test evidence is not a live rollout.
-- Socket-peer quotas are shared behind Caddy; the API ignores arbitrary forwarded headers. Review trusted-proxy identities and shared limits before adding replicas or changing the proxy topology.
-- Complete the `cso` + `review-and-iterate` security passes and legal review
-  (README "Legal" section) — required for mainnet.
+This section applies to the current website/backend update. It does not deploy an
+ELF, change program IDs or authorities, move assets, or activate a live position
+recovery. Current supported-client basket creation remains blocked by the retired
+factory treasury; existing direct-RPC redemption remains available.
+
+Use one clean, tested source SHA. Before overwriting `/opt/basalt`, upload the
+reviewed `deploy/prepare-candidate.sh` to a private temporary path and execute it
+with `/opt/basalt/deploy` as the current directory. It reads the existing
+`deploy/.env`; do not create or substitute `deploy.env`.
+
+```bash
+cd /opt/basalt/deploy
+install -d -m 700 /var/backups/basalt
+bash /private/path/prepare-candidate.sh \
+  --source-sha=EXACT_40_HEX_SOURCE_SHA \
+  --candidate-id=20261009_release \
+  --directory=/var/backups/basalt/20261009_release
+```
+
+The helper takes a consistent online custom-format dump, records its checksum
+and table-of-contents, retains the previous source/config/image, creates a separate
+restricted candidate role/database, restores with errors fatal, and writes a
+private candidate manifest and environment. It never stops the live backend,
+changes the live schema or deletes failed evidence. Restoring successfully proves
+the dump can be read; replay/staging and SQL tests separately prove migration and
+projection behavior. Private dumps, wallet rows, credentials and review artifacts
+stay on the server, outside Git and the website upload.
+
+Build the exact new backend image with `BASALT_BUILD_SHA` set to the source SHA.
+The image label and `/ready` source field are declared build provenance; retain
+an independently checked source archive and image ID in the release record.
+Do not rely on that field as an ELF or cryptographic reproducible-build attestation.
+Mount the private candidate folder read-only into a **one-off maintenance**
+container; pass `CANDIDATE_DATABASE_URL` and `RELEASE_SOURCE_SHA` privately and keep
+the existing RPC/program configuration. Never start normal workers on the candidate.
+
+```text
+node dist/maintenance/recovery-operator.js inspect --manifest=/candidate/candidate.json
+node dist/maintenance/replay-indexer.js --manifest=/candidate/candidate.json --max-polls=10
+node dist/maintenance/replay-indexer.js --manifest=/candidate/candidate.json --max-polls=10 --stage-basket=EXACT_BASKET
+node dist/maintenance/recovery-operator.js export --manifest=/candidate/candidate.json --run-id=EXACT_RUN --output=/private/review.json
+```
+
+Replay requires the exact candidate database/role/identity **before** applying the
+schema. An incomplete archive, unavailable block order, quarantined logs or changed
+finalized holder/supply facts fail closed. Export binds the candidate, source/backup
+hash, exact run/history and staged holder/claim digests. Explicit candidate activation
+requires review of that artifact and its raw file SHA:
+
+```text
+node dist/maintenance/recovery-operator.js activate --manifest=/candidate/candidate.json --review=/private/review.json --approve-sha256=EXACT_REVIEW_FILE_SHA --max-polls=10
+```
+
+This command cannot target live `foliox`. It reuses the atomic recovery API,
+rechecks reviewed staging under locks and retains immutable per-run backups. After
+an uncertain timeout, inspect and retry the same review to obtain its receipt.
+A rehearsed candidate is not automatically published over the live database.
+
+For the contained application rollout, retain a fresh consistent backup under
+**stopped backend writers** immediately before the live migration/recreate. Preserve
+all social/profile data accumulated since the initial rehearsal. Sync only the
+reviewed source, preserving both private env files and all volumes. Validate the
+candidate Caddy config using the running Caddy version before reload, then
+rebuild/recreate only the backend with the pinned source SHA. Keep the original
+DB dump, source, Compose config and image throughout the release.
+
+`/api/v1/health` remains liveness. `/api/v1/ready` returns 503 for failed DB/schema,
+required workers or unverified current devnet identity, and always uses `no-store`.
+Its `projectionReady` additionally requires the exact three program histories,
+non-null finalized coverage, a fresh completed discovery, empty pending/quarantine
+queues and no unresolved legacy rebuilds. NAV coverage is reported separately;
+missing prices never become fabricated valuations.
+
+```bash
+node scripts/verify-backend-rollout.mjs \
+  --origin=https://basalt.178.104.34.252.sslip.io \
+  --source-sha=EXACT_40_HEX_SOURCE_SHA
+```
+
+If a contained devnet release intentionally keeps pending/rebuild guards, use
+`--allow-incomplete-projections` explicitly and retain the resulting incomplete
+counts in the release record. This acknowledgement never clears guards or claims
+recovery complete. Controlled 413/429 probes are a separate operator check: use
+invalid requests, cap them at the configured threshold, avoid upstream quotes,
+and account for the shared Caddy socket-peer quota before testing.
+
+Only after backend checks pass, deploy the frontend with production settings and
+`--skip-domain`, verify the exact returned deployment and promote it as described
+in §6. Recheck the public devnet UI, API source identity, quote/history provenance,
+creation notice and existing redemption path.
+
+### Rollback boundary
+
+Stop backend writers before any DB rollback or database switch. Restore the whole
+pre-migration dump into a separate database, verify it, and select the matching old
+image/config; retain the current database for comparison. Do not overwrite a live
+volume, discard new user writes or treat per-run balance backups as a complete
+rollback after new chain events. A later historical-position publication needs
+its own exact review and a new consistent cutover plan. Never use `down -v` or
+volume pruning. Website rollback promotes the retained previous Vercel deployment.
+
+## 10. Remaining mainnet prerequisites
+
+- Complete the separate governance ceremony with real hardware signer/vault
+  identities, exact approvals and upgrade rehearsal; no keys are invented here.
+- Complete the Rust migration/reachability work before the existing exception
+  expiry; the Node devnet release does not extend it.
+- Complete external security and legal review and the mainnet go/no-go record.
+- Reassess trusted-proxy identities/shared quotas before replicas or proxy changes.
+- Configure the desired provider backup policy separately from the retained,
+  restore-tested release backup.

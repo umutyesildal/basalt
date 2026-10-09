@@ -1,3 +1,4 @@
+import { readIndexerGenesisHash } from "./rpcIdentity.js";
 /**
  * indexer/listener.ts — read-only event indexer for the three Basalt programs.
  *
@@ -70,6 +71,8 @@ export interface ChainStateRpc extends SolanaRpc {
 
 export interface IndexerConfig {
   programIds: string[];
+  /** Verified read-only RPC identity captured at environment startup. */
+  genesisHash?: string;
   /** Required in env-created production indexers. Tests may exercise the DB-less decoder. */
   durableHistory?: boolean;
   historyPagesPerPoll?: number;
@@ -308,10 +311,15 @@ export class EventIndexer {
   private readonly history: DurableHistory | null;
   private readonly finalizedBlocks = new Map<number, string[]>();
   private completedDiscoverySlot: number | null = null;
+  private completedDiscoveryAt: string | null = null;
   private discoveryGeneration = 0;
 
   /** Fresh successful discovery in the latest durable poll only; busy/failure resets it. */
   get lastCompletedDiscoverySlot(): number | null { return this.completedDiscoverySlot; }
+  get readinessEvidence() {
+    return { programIds: [...this.cfg.programIds], genesisHash: this.cfg.genesisHash ?? null,
+      finalizedSlot: this.completedDiscoverySlot, completedAt: this.completedDiscoveryAt };
+  }
   private lastDiscoveryMs = 0;
   private lastWhitelistSyncMs = 0;
   private lastHoldingsSyncMs = 0;
@@ -472,6 +480,7 @@ export class EventIndexer {
 
   private async pollDurableHistory(): Promise<PollResult[]> {
     this.completedDiscoverySlot = null;
+    this.completedDiscoveryAt = null;
     const generation = ++this.discoveryGeneration;
     return this.history!.withPollLock(() => this.drainDurableHistory(generation),this.cfg.programIds.map(programId => ({programId,signaturesSeen:0,events:[]})));
   }
@@ -487,7 +496,10 @@ export class EventIndexer {
       else ready = false;
     }
     if (!ready || await this.history!.hasQuarantined(this.cfg.programIds)) return [...results.values()];
-    if (generation === this.discoveryGeneration) this.completedDiscoverySlot = watermark;
+    if (generation === this.discoveryGeneration) {
+      this.completedDiscoverySlot = watermark;
+      this.completedDiscoveryAt = new Date().toISOString();
+    }
     const budget = Math.max(1,Math.min(1000,this.cfg.signaturesPerPoll));
     for (let i=0;i<budget;i++) {
       let info = await this.history!.nextPendingGlobal(this.cfg.programIds);
@@ -906,5 +918,9 @@ export async function createIndexerFromEnv(env: NodeJS.ProcessEnv = process.env)
     if (body.error) throw new Error(`jsonrpc ${method} failed: ${body.error.message}`);
     return body.result;
   };
-  return new EventIndexer(new Connection(cfg.rpcUrl, { commitment: "finalized", disableRetryOnRateLimit: true }), { ...cfg, jsonRpcInvoke }, db);
+  let genesisHash: string | undefined;
+  try {
+    genesisHash = await readIndexerGenesisHash(cfg.rpcUrl);
+  } catch { console.warn("[indexer] RPC identity unverified; release readiness will fail closed"); }
+  return new EventIndexer(new Connection(cfg.rpcUrl, { commitment: "finalized", disableRetryOnRateLimit: true }), { ...cfg, jsonRpcInvoke, genesisHash }, db);
 }

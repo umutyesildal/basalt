@@ -13,6 +13,21 @@ three human signers approve the exact values in the authorization record below.
 Mainnet is out of scope unless a separate, explicit mainnet authorization names
 the cluster, addresses, release, and signers.
 
+## Current devnet web/backend update
+
+The 2026-10-09 release is limited to the existing devnet website and backend. It
+performs none of the state-changing ceremony steps below. Keep new basket creation
+unavailable while the immutable factory treasury is retired; preserve legacy
+permissionless redemption. See the [fresh public inventory and containment rule](retired-key-remediation-2026-10-09.md#current-devnet-websitebackend-release-boundary).
+
+`node scripts/security/current-devnet-state.mjs` can inspect the current deployment
+without a proposed multisig, signer record or private material. This observation
+never substitutes for the approval-bound ceremony preflight below. The real three
+hardware-wallet public keys, multisig configuration/vault addresses, owner/signer
+tickets, announcement/audit/rollback references and full 48-hour rehearsal evidence
+remain missing prerequisites for a later governance migration, rather than inputs
+that an agent may invent for a website update.
+
 ## Non-negotiable protocol boundary
 
 - Basket constituents, weights, fee schedule, creator, and metadata hash remain

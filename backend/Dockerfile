@@ -16,6 +16,9 @@ RUN npm run build
 FROM toolchain
 WORKDIR /app/backend
 ENV NODE_ENV=production
+ARG BASALT_BUILD_SHA=unknown
+ENV BASALT_BUILD_SHA=$BASALT_BUILD_SHA
+LABEL org.opencontainers.image.revision=$BASALT_BUILD_SHA
 COPY vendor/basalt-bigint-buffer-1.0.0.tgz /app/vendor/basalt-bigint-buffer-1.0.0.tgz
 COPY backend/package.json backend/package-lock.json ./
 RUN npm ci --workspaces=false --legacy-peer-deps=false --ignore-scripts --omit=dev --no-audit --no-fund && npm cache clean --force

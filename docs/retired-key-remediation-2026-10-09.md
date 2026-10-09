@@ -6,6 +6,45 @@ operational actions requiring the exact owner/signer approvals in the existing
 [governance ceremony runbook](governance-ceremony-runbook.md). No live key material,
 authority changes, program deployments or transactions were used for this patch.
 
+## Current devnet website/backend release boundary
+
+The current release updates the existing devnet website and backend only. It does
+not deploy or upgrade Solana programs, transfer authorities, activate governance,
+replace the program/factory namespace, or authorize mainnet. Those operations have
+separate prerequisites below. Missing hardware-wallet signer and vault addresses
+do not block this contained website/backend update.
+
+[Fresh public inventory](assets/devnet-release-readiness-2026-10-09/current-devnet-state.json)
+was observed at **2026-10-09 13:04:26 UTC**, finalized slot **509187727**, against the
+verified devnet genesis. All three program upgrade authorities and the whitelist
+authority remain `y72KA263br7MtZw7BqC2dx5QYCBUciJGzShE8BRSwRE`; the whitelist has
+no pending authority. The canonical factory
+`CfxquMe4MAPksEEsVyw8XmcxYH5W7qftRWNySgHjLi6e` still stores the retired treasury
+`AAb2TXLQCPFvnUoJFSBe9PFs28w5kvAukH4Gaiia3eiJ`. Retirement has not been completed
+on chain.
+
+The rollout must keep new basket creation unavailable through the supported website
+and setup tools, explain that state before users prepare a deposit or wallet
+signature, and preserve existing basket redemption. These client guards do not
+pause or disable the permissionless on-chain instruction. Preview-only basket composition may remain available. Releasing the
+website or backend does not establish a clean treasury or multisig governance.
+
+Recheck the public inventory without a ceremony record or any signer:
+
+```sh
+node scripts/security/current-devnet-state.mjs --source-commit <EXACT_40_HEX_RELEASE_COMMIT>
+node --test scripts/security/current-devnet-state.test.mjs
+```
+
+The helper accepts only devnet genesis and the existing pinned program IDs. It
+checks canonical loader ProgramData addresses, owners/layouts, whitelist state and
+canonical FactoryConfig identity/fee policy; the second finalized read requires
+at least the first context slot. Network reads have bounded time and response size.
+Output contains public account metadata and the sanitized RPC origin only. A zero
+exit status means the inventory was read successfully; it is not release approval,
+a permission to create baskets, or proof of deployed ELF bytes. The `sourceCommit`
+field is the operator-declared source baseline, not an ELF/source attestation.
+
 ## Permanently retired public identities
 
 [The inventory](../scripts/security/retired-keys.json) contains only historical

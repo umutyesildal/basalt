@@ -15,6 +15,7 @@ import { Check, ArrowDown, ArrowUp, ExternalLink } from "lucide-react";
 import { createPipelineGuard, pipelinePresentation, type PipelineLease } from "./pipeline-state";
 import { explorerTxUrl } from "@/lib/transactions";
 import { getDraftNonce, clearDraftNonce } from "./create-draft";
+import { checkCreateAvailability, withAvailableCreateFactory, CreateFactoryUnavailableError, CREATE_UNAVAILABLE_NOTICE, type CreateAvailability } from "./create-availability";
 import { PROGRAMS } from "@/lib/solana";
 import { useTransactionFlow } from "@/components/basket/use-transaction-flow";
 import { SummaryRow, TxSummaryCard, feesLine, grouped } from "@/components/basket/summary-card";
@@ -98,6 +99,8 @@ export default function DevnetWorkspace() {
   const [weights, setWeights] = useState(["25", "25", "25", "25"]);
   const [seedBudget, setSeedBudget] = useState("1,000");
   const [legal, setLegal] = useState(false);
+  const [factoryCheck, setFactoryCheck] = useState<{ connection: typeof connection; status: CreateAvailability } | null>(null);
+  const factoryCheckGeneration = useRef(0);
   const [workspaceMode, setWorkspaceMode] = useState<"create" | "trade">(() => params.get("name") ? "create" : "trade");
   const [tradeMode, setTradeMode] = useState<"mint" | "redeem">("mint");
   const [mintBudget, setMintBudget] = useState("100");
@@ -131,6 +134,22 @@ export default function DevnetWorkspace() {
   currentWalletRef.current = walletKey;
   const currentConnectionRef = useRef(connection);
   currentConnectionRef.current = connection;
+
+  // A response from a previous connection cannot enable creation on a new one.
+  const createAvailability = factoryCheck?.connection === connection ? factoryCheck.status : "checking";
+  const refreshCreateAvailability = useCallback(async () => {
+    const generation = ++factoryCheckGeneration.current;
+    setFactoryCheck({ connection, status: "checking" });
+    const status = networkCorrect ? await checkCreateAvailability(connection) : "unavailable";
+    if (generation === factoryCheckGeneration.current && currentConnectionRef.current === connection) {
+      setFactoryCheck({ connection, status });
+    }
+  }, [connection, networkCorrect]);
+
+  useEffect(() => {
+    void refreshCreateAvailability();
+    return () => { factoryCheckGeneration.current += 1; };
+  }, [refreshCreateAvailability]);
 
   const refresh = useCallback(async () => {
     if (!networkCorrect || walletKey !== currentWalletRef.current) return;
@@ -262,39 +281,50 @@ export default function DevnetWorkspace() {
 
   const submitCreate = async (event: FormEvent) => {
     event.preventDefault();
-    if (!publicKey || !validCreate || !seedAmounts || managementBps === null) return;
+    if (!publicKey || !validCreate || !seedAmounts || managementBps === null || createAvailability !== "ready") return;
     const lease = beginPipeline("create");
     if (!lease) return;
     try {
-      const metadata = JSON.stringify({ name: name.trim(), description: thesis.trim(), version: "basalt-devnet-v0", network: "devnet", constituents: DEVNET_MOCKS.map((mock, i) => ({ ticker: mock.symbol, mint: mock.mint, weightBps: parsedWeights[i] })), feesBps: { entry: 0, exit: 0, management: managementBps } });
-      await assertDevnetConnection(connection);
-      const genesis = await connection.getGenesisHash();
-      const draftFingerprint = await sha256Hex(JSON.stringify({ owner: publicKey.toBase58(), genesis, programs: Object.values(PROGRAMS).map(String), metadata, seedAmounts: seedAmounts.map(String) }));
-      const args: CreateBasketArgs = { nonce: getDraftNonce(draftFingerprint), constituents: DEVNET_MOCKS.map((mock) => mock.mint), weightsBps: parsedWeights as number[], entryFeeBps: 0, exitFeeBps: 0, managementFeeBps: managementBps, metadataHash: hexBytes(await sha256Hex(metadata)), seedAmounts };
-      if (currentWalletRef.current !== publicKey.toBase58() || currentConnectionRef.current !== connection) throw new Error("Your wallet or network changed. Choose your basket details again.");
-      const address = deriveCreateBasketPdas(publicKey.toBase58(), args).basket.toBase58();
-      if (await connection.getAccountInfo(new PublicKey(address), "confirmed")) {
-        // A reload can lose the economic confirmation UI. Reuse the draft's
-        // canonical PDA and verify its immutable state before opening it.
-        const existing = await readDevnetBasket(connection, address, publicKey);
-        const d = existing.detail;
-        const hash = Array.from(args.metadataHash, (byte) => byte.toString(16).padStart(2, "0")).join("");
-        if (d.creator !== publicKey.toBase58() || d.metadata_hash !== hash || d.constituents.join(",") !== args.constituents.join(",") || d.weights_bps.join(",") !== args.weightsBps.join(",") || d.entry_fee_bps !== 0 || d.exit_fee_bps !== 0 || d.management_fee_bps !== args.managementFeeBps) throw new Error("This draft address already exists with different basket details. Change the name to start a new basket.");
-        if (currentWalletRef.current !== publicKey.toBase58() || currentConnectionRef.current !== connection) throw new Error("Your wallet or network changed. Reconnect to open your basket.");
-        await saveDevnetBasketMetadata(address, metadata, hash);
-        if (currentWalletRef.current !== publicKey.toBase58() || currentConnectionRef.current !== connection) throw new Error("Your wallet or network changed. Reconnect to open your basket.");
-        clearDraftNonce(draftFingerprint);
-        pipelineGuard.current.failPreparation(lease);
-        setReviewLoading(false);
-        selectedAddressRef.current = address;
-        setBasketAddress(address);
-        setSelected({ ...existing, detail: { ...existing.detail, metadata_json: JSON.parse(metadata) } });
-        setWorkspaceMode("trade");
-        setRefreshNotice("Your basket was already created. It is ready below.");
-        return;
+      await withAvailableCreateFactory(connection, async () => {
+        if (currentWalletRef.current !== publicKey.toBase58() || currentConnectionRef.current !== connection) throw new Error("Your wallet or network changed. Choose your basket details again.");
+        factoryCheckGeneration.current += 1;
+        setFactoryCheck({ connection, status: "ready" });
+        const metadata = JSON.stringify({ name: name.trim(), description: thesis.trim(), version: "basalt-devnet-v0", network: "devnet", constituents: DEVNET_MOCKS.map((mock, i) => ({ ticker: mock.symbol, mint: mock.mint, weightBps: parsedWeights[i] })), feesBps: { entry: 0, exit: 0, management: managementBps } });
+        await assertDevnetConnection(connection);
+        const genesis = await connection.getGenesisHash();
+        const draftFingerprint = await sha256Hex(JSON.stringify({ owner: publicKey.toBase58(), genesis, programs: Object.values(PROGRAMS).map(String), metadata, seedAmounts: seedAmounts.map(String) }));
+        const args: CreateBasketArgs = { nonce: getDraftNonce(draftFingerprint), constituents: DEVNET_MOCKS.map((mock) => mock.mint), weightsBps: parsedWeights as number[], entryFeeBps: 0, exitFeeBps: 0, managementFeeBps: managementBps, metadataHash: hexBytes(await sha256Hex(metadata)), seedAmounts };
+        if (currentWalletRef.current !== publicKey.toBase58() || currentConnectionRef.current !== connection) throw new Error("Your wallet or network changed. Choose your basket details again.");
+        const address = deriveCreateBasketPdas(publicKey.toBase58(), args).basket.toBase58();
+        if (await connection.getAccountInfo(new PublicKey(address), "confirmed")) {
+          // A reload can lose the economic confirmation UI. Reuse the draft's
+          // canonical PDA and verify its immutable state before opening it.
+          const existing = await readDevnetBasket(connection, address, publicKey);
+          const d = existing.detail;
+          const hash = Array.from(args.metadataHash, (byte) => byte.toString(16).padStart(2, "0")).join("");
+          if (d.creator !== publicKey.toBase58() || d.metadata_hash !== hash || d.constituents.join(",") !== args.constituents.join(",") || d.weights_bps.join(",") !== args.weightsBps.join(",") || d.entry_fee_bps !== 0 || d.exit_fee_bps !== 0 || d.management_fee_bps !== args.managementFeeBps) throw new Error("This draft address already exists with different basket details. Change the name to start a new basket.");
+          if (currentWalletRef.current !== publicKey.toBase58() || currentConnectionRef.current !== connection) throw new Error("Your wallet or network changed. Reconnect to open your basket.");
+          await saveDevnetBasketMetadata(address, metadata, hash);
+          if (currentWalletRef.current !== publicKey.toBase58() || currentConnectionRef.current !== connection) throw new Error("Your wallet or network changed. Reconnect to open your basket.");
+          clearDraftNonce(draftFingerprint);
+          pipelineGuard.current.failPreparation(lease);
+          setReviewLoading(false);
+          selectedAddressRef.current = address;
+          setBasketAddress(address);
+          setSelected({ ...existing, detail: { ...existing.detail, metadata_json: JSON.parse(metadata) } });
+          setWorkspaceMode("trade");
+          setRefreshNotice("Your basket was already created. It is ready below.");
+          return;
+        }
+        await executeRequest({ kind: "create", owner: publicKey.toBase58(), args, metadata, draftFingerprint, accounts: [] }, lease);
+      });
+    } catch (err) {
+      if (err instanceof CreateFactoryUnavailableError && currentConnectionRef.current === connection) {
+        factoryCheckGeneration.current += 1;
+        setFactoryCheck({ connection, status: "unavailable" });
       }
-      await executeRequest({ kind: "create", owner: publicKey.toBase58(), args, metadata, draftFingerprint, accounts: [] }, lease);
-    } catch (err) { preparationFailed(lease, err); }
+      preparationFailed(lease, err);
+    }
   };
 
   const submitTrade = async (event: FormEvent) => {
@@ -534,6 +564,10 @@ export default function DevnetWorkspace() {
     {workspaceMode === "create" ? <Card>
       <CardHeader><CardTitle>Create your basket</CardTitle><CardDescription>Set your mix. We prepare everything else.</CardDescription></CardHeader>
       <CardContent>
+        {createAvailability !== "ready" ? <div className="mb-5 rounded-xl border border-border bg-muted/20 p-4 text-sm" role="status" data-testid="devnet-create-availability">
+          <p>{createAvailability === "checking" ? "Checking whether new devnet baskets are available…" : CREATE_UNAVAILABLE_NOTICE}</p>
+          {createAvailability === "unavailable" ? <Button type="button" variant="outline" className="mt-3 min-h-10" onClick={() => void refreshCreateAvailability()} disabled={busy}>Check availability</Button> : null}
+        </div> : null}
         <form onSubmit={(event) => void submitCreate(event)} className="space-y-5" aria-busy={busy}>
           <Field id="devnet-name" label="Basket name" value={name} onChange={setName} maxLength={64} disabled={busy} />
           <Field id="devnet-thesis" label="Your thesis" value={thesis} onChange={setThesis} maxLength={400} disabled={busy} />
@@ -546,7 +580,7 @@ export default function DevnetWorkspace() {
           <label className="flex min-h-11 cursor-pointer items-start gap-3 text-xs leading-5"><input type="checkbox" className="mt-1 size-4 accent-primary focus-visible:ring-2 focus-visible:ring-ring" checked={legal} onChange={(event) => setLegal(event.target.checked)} disabled={busy} /><span>I understand this is a test basket. Weights, fees and thesis are fixed. Management fees mint shares and dilute holders. LEGAL_REVIEW_REQUIRED.</span></label>
           {createShortfall ? <p className="text-xs text-destructive">Get test tokens or lower the starting amount.</p> : null}
           {formError ? <Alert>{formError}</Alert> : null}
-          <Button type="submit" className="min-h-11 w-full" disabled={!canTransact || !validCreate || createShortfall} data-testid="devnet-create">{activeAction === "create" && busy ? pipeline.label : "Create basket"}</Button>
+          <Button type="submit" className="min-h-11 w-full" disabled={createAvailability !== "ready" || !canTransact || !validCreate || createShortfall} data-testid="devnet-create">{activeAction === "create" && busy ? pipeline.label : "Create basket"}</Button>
           {activeAction === "create" ? pipelineStatus : null}
         </form>
       </CardContent>

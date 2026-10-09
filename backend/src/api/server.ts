@@ -12,6 +12,7 @@
  * JS numbers. `multiplier` (an f64 display factor) is the one numeric field.
  */
 import http from "http";
+import { readinessReport } from "./readiness.js";
 import { PublicKey } from "@solana/web3.js";
 import { comparePrices, getChartSeries, readMockWhitelistRows } from "../workers/priceCompare.js";
 import { getXStockCatalog, getCachedXStockCatalog } from "../catalog/xstocks.js";
@@ -41,7 +42,7 @@ export const API_VERSION = "0.1.0";
 
 export interface SubsystemStatus {
   db: { connected: boolean; schemaApplied: boolean | null };
-  indexer: { enabled: boolean; running: boolean };
+  indexer: { enabled: boolean; running: boolean; discovery?: { programIds: string[]; genesisHash: string | null; finalizedSlot: number | null; completedAt: string | null } };
   navEngine: { enabled: boolean; running: boolean };
   feeCrank: { enabled: boolean; running: boolean };
   userSnapshot: { enabled: boolean; running: boolean };
@@ -853,6 +854,11 @@ export async function healthReport(
               (SELECT MIN(discovered_at) FROM indexer_signature_queue WHERE status='pending') AS oldest_pending_at,
               (SELECT MIN(block_time) FROM indexer_signature_queue WHERE status='pending') AS oldest_pending_chain_at,
               (SELECT COUNT(*) FROM indexer_signature_queue WHERE status='quarantined') AS quarantined_signatures,
+              (SELECT COUNT(*) FROM indexer_program_state) AS indexed_programs,
+              (SELECT array_agg(program_id ORDER BY program_id) FROM indexer_program_state) AS indexed_program_ids,
+              (SELECT MIN(finalized_through_slot) FROM indexer_program_state) AS finalized_through_slot,
+              (SELECT COUNT(*) FROM indexer_program_state WHERE finalized_through_slot IS NULL) AS missing_coverage,
+              (SELECT COUNT(*) FROM basket_valuation_state WHERE status='complete' AND last_complete_at <= NOW() AND last_complete_at >= NOW() - interval '15 minutes') AS current_valuations,
               (SELECT COUNT(*) FROM indexer_program_state WHERE history_complete IS NOT TRUE OR scan_before IS NOT NULL OR scan_head IS NOT NULL) AS history_scans_pending,
               (SELECT COUNT(*) FROM position_rebuild_required pr WHERE ${unresolvedPositionRebuildCondition("pr")}) AS rebuild_required_baskets,
               (SELECT COUNT(*) FROM position_rebuild_runs WHERE status='activated') AS activated_recovery_runs`,
@@ -868,6 +874,7 @@ export async function healthReport(
         db: {
           connected: true,
           basketCount: Number(row.basket_count),
+          currentValuations: Number(row.current_valuations ?? 0),
           lastSlot: row.last_slot ?? null,
           lastEventTs: lastEventTs?.toISOString() ?? null,
           indexerLagSeconds: lastEventTs ? Math.floor((nowMs - lastEventTs.getTime()) / 1000) : null,
@@ -877,6 +884,10 @@ export async function healthReport(
             oldestPendingChainAt: row.oldest_pending_chain_at ?? null,
             quarantinedSignatures: Number(row.quarantined_signatures ?? 0),
             scansPending: Number(row.history_scans_pending ?? 0),
+            indexedPrograms: Number(row.indexed_programs ?? 0),
+            programIds: row.indexed_program_ids ?? [],
+            finalizedThroughSlot: row.finalized_through_slot ?? null,
+            missingCoverage: Number(row.missing_coverage ?? 0),
             rebuildRequiredBaskets: Number(row.rebuild_required_baskets ?? 0),
             reconciliationWritesEnabled: true,
             reconciliationGuarded: true,
@@ -896,7 +907,7 @@ export async function healthReport(
       status: 200,
       payload: {
         ...base,
-        db: { connected: true, degraded: true, note: `health query failed: ${err instanceof Error ? err.message : err}` },
+        db: { connected: true, degraded: true, note: "HEALTH_QUERY_FAILED" },
       },
     };
   }
@@ -944,10 +955,12 @@ export function createHandler(ctx: ApiContext = { db: null }) {
     }
 
     // --- Health ---
-    if (pathname === "/api/v1/health" && req.method === "GET") {
+    if ((pathname === "/api/v1/health" || pathname === "/api/v1/ready") && req.method === "GET") {
+      res.setHeader("Cache-Control", "no-store");
       const db = await resolveDb(ctx);
       const report = await healthReport(db, ctx.status ?? defaultStatus, ctx.now);
-      sendJson(res, report.status, report.payload);
+      const result = pathname === "/api/v1/ready" ? readinessReport(report.payload) : report;
+      sendJson(res, result.status, result.payload);
       return;
     }
 

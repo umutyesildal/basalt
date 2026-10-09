@@ -72,7 +72,7 @@ async function main(): Promise<void> {
   // 6. API — always listening.
   const status = (): SubsystemStatus => ({
     db: { connected: db !== null, schemaApplied },
-    indexer: { enabled: indexer !== null, running: indexer?.isRunning ?? false },
+    indexer: { enabled: indexer !== null, running: indexer?.isRunning ?? false, discovery: indexer?.readinessEvidence },
     navEngine: { enabled: navEngine !== null, running: navEngine?.isRunning ?? false },
     feeCrank: { enabled: feeCrank !== null, running: feeCrank?.isRunning ?? false },
     userSnapshot: { enabled: userSnapshotter !== null, running: userSnapshotter?.isRunning ?? false },
