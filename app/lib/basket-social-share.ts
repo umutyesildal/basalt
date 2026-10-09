@@ -2,25 +2,45 @@ import type { ConceptBasket } from "@/lib/concept-basket";
 import { conceptPreviewHref, encodeConceptBasket } from "@/lib/concept-share";
 import { publicSiteOrigin } from "@/lib/site-origin";
 import { apiFetch } from "@/lib/api-client";
+import type { BasketPerformanceResponse } from "@/lib/basket-performance";
+import { getBasketSharePerformance } from "@/lib/basket-share-performance";
+import { formatPercent } from "@/lib/format";
 
-/** Only editable post text and a basket link are passed to X, never a media upload. */
-export function basketSocialText(basket: Pick<ConceptBasket, "name" | "thesis">): string {
-  const title = `My stock basket: ${basket.name.replace(/[\u0000-\u001f\u007f]/gu, " ").replace(/\s+/gu, " ").trim()}`;
-  const thesis = basket.thesis.replace(/[\u0000-\u001f\u007f]/gu, " ").replace(/\s+/gu, " ").trim();
-  const text = thesis ? `${title}\n\n${thesis}` : title;
+const SOCIAL_FOOTER = "Check out more at @basalt_sol";
+const textWeight = (text: string) => Array.from(text).reduce((total, char) => total + (char.codePointAt(0)! <= 0x7f ? 1 : 2), 0);
+const cleanText = (text: string) => text.replace(/[\u0000-\u001f\u007f]/gu, " ").replace(/\s+/gu, " ").trim();
+
+function truncateSocialText(text: string, budget: number): string {
+  if (textWeight(text) <= budget) return text;
   const segments = typeof Intl.Segmenter === "function"
     ? Array.from(new Intl.Segmenter(undefined, { granularity: "grapheme" }).segment(text), ({ segment }) => segment)
     : Array.from(text);
-  // Leave room for the shortened link and avoid splitting an emoji cluster.
   let result = "", weight = 0;
   for (const segment of segments) {
-    // Conservative X budget: ASCII costs one, other code points cost two.
-    // Emoji clusters stay intact even when this overestimates their weight.
-    const cost = Array.from(segment).reduce((total, char) => total + (char.codePointAt(0)! <= 0x7f ? 1 : 2), 0);
-    if (weight + cost > 228) return `${result.trimEnd()}…`;
+    const cost = textWeight(segment);
+    if (weight + cost > budget - 2) break; // Reserve the ellipsis without splitting emoji.
     result += segment; weight += cost;
   }
-  return result;
+  return `${result.trimEnd()}…`;
+}
+
+/** Only exact-mix, verified weekly model evidence can produce a performance sentence. */
+export function basketSocialText(basket: ConceptBasket, performanceData?: BasketPerformanceResponse | null, shareUrl?: string): string {
+  const performance = getBasketSharePerformance(basket, performanceData);
+  const name = cleanText(basket.name);
+  let title = `${name} stock basket`;
+  if (performance) {
+    const change = performance.return7dPct;
+    title += change > 0 ? ` has gained ${formatPercent(change)} this week!`
+      : change < 0 ? ` is down ${formatPercent(Math.abs(change))} this week.` : " is flat this week.";
+  }
+  const thesis = cleanText(basket.thesis);
+  // X counts a URL as 23 units. Keep the link and footer intact, and also reserve
+  // that space when native sharing supplies its URL separately.
+  const budget = 280 - 23 - 4 - textWeight(SOCIAL_FOOTER);
+  const main = truncateSocialText(thesis ? `${title}\n\n${thesis}` : title, budget);
+  const link = shareUrl ? `${thesis ? " " : "\n\n"}${shareUrl}` : "";
+  return `${main}${link}\n\n${SOCIAL_FOOTER}`;
 }
 
 export function basketPublicLink(basket: ConceptBasket, origin: string): string {
@@ -56,13 +76,13 @@ export async function ensureBasketPublicLink(basket: ConceptBasket, origin: stri
   return new URL(`/b/${await pending}`, fallback.origin).href;
 }
 
-export function basketXIntent(basket: ConceptBasket, origin: string, shortLink?: string): string {
+export function basketXIntent(basket: ConceptBasket, origin: string, shortLink?: string, performanceData?: BasketPerformanceResponse | null): string {
   const fallback = new URL(basketPublicLink(basket, origin));
   if (shortLink) {
     const supplied = new URL(shortLink);
     if (supplied.origin !== fallback.origin || supplied.username || supplied.password || supplied.search || supplied.hash ||
       !/^\/b\/[A-Za-z0-9_-]{20}$/.test(supplied.pathname)) throw new Error("Invalid basket share link");
   }
-  const params = new URLSearchParams({ text: basketSocialText(basket), url: shortLink || fallback.href });
+  const params = new URLSearchParams({ text: basketSocialText(basket, performanceData, shortLink || fallback.href) });
   return `https://twitter.com/intent/tweet?${params}`;
 }

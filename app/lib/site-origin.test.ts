@@ -55,5 +55,7 @@ test("copied basket and X draft links use the purchased domain on Vercel", () =>
   assert.equal(copied.origin, "https://basalt.markets");
   assert.equal(copied.pathname, "/preview");
   const draft = new URL(basketXIntent(basket, "https://basalt-preview.vercel.app"));
-  assert.equal(new URL(draft.searchParams.get("url")!).origin, "https://basalt.markets");
+  assert.equal(draft.searchParams.has("url"), false);
+  assert.ok(draft.searchParams.get("text")!.includes(copied.href));
+  assert.ok(draft.searchParams.get("text")!.endsWith("Check out more at @basalt_sol"));
 });

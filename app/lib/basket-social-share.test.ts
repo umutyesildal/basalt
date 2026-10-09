@@ -3,6 +3,8 @@ import test from "node:test";
 import type { ConceptBasket } from "./concept-basket";
 import { decodeConceptBasket, encodeConceptBasket } from "./concept-share";
 import { getConceptAsset } from "./concept-assets";
+import { CONCEPT_BASKETS } from "./concept-samples";
+import type { BasketPerformanceResponse } from "./basket-performance";
 import { basketPublicLink, basketSocialText, basketXIntent, ensureBasketPublicLink } from "./basket-social-share";
 
 const basket: ConceptBasket = {
@@ -15,42 +17,142 @@ const basket: ConceptBasket = {
   fees: { entryBps: 0, exitBps: 0, managementBps: 200 },
 };
 
-/** Deliberately conservative text budget: ASCII costs 1, other code points 2. */
+const cta = "Check out more at @basalt_sol";
+const shortLink = `https://basalt.markets/b/${"X".repeat(20)}`;
+const sample = CONCEPT_BASKETS.find((item) => item.name === "Main Character")!;
+const performanceBasket = (): ConceptBasket => structuredClone(sample);
+
+/** Fixture evidence uses the same source clock and exact named mix as performance tests. */
+function performance(value = 2.78): BasketPerformanceResponse {
+  return {
+    status: "ready", source: "Yahoo Finance", fetchedAt: "2026-10-09T22:00:00.000Z",
+    baseDate: "2026-09-01", baseValue: 100, asOf: "2026-10-09", windowStart: "2026-10-02",
+    methodology: "Historical underlying buy-and-hold model; not deployed basket NAV.",
+    items: [{ basketId: sample.id, status: "ready", modelPrice: 102.78, return7dPct: value,
+      asOf: "2026-10-09", windowStart: "2026-10-02", series: [] }],
+  };
+}
+
+/** Conservative non-URL weight: ASCII costs 1, other code points 2. */
 const postWeight = (text: string) => Array.from(text).reduce((sum, char) => sum + (char.codePointAt(0)! <= 0x7f ? 1 : 2), 0);
+const weightedPost = (text: string, url?: string) => url ? postWeight(text.replace(url, "")) + 23 : postWeight(text);
 const graphemes = (text: string) => Array.from(new Intl.Segmenter(undefined, { granularity: "grapheme" }).segment(text), ({ segment }) => segment);
 
-test("social text uses only the basket name and thesis, without invented financial claims", () => {
-  assert.equal(basketSocialText(basket), `My stock basket: ${basket.name}\n\n${basket.thesis}`);
-  assert.doesNotMatch(basketSocialText({ name: "My mix", thesis: "" }), /return|profit|APY|performance|\$|\d%/i);
+test("a basket without eligible performance shares its name, thesis and final Basalt CTA without invented gains", () => {
+  assert.equal(basketSocialText(basket), `${basket.name} stock basket\n\n${basket.thesis}\n\n${cta}`);
+  const empty = basketSocialText({ ...basket, name: "My mix", thesis: "" });
+  assert.equal(empty, `My mix stock basket\n\n${cta}`);
+  assert.doesNotMatch(empty, /return|profit|APY|performance|\$|\d%/i);
 });
 
-test("short social text normalizes pasted thesis controls and whitespace", () => {
-  assert.equal(basketSocialText({ name: "  My mix  ", thesis: "  AI\u0000\tand\n  energy\u007f " }), "My stock basket: My mix\n\nAI and energy");
+test("short social text normalizes pasted name/thesis controls and whitespace", () => {
+  assert.equal(basketSocialText({ ...basket, name: "  My\u0000 mix  ", thesis: "  AI\u0000\tand\n  energy\u007f " }), `My mix stock basket\n\nAI and energy\n\n${cta}`);
 });
 
-test("ASCII post text includes its ellipsis within the conservative 230-unit budget", () => {
-  const text = basketSocialText({ name: "My mix", thesis: "a".repeat(240) });
-  assert.ok(text.endsWith("…"));
-  assert.ok(postWeight(text) <= 230, `weighted length ${postWeight(text)}`);
+test("verified seven-day performance leads the complete tweet with the inline link before the final CTA", () => {
+  const input = performanceBasket();
+  const expected = `Main Character stock basket has gained 2.78% this week!\n\n${input.thesis} ${shortLink}\n\n${cta}`;
+  assert.equal(basketSocialText(input, performance(), shortLink), expected);
+  const intent = new URL(basketXIntent(input, "https://basalt.markets", shortLink, performance()));
+  assert.equal(intent.searchParams.get("text"), expected);
+  assert.deepEqual([...intent.searchParams.keys()], ["text"]);
+  assert.ok(expected.endsWith(cta));
+  assert.equal(expected.indexOf(shortLink) < expected.indexOf(cta), true);
 });
 
-test("non-Latin post text fits the conservative weighted budget", () => {
-  for (const thesis of ["界".repeat(240), "İçgörü".repeat(40), "🚀".repeat(120)]) {
-    const text = basketSocialText({ name: "My mix", thesis });
-    assert.ok(text.endsWith("…"));
-    assert.ok(postWeight(text) <= 230, `weighted length ${postWeight(text)}`);
+test("negative and zero weekly figures use correct grammar without a negative gained claim", () => {
+  for (const [value, headline] of [
+    [-2.78, "Main Character stock basket is down 2.78% this week."],
+    [0, "Main Character stock basket is flat this week."],
+    [-0, "Main Character stock basket is flat this week."],
+  ] as const) {
+    const text = basketSocialText(performanceBasket(), performance(value), shortLink);
+    assert.equal(text.split("\n\n")[0], headline);
+    assert.doesNotMatch(text, /gained -|down -|gained 0|down 0/);
+    assert.ok(text.endsWith(cta));
   }
 });
 
-test("truncation keeps family emoji, flags and combining sequences intact", () => {
+test("missing, mismatched, stale, invalid and unverified model evidence never becomes a tweeted return", () => {
+  const bad: (BasketPerformanceResponse | null | undefined)[] = [undefined, null];
+  const mutations: ((value: BasketPerformanceResponse) => void)[] = [
+    (value) => { value.status = "unavailable"; },
+    (value) => { value.items = []; },
+    (value) => { value.items[0].status = "unavailable"; },
+    (value) => { value.items[0].basketId = "another-basket"; },
+    (value) => { value.items.push(structuredClone(value.items[0])); },
+    (value) => { value.items[0].return7dPct = NaN; },
+    (value) => { value.items[0].return7dPct = Infinity; },
+    (value) => { value.items[0].return7dPct = null; },
+    (value) => { value.items[0].modelPrice = 0; },
+    (value) => { value.items[0].asOf = "2026-10-08"; },
+    (value) => { value.items[0].windowStart = "2026-10-01"; },
+    (value) => { value.fetchedAt = "2026-10-14T22:00:00.000Z"; },
+    (value) => { value.fetchedAt = "invalid"; },
+    (value) => { value.baseDate = "invalid"; },
+    (value) => { value.source = "Unverified" as BasketPerformanceResponse["source"]; },
+  ];
+  for (const mutate of mutations) { const result = performance(); mutate(result); bad.push(result); }
+  for (const result of bad) {
+    const text = basketSocialText(performanceBasket(), result, shortLink);
+    assert.equal(text.split("\n\n")[0], "Main Character stock basket");
+    assert.doesNotMatch(text, /2[.]78%|has gained|is down|is flat/);
+    assert.ok(text.endsWith(`${shortLink}\n\n${cta}`));
+  }
+});
+
+test("an edited name, allocation or mint cannot borrow the return of a published basket", () => {
+  const renamed = { ...performanceBasket(), name: "My own mix" };
+  const reweighted = performanceBasket();
+  reweighted.assets[0].weightBps += 1;
+  reweighted.assets[1].weightBps -= 1;
+  const spoofed = performanceBasket();
+  spoofed.assets[0].mint = "11111111111111111111111111111112";
+  for (const input of [basket, renamed, reweighted, spoofed]) {
+    const text = basketSocialText(input, performance(), shortLink);
+    assert.equal(text.split("\n\n")[0], `${input.name} stock basket`);
+    assert.doesNotMatch(text, /has gained|is down|is flat|2[.]78%/);
+  }
+});
+
+test("an unrelated unavailable model in a partial response does not hide a verified selected return", () => {
+  const data = performance();
+  data.status = "partial";
+  data.items.push({ basketId: "unrelated", status: "unavailable", modelPrice: null, return7dPct: null,
+    asOf: null, windowStart: null, series: [] });
+  assert.ok(basketSocialText(performanceBasket(), data, shortLink).startsWith("Main Character stock basket has gained 2.78% this week!"));
+});
+
+test("ASCII truncation preserves its inline URL and final CTA within X's 280-unit budget", () => {
+  const input = { ...basket, name: "My mix", thesis: "a".repeat(240) };
+  const text = basketSocialText(input, null, shortLink);
+  assert.ok(text.includes("…"));
+  assert.ok(text.endsWith(`${shortLink}\n\n${cta}`));
+  assert.equal(text.split(shortLink).length - 1, 1);
+  assert.ok(weightedPost(text, shortLink) <= 280, `weighted length ${weightedPost(text, shortLink)}`);
+});
+
+test("non-Latin truncation preserves the URL and final CTA within X's weighted budget", () => {
+  for (const thesis of ["界".repeat(240), "İçgörü".repeat(40), "🚀".repeat(120)]) {
+    const text = basketSocialText({ ...basket, name: "My mix", thesis }, null, shortLink);
+    assert.ok(text.includes("…"));
+    assert.ok(text.endsWith(`${shortLink}\n\n${cta}`));
+    assert.ok(weightedPost(text, shortLink) <= 280, `weighted length ${weightedPost(text, shortLink)}`);
+  }
+});
+
+test("truncation keeps emoji families, flags and combining sequences intact before the fixed URL/CTA suffix", () => {
   for (const unit of ["👨‍👩‍👧‍👦", "👩🏽‍💻", "🇹🇷", "e\u0301"]) {
-    const source = `My stock basket: Mix\n\n${unit.repeat(80)}`;
-    const text = basketSocialText({ name: "Mix", thesis: unit.repeat(80) });
-    assert.ok(text.endsWith("…"));
-    assert.ok(postWeight(text) <= 230);
-    const content = text.slice(0, -1);
-    const sourceSegments = graphemes(source);
-    assert.equal(sourceSegments.slice(0, graphemes(content).length).join(""), content);
+    const thesis = unit.repeat(Math.floor(240 / unit.length));
+    const source = `Mix stock basket\n\n${thesis}`;
+    const text = basketSocialText({ ...basket, name: "Mix", thesis }, null, shortLink);
+    const suffix = ` ${shortLink}\n\n${cta}`;
+    assert.ok(text.endsWith(suffix));
+    const body = text.slice(0, -suffix.length);
+    assert.ok(body.endsWith("…"));
+    assert.ok(weightedPost(text, shortLink) <= 280);
+    const content = body.slice(0, -1);
+    assert.equal(graphemes(source).slice(0, graphemes(content).length).join(""), content);
   }
 });
 
@@ -76,15 +178,17 @@ test("public links reject executable, file and credential-bearing site origins",
   }
 });
 
-test("X intent safely encodes editable text and a separate basket URL", () => {
+test("X intent safely encodes the whole editable post and its inline self-contained basket URL", () => {
   const special = { ...basket, thesis: "A & B? #conviction + patient picks / <idea> 🚀" };
   const intent = new URL(basketXIntent(special, "https://basalt.example"));
+  const link = basketPublicLink(special, "https://basalt.example");
   assert.equal(intent.origin, "https://twitter.com");
   assert.equal(intent.pathname, "/intent/tweet");
-  assert.deepEqual([...intent.searchParams.keys()].sort(), ["text", "url"]);
-  assert.equal(intent.searchParams.get("text"), basketSocialText(special));
-  assert.equal(intent.searchParams.get("url"), basketPublicLink(special, "https://basalt.example"));
-  assert.deepEqual(decodeConceptBasket(new URL(intent.searchParams.get("url")!).searchParams.get("d")), special);
+  assert.deepEqual([...intent.searchParams.keys()], ["text"]);
+  assert.equal(intent.searchParams.get("text"), basketSocialText(special, undefined, link));
+  assert.ok(intent.searchParams.get("text")!.endsWith(`${link}\n\n${cta}`));
+  assert.ok(weightedPost(intent.searchParams.get("text")!, link) <= 280);
+  assert.deepEqual(decodeConceptBasket(new URL(link).searchParams.get("d")), special);
 });
 
 test("X intent contains no pretend media attachment, performance or wallet permission", () => {
@@ -208,13 +312,15 @@ test("invalid site origins and invalid baskets fail before any short-link POST",
   });
 });
 
-test("X intent uses an explicit validated short URL without a duplicated long payload", () => {
-  const shortLink = `https://basalt.markets/b/${"X".repeat(20)}`;
+test("X intent puts one validated short URL before the final CTA without a separate URL parameter", () => {
   const intent = new URL(basketXIntent(basket, "https://basalt.markets", shortLink));
-  assert.equal(intent.searchParams.get("url"), shortLink);
-  assert.equal(intent.searchParams.get("text"), basketSocialText(basket));
-  assert.deepEqual([...intent.searchParams.keys()].sort(), ["text", "url"]);
-  assert.equal(intent.searchParams.get("url")!.includes("?d="), false);
+  const text = intent.searchParams.get("text")!;
+  assert.equal(text, basketSocialText(basket, undefined, shortLink));
+  assert.deepEqual([...intent.searchParams.keys()], ["text"]);
+  assert.equal(intent.searchParams.has("url"), false);
+  assert.equal(text.includes("?d="), false);
+  assert.equal(text.split(shortLink).length - 1, 1);
+  assert.ok(text.endsWith(`${shortLink}\n\n${cta}`));
 });
 
 test("X intent rejects foreign hosts, credentials, query/hash and malformed short paths", () => {

@@ -90,9 +90,9 @@ function BasketImageControl({ basket, performanceData, waitingForPerformance }: 
   useEffect(() => () => { request.current += 1; }, []);
   useEffect(() => () => { if (image) URL.revokeObjectURL(image); }, [image]);
   useEffect(() => {
-    try { setCanShare(Boolean(file && shareUrl && typeof navigator.share === "function" && navigator.canShare?.({ files: [file], title: basket.name, text: basketSocialText(basket), url: shareUrl }))); }
+    try { setCanShare(Boolean(file && shareUrl && typeof navigator.share === "function" && navigator.canShare?.({ files: [file], title: basket.name, text: basketSocialText(basket, performanceData), url: shareUrl }))); }
     catch { setCanShare(false); }
-  }, [file, shareUrl, basket]);
+  }, [file, shareUrl, basket, performanceData]);
 
   useEffect(() => {
     if (!open) { setBusy(false); return; }
@@ -127,7 +127,7 @@ function BasketImageControl({ basket, performanceData, waitingForPerformance }: 
     const current = shareLinkRequest.current;
     setSharing(true); setShareError("");
     try {
-      await navigator.share({ files: [file], title: basket.name, text: basketSocialText(basket), url: shareUrl });
+      await navigator.share({ files: [file], title: basket.name, text: basketSocialText(basket, performanceData), url: shareUrl });
     } catch (cause) {
       if (current === shareLinkRequest.current && !(cause instanceof DOMException && cause.name === "AbortError")) setShareError("Couldn't share. Download the PNG instead.");
     } finally { if (current === shareLinkRequest.current) setSharing(false); }

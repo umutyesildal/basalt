@@ -1,5 +1,7 @@
 # Basalt documentation map
 
+- [Basket tweet template, 2026-10-10](basket-tweet-template-2026-10-10.md): verified weekly return, thesis/short link and final Basalt account line.
+
 - [Basket short links and preview actions, 2026-10-10](basket-short-links-2026-10-10.md): persistent compact share addresses and consolidated actions.
 
 - [Share poster cleanup, 2026-10-10](basket-share-cleanup-2026-10-10.md): fewer repeated labels beneath stacks, retained 7D and complete holdings.
