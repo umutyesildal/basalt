@@ -1,36 +1,20 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
-import Link from "next/link";
+import { useCallback, useEffect, useState } from "react";
 import { useWallet } from "@solana/wallet-adapter-react";
 
 import { EmptyState, ErrorState, FreshnessBadge, Skeleton } from "@/components/states";
-import { PortfolioEmptyState } from "@/components/empty-state";
 import { WalletButton } from "@/components/shell";
 import { Button } from "@/components/ui/button";
-import { ChangeValue } from "@/components/stocks/change-value";
 import { LegalReviewTag } from "@/components/create";
-import { CARD_LINK_CLASS } from "@/components/cards/card-frame";
-import { formatTokenAmount, formatUsd, prettyTicker, truncateAddress } from "@/lib/format";
+import { PortfolioPositionCard } from "@/components/portfolio/position-card";
+import { formatUsd, prettyTicker, truncateAddress } from "@/lib/format";
 import { apiFetch } from "@/lib/api-client";
-
-/** Basket share mints are fixed 6 decimals, no ScaledUiAmount multiplier. */
-const SHARE_MINT_DECIMALS = 6;
+import { parsePortfolioData, portfolioCoverageMessage, portfolioEmptyState, type PortfolioData, type PortfolioPosition } from "@/lib/portfolio-data";
 
 type Numeric = string | number | null | undefined;
 
-interface PortfolioPosition {
-  basket: string;
-  share_balance: string;
-  cost_basis: string;
-  updated_at?: string | null;
-  nav: { value: string; supply: string; asOf: string } | null;
-  estimatedValue: string | null;
-  source?: string | null;
-  asOf?: string | null;
-}
-
-/** Basket list-feed row — optional enrichment (name, composition, price, 24h). */
+/** Basket list-feed row — optional identity and composition enrichment. */
 interface ConstituentLike {
   ticker?: unknown;
   symbol?: unknown;
@@ -48,23 +32,12 @@ interface BasketRow {
   metadata_json?: string | Record<string, unknown> | null;
   constituents?: (ConstituentLike | string)[] | null;
   weights_bps?: Numeric[] | null;
-  share_price?: Numeric;
-  return_24h?: Numeric;
 }
 
 function num(v: Numeric): number | null {
   if (v === null || v === undefined || v === "") return null;
   const n = Number(v);
   return Number.isFinite(n) ? n : null;
-}
-
-function shareUnits(raw: string): number | null {
-  try {
-    const units = Number(BigInt(raw)) / 10 ** SHARE_MINT_DECIMALS;
-    return Number.isFinite(units) ? units : null;
-  } catch {
-    return null;
-  }
 }
 
 function metaObj(mj: BasketRow["metadata_json"]): Record<string, unknown> | null {
@@ -163,86 +136,13 @@ interface PositionCardProps {
   mintTickers: Map<string, string>;
 }
 
-/**
- * One held basket — same card family as the /explore grid: whole card links
- * to /basket/[pubkey], name-first headline with the mono composition line,
- * big mono value estimate marked (reference), shares held + 24h in the footer.
- */
+/** Basket metadata enriches identity only; financial values come from row evidence. */
 function PositionCard({ position, meta, mintTickers }: PositionCardProps) {
-  const units = shareUnits(position.share_balance);
-  const sharePrice = meta ? num(meta.share_price) : null;
-  const value = units !== null && sharePrice !== null ? units * sharePrice : null;
-  const hasValue = value !== null;
-  const change = meta ? num(meta.return_24h) : null;
-
   const name = meta ? nameOf(meta) : null;
   const composition = meta ? compositionOf(meta, mintTickers) : null;
-  const headline = name ?? composition ?? truncateAddress(position.basket, 6, 4);
-
-  return (
-    <Link
-      href={`/basket/${position.basket}`}
-      title={`Open basket ${position.basket}`}
-      // Same frame as the /explore grid (CARD_LINK_CLASS): lift + border
-      // brighten on hover, 150ms ease-out, reduced-motion safe.
-      className={CARD_LINK_CLASS}
-    >
-      <div className="flex items-start justify-between gap-2">
-        <div className="min-w-0">
-          <span
-            className="block break-words text-sm font-medium tracking-tight text-foreground"
-            title={position.basket}
-          >
-            {headline}
-          </span>
-          {name && composition ? (
-            <span className="mt-1 block break-words font-mono text-xs text-muted-foreground">
-              {composition}
-            </span>
-          ) : null}
-        </div>
-        {!hasValue ? (
-          <span className="shrink-0 rounded-md border border-border px-1.5 py-0.5 font-mono text-[10px] uppercase tracking-[0.22em] text-muted-foreground">
-            no nav
-          </span>
-        ) : null}
-      </div>
-
-      <span
-        className={`mt-4 font-mono text-2xl tabular-nums ${
-          hasValue ? "text-foreground" : "text-muted-foreground"
-        }`}
-      >
-        {hasValue ? formatUsd(value) : "—"}
-      </span>
-      <span className="mt-0.5 text-xs text-muted-foreground">
-        value (reference) · share price{" "}
-        {sharePrice !== null ? formatUsd(sharePrice) : "not indexed"}
-      </span>
-
-      <div className="mt-auto pt-4">
-        <div className="flex items-center justify-between gap-2 border-t border-border/60 pt-3">
-          <span className="flex min-w-0 flex-col gap-0.5">
-            <span className="font-mono text-[11px] uppercase tracking-[0.22em] text-muted-foreground">
-              Shares held
-            </span>
-            <span
-              className="font-mono text-xs tabular-nums"
-              title={`raw ${position.share_balance}`}
-            >
-              {units !== null
-                ? formatTokenAmount(units, { maximumFractionDigits: 6 })
-                : "—"}
-            </span>
-          </span>
-          <span className="flex flex-col items-end gap-0.5">
-            <span className="font-mono text-[11px] uppercase tracking-[0.22em] text-muted-foreground">24h</span>
-            <ChangeValue changePct={change} />
-          </span>
-        </div>
-      </div>
-    </Link>
-  );
+  return <PortfolioPositionCard position={position}
+    headline={name ?? composition ?? truncateAddress(position.basket, 6, 4)}
+    composition={name ? composition : null} />;
 }
 
 /**
@@ -254,14 +154,13 @@ export default function PortfolioPage() {
   const { publicKey, connected } = useWallet();
 
   const [status, setStatus] = useState<"idle" | "loading" | "ready" | "error">("idle");
-  const [positions, setPositions] = useState<PortfolioPosition[]>([]);
-  const [source, setSource] = useState<string | null>(null);
-  const [asOf, setAsOf] = useState<string | null>(null);
+  const [portfolio, setPortfolio] = useState<PortfolioData>(() => parsePortfolioData(null));
+  const { positions, source, asOf, totalValue } = portfolio;
   const [error, setError] = useState<string | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
 
   // Optional enrichment from the basket list feed + whitelist — used for card
-  // names, composition, share prices and 24h. Failures degrade quietly.
+  // names and composition only. Failures degrade quietly.
   const [basketMeta, setBasketMeta] = useState<Map<string, BasketRow>>(new Map());
   const [mintTickers, setMintTickers] = useState<Map<string, string>>(new Map());
 
@@ -269,12 +168,14 @@ export default function PortfolioPage() {
 
   useEffect(() => {
     if (!publicKey) {
+      setPortfolio(parsePortfolioData(null));
       setStatus("idle");
       return;
     }
     const controller = new AbortController();
     const wallet = publicKey.toBase58();
     setStatus("loading");
+    setPortfolio(parsePortfolioData(null));
     setError(null);
 
     async function run() {
@@ -284,10 +185,11 @@ export default function PortfolioPage() {
           { signal: controller.signal, cache: "no-store" },
         );
         const payload = (await res.json().catch(() => null)) as
-          | { data?: PortfolioPosition[]; source?: string | null; asOf?: string | null; error?: { message?: string } }
+          | { error?: { message?: string } }
           | null;
+        if (controller.signal.aborted) return;
         if (!res.ok) {
-          setPositions([]);
+          setPortfolio(parsePortfolioData(null));
           setStatus("error");
           setError(
             payload?.error?.message ??
@@ -295,14 +197,11 @@ export default function PortfolioPage() {
           );
           return;
         }
-        const rows = Array.isArray(payload?.data) ? payload.data : [];
-        setPositions(rows);
-        setSource(payload?.source ?? null);
-        setAsOf(payload?.asOf ?? rows.find((row) => row.asOf)?.asOf ?? null);
+        setPortfolio(parsePortfolioData(payload));
         setStatus("ready");
       } catch (err) {
-        if (err instanceof DOMException && err.name === "AbortError") return;
-        setPositions([]);
+        if (controller.signal.aborted || (err instanceof DOMException && err.name === "AbortError")) return;
+        setPortfolio(parsePortfolioData(null));
         setStatus("error");
         setError(
           err instanceof Error
@@ -392,21 +291,6 @@ export default function PortfolioPage() {
     [basketMeta],
   );
 
-  const totalValue = useMemo(() => {
-    let total = 0;
-    let any = false;
-    for (const p of positions) {
-      const meta = basketMeta.get(p.basket);
-      const units = shareUnits(p.share_balance);
-      const price = meta ? num(meta.share_price) : null;
-      if (units !== null && price !== null) {
-        total += units * price;
-        any = true;
-      }
-    }
-    return any ? total : null;
-  }, [positions, basketMeta]);
-
   if (!connected || !publicKey) {
     return (
       <div className="mx-auto w-full max-w-4xl">
@@ -483,12 +367,12 @@ export default function PortfolioPage() {
       )}
 
       {status === "ready" && positions.length === 0 && (
-        <PortfolioEmptyState className="mt-6" />
+        <EmptyState className="mt-6" {...portfolioEmptyState(portfolio)} />
       )}
 
       {status === "ready" && positions.length > 0 && (
         <div className="mt-6 space-y-3">
-          {/* Summary strip — total is a reference sum, never a quote. */}
+          {/* Missing coverage or unpriced positions withhold the aggregate. */}
           <div className="flex flex-wrap items-end justify-between gap-x-8 gap-y-3 rounded-xl border border-border bg-card px-5 py-4">
             <div className="flex flex-col gap-0.5">
               <span className="font-mono text-[11px] uppercase tracking-[0.22em] text-muted-foreground">
@@ -512,6 +396,11 @@ export default function PortfolioPage() {
             </div>
           </div>
 
+          <p className="text-xs leading-5 text-muted-foreground">
+            {portfolioCoverageMessage(portfolio)}
+            {portfolio.withheldPositions > 0 && " Unverified position records are hidden while their history is checked."}
+          </p>
+
           <CardGrid>
             {positions.map((position) => (
               <PositionCard
@@ -527,8 +416,9 @@ export default function PortfolioPage() {
 
       <div className="mt-6 flex flex-col gap-2 text-xs leading-5 text-muted-foreground">
         <p>
-          Values are shares × latest indexed share price — a reference, not a
-          quote. Share units are raw ÷ 10^6 (share mints are fixed 6 decimals).{" "}
+          Finalized snapshots verify current raw balances, not transaction history,
+          acquisition costs or returns. Shares use six decimals. Indexed USD values
+          require eligible current prices and remain references, not quotes.{" "}
           <LegalReviewTag />
         </p>
       </div>

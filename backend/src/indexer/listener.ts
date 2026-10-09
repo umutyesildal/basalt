@@ -33,6 +33,7 @@ import {
   type FolioxEventType,
 } from "./events.js";
 import { applyPositionEvent, markPositionRebuildRequired, PositionProjectionGapError, PositionRebuildRequiredError } from "./positions.js";
+import { syncCurrentBalanceSnapshots, type CurrentBalanceRpc } from "./currentBalanceSnapshot.js";
 import { syncPositionsFromChain, type JsonRpcInvoker, type PositionsSyncRpc } from "./positionsSync.js";
 import { syncWhitelistedMints, type WhitelistRpc } from "./whitelistSync.js";
 import { createPacer, rateLimitedWarn, withRpcBackoff, type Pacer } from "../rpc/backoff.js";
@@ -325,6 +326,7 @@ export class EventIndexer {
   private lastWhitelistSyncMs = 0;
   private lastHoldingsSyncMs = 0;
   private lastPositionsSyncMs = 0;
+  private lastCurrentBalancesMs = 0;
   /**
    * Events NOT indexed because their transaction failed on-chain — either at
    * the signature level (getSignaturesForAddress err) or in the fetched meta
@@ -426,6 +428,19 @@ export class EventIndexer {
       } catch (err) {
         console.warn("[indexer] holdings sync failed:", err instanceof Error ? err.message : err);
       }
+    }
+    // A separate current-state proof can succeed with missing historical logs.
+    // It never activates/replaces financial claims, positions or quarantine.
+    if (!this.cfg.replayOnly && this.cfg.basketProgramId && this.cfg.factoryProgramId &&
+        typeof (full as unknown as CurrentBalanceRpc).getMultipleAccountsInfoAndContext === "function" &&
+        now-this.lastCurrentBalancesMs >= 60_000) {
+      this.lastCurrentBalancesMs=now;
+      try {
+        const stats=await syncCurrentBalanceSnapshots(full as unknown as CurrentBalanceRpc,this.db,{
+          basket:new PublicKey(this.cfg.basketProgramId),factory:new PublicKey(this.cfg.factoryProgramId),ids:this.cfg.programIds,
+        });
+        console.log("[indexer] independent finalized current balance verification:",JSON.stringify(stats));
+      } catch { console.warn("[indexer] current balance verification unavailable; history guards remain active"); }
     }
     const positionsIntervalMs = this.cfg.positionsSyncIntervalMs ?? POSITIONS_SYNC_INTERVAL_MS;
     if (!this.cfg.replayOnly && now - this.lastPositionsSyncMs >= positionsIntervalMs) {

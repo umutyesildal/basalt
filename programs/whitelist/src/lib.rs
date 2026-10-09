@@ -187,6 +187,20 @@ pub struct InitConfig<'info> {
     #[account(mut)]
     pub authority: Signer<'info>,
     pub system_program: Program<'info, System>,
+    // Fresh singleton initialization belongs to the authenticated loader
+    // upgrade authority, never the first arbitrary caller. These readonly
+    // accounts affect init only; initialized config layouts stay unchanged.
+    #[account(
+        constraint = program.programdata_address()? == Some(program_data.key()) @ WhitelistError::UnauthorizedInitialization
+    )]
+    pub program: Program<'info, crate::program::Whitelist>,
+    #[account(
+        seeds = [crate::ID.as_ref()],
+        bump,
+        seeds::program = anchor_lang::solana_program::bpf_loader_upgradeable::ID,
+        constraint = program_data.upgrade_authority_address == Some(authority.key()) @ WhitelistError::UnauthorizedInitialization
+    )]
+    pub program_data: Account<'info, ProgramData>,
 }
 
 #[derive(Accounts)]
@@ -291,6 +305,8 @@ pub enum WhitelistError {
     MintExtensionNotAllowed,
     #[msg("Whitelisted mint count overflow")]
     MintCountOverflow,
+    #[msg("Only this program's current loader upgrade authority may initialize its singleton")]
+    UnauthorizedInitialization,
 }
 
 #[cfg(test)]
@@ -569,5 +585,47 @@ mod tests {
         m.decimals = on_chain; // what add_mint stores
         assert_eq!(m.decimals, arg);
         assert_eq!(m.status, WhitelistStatus::Active as u8);
+    }
+}
+
+// Exercise the actual Anchor-generated init account validation using public
+// host account fixtures. The host system CPI stub does not simulate a validator.
+#[cfg(test)]
+#[path = "../../tests/bootstrap_authority.rs"]
+mod bootstrap_authority_fixtures;
+
+#[cfg(test)]
+mod bootstrap_authority_tests {
+    use super::*;
+    use std::collections::BTreeSet;
+
+    #[test]
+    fn init_requires_canonical_current_loader_authority() {
+        bootstrap_authority_fixtures::assert_cases(
+            crate::ID,
+            CONFIG_SEED,
+            8 + WhitelistConfig::SIZE,
+            |infos, authority, _treasury| {
+                let mut remaining = infos;
+                let mut bumps = InitConfigBumps::default();
+                let mut accounts = match InitConfig::try_accounts(
+                    &crate::ID,
+                    &mut remaining,
+                    &[],
+                    &mut bumps,
+                    &mut BTreeSet::new(),
+                ) {
+                    Ok(accounts) => accounts,
+                    Err(_) => return false,
+                };
+                if whitelist::init_config(Context::new(&crate::ID, &mut accounts, &[], bumps))
+                    .is_err()
+                {
+                    return false;
+                }
+                assert_eq!(accounts.config.authority, authority);
+                true
+            },
+        );
     }
 }

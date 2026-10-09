@@ -738,6 +738,20 @@ pub struct InitFactory<'info> {
     #[account(mut)]
     pub authority: Signer<'info>,
     pub system_program: Program<'info, System>,
+    // Fresh singleton initialization belongs to the authenticated loader
+    // upgrade authority, never the first arbitrary caller. These readonly
+    // accounts affect init only; initialized config layouts stay unchanged.
+    #[account(
+        constraint = program.programdata_address()? == Some(program_data.key()) @ FactoryError::UnauthorizedInitialization
+    )]
+    pub program: Program<'info, crate::program::BasketFactory>,
+    #[account(
+        seeds = [crate::ID.as_ref()],
+        bump,
+        seeds::program = anchor_lang::solana_program::bpf_loader_upgradeable::ID,
+        constraint = program_data.upgrade_authority_address == Some(authority.key()) @ FactoryError::UnauthorizedInitialization
+    )]
+    pub program_data: Account<'info, ProgramData>,
 }
 
 #[derive(Accounts)]
@@ -880,6 +894,8 @@ pub enum FactoryError {
     InvalidBasketProgram,
     #[msg("Account size does not fit the required integer type")]
     AccountSizeOverflow,
+    #[msg("Only this program's current loader upgrade authority may initialize its singleton")]
+    UnauthorizedInitialization,
 }
 
 #[cfg(test)]
@@ -1446,5 +1462,51 @@ mod tests {
     fn test_basket_account_size_covers_20_constituents() {
         // 32*4 keys + 8*3 numerics + 32 hash + 1 count + 32*20 + 2*20 + 2*3 + 2 bumps
         assert!(std::mem::size_of::<BasketAccount>() >= 820);
+    }
+}
+
+// Exercise the actual Anchor-generated init account validation using public
+// host account fixtures. The host system CPI stub does not simulate a validator.
+#[cfg(test)]
+#[path = "../../tests/bootstrap_authority.rs"]
+mod bootstrap_authority_fixtures;
+
+#[cfg(test)]
+mod bootstrap_authority_tests {
+    use super::*;
+    use std::collections::BTreeSet;
+
+    #[test]
+    fn init_requires_canonical_current_loader_authority() {
+        bootstrap_authority_fixtures::assert_cases(
+            crate::ID,
+            FACTORY_SEED,
+            8 + FactoryConfig::SIZE,
+            |infos, authority, treasury| {
+                let mut remaining = infos;
+                let mut bumps = InitFactoryBumps::default();
+                let mut accounts = match InitFactory::try_accounts(
+                    &crate::ID,
+                    &mut remaining,
+                    &[],
+                    &mut bumps,
+                    &mut BTreeSet::new(),
+                ) {
+                    Ok(accounts) => accounts,
+                    Err(_) => return false,
+                };
+                if basket_factory::init_factory(
+                    Context::new(&crate::ID, &mut accounts, &[], bumps),
+                    treasury,
+                    basket::CREATOR_FEE_SPLIT_BPS,
+                )
+                .is_err()
+                {
+                    return false;
+                }
+                assert_eq!(accounts.factory.authority, authority);
+                true
+            },
+        );
     }
 }

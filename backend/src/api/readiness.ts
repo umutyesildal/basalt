@@ -14,6 +14,7 @@ type Health = {
     degraded?: boolean;
     basketCount?: number;
     currentValuations?: number;
+    currentBalances?: Record<string,unknown>;
     history?: {
       pendingSignatures: number;
       quarantinedSignatures: number;
@@ -69,6 +70,7 @@ export function readinessReport(input: unknown, buildSha = process.env.BASALT_BU
       data: {
         basketCount: health.db.basketCount ?? null,
         currentValuations: health.db.currentValuations ?? null,
+        currentBalances: health.db.currentBalances ?? null,
         history: history ?? null,
       },
     },
