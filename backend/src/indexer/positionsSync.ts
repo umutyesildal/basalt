@@ -3,6 +3,8 @@ import { PublicKey, type AccountInfo, type Context } from "@solana/web3.js";
 import { TOKEN_2022_PROGRAM_ID, unpackAccount, unpackMint } from "@solana/spl-token";
 import { unresolvedPositionRebuildCondition } from "../db/projectionGuard.js";
 import { isPgLike, withTransaction, type PgLike } from "../db/client.js";
+import { positionsRpcForSnapshot } from "../rpc/positionsProvider.js";
+import { isUnsupportedHolderQuery } from "../rpc/requestBudget.js";
 import { withRpcBackoff, createPacer } from "../rpc/backoff.js";
 import { decodeBasketState, type DecodedBasketState } from "./basketState.js";
 import { assertBasketProjectionMatches } from "./positionSnapshotProjection.js";
@@ -19,7 +21,7 @@ export interface PositionsSyncRpc {
 export type JsonRpcInvoker = (method: string, params: unknown[]) => Promise<unknown>;
 export interface ChainHolder { user: string; mint: string; amount: string }
 export interface PositionsSyncStats {
-  basketsScanned: number; basketsFailed: number; holders: number;
+  basketsScanned: number; basketsFailed: number; basketsSkipped: number; holders: number;
   eventKept: number; balanceSynced: number; zeroed: number;
 }
 export interface RecoveryPrograms { basket: PublicKey; factory: PublicKey; ids: readonly string[] }
@@ -59,7 +61,7 @@ function finalizedSlot(context: Context | undefined, minimum = 0): number {
 }
 
 export function isTokenIndexExcludedError(error: unknown): boolean {
-  return /excluded from account secondary indexes|this RPC method unavailable for key/i.test(String(error));
+  return isUnsupportedHolderQuery(error);
 }
 /** Structural helper only; ownership and expected mint require parseShareHolders. */
 export function parseTokenAccountOwnerAmount(data: Buffer): { owner: string; amount: bigint } | null {
@@ -117,7 +119,8 @@ export async function fetchShareHolders(
   opts: { backoffSleep?: (ms: number) => Promise<void>; jsonRpcInvoke?: JsonRpcInvoker } = {},
 ): Promise<ChainHolder[]> {
   const mint = new PublicKey(shareMint);
-  const snapshot = await withRpcBackoff(() => rpc.getProgramAccounts(TOKEN_2022_PROGRAM_ID, {
+  const selectedRpc = positionsRpcForSnapshot(rpc);
+  const snapshot = await withRpcBackoff(() => selectedRpc.getProgramAccounts(TOKEN_2022_PROGRAM_ID, {
     commitment: "finalized", encoding: "base64", withContext: true,
     filters: [{ memcmp: { offset: 0, bytes: mint.toBase58() } }],
   }), { sleep: opts.backoffSleep, logKey: "positionsSync:finalized-holders" });
@@ -146,6 +149,7 @@ export async function fetchFinalizedPositionSnapshot(
 ): Promise<FinalizedPositionSnapshot & { basketState: DecodedBasketState }> {
   const address = canonicalKey(basket);
   validatePrograms(programs);
+  const selectedRpc = positionsRpcForSnapshot(rpc);
   const deadline = Date.now() + SNAPSHOT_DEADLINE_MS;
   let minimumSlot = 0;
   const read = <T>(fn: () => Promise<T>, logKey: string) => withRpcBackoff(
@@ -154,21 +158,21 @@ export async function fetchFinalizedPositionSnapshot(
   return boundedSnapshotRead(async () => {
     for (let attempt = 0; attempt < MAX_CONTEXT_ATTEMPTS; attempt++) {
       try {
-        const basketAccount = await read(() => rpc.getAccountInfoAndContext(address, {
+        const basketAccount = await read(() => selectedRpc.getAccountInfoAndContext(address, {
           commitment: "finalized", minContextSlot: minimumSlot,
         }), "positionsSync:basket");
         minimumSlot = finalizedSlot(basketAccount.context, minimumSlot);
         if (!basketAccount.value) throw new Error("Basket unavailable");
         const state = decodeBasketState(basket, basketAccount.value, programs);
         const mintAddress = new PublicKey(state.shareMint);
-        const holders = await read(() => rpc.getProgramAccounts(TOKEN_2022_PROGRAM_ID, {
+        const holders = await read(() => selectedRpc.getProgramAccounts(TOKEN_2022_PROGRAM_ID, {
           commitment: "finalized", encoding: "base64", withContext: true, minContextSlot: minimumSlot,
           filters: [{ memcmp: { offset: 0, bytes: state.shareMint } }],
         }), "positionsSync:finalized-holders");
         minimumSlot = finalizedSlot(holders.context, minimumSlot);
         if (!Array.isArray(holders.value)) throw new Error("Missing finalized holder accounts");
         const balances = parseShareHolders(holders.value, mintAddress).map(row => ({ user: row.user, shares: row.amount }));
-        const mintAccount = await read(() => rpc.getAccountInfoAndContext(mintAddress, {
+        const mintAccount = await read(() => selectedRpc.getAccountInfoAndContext(mintAddress, {
           commitment: "finalized", minContextSlot: minimumSlot,
         }), "positionsSync:finalized-mint");
         const mintSlot = finalizedSlot(mintAccount.context, minimumSlot);
@@ -218,19 +222,50 @@ export async function assertFinalizedHistoryCoverage(client: PgLike, programs: r
   if (state.rows.length !== programs.length || state.rows.some(row => row.finalized_through_slot == null || BigInt(row.finalized_through_slot) < BigInt(slot))) throw new Error("Finalized snapshot is newer than verified canonical discovery; catch up and restage");
 }
 
+let lastSync: { attemptedAt: string | null; completedAt: string | null; reason: string | null; basketsScanned: number; basketsFailed: number; basketsSkipped: number } = {
+  attemptedAt: null, completedAt: null, reason: null, basketsScanned: 0, basketsFailed: 0, basketsSkipped: 0,
+};
+export function positionsSyncEvidence() { return { ...lastSync }; }
+
+/** Cheap read-only preflight avoids known-impossible RPC scans. Locks still recheck all facts. */
+async function publicationBlocked(db: PgLike, programs: readonly string[]): Promise<boolean> {
+  const state = await db.query("SELECT program_id,history_complete,scan_before,scan_head,finalized_through_slot::text AS finalized_through_slot FROM indexer_program_state WHERE program_id=ANY($1::text[])", [[...programs]]);
+  if (state.rows.length !== programs.length || state.rows.some(row => !row.history_complete || row.scan_before !== null || row.scan_head !== null || row.finalized_through_slot == null)) return true;
+  const queue = await db.query("SELECT COUNT(*)::int AS count FROM indexer_signature_queue WHERE program_id=ANY($1::text[]) AND status<>'processed'", [[...programs]]);
+  return queue.rows[0]?.count !== 0;
+}
+
 /** Read before locks, catch history up, then publish each basket atomically. */
 export async function syncPositionsFromChain(
   rpc: PositionsSyncRpc, db: PgLike | null | undefined, opts: PositionsSyncOptions = {},
 ): Promise<PositionsSyncStats> {
-  const stats: PositionsSyncStats = { basketsScanned: 0, basketsFailed: 0, holders: 0, eventKept: 0, balanceSynced: 0, zeroed: 0 };
+  const stats: PositionsSyncStats = { basketsScanned: 0, basketsFailed: 0, basketsSkipped: 0, holders: 0, eventKept: 0, balanceSynced: 0, zeroed: 0 };
   if (!isPgLike(db)) return stats;
   if (!opts.programs) throw new Error("Authenticated recovery programs are required");
   const programs = opts.programs;
   validatePrograms(programs);
   const baskets = (await db.query("SELECT pubkey FROM baskets ORDER BY pubkey")).rows;
+  lastSync = { attemptedAt: new Date().toISOString(), completedAt: null, reason: null, basketsScanned: 0, basketsFailed: 0, basketsSkipped: 0 };
+  try {
+    if (await publicationBlocked(db, programs.ids)) {
+      stats.basketsFailed = baskets.length; stats.basketsSkipped = baskets.length;
+      lastSync = { ...lastSync, ...stats, completedAt: new Date().toISOString(), reason: "canonical-history-pending" };
+      return stats;
+    }
+  } catch {
+    stats.basketsFailed = baskets.length; stats.basketsSkipped = baskets.length;
+    lastSync = { ...lastSync, ...stats, completedAt: new Date().toISOString(), reason: "publication-preflight-unavailable" };
+    return stats;
+  }
   const pacer = createPacer(opts.spacingMs ?? 100);
   for (const row of baskets) {
     try {
+      const guard = await db.query(`SELECT basket FROM position_rebuild_required r WHERE basket=$1 AND ${unresolvedPositionRebuildCondition("r")}`, [row.pubkey]);
+      if (guard.rows.length) {
+        stats.basketsFailed++; stats.basketsSkipped++;
+        lastSync.reason = "projection-rebuild-required";
+        continue;
+      }
       await pacer.wait();
       const snapshot = await fetchFinalizedPositionSnapshot(rpc, row.pubkey, programs, opts.backoffSleep);
       if (opts.catchUpThroughSlot) await boundedSnapshotRead(() => opts.catchUpThroughSlot!(snapshot.slot), Date.now() + SNAPSHOT_DEADLINE_MS);
@@ -263,8 +298,10 @@ export async function syncPositionsFromChain(
       stats.zeroed += result.zeroed;
     } catch (error) {
       stats.basketsFailed++;
+      lastSync.reason = isUnsupportedHolderQuery(error) || error instanceof Error && error.message.includes("holder-query-unsupported") ? "holder-query-unsupported" : "snapshot-or-publication-failed";
       console.warn(`[positionsSync] preserving prior projection for ${row.pubkey}:`, error instanceof Error ? error.message : "snapshot failed");
     }
   }
+  lastSync = { ...lastSync, ...stats, completedAt: new Date().toISOString() };
   return stats;
 }

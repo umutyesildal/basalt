@@ -1,4 +1,5 @@
 /** Finalized, bounded, restart-safe history ingestion. Never signs transactions. */
+import { unresolvedPositionRebuildCondition } from "../db/projectionGuard.js";
 import { withTransaction, type PgLike } from "../db/client.js";
 
 export interface HistorySignature { signature: string; slot: number; err: unknown; blockTime?: number | null }
@@ -90,6 +91,38 @@ export class DurableHistory {
         UPDATE indexer_signature_queue q SET tx_index=c.tx_index FROM canonical c
         WHERE q.program_id=ANY($1::text[]) AND q.slot=$2 AND q.sig=c.sig AND q.status='pending'`, [[...programs],slot,[...signatures]]);
     });
+  }
+
+  /** Only selects facts not yet authenticated; it does not select effect work. */
+  async nextUncollectedGlobal(programs: readonly string[]): Promise<(HistorySignature & { programId: string; txIndex: number | null }) | null> {
+    const result = await this.db.query(`SELECT sig,slot,MIN(tx_index) AS tx_index,
+      MIN(program_id) AS program_id,MIN(block_time) AS block_time
+      FROM indexer_signature_queue WHERE program_id=ANY($1::text[]) AND status='pending' AND canonical_collected_at IS NULL
+      GROUP BY sig,slot ORDER BY slot ASC,MIN(tx_index) ASC NULLS FIRST LIMIT 1`, [[...programs]]);
+    const row=result.rows[0];
+    return row ? { signature:String(row.sig),slot:Number(row.slot),err:null,programId:String(row.program_id),
+      txIndex:row.tx_index==null?null:Number(row.tx_index),blockTime:row.block_time?new Date(row.block_time).getTime()/1000:null } : null;
+  }
+
+  async markCanonicalCollected(programs: readonly string[], sig: string, slot: number, eventCount: number): Promise<void> {
+    if (!Number.isSafeInteger(slot) || slot<0 || !Number.isSafeInteger(eventCount) || eventCount<0 || eventCount>10000) throw new Error("Invalid canonical collection identity");
+    const result=await this.db.query(`UPDATE indexer_signature_queue
+      SET canonical_collected_at=COALESCE(canonical_collected_at,NOW()),canonical_event_count=$4
+      WHERE program_id=ANY($1::text[]) AND sig=$2 AND slot=$3 AND status='pending' AND tx_index IS NOT NULL
+        AND (canonical_event_count IS NULL OR canonical_event_count=$4) RETURNING sig`, [[...programs],sig,slot,eventCount]);
+    if (!result.rows.length) throw new Error("Canonical collection could not bind queued signature/order");
+  }
+
+  async markProjectionBlocked(programs: readonly string[], sig: string, basket: string): Promise<void> {
+    await this.db.query(`UPDATE indexer_signature_queue SET projection_blocked_basket=$3
+      WHERE program_id=ANY($1::text[]) AND sig=$2 AND status='pending'`,[[...programs],sig,basket]);
+  }
+  async projectionBlocked(programs: readonly string[], sig: string): Promise<boolean> {
+    const result=await this.db.query(`SELECT EXISTS(SELECT 1 FROM indexer_signature_queue q
+      JOIN position_rebuild_required pr ON pr.basket=q.projection_blocked_basket
+      WHERE q.program_id=ANY($1::text[]) AND q.sig=$2 AND q.status='pending'
+        AND ${unresolvedPositionRebuildCondition("pr")}) AS blocked`,[[...programs],sig]);
+    return result.rows[0]?.blocked===true;
   }
 
   async finishGlobal(programs: readonly string[], sig: string, quarantine?: string): Promise<void> {

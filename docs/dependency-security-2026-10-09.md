@@ -81,11 +81,13 @@ uses the application's `DATABASE_URL` for those tests.
 ## RustSec reachability and temporary exceptions
 
 `cargo-audit 0.22.0` with RustSec database commit
-`7eebec69c352c7191b1f13eb95dd510eeca5d1de` reports two vulnerabilities and fourteen
+`7eebec69c352c7191b1f13eb95dd510eeca5d1de` originally reported two vulnerabilities and fourteen
 unmaintained/unsound notices for the locked Anchor0.30.1/Solana1.18.26 workspace.
-They are **not fixed** by this branch. The current release target is the existing
+The bounded parent patches below remove three notices; the current exact lock
+reports **two vulnerabilities and eleven notices (13 findings)**. Those remaining
+findings are **not fixed** by this branch. The current release target is the existing
 devnet web/backend. These Rust crates are absent from the deployed Node dependency
-artifact; most flagged crypto, logging, collection and mmap paths are host-gated.
+artifact; most remaining flagged crypto and collection paths are host-gated.
 Bincode/Borsh compatibility dependencies must still be assessed for program builds.
 This release does not upgrade the deployed SBF programs or claim that their Rust
 graph is clean. A Solana/Anchor migration requires separate account/instruction
@@ -102,15 +104,15 @@ project Rust signing/mmap/logger/collection API usage. There is no blanket ignor
 |---|---|
 | curve25519-dalek3.2.1; ed25519-dalek1.0.1 | Crypto timing/[signing oracle](https://rustsec.org/advisories/RUSTSEC-2022-0093.html) paths are host SDK transitive dependencies. Basalt Rust programs have no secret scalar/keypair/signing API. Solana pubkey PDA code uses host curve decompression under `cfg(not(target_os="solana"))` and SBF syscalls on chain; zk-token-sdk crypto dependencies are also host-gated. The [timing advisory](https://rustsec.org/advisories/RUSTSEC-2024-0344.html) remains recorded. |
 | borsh0.9.3 | Legacy Solana helper; no project non-Copy zero-sized deserialization types. Cannot globally substitute a different wire implementation. |
-| atty0.2.14 | Host logging; affected Windows/custom-allocator condition is outside the deployed Linux/SBF path. |
-| memmap2 0.5.10 | Host frozen-ABI/SDK; no project advise_range/flush_range API or untrusted mmap range service. |
 | rand0.7.3 | No custom Rust logger that reenters thread_rng during reseed. |
 | im15.1.0; sized-chunks0.6.5; bitmaps2.1.0 | Host frozen-ABI collections; no project OrdSet/sized_chunks or panicking-Drop element APIs. |
 | bincode1.3.3; libsecp256k1 0.6.0 | Pinned SDK serialization/host crypto maintenance debt; no project Rust signer. |
 | derivative2.2.0; paste1.0.15 | Build-time macros, maintenance notices. |
 
-The complete current advisory IDs, titles and primary-source links are in
-[rustsec-summary.json](security-evidence-2026-10-09/rustsec-summary.json). Reproduce:
+The original 16 advisory IDs, titles and primary-source links remain in
+[rustsec-summary.json](security-evidence-2026-10-09/rustsec-summary.json) as historical
+evidence. The current 13 findings and the bounded reduction are recorded in
+[rust-parent-remediation.json](security-evidence-2026-10-09/rust-parent-remediation.json). Reproduce:
 
 ```sh
 cargo install cargo-audit --version 0.22.0 --locked
@@ -121,6 +123,9 @@ For an isolated auditor/database installation, set `BASALT_CARGO_AUDIT` to the
 absolute pinned `cargo-audit` binary and `BASALT_RUSTSEC_DB` to its RustSec Git
 database directory before the same command. The recorded validation used
 cargo-audit0.22.0 and the database commit above; no global installation is assumed.
+Python 3.11+ is required for the standard TOML parser that verifies active Cargo
+patch bindings; commented/out-of-section declarations and duplicate keys fail
+closed before the audit.
 
 A protocol maintainer must re-evaluate these scoped exceptions before their expiry,
 when Cargo.lock changes, before adding any host signer/secret-scalar service, and
@@ -129,8 +134,8 @@ source scope; it is not a declaration that the Rust dependency graph is clean.
 
 ## Verified Rust migration options and acceptance criteria
 
-Read-only graph review found no lockfile-only compatible update that removes any
-of these 16 findings under the current parent requirements. The
+Graph review found no lockfile-only compatible update that removes any
+of the original 16 findings under the unmodified parent requirements. The
 [Anchor 0.30.1 manifest](https://raw.githubusercontent.com/coral-xyz/anchor/v0.30.1/lang/Cargo.toml)
 requires Solana 1.x and bincode 1. The
 [Solana 1.18.26 program manifest](https://raw.githubusercontent.com/solana-labs/solana/v1.18.26/sdk/program/Cargo.toml)
@@ -140,20 +145,38 @@ Token2022 3.0.5 and spl-pod 0.2.5 require the zk SDK; its host
 enables the old signing, logger and mmap dependencies. Disabling the Token2022
 `zk-ops` feature does not remove those mandatory parent edges.
 
-Potential bounded reductions require maintained patches of upstream parent crates,
-not an advisory rename or broad suppression:
+Bounded reductions require maintained patches of upstream parent crates. The
+logger and mmap parent patches are now implemented; larger candidates remain
+separate proposals:
 
 | Candidate | Potential reduction | Required validation |
 |---|---|---|
-| solana-logger 1.18.26 using env_logger 0.10.2 | Both atty findings | Upstream [env_logger changelog](https://raw.githubusercontent.com/rust-cli/env_logger/main/CHANGELOG.md) confirms 0.10 replaces atty with is-terminal. Verify logger construction, filters and file logging, preserve parent source/license provenance, and run Rust gates. This changes host logging dependencies, not program financial logic. |
-| SDK 1.18.26 and frozen-ABI 1.18.26 using memmap2 >=0.9.11 | One mmap finding | The [patched minimum](https://rustsec.org/advisories/RUSTSEC-2026-0186.html) is outside their 0.5 requirement. Review both parents' host map/map_anon calls, compile/test the replacement and preserve SBF cfg separation. |
+| Implemented: solana-logger 1.18.26 using env_logger exactly 0.10.2 | Both atty findings removed | Upstream [env_logger changelog](https://raw.githubusercontent.com/rust-cli/env_logger/main/CHANGELOG.md) confirms 0.10 replaces atty with is-terminal. Logger construction, filters and file logging passed host regressions; source/license provenance and all host Rust gates passed. This changes host logging dependencies, not program financial logic. |
+| Implemented: SDK 1.18.26 and frozen-ABI 1.18.26 using memmap2 exactly 0.9.11 | One mmap finding removed | The [patched minimum](https://rustsec.org/advisories/RUSTSEC-2026-0186.html) is outside their 0.5 requirement. Both unchanged map/map_anon call sites compile; host mmap regressions and all host Rust gates pass. The existing cfg boundary is unchanged; SBF rebuild is separate. |
 | frozen-ABI replacing im and its collection family | Up to five collection findings | Review public trait bounds, serde and ABI examples. The maintained [imbl 7.0.2 manifest](https://raw.githubusercontent.com/jneem/imbl/main/Cargo.toml) uses imbl-sized-chunks 0.2.0 and MSRV 1.85. Earlier fork versions can introduce [RUSTSEC-2026-0292](https://rustsec.org/advisories/RUSTSEC-2026-0292.html); the fixed minimum is 0.2.0. |
 | Ark parent patches or a coordinated Ark family upgrade | derivative/paste maintenance notices | Modern [ark-ff](https://raw.githubusercontent.com/arkworks-rs/algebra/master/ff/Cargo.toml) and [ark-ec](https://raw.githubusercontent.com/arkworks-rs/algebra/master/ec/Cargo.toml) use educe. Review generated traits and BN254/Poseidon behavior; a global 0.4-to-new-major override is not compatible. |
 
-None of these candidate patches was applied. The existing exact exception policy
-and **2026-10-23 00:00 UTC expiry remain unchanged**. Taking ownership of upstream
-Solana forks solely to reduce a host dependency count is a separate maintenance
-decision from releasing the existing devnet Node application.
+The two implemented changes use three local parent packages via root
+`[patch.crates-io]`; all upstream Rust source bytes and feature/cfg boundaries are
+unchanged. Original registry archives, their preceding-lock checksums, VCS
+provenance, the Apache license and prominent manifest modification notices live in
+[vendor/rust](../vendor/rust/README.md). The audit gate now verifies every upstream
+file offline before accepting path dependencies, which otherwise have no lockfile
+package checksum. Tamper regressions cover source, archive, manifest, binding,
+license, VCS and unexpected-file changes.
+
+The four host regression fixtures exercise actual logger filters/append output,
+SDK genesis mmap serialization round-trip, malformed files and invalid mmap
+ranges. Existing workspace tests also run. No program source, ID, PDA,
+account/instruction layout, raw accounting or redemption behavior was changed.
+This is source remediation only; it does not upgrade or attest deployed SBF
+binaries. A new SBF build remains a separate verification gate.
+
+Only the three eliminated advisory entries were dropped. The policy is rebound to
+the exact validated lock; all 13 remaining entries retain their original scope and
+**2026-10-23 00:00 UTC expiry**, with mainnet approval false. Collection and Ark
+patches remain unapplied. Ownership of these small parent patches does not imply
+approval for a broader SDK fork or a new program deployment.
 
 The remaining crypto and serialization paths need coordinated parent migrations.
 [Curve25519 requires >=4.1.3](https://rustsec.org/advisories/RUSTSEC-2024-0344.html),

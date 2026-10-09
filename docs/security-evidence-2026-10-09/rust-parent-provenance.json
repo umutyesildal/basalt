@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "sourceChanges": 0,
+  "manifestDependencyChanges": 3,
+  "parents": [
+    {
+      "package": "solana-logger",
+      "version": "1.18.26",
+      "upstreamArchiveSha256": "121d36ffb3c6b958763312cbc697fbccba46ee837d3a0aa4fc0e90fcb3b884f3",
+      "verifiedFiles": 5
+    },
+    {
+      "package": "solana-sdk",
+      "version": "1.18.26",
+      "upstreamArchiveSha256": "580ad66c2f7a4c3cb3244fe21440546bd500f5ecb955ad9826e92a78dded8009",
+      "verifiedFiles": 174
+    },
+    {
+      "package": "solana-frozen-abi",
+      "version": "1.18.26",
+      "upstreamArchiveSha256": "03ab2c30c15311b511c0d1151e4ab6bc9a3e080a37e7c6e7c2d96f5784cf9434",
+      "verifiedFiles": 8
+    }
+  ]
+}

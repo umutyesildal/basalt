@@ -4,6 +4,7 @@ import { createHash } from "node:crypto";
 import { readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
+import { verifyRustParents } from "./verify-rust-parents.mjs";
 export function evaluateRustAudit(report, policy, { now = new Date(), lockfileBytes, sourceText = "" } = {}) {
   if (!report?.database?.["last-commit"] || !Array.isArray(report?.vulnerabilities?.list) || !report.warnings || policy.version !== 1) throw new Error("Malformed Rust audit evidence/policy");
   const blockers = [];
@@ -25,6 +26,7 @@ function sources(dir) {
   return readdirSync(dir, { withFileTypes: true }).flatMap(entry => entry.isDirectory() ? sources(join(dir, entry.name)) : entry.name.endsWith(".rs") ? [readFileSync(join(dir, entry.name), "utf8")] : []).join("\n");
 }
 export function main() {
+  verifyRustParents(); // Path dependencies have no Cargo.lock checksum; verify every upstream byte.
   const audit = spawnSync(process.env.BASALT_CARGO_AUDIT ?? "cargo-audit", ["audit", "--json", ...(process.env.BASALT_RUSTSEC_DB ? ["--db", process.env.BASALT_RUSTSEC_DB] : [])], { encoding: "utf8", maxBuffer: 16 * 1024 * 1024 });
   if (audit.error || ![0, 1].includes(audit.status)) throw new Error("Pinned cargo-audit unavailable or registry audit failed");
   const report = JSON.parse(audit.stdout);

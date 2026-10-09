@@ -1,0 +1,7 @@
+Building SBF program: whitelist
+info: uninstalling toolchain solana
+info: toolchain solana uninstalled
+error: failed to parse lock file at: /Users/umutyesildal/.codex/worktrees/backend-devnet-security/createyouretf/Cargo.lock
+
+Caused by:
+  lock file version 4 requires `-Znext-lockfile-bump`

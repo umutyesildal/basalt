@@ -94,6 +94,7 @@ CREATE TABLE IF NOT EXISTS basket_valuation_state (
   attempted_at TIMESTAMPTZ NOT NULL,
   last_complete_at TIMESTAMPTZ
 );
+ALTER TABLE basket_valuation_state ADD COLUMN IF NOT EXISTS missing_price_mints TEXT[] NOT NULL DEFAULT '{}';
 CREATE INDEX IF NOT EXISTS nav_snapshots_basket_ts_idx ON nav_snapshots(basket, ts DESC);
 
 -- ---------------------------------------------------------------------------
@@ -427,6 +428,13 @@ CREATE TABLE IF NOT EXISTS indexer_signature_queue (
   PRIMARY KEY (program_id, sig)
 );
 ALTER TABLE indexer_signature_queue ADD COLUMN IF NOT EXISTS tx_index INT CHECK(tx_index >= 0);
+-- Evidence collection is distinct from applying position effects. Pending and
+-- quarantine guards remain authoritative even after canonical facts are stored.
+ALTER TABLE indexer_signature_queue ADD COLUMN IF NOT EXISTS canonical_collected_at TIMESTAMPTZ;
+ALTER TABLE indexer_signature_queue ADD COLUMN IF NOT EXISTS canonical_event_count INT CHECK(canonical_event_count >= 0);
+ALTER TABLE indexer_signature_queue ADD COLUMN IF NOT EXISTS projection_blocked_basket TEXT REFERENCES baskets(pubkey);
+CREATE INDEX IF NOT EXISTS indexer_signature_queue_uncollected_idx
+  ON indexer_signature_queue(slot,tx_index) WHERE status='pending' AND canonical_collected_at IS NULL;
 CREATE INDEX IF NOT EXISTS indexer_signature_queue_pending_global_idx
   ON indexer_signature_queue(slot, tx_index) WHERE status = 'pending';
 CREATE INDEX IF NOT EXISTS indexer_signature_queue_pending_idx

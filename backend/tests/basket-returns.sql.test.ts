@@ -7,7 +7,7 @@ import pg from "pg";
 import { PublicKey } from "@solana/web3.js";
 import { applySchema } from "../src/db/init";
 import type { PgLike } from "../src/db/client";
-import { basketPerformance, listBaskets, navHistory, userPortfolio, userPositionsByWallet, creatorDetail } from "../src/api/server";
+import { basketDetail, basketPerformance, listBaskets, navHistory, userPortfolio, userPositionsByWallet, creatorDetail } from "../src/api/server";
 import { getBasketLeaderboard, getFeed, getUserHistory, getLeaderboard } from "../src/api/social";
 import { USER_SNAPSHOT_SQL } from "../src/workers/userSnapshot";
 import { recordValuationAttempt } from "../src/api/valuation-quality";
@@ -405,4 +405,23 @@ describe.skipIf(!url)("basket returns against disposable PostgreSQL", () => {
     expect((await ranked("30d")).items[0].returnPct).toBe(0);
     expect(Number((await listed("return_30d")).data[0].return_30d)).toBe(0);
   });
+  it("keeps an unpriced indexed basket visible before rankings refresh and explains missing prices",async()=>{
+    const pubkey=await basket(170);
+    await recordValuationAttempt(db,pubkey,{complete:false,reason:'no-prices',attemptedAt:new Date().toISOString(),missingPriceMints:[key(172)]});
+    const result=(await listBaskets(db,{})).payload as any;
+    expect(result.data).toHaveLength(1);
+    expect(result.data[0]).toMatchObject({pubkey,nav:null,share_price:null,return_7d:null,holders:0,dataQuality:{status:'unavailable',valuation:{eligible:false,reason:'no-prices',missingPriceMints:[key(172)]}}});
+    expect(((await listBaskets(db,{minAUM:'1'})).payload as any).data).toEqual([]);
+    const detail=(await basketDetail(db,pubkey)).payload as any;
+    expect(detail.data.nav).toBeNull();
+    expect(detail.data.dataQuality.valuation).toMatchObject({eligible:false,reason:'no-prices',missingPriceMints:[key(172)]});
+  });
+  it("does not present retained holder counts as verified during recovery",async()=>{
+    const pubkey=await basket(171),wallet=key(175);
+    await client.query('INSERT INTO user_positions("user",basket,share_balance) VALUES($1,$2,100)',[wallet,pubkey]);
+    await client.query("INSERT INTO position_rebuild_required(basket,reason) VALUES($1,'legacy')",[pubkey]);
+    const row=((await listBaskets(db,{})).payload as any).data[0];
+    expect(row.holders).toBeNull();expect(row.dataQuality.recovery.required).toBe(true);
+  });
+
 });

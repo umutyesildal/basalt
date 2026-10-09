@@ -39,6 +39,8 @@ import { BasketPageTradeRail } from "@/components/basket/basket-page-trade-rail"
 import { IconCopyButton as CopyButton } from "@/components/ui/copy-button";
 import { ChangeValue } from "@/components/stocks/change-value";
 import { formatAsOf, formatUsd, truncateAddress } from "@/lib/format";
+import { BasketDataNote } from "@/components/basket/basket-data-note";
+import { parseBasketDataQuality } from "@/lib/basket-data-quality";
 
 type SectionTab = "about" | "history" | "risk" | "thesis";
 
@@ -175,8 +177,11 @@ export default function BasketDetailClient({
   const retry = useCallback(() => setReloadKey((k) => k + 1), []);
 
   // ---- derived metrics (honest: null renders as an em dash) ----
-  const sharePrice = numericToNumber(detail?.nav?.sharePrice ?? null);
-  const nav = numericToNumber(detail?.nav?.value ?? null);
+  const dataQuality = parseBasketDataQuality(detail?.dataQuality, detail?.nav?.quality, detail?.nav?.priceSource);
+  const valuationEligible = dataQuality.valuation.eligible;
+  const sharePrice = valuationEligible ? numericToNumber(detail?.nav?.sharePrice ?? null) : null;
+  const nav = valuationEligible ? numericToNumber(detail?.nav?.value ?? null) : null;
+  const shownChange24h = valuationEligible ? change24h : null;
   const supply = detail?.nav?.supply ?? null;
   const asOf = detail?.nav?.asOf ?? detail?.asOf ?? null;
   const lastAccrualSeconds = numericToNumber(detail?.last_fee_accrual_ts ?? null);
@@ -210,7 +215,7 @@ export default function BasketDetailClient({
   }, [detail]);
 
   const headline = name ?? composition ?? truncateAddress(pubkey, 6, 6);
-  const vsSpy = change24h !== null && spy24h !== null ? change24h - spy24h : null;
+  const vsSpy = shownChange24h !== null && spy24h !== null ? shownChange24h - spy24h : null;
 
   return (
     <div className="space-y-8">
@@ -251,8 +256,10 @@ export default function BasketDetailClient({
               {headline}
             </h1>
             {creatorThesis ? <p className="max-w-2xl text-sm leading-6 text-muted-foreground">{creatorThesis}</p> : null}
-            <p className="text-sm leading-5 text-muted-foreground">Devnet · project mock tokens · reference data</p>
+            <p className="text-sm leading-5 text-muted-foreground">Devnet · project test tokens</p>
           </div>
+
+          <BasketDataNote quality={dataQuality} details />
 
           <div className="grid grid-cols-2 gap-3 lg:hidden" aria-label="Basket actions">
             <Button render={<Link href={`/basket/${detail.pubkey}/buy`} />}>Buy shares</Button>
@@ -277,7 +284,8 @@ export default function BasketDetailClient({
                 {tab === "history" ? (
                   <BasketPageHistory
                     pubkey={detail.pubkey}
-                    navRows={navRows}
+                    navRows={valuationEligible ? navRows : []}
+                    valuationUnavailable={!valuationEligible}
                     navSource={navSource}
                     navFailed={navFailed}
                     asOf={asOf}
@@ -325,7 +333,7 @@ export default function BasketDetailClient({
                 <CardHeader className="pb-2">
                   <CardDescription>24h reference change</CardDescription>
                   <CardTitle className="font-mono text-2xl tabular-nums">
-                    <ChangeValue changePct={change24h} className="text-2xl" />
+                    <ChangeValue changePct={shownChange24h} className="text-2xl" />
                   </CardTitle>
                 </CardHeader>
               </Card>
@@ -337,7 +345,7 @@ export default function BasketDetailClient({
               </Card>
             </div>
             <p className="mt-4 leading-5">
-              Reference values from {detail.nav?.source ?? detail.source ?? "an unavailable source"} · {asOf ? `as of ${formatAsOf(asOf)}` : "timestamp unavailable"}. They may be delayed.
+              {valuationEligible ? `Reference values from ${detail.nav?.source ?? detail.source} · ${asOf ? `as of ${formatAsOf(asOf)}` : "timestamp unavailable"}. They may be delayed.` : "USD values and returns stay unavailable until the basket has verified market prices."}
             </p>
             <div className="mt-3 flex flex-wrap items-center gap-2 font-mono">
               <span>Basket {detail.pubkey}</span>

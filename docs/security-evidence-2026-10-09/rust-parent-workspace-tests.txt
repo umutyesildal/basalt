@@ -1,0 +1,1556 @@
+   Compiling proc-macro2 v1.0.107
+   Compiling generic-array v0.14.7
+   Compiling serde v1.0.229
+   Compiling quote v1.0.47
+   Compiling getrandom v0.2.17
+   Compiling syn v3.0.4
+   Compiling syn v2.0.119
+   Compiling serde_derive v1.0.229
+   Compiling syn v1.0.109
+   Compiling thiserror-impl v1.0.69
+   Compiling thiserror v1.0.69
+   Compiling crypto-common v0.1.7
+   Compiling block-buffer v0.10.4
+   Compiling digest v0.10.7
+   Compiling rand_core v0.6.4
+   Compiling zeroize_derive v1.4.2
+   Compiling digest v0.9.0
+   Compiling getrandom v0.1.16
+   Compiling zeroize v1.3.0
+   Compiling rand_chacha v0.3.1
+   Compiling rand v0.8.8
+   Compiling rand_core v0.5.1
+   Compiling cpufeatures v0.2.17
+   Compiling block-padding v0.2.1
+   Compiling block-buffer v0.9.0
+   Compiling ark-std v0.4.0
+   Compiling sha2 v0.10.9
+   Compiling ark-serialize-derive v0.4.2
+   Compiling libsecp256k1-core v0.2.2
+   Compiling ark-serialize v0.4.2
+   Compiling ark-ff-macros v0.4.2
+   Compiling rand_chacha v0.2.2
+   Compiling derivative v2.2.0
+   Compiling ark-ff-asm v0.4.2
+   Compiling toml v0.5.11
+   Compiling crypto-mac v0.8.0
+   Compiling ark-ff v0.4.2
+   Compiling proc-macro-crate v0.1.5
+   Compiling rand v0.7.3
+   Compiling sha2 v0.9.9
+   Compiling hmac v0.8.1
+   Compiling libsecp256k1-gen-ecmult v0.2.1
+   Compiling libsecp256k1-gen-genmult v0.2.1
+   Compiling borsh-derive-internal v0.10.4
+   Compiling wasm-bindgen-macro-support v0.2.127
+   Compiling libsecp256k1 v0.6.0
+   Compiling ahash v0.7.8
+   Compiling curve25519-dalek v3.2.1
+   Compiling ark-poly v0.4.2
+   Compiling rand_xoshiro v0.6.0
+   Compiling ark-ec v0.4.2
+   Compiling borsh-schema-derive-internal v0.10.4
+   Compiling borsh-schema-derive-internal v0.9.3
+   Compiling borsh-derive-internal v0.9.3
+   Compiling borsh-derive v0.9.3
+   Compiling borsh-derive v0.10.4
+   Compiling ark-bn254 v0.4.0
+   Compiling im v15.1.0
+   Compiling bv v0.11.1
+   Compiling hashbrown v0.11.2
+   Compiling solana-frozen-abi-macro v1.18.26
+   Compiling wasm-bindgen-macro v0.2.127
+   Compiling hmac-drbg v0.3.0
+   Compiling borsh-derive v1.5.7
+   Compiling pbkdf2 v0.4.0
+   Compiling bytemuck_derive v1.12.0
+   Compiling bytemuck v1.25.2
+   Compiling blake3 v1.5.5
+   Compiling tiny-bip39 v0.8.2
+   Compiling solana-frozen-abi v1.18.26 (/Users/umutyesildal/.codex/worktrees/backend-devnet-security/createyouretf/vendor/rust/solana-frozen-abi-1.18.26)
+warning: unexpected `cfg` condition name: `RUSTC_WITH_SPECIALIZATION`
+ --> vendor/rust/solana-frozen-abi-1.18.26/src/lib.rs:2:13
+  |
+2 | #![cfg_attr(RUSTC_WITH_SPECIALIZATION, feature(specialization))]
+  |             ^^^^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = help: expected names are: `docsrs`, `feature`, and `test` and 32 more
+  = help: consider using a Cargo feature instead
+  = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+           [lints.rust]
+           unexpected_cfgs = { level = "warn", check-cfg = ['cfg(RUSTC_WITH_SPECIALIZATION)'] }
+  = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(RUSTC_WITH_SPECIALIZATION)");` to the top of the `build.rs`
+  = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+  = note: `#[warn(unexpected_cfgs)]` on by default
+
+warning: unexpected `cfg` condition name: `RUSTC_NEEDS_PROC_MACRO_HYGIENE`
+ --> vendor/rust/solana-frozen-abi-1.18.26/src/lib.rs:3:13
+  |
+3 | #![cfg_attr(RUSTC_NEEDS_PROC_MACRO_HYGIENE, feature(proc_macro_hygiene))]
+  |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = help: consider using a Cargo feature instead
+  = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+           [lints.rust]
+           unexpected_cfgs = { level = "warn", check-cfg = ['cfg(RUSTC_NEEDS_PROC_MACRO_HYGIENE)'] }
+  = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(RUSTC_NEEDS_PROC_MACRO_HYGIENE)");` to the top of the `build.rs`
+  = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition name: `RUSTC_WITH_SPECIALIZATION`
+ --> vendor/rust/solana-frozen-abi-1.18.26/src/lib.rs:8:7
+  |
+8 | #[cfg(RUSTC_WITH_SPECIALIZATION)]
+  |       ^^^^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = help: consider using a Cargo feature instead
+  = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+           [lints.rust]
+           unexpected_cfgs = { level = "warn", check-cfg = ['cfg(RUSTC_WITH_SPECIALIZATION)'] }
+  = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(RUSTC_WITH_SPECIALIZATION)");` to the top of the `build.rs`
+  = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition name: `RUSTC_WITH_SPECIALIZATION`
+  --> vendor/rust/solana-frozen-abi-1.18.26/src/lib.rs:10:7
+   |
+10 | #[cfg(RUSTC_WITH_SPECIALIZATION)]
+   |       ^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = help: consider using a Cargo feature instead
+   = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+            [lints.rust]
+            unexpected_cfgs = { level = "warn", check-cfg = ['cfg(RUSTC_WITH_SPECIALIZATION)'] }
+   = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(RUSTC_WITH_SPECIALIZATION)");` to the top of the `build.rs`
+   = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition name: `RUSTC_WITH_SPECIALIZATION`
+  --> vendor/rust/solana-frozen-abi-1.18.26/src/lib.rs:12:7
+   |
+12 | #[cfg(RUSTC_WITH_SPECIALIZATION)]
+   |       ^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = help: consider using a Cargo feature instead
+   = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+            [lints.rust]
+            unexpected_cfgs = { level = "warn", check-cfg = ['cfg(RUSTC_WITH_SPECIALIZATION)'] }
+   = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(RUSTC_WITH_SPECIALIZATION)");` to the top of the `build.rs`
+   = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition name: `RUSTC_WITH_SPECIALIZATION`
+  --> vendor/rust/solana-frozen-abi-1.18.26/src/lib.rs:15:7
+   |
+15 | #[cfg(RUSTC_WITH_SPECIALIZATION)]
+   |       ^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = help: consider using a Cargo feature instead
+   = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+            [lints.rust]
+            unexpected_cfgs = { level = "warn", check-cfg = ['cfg(RUSTC_WITH_SPECIALIZATION)'] }
+   = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(RUSTC_WITH_SPECIALIZATION)");` to the top of the `build.rs`
+   = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition name: `RUSTC_WITH_SPECIALIZATION`
+  --> vendor/rust/solana-frozen-abi-1.18.26/src/lib.rs:19:7
+   |
+19 | #[cfg(RUSTC_WITH_SPECIALIZATION)]
+   |       ^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = help: consider using a Cargo feature instead
+   = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+            [lints.rust]
+            unexpected_cfgs = { level = "warn", check-cfg = ['cfg(RUSTC_WITH_SPECIALIZATION)'] }
+   = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(RUSTC_WITH_SPECIALIZATION)");` to the top of the `build.rs`
+   = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: `solana-frozen-abi` (lib) generated 7 warnings
+   Compiling borsh v1.5.5
+   Compiling wasm-bindgen v0.2.127
+   Compiling borsh v0.9.3
+   Compiling light-poseidon v0.2.0
+   Compiling borsh v0.10.4
+   Compiling solana-sdk-macro v1.18.26
+   Compiling sha3 v0.10.9
+   Compiling bincode v1.3.3
+   Compiling num-derive v0.4.2
+   Compiling darling_core v0.20.11
+   Compiling solana-program v1.18.26
+   Compiling darling_macro v0.20.11
+   Compiling darling v0.20.11
+   Compiling num_enum_derive v0.7.6
+   Compiling num_enum v0.7.6
+   Compiling serde_with_macros v2.3.3
+   Compiling ed25519-dalek v1.0.1
+   Compiling hmac v0.12.1
+   Compiling ed25519-dalek-bip32 v0.2.0
+   Compiling serde_with v2.3.3
+   Compiling pbkdf2 v0.11.0
+   Compiling cipher v0.3.0
+   Compiling qualifier_attr v0.2.2
+   Compiling unicode-segmentation v1.11.0
+   Compiling heck v0.3.3
+   Compiling serde_json v1.0.151
+   Compiling universal-hash v0.4.1
+   Compiling polyval v0.5.3
+   Compiling ctr v0.8.0
+   Compiling aes v0.7.5
+   Compiling aead v0.4.3
+   Compiling bs58 v0.5.1
+   Compiling anchor-syn v0.30.1
+   Compiling solana-sdk v1.18.26 (/Users/umutyesildal/.codex/worktrees/backend-devnet-security/createyouretf/vendor/rust/solana-sdk-1.18.26)
+warning: unexpected `cfg` condition name: `RUSTC_WITH_SPECIALIZATION`
+  --> vendor/rust/solana-sdk-1.18.26/src/lib.rs:33:13
+   |
+33 | #![cfg_attr(RUSTC_WITH_SPECIALIZATION, feature(specialization))]
+   |             ^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = help: expected names are: `docsrs`, `feature`, and `test` and 32 more
+   = help: consider using a Cargo feature instead
+   = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+            [lints.rust]
+            unexpected_cfgs = { level = "warn", check-cfg = ['cfg(RUSTC_WITH_SPECIALIZATION)'] }
+   = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(RUSTC_WITH_SPECIALIZATION)");` to the top of the `build.rs`
+   = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+   = note: `#[warn(unexpected_cfgs)]` on by default
+
+warning: unexpected `cfg` condition name: `RUSTC_NEEDS_PROC_MACRO_HYGIENE`
+  --> vendor/rust/solana-sdk-1.18.26/src/lib.rs:34:13
+   |
+34 | #![cfg_attr(RUSTC_NEEDS_PROC_MACRO_HYGIENE, feature(proc_macro_hygiene))]
+   |             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = help: consider using a Cargo feature instead
+   = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+            [lints.rust]
+            unexpected_cfgs = { level = "warn", check-cfg = ['cfg(RUSTC_NEEDS_PROC_MACRO_HYGIENE)'] }
+   = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(RUSTC_NEEDS_PROC_MACRO_HYGIENE)");` to the top of the `build.rs`
+   = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition value: `solana`
+  --> vendor/rust/solana-sdk-1.18.26/src/lib.rs:45:11
+   |
+45 | #[cfg(not(target_os = "solana"))]
+   |           ^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: expected values for `target_os` are: `aix`, `amdhsa`, `android`, `cuda`, `cygwin`, `dragonfly`, `emscripten`, `espidf`, `freebsd`, `fuchsia`, `haiku`, `helenos`, `hermit`, `horizon`, `hurd`, `illumos`, `ios`, `l4re`, `linux`, `lynxos178`, `macos`, `managarm`, `motor`, `netbsd`, `none`, `nto`, `nuttx`, `openbsd`, `psp`, `psx`, `qnx`, `qurt`, `redox`, `rtems`, and `solaris` and 15 more
+   = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition value: `solana`
+ --> vendor/rust/solana-sdk-1.18.26/src/fee.rs:4:11
+  |
+4 | #[cfg(not(target_os = "solana"))]
+  |           ^^^^^^^^^^^^^^^^^^^^
+  |
+  = note: expected values for `target_os` are: `aix`, `amdhsa`, `android`, `cuda`, `cygwin`, `dragonfly`, `emscripten`, `espidf`, `freebsd`, `fuchsia`, `haiku`, `helenos`, `hermit`, `horizon`, `hurd`, `illumos`, `ios`, `l4re`, `linux`, `lynxos178`, `macos`, `managarm`, `motor`, `netbsd`, `none`, `nto`, `nuttx`, `openbsd`, `psp`, `psx`, `qnx`, `qurt`, `redox`, `rtems`, and `solaris` and 15 more
+  = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition name: `RUSTC_WITH_SPECIALIZATION`
+   --> vendor/rust/solana-sdk-1.18.26/src/fee.rs:141:7
+    |
+141 | #[cfg(RUSTC_WITH_SPECIALIZATION)]
+    |       ^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = help: consider using a Cargo feature instead
+    = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+             [lints.rust]
+             unexpected_cfgs = { level = "warn", check-cfg = ['cfg(RUSTC_WITH_SPECIALIZATION)'] }
+    = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(RUSTC_WITH_SPECIALIZATION)");` to the top of the `build.rs`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition value: `solana`
+  --> vendor/rust/solana-sdk-1.18.26/src/fee.rs:79:15
+   |
+79 |     #[cfg(not(target_os = "solana"))]
+   |               ^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: expected values for `target_os` are: `aix`, `amdhsa`, `android`, `cuda`, `cygwin`, `dragonfly`, `emscripten`, `espidf`, `freebsd`, `fuchsia`, `haiku`, `helenos`, `hermit`, `horizon`, `hurd`, `illumos`, `ios`, `l4re`, `linux`, `lynxos178`, `macos`, `managarm`, `motor`, `netbsd`, `none`, `nto`, `nuttx`, `openbsd`, `psp`, `psx`, `qnx`, `qurt`, `redox`, `rtems`, and `solaris` and 15 more
+   = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition name: `RUSTC_WITH_SPECIALIZATION`
+  --> vendor/rust/solana-sdk-1.18.26/src/packet.rs:50:7
+   |
+50 | #[cfg(RUSTC_WITH_SPECIALIZATION)]
+   |       ^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = help: consider using a Cargo feature instead
+   = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+            [lints.rust]
+            unexpected_cfgs = { level = "warn", check-cfg = ['cfg(RUSTC_WITH_SPECIALIZATION)'] }
+   = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(RUSTC_WITH_SPECIALIZATION)");` to the top of the `build.rs`
+   = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition name: `RUSTC_WITH_SPECIALIZATION`
+  --> vendor/rust/solana-sdk-1.18.26/src/packet.rs:57:7
+   |
+57 | #[cfg(RUSTC_WITH_SPECIALIZATION)]
+   |       ^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = help: consider using a Cargo feature instead
+   = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+            [lints.rust]
+            unexpected_cfgs = { level = "warn", check-cfg = ['cfg(RUSTC_WITH_SPECIALIZATION)'] }
+   = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(RUSTC_WITH_SPECIALIZATION)");` to the top of the `build.rs`
+   = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition name: `RUSTC_WITH_SPECIALIZATION`
+  --> vendor/rust/solana-sdk-1.18.26/src/packet.rs:60:7
+   |
+60 | #[cfg(RUSTC_WITH_SPECIALIZATION)]
+   |       ^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+   = help: consider using a Cargo feature instead
+   = help: or consider adding in `Cargo.toml` the `check-cfg` lint config for the lint:
+            [lints.rust]
+            unexpected_cfgs = { level = "warn", check-cfg = ['cfg(RUSTC_WITH_SPECIALIZATION)'] }
+   = help: or consider adding `println!("cargo::rustc-check-cfg=cfg(RUSTC_WITH_SPECIALIZATION)");` to the top of the `build.rs`
+   = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition value: `solana`
+ --> vendor/rust/solana-sdk-1.18.26/src/transaction_context.rs:4:15
+  |
+4 | #[cfg(all(not(target_os = "solana"), debug_assertions))]
+  |               ^^^^^^^^^^^^^^^^^^^^
+  |
+  = note: expected values for `target_os` are: `aix`, `amdhsa`, `android`, `cuda`, `cygwin`, `dragonfly`, `emscripten`, `espidf`, `freebsd`, `fuchsia`, `haiku`, `helenos`, `hermit`, `horizon`, `hurd`, `illumos`, `ios`, `l4re`, `linux`, `lynxos178`, `macos`, `managarm`, `motor`, `netbsd`, `none`, `nto`, `nuttx`, `openbsd`, `psp`, `psx`, `qnx`, `qurt`, `redox`, `rtems`, and `solaris` and 15 more
+  = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition value: `solana`
+ --> vendor/rust/solana-sdk-1.18.26/src/transaction_context.rs:6:11
+  |
+6 | #[cfg(not(target_os = "solana"))]
+  |           ^^^^^^^^^^^^^^^^^^^^
+  |
+  = note: expected values for `target_os` are: `aix`, `amdhsa`, `android`, `cuda`, `cygwin`, `dragonfly`, `emscripten`, `espidf`, `freebsd`, `fuchsia`, `haiku`, `helenos`, `hermit`, `horizon`, `hurd`, `illumos`, `ios`, `l4re`, `linux`, `lynxos178`, `macos`, `managarm`, `motor`, `netbsd`, `none`, `nto`, `nuttx`, `openbsd`, `psp`, `psx`, `qnx`, `qurt`, `redox`, `rtems`, and `solaris` and 15 more
+  = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition value: `solana`
+    --> vendor/rust/solana-sdk-1.18.26/src/transaction_context.rs:1142:11
+     |
+1142 | #[cfg(not(target_os = "solana"))]
+     |           ^^^^^^^^^^^^^^^^^^^^
+     |
+     = note: expected values for `target_os` are: `aix`, `amdhsa`, `android`, `cuda`, `cygwin`, `dragonfly`, `emscripten`, `espidf`, `freebsd`, `fuchsia`, `haiku`, `helenos`, `hermit`, `horizon`, `hurd`, `illumos`, `ios`, `l4re`, `linux`, `lynxos178`, `macos`, `managarm`, `motor`, `netbsd`, `none`, `nto`, `nuttx`, `openbsd`, `psp`, `psx`, `qnx`, `qurt`, `redox`, `rtems`, and `solaris` and 15 more
+     = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition value: `solana`
+    --> vendor/rust/solana-sdk-1.18.26/src/transaction_context.rs:1151:11
+     |
+1151 | #[cfg(not(target_os = "solana"))]
+     |           ^^^^^^^^^^^^^^^^^^^^
+     |
+     = note: expected values for `target_os` are: `aix`, `amdhsa`, `android`, `cuda`, `cygwin`, `dragonfly`, `emscripten`, `espidf`, `freebsd`, `fuchsia`, `haiku`, `helenos`, `hermit`, `horizon`, `hurd`, `illumos`, `ios`, `l4re`, `linux`, `lynxos178`, `macos`, `managarm`, `motor`, `netbsd`, `none`, `nto`, `nuttx`, `openbsd`, `psp`, `psx`, `qnx`, `qurt`, `redox`, `rtems`, and `solaris` and 15 more
+     = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition value: `solana`
+    --> vendor/rust/solana-sdk-1.18.26/src/transaction_context.rs:1170:11
+     |
+1170 | #[cfg(not(target_os = "solana"))]
+     |           ^^^^^^^^^^^^^^^^^^^^
+     |
+     = note: expected values for `target_os` are: `aix`, `amdhsa`, `android`, `cuda`, `cygwin`, `dragonfly`, `emscripten`, `espidf`, `freebsd`, `fuchsia`, `haiku`, `helenos`, `hermit`, `horizon`, `hurd`, `illumos`, `ios`, `l4re`, `linux`, `lynxos178`, `macos`, `managarm`, `motor`, `netbsd`, `none`, `nto`, `nuttx`, `openbsd`, `psp`, `psx`, `qnx`, `qurt`, `redox`, `rtems`, and `solaris` and 15 more
+     = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition value: `solana`
+   --> vendor/rust/solana-sdk-1.18.26/src/transaction_context.rs:145:15
+    |
+145 |     #[cfg(not(target_os = "solana"))]
+    |               ^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: expected values for `target_os` are: `aix`, `amdhsa`, `android`, `cuda`, `cygwin`, `dragonfly`, `emscripten`, `espidf`, `freebsd`, `fuchsia`, `haiku`, `helenos`, `hermit`, `horizon`, `hurd`, `illumos`, `ios`, `l4re`, `linux`, `lynxos178`, `macos`, `managarm`, `motor`, `netbsd`, `none`, `nto`, `nuttx`, `openbsd`, `psp`, `psx`, `qnx`, `qurt`, `redox`, `rtems`, and `solaris` and 15 more
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition value: `solana`
+   --> vendor/rust/solana-sdk-1.18.26/src/transaction_context.rs:148:19
+    |
+148 |     #[cfg(all(not(target_os = "solana"), debug_assertions))]
+    |                   ^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: expected values for `target_os` are: `aix`, `amdhsa`, `android`, `cuda`, `cygwin`, `dragonfly`, `emscripten`, `espidf`, `freebsd`, `fuchsia`, `haiku`, `helenos`, `hermit`, `horizon`, `hurd`, `illumos`, `ios`, `l4re`, `linux`, `lynxos178`, `macos`, `managarm`, `motor`, `netbsd`, `none`, `nto`, `nuttx`, `openbsd`, `psp`, `psx`, `qnx`, `qurt`, `redox`, `rtems`, and `solaris` and 15 more
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition value: `solana`
+  --> vendor/rust/solana-sdk-1.18.26/src/transaction_context.rs:66:15
+   |
+66 |     #[cfg(not(target_os = "solana"))]
+   |               ^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: expected values for `target_os` are: `aix`, `amdhsa`, `android`, `cuda`, `cygwin`, `dragonfly`, `emscripten`, `espidf`, `freebsd`, `fuchsia`, `haiku`, `helenos`, `hermit`, `horizon`, `hurd`, `illumos`, `ios`, `l4re`, `linux`, `lynxos178`, `macos`, `managarm`, `motor`, `netbsd`, `none`, `nto`, `nuttx`, `openbsd`, `psp`, `psx`, `qnx`, `qurt`, `redox`, `rtems`, and `solaris` and 15 more
+   = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition value: `solana`
+  --> vendor/rust/solana-sdk-1.18.26/src/transaction_context.rs:82:15
+   |
+82 |     #[cfg(not(target_os = "solana"))]
+   |               ^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: expected values for `target_os` are: `aix`, `amdhsa`, `android`, `cuda`, `cygwin`, `dragonfly`, `emscripten`, `espidf`, `freebsd`, `fuchsia`, `haiku`, `helenos`, `hermit`, `horizon`, `hurd`, `illumos`, `ios`, `l4re`, `linux`, `lynxos178`, `macos`, `managarm`, `motor`, `netbsd`, `none`, `nto`, `nuttx`, `openbsd`, `psp`, `psx`, `qnx`, `qurt`, `redox`, `rtems`, and `solaris` and 15 more
+   = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition value: `solana`
+  --> vendor/rust/solana-sdk-1.18.26/src/transaction_context.rs:92:15
+   |
+92 |     #[cfg(not(target_os = "solana"))]
+   |               ^^^^^^^^^^^^^^^^^^^^
+   |
+   = note: expected values for `target_os` are: `aix`, `amdhsa`, `android`, `cuda`, `cygwin`, `dragonfly`, `emscripten`, `espidf`, `freebsd`, `fuchsia`, `haiku`, `helenos`, `hermit`, `horizon`, `hurd`, `illumos`, `ios`, `l4re`, `linux`, `lynxos178`, `macos`, `managarm`, `motor`, `netbsd`, `none`, `nto`, `nuttx`, `openbsd`, `psp`, `psx`, `qnx`, `qurt`, `redox`, `rtems`, and `solaris` and 15 more
+   = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition value: `solana`
+   --> vendor/rust/solana-sdk-1.18.26/src/transaction_context.rs:154:15
+    |
+154 |     #[cfg(not(target_os = "solana"))]
+    |               ^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: expected values for `target_os` are: `aix`, `amdhsa`, `android`, `cuda`, `cygwin`, `dragonfly`, `emscripten`, `espidf`, `freebsd`, `fuchsia`, `haiku`, `helenos`, `hermit`, `horizon`, `hurd`, `illumos`, `ios`, `l4re`, `linux`, `lynxos178`, `macos`, `managarm`, `motor`, `netbsd`, `none`, `nto`, `nuttx`, `openbsd`, `psp`, `psx`, `qnx`, `qurt`, `redox`, `rtems`, and `solaris` and 15 more
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition value: `solana`
+   --> vendor/rust/solana-sdk-1.18.26/src/transaction_context.rs:181:15
+    |
+181 |     #[cfg(not(target_os = "solana"))]
+    |               ^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: expected values for `target_os` are: `aix`, `amdhsa`, `android`, `cuda`, `cygwin`, `dragonfly`, `emscripten`, `espidf`, `freebsd`, `fuchsia`, `haiku`, `helenos`, `hermit`, `horizon`, `hurd`, `illumos`, `ios`, `l4re`, `linux`, `lynxos178`, `macos`, `managarm`, `motor`, `netbsd`, `none`, `nto`, `nuttx`, `openbsd`, `psp`, `psx`, `qnx`, `qurt`, `redox`, `rtems`, and `solaris` and 15 more
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition value: `solana`
+   --> vendor/rust/solana-sdk-1.18.26/src/transaction_context.rs:192:15
+    |
+192 |     #[cfg(not(target_os = "solana"))]
+    |               ^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: expected values for `target_os` are: `aix`, `amdhsa`, `android`, `cuda`, `cygwin`, `dragonfly`, `emscripten`, `espidf`, `freebsd`, `fuchsia`, `haiku`, `helenos`, `hermit`, `horizon`, `hurd`, `illumos`, `ios`, `l4re`, `linux`, `lynxos178`, `macos`, `managarm`, `motor`, `netbsd`, `none`, `nto`, `nuttx`, `openbsd`, `psp`, `psx`, `qnx`, `qurt`, `redox`, `rtems`, and `solaris` and 15 more
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition value: `solana`
+   --> vendor/rust/solana-sdk-1.18.26/src/transaction_context.rs:198:19
+    |
+198 |     #[cfg(all(not(target_os = "solana"), debug_assertions))]
+    |                   ^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: expected values for `target_os` are: `aix`, `amdhsa`, `android`, `cuda`, `cygwin`, `dragonfly`, `emscripten`, `espidf`, `freebsd`, `fuchsia`, `haiku`, `helenos`, `hermit`, `horizon`, `hurd`, `illumos`, `ios`, `l4re`, `linux`, `lynxos178`, `macos`, `managarm`, `motor`, `netbsd`, `none`, `nto`, `nuttx`, `openbsd`, `psp`, `psx`, `qnx`, `qurt`, `redox`, `rtems`, and `solaris` and 15 more
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition value: `solana`
+   --> vendor/rust/solana-sdk-1.18.26/src/transaction_context.rs:204:19
+    |
+204 |     #[cfg(all(not(target_os = "solana"), debug_assertions))]
+    |                   ^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: expected values for `target_os` are: `aix`, `amdhsa`, `android`, `cuda`, `cygwin`, `dragonfly`, `emscripten`, `espidf`, `freebsd`, `fuchsia`, `haiku`, `helenos`, `hermit`, `horizon`, `hurd`, `illumos`, `ios`, `l4re`, `linux`, `lynxos178`, `macos`, `managarm`, `motor`, `netbsd`, `none`, `nto`, `nuttx`, `openbsd`, `psp`, `psx`, `qnx`, `qurt`, `redox`, `rtems`, and `solaris` and 15 more
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition value: `solana`
+   --> vendor/rust/solana-sdk-1.18.26/src/transaction_context.rs:225:15
+    |
+225 |     #[cfg(not(target_os = "solana"))]
+    |               ^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: expected values for `target_os` are: `aix`, `amdhsa`, `android`, `cuda`, `cygwin`, `dragonfly`, `emscripten`, `espidf`, `freebsd`, `fuchsia`, `haiku`, `helenos`, `hermit`, `horizon`, `hurd`, `illumos`, `ios`, `l4re`, `linux`, `lynxos178`, `macos`, `managarm`, `motor`, `netbsd`, `none`, `nto`, `nuttx`, `openbsd`, `psp`, `psx`, `qnx`, `qurt`, `redox`, `rtems`, and `solaris` and 15 more
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition value: `solana`
+   --> vendor/rust/solana-sdk-1.18.26/src/transaction_context.rs:320:15
+    |
+320 |     #[cfg(not(target_os = "solana"))]
+    |               ^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: expected values for `target_os` are: `aix`, `amdhsa`, `android`, `cuda`, `cygwin`, `dragonfly`, `emscripten`, `espidf`, `freebsd`, `fuchsia`, `haiku`, `helenos`, `hermit`, `horizon`, `hurd`, `illumos`, `ios`, `l4re`, `linux`, `lynxos178`, `macos`, `managarm`, `motor`, `netbsd`, `none`, `nto`, `nuttx`, `openbsd`, `psp`, `psx`, `qnx`, `qurt`, `redox`, `rtems`, and `solaris` and 15 more
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition value: `solana`
+   --> vendor/rust/solana-sdk-1.18.26/src/transaction_context.rs:360:15
+    |
+360 |     #[cfg(not(target_os = "solana"))]
+    |               ^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: expected values for `target_os` are: `aix`, `amdhsa`, `android`, `cuda`, `cygwin`, `dragonfly`, `emscripten`, `espidf`, `freebsd`, `fuchsia`, `haiku`, `helenos`, `hermit`, `horizon`, `hurd`, `illumos`, `ios`, `l4re`, `linux`, `lynxos178`, `macos`, `managarm`, `motor`, `netbsd`, `none`, `nto`, `nuttx`, `openbsd`, `psp`, `psx`, `qnx`, `qurt`, `redox`, `rtems`, and `solaris` and 15 more
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition value: `solana`
+   --> vendor/rust/solana-sdk-1.18.26/src/transaction_context.rs:406:15
+    |
+406 |     #[cfg(not(target_os = "solana"))]
+    |               ^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: expected values for `target_os` are: `aix`, `amdhsa`, `android`, `cuda`, `cygwin`, `dragonfly`, `emscripten`, `espidf`, `freebsd`, `fuchsia`, `haiku`, `helenos`, `hermit`, `horizon`, `hurd`, `illumos`, `ios`, `l4re`, `linux`, `lynxos178`, `macos`, `managarm`, `motor`, `netbsd`, `none`, `nto`, `nuttx`, `openbsd`, `psp`, `psx`, `qnx`, `qurt`, `redox`, `rtems`, and `solaris` and 15 more
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition value: `solana`
+   --> vendor/rust/solana-sdk-1.18.26/src/transaction_context.rs:175:27
+    |
+175 |             #[cfg(all(not(target_os = "solana"), debug_assertions))]
+    |                           ^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: expected values for `target_os` are: `aix`, `amdhsa`, `android`, `cuda`, `cygwin`, `dragonfly`, `emscripten`, `espidf`, `freebsd`, `fuchsia`, `haiku`, `helenos`, `hermit`, `horizon`, `hurd`, `illumos`, `ios`, `l4re`, `linux`, `lynxos178`, `macos`, `managarm`, `motor`, `netbsd`, `none`, `nto`, `nuttx`, `openbsd`, `psp`, `psx`, `qnx`, `qurt`, `redox`, `rtems`, and `solaris` and 15 more
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition value: `solana`
+   --> vendor/rust/solana-sdk-1.18.26/src/transaction_context.rs:463:15
+    |
+463 |     #[cfg(not(target_os = "solana"))]
+    |               ^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: expected values for `target_os` are: `aix`, `amdhsa`, `android`, `cuda`, `cygwin`, `dragonfly`, `emscripten`, `espidf`, `freebsd`, `fuchsia`, `haiku`, `helenos`, `hermit`, `horizon`, `hurd`, `illumos`, `ios`, `l4re`, `linux`, `lynxos178`, `macos`, `managarm`, `motor`, `netbsd`, `none`, `nto`, `nuttx`, `openbsd`, `psp`, `psx`, `qnx`, `qurt`, `redox`, `rtems`, and `solaris` and 15 more
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition value: `solana`
+   --> vendor/rust/solana-sdk-1.18.26/src/transaction_context.rs:741:15
+    |
+741 |     #[cfg(not(target_os = "solana"))]
+    |               ^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: expected values for `target_os` are: `aix`, `amdhsa`, `android`, `cuda`, `cygwin`, `dragonfly`, `emscripten`, `espidf`, `freebsd`, `fuchsia`, `haiku`, `helenos`, `hermit`, `horizon`, `hurd`, `illumos`, `ios`, `l4re`, `linux`, `lynxos178`, `macos`, `managarm`, `motor`, `netbsd`, `none`, `nto`, `nuttx`, `openbsd`, `psp`, `psx`, `qnx`, `qurt`, `redox`, `rtems`, and `solaris` and 15 more
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition value: `solana`
+   --> vendor/rust/solana-sdk-1.18.26/src/transaction_context.rs:775:15
+    |
+775 |     #[cfg(not(target_os = "solana"))]
+    |               ^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: expected values for `target_os` are: `aix`, `amdhsa`, `android`, `cuda`, `cygwin`, `dragonfly`, `emscripten`, `espidf`, `freebsd`, `fuchsia`, `haiku`, `helenos`, `hermit`, `horizon`, `hurd`, `illumos`, `ios`, `l4re`, `linux`, `lynxos178`, `macos`, `managarm`, `motor`, `netbsd`, `none`, `nto`, `nuttx`, `openbsd`, `psp`, `psx`, `qnx`, `qurt`, `redox`, `rtems`, and `solaris` and 15 more
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition value: `solana`
+   --> vendor/rust/solana-sdk-1.18.26/src/transaction_context.rs:799:15
+    |
+799 |     #[cfg(not(target_os = "solana"))]
+    |               ^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: expected values for `target_os` are: `aix`, `amdhsa`, `android`, `cuda`, `cygwin`, `dragonfly`, `emscripten`, `espidf`, `freebsd`, `fuchsia`, `haiku`, `helenos`, `hermit`, `horizon`, `hurd`, `illumos`, `ios`, `l4re`, `linux`, `lynxos178`, `macos`, `managarm`, `motor`, `netbsd`, `none`, `nto`, `nuttx`, `openbsd`, `psp`, `psx`, `qnx`, `qurt`, `redox`, `rtems`, and `solaris` and 15 more
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition value: `solana`
+   --> vendor/rust/solana-sdk-1.18.26/src/transaction_context.rs:809:15
+    |
+809 |     #[cfg(not(target_os = "solana"))]
+    |               ^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: expected values for `target_os` are: `aix`, `amdhsa`, `android`, `cuda`, `cygwin`, `dragonfly`, `emscripten`, `espidf`, `freebsd`, `fuchsia`, `haiku`, `helenos`, `hermit`, `horizon`, `hurd`, `illumos`, `ios`, `l4re`, `linux`, `lynxos178`, `macos`, `managarm`, `motor`, `netbsd`, `none`, `nto`, `nuttx`, `openbsd`, `psp`, `psx`, `qnx`, `qurt`, `redox`, `rtems`, and `solaris` and 15 more
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition value: `solana`
+   --> vendor/rust/solana-sdk-1.18.26/src/transaction_context.rs:825:15
+    |
+825 |     #[cfg(not(target_os = "solana"))]
+    |               ^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: expected values for `target_os` are: `aix`, `amdhsa`, `android`, `cuda`, `cygwin`, `dragonfly`, `emscripten`, `espidf`, `freebsd`, `fuchsia`, `haiku`, `helenos`, `hermit`, `horizon`, `hurd`, `illumos`, `ios`, `l4re`, `linux`, `lynxos178`, `macos`, `managarm`, `motor`, `netbsd`, `none`, `nto`, `nuttx`, `openbsd`, `psp`, `psx`, `qnx`, `qurt`, `redox`, `rtems`, and `solaris` and 15 more
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition value: `solana`
+   --> vendor/rust/solana-sdk-1.18.26/src/transaction_context.rs:837:15
+    |
+837 |     #[cfg(not(target_os = "solana"))]
+    |               ^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: expected values for `target_os` are: `aix`, `amdhsa`, `android`, `cuda`, `cygwin`, `dragonfly`, `emscripten`, `espidf`, `freebsd`, `fuchsia`, `haiku`, `helenos`, `hermit`, `horizon`, `hurd`, `illumos`, `ios`, `l4re`, `linux`, `lynxos178`, `macos`, `managarm`, `motor`, `netbsd`, `none`, `nto`, `nuttx`, `openbsd`, `psp`, `psx`, `qnx`, `qurt`, `redox`, `rtems`, and `solaris` and 15 more
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition value: `solana`
+   --> vendor/rust/solana-sdk-1.18.26/src/transaction_context.rs:849:13
+    |
+849 |         not(target_os = "solana"),
+    |             ^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: expected values for `target_os` are: `aix`, `amdhsa`, `android`, `cuda`, `cygwin`, `dragonfly`, `emscripten`, `espidf`, `freebsd`, `fuchsia`, `haiku`, `helenos`, `hermit`, `horizon`, `hurd`, `illumos`, `ios`, `l4re`, `linux`, `lynxos178`, `macos`, `managarm`, `motor`, `netbsd`, `none`, `nto`, `nuttx`, `openbsd`, `psp`, `psx`, `qnx`, `qurt`, `redox`, `rtems`, and `solaris` and 15 more
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition value: `solana`
+   --> vendor/rust/solana-sdk-1.18.26/src/transaction_context.rs:866:15
+    |
+866 |     #[cfg(not(target_os = "solana"))]
+    |               ^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: expected values for `target_os` are: `aix`, `amdhsa`, `android`, `cuda`, `cygwin`, `dragonfly`, `emscripten`, `espidf`, `freebsd`, `fuchsia`, `haiku`, `helenos`, `hermit`, `horizon`, `hurd`, `illumos`, `ios`, `l4re`, `linux`, `lynxos178`, `macos`, `managarm`, `motor`, `netbsd`, `none`, `nto`, `nuttx`, `openbsd`, `psp`, `psx`, `qnx`, `qurt`, `redox`, `rtems`, and `solaris` and 15 more
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition value: `solana`
+   --> vendor/rust/solana-sdk-1.18.26/src/transaction_context.rs:887:15
+    |
+887 |     #[cfg(not(target_os = "solana"))]
+    |               ^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: expected values for `target_os` are: `aix`, `amdhsa`, `android`, `cuda`, `cygwin`, `dragonfly`, `emscripten`, `espidf`, `freebsd`, `fuchsia`, `haiku`, `helenos`, `hermit`, `horizon`, `hurd`, `illumos`, `ios`, `l4re`, `linux`, `lynxos178`, `macos`, `managarm`, `motor`, `netbsd`, `none`, `nto`, `nuttx`, `openbsd`, `psp`, `psx`, `qnx`, `qurt`, `redox`, `rtems`, and `solaris` and 15 more
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition value: `solana`
+   --> vendor/rust/solana-sdk-1.18.26/src/transaction_context.rs:902:15
+    |
+902 |     #[cfg(not(target_os = "solana"))]
+    |               ^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: expected values for `target_os` are: `aix`, `amdhsa`, `android`, `cuda`, `cygwin`, `dragonfly`, `emscripten`, `espidf`, `freebsd`, `fuchsia`, `haiku`, `helenos`, `hermit`, `horizon`, `hurd`, `illumos`, `ios`, `l4re`, `linux`, `lynxos178`, `macos`, `managarm`, `motor`, `netbsd`, `none`, `nto`, `nuttx`, `openbsd`, `psp`, `psx`, `qnx`, `qurt`, `redox`, `rtems`, and `solaris` and 15 more
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition value: `solana`
+   --> vendor/rust/solana-sdk-1.18.26/src/transaction_context.rs:924:15
+    |
+924 |     #[cfg(not(target_os = "solana"))]
+    |               ^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: expected values for `target_os` are: `aix`, `amdhsa`, `android`, `cuda`, `cygwin`, `dragonfly`, `emscripten`, `espidf`, `freebsd`, `fuchsia`, `haiku`, `helenos`, `hermit`, `horizon`, `hurd`, `illumos`, `ios`, `l4re`, `linux`, `lynxos178`, `macos`, `managarm`, `motor`, `netbsd`, `none`, `nto`, `nuttx`, `openbsd`, `psp`, `psx`, `qnx`, `qurt`, `redox`, `rtems`, and `solaris` and 15 more
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition value: `solana`
+   --> vendor/rust/solana-sdk-1.18.26/src/transaction_context.rs:937:15
+    |
+937 |     #[cfg(not(target_os = "solana"))]
+    |               ^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: expected values for `target_os` are: `aix`, `amdhsa`, `android`, `cuda`, `cygwin`, `dragonfly`, `emscripten`, `espidf`, `freebsd`, `fuchsia`, `haiku`, `helenos`, `hermit`, `horizon`, `hurd`, `illumos`, `ios`, `l4re`, `linux`, `lynxos178`, `macos`, `managarm`, `motor`, `netbsd`, `none`, `nto`, `nuttx`, `openbsd`, `psp`, `psx`, `qnx`, `qurt`, `redox`, `rtems`, and `solaris` and 15 more
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition value: `solana`
+   --> vendor/rust/solana-sdk-1.18.26/src/transaction_context.rs:949:15
+    |
+949 |     #[cfg(not(target_os = "solana"))]
+    |               ^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: expected values for `target_os` are: `aix`, `amdhsa`, `android`, `cuda`, `cygwin`, `dragonfly`, `emscripten`, `espidf`, `freebsd`, `fuchsia`, `haiku`, `helenos`, `hermit`, `horizon`, `hurd`, `illumos`, `ios`, `l4re`, `linux`, `lynxos178`, `macos`, `managarm`, `motor`, `netbsd`, `none`, `nto`, `nuttx`, `openbsd`, `psp`, `psx`, `qnx`, `qurt`, `redox`, `rtems`, and `solaris` and 15 more
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition value: `solana`
+   --> vendor/rust/solana-sdk-1.18.26/src/transaction_context.rs:954:15
+    |
+954 |     #[cfg(not(target_os = "solana"))]
+    |               ^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: expected values for `target_os` are: `aix`, `amdhsa`, `android`, `cuda`, `cygwin`, `dragonfly`, `emscripten`, `espidf`, `freebsd`, `fuchsia`, `haiku`, `helenos`, `hermit`, `horizon`, `hurd`, `illumos`, `ios`, `l4re`, `linux`, `lynxos178`, `macos`, `managarm`, `motor`, `netbsd`, `none`, `nto`, `nuttx`, `openbsd`, `psp`, `psx`, `qnx`, `qurt`, `redox`, `rtems`, and `solaris` and 15 more
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition value: `solana`
+   --> vendor/rust/solana-sdk-1.18.26/src/transaction_context.rs:970:15
+    |
+970 |     #[cfg(not(target_os = "solana"))]
+    |               ^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: expected values for `target_os` are: `aix`, `amdhsa`, `android`, `cuda`, `cygwin`, `dragonfly`, `emscripten`, `espidf`, `freebsd`, `fuchsia`, `haiku`, `helenos`, `hermit`, `horizon`, `hurd`, `illumos`, `ios`, `l4re`, `linux`, `lynxos178`, `macos`, `managarm`, `motor`, `netbsd`, `none`, `nto`, `nuttx`, `openbsd`, `psp`, `psx`, `qnx`, `qurt`, `redox`, `rtems`, and `solaris` and 15 more
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition value: `solana`
+   --> vendor/rust/solana-sdk-1.18.26/src/transaction_context.rs:978:15
+    |
+978 |     #[cfg(not(target_os = "solana"))]
+    |               ^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: expected values for `target_os` are: `aix`, `amdhsa`, `android`, `cuda`, `cygwin`, `dragonfly`, `emscripten`, `espidf`, `freebsd`, `fuchsia`, `haiku`, `helenos`, `hermit`, `horizon`, `hurd`, `illumos`, `ios`, `l4re`, `linux`, `lynxos178`, `macos`, `managarm`, `motor`, `netbsd`, `none`, `nto`, `nuttx`, `openbsd`, `psp`, `psx`, `qnx`, `qurt`, `redox`, `rtems`, and `solaris` and 15 more
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition value: `solana`
+   --> vendor/rust/solana-sdk-1.18.26/src/transaction_context.rs:992:15
+    |
+992 |     #[cfg(not(target_os = "solana"))]
+    |               ^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: expected values for `target_os` are: `aix`, `amdhsa`, `android`, `cuda`, `cygwin`, `dragonfly`, `emscripten`, `espidf`, `freebsd`, `fuchsia`, `haiku`, `helenos`, `hermit`, `horizon`, `hurd`, `illumos`, `ios`, `l4re`, `linux`, `lynxos178`, `macos`, `managarm`, `motor`, `netbsd`, `none`, `nto`, `nuttx`, `openbsd`, `psp`, `psx`, `qnx`, `qurt`, `redox`, `rtems`, and `solaris` and 15 more
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition value: `solana`
+    --> vendor/rust/solana-sdk-1.18.26/src/transaction_context.rs:1006:15
+     |
+1006 |     #[cfg(not(target_os = "solana"))]
+     |               ^^^^^^^^^^^^^^^^^^^^
+     |
+     = note: expected values for `target_os` are: `aix`, `amdhsa`, `android`, `cuda`, `cygwin`, `dragonfly`, `emscripten`, `espidf`, `freebsd`, `fuchsia`, `haiku`, `helenos`, `hermit`, `horizon`, `hurd`, `illumos`, `ios`, `l4re`, `linux`, `lynxos178`, `macos`, `managarm`, `motor`, `netbsd`, `none`, `nto`, `nuttx`, `openbsd`, `psp`, `psx`, `qnx`, `qurt`, `redox`, `rtems`, and `solaris` and 15 more
+     = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition value: `solana`
+    --> vendor/rust/solana-sdk-1.18.26/src/transaction_context.rs:1038:15
+     |
+1038 |     #[cfg(not(target_os = "solana"))]
+     |               ^^^^^^^^^^^^^^^^^^^^
+     |
+     = note: expected values for `target_os` are: `aix`, `amdhsa`, `android`, `cuda`, `cygwin`, `dragonfly`, `emscripten`, `espidf`, `freebsd`, `fuchsia`, `haiku`, `helenos`, `hermit`, `horizon`, `hurd`, `illumos`, `ios`, `l4re`, `linux`, `lynxos178`, `macos`, `managarm`, `motor`, `netbsd`, `none`, `nto`, `nuttx`, `openbsd`, `psp`, `psx`, `qnx`, `qurt`, `redox`, `rtems`, and `solaris` and 15 more
+     = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition value: `solana`
+    --> vendor/rust/solana-sdk-1.18.26/src/transaction_context.rs:1079:15
+     |
+1079 |     #[cfg(not(target_os = "solana"))]
+     |               ^^^^^^^^^^^^^^^^^^^^
+     |
+     = note: expected values for `target_os` are: `aix`, `amdhsa`, `android`, `cuda`, `cygwin`, `dragonfly`, `emscripten`, `espidf`, `freebsd`, `fuchsia`, `haiku`, `helenos`, `hermit`, `horizon`, `hurd`, `illumos`, `ios`, `l4re`, `linux`, `lynxos178`, `macos`, `managarm`, `motor`, `netbsd`, `none`, `nto`, `nuttx`, `openbsd`, `psp`, `psx`, `qnx`, `qurt`, `redox`, `rtems`, and `solaris` and 15 more
+     = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition value: `solana`
+    --> vendor/rust/solana-sdk-1.18.26/src/transaction_context.rs:1097:15
+     |
+1097 |     #[cfg(not(target_os = "solana"))]
+     |               ^^^^^^^^^^^^^^^^^^^^
+     |
+     = note: expected values for `target_os` are: `aix`, `amdhsa`, `android`, `cuda`, `cygwin`, `dragonfly`, `emscripten`, `espidf`, `freebsd`, `fuchsia`, `haiku`, `helenos`, `hermit`, `horizon`, `hurd`, `illumos`, `ios`, `l4re`, `linux`, `lynxos178`, `macos`, `managarm`, `motor`, `netbsd`, `none`, `nto`, `nuttx`, `openbsd`, `psp`, `psx`, `qnx`, `qurt`, `redox`, `rtems`, and `solaris` and 15 more
+     = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition value: `solana`
+    --> vendor/rust/solana-sdk-1.18.26/src/transaction_context.rs:1121:15
+     |
+1121 |     #[cfg(not(target_os = "solana"))]
+     |               ^^^^^^^^^^^^^^^^^^^^
+     |
+     = note: expected values for `target_os` are: `aix`, `amdhsa`, `android`, `cuda`, `cygwin`, `dragonfly`, `emscripten`, `espidf`, `freebsd`, `fuchsia`, `haiku`, `helenos`, `hermit`, `horizon`, `hurd`, `illumos`, `ios`, `l4re`, `linux`, `lynxos178`, `macos`, `managarm`, `motor`, `netbsd`, `none`, `nto`, `nuttx`, `openbsd`, `psp`, `psx`, `qnx`, `qurt`, `redox`, `rtems`, and `solaris` and 15 more
+     = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: unexpected `cfg` condition value: `solana`
+    --> vendor/rust/solana-sdk-1.18.26/src/transaction_context.rs:1128:15
+     |
+1128 |     #[cfg(not(target_os = "solana"))]
+     |               ^^^^^^^^^^^^^^^^^^^^
+     |
+     = note: expected values for `target_os` are: `aix`, `amdhsa`, `android`, `cuda`, `cygwin`, `dragonfly`, `emscripten`, `espidf`, `freebsd`, `fuchsia`, `haiku`, `helenos`, `hermit`, `horizon`, `hurd`, `illumos`, `ios`, `l4re`, `linux`, `lynxos178`, `macos`, `managarm`, `motor`, `netbsd`, `none`, `nto`, `nuttx`, `openbsd`, `psp`, `psx`, `qnx`, `qurt`, `redox`, `rtems`, and `solaris` and 15 more
+     = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+
+warning: hiding a lifetime that's elided elsewhere is confusing
+  --> vendor/rust/solana-sdk-1.18.26/src/hard_forks.rs:32:17
+   |
+32 |     pub fn iter(&self) -> std::slice::Iter<(Slot, usize)> {
+   |                 ^^^^^     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ the same lifetime is hidden here
+   |                 |
+   |                 the lifetime is elided here
+   |
+   = help: the same lifetime is referred to in inconsistent ways, making the signature confusing
+   = note: `#[warn(mismatched_lifetime_syntaxes)]` on by default
+help: use `'_` for type paths
+   |
+32 |     pub fn iter(&self) -> std::slice::Iter<'_, (Slot, usize)> {
+   |                                            +++
+
+warning: hiding a lifetime that's elided elsewhere is confusing
+  --> vendor/rust/solana-sdk-1.18.26/src/signature.rs:70:22
+   |
+70 |     fn signable_data(&self) -> Cow<[u8]>;
+   |                      ^^^^^     ^^^^^^^^^ the same lifetime is hidden here
+   |                      |
+   |                      the lifetime is elided here
+   |
+   = help: the same lifetime is referred to in inconsistent ways, making the signature confusing
+help: use `'_` for type paths
+   |
+70 |     fn signable_data(&self) -> Cow<'_, [u8]>;
+   |                                    +++
+
+warning: hiding a lifetime that's elided elsewhere is confusing
+   --> vendor/rust/solana-sdk-1.18.26/src/transaction/sanitized.rs:180:9
+    |
+180 |         &self,
+    |         ^^^^^ the lifetime is elided here
+181 |         tx_account_lock_limit: usize,
+182 |     ) -> Result<TransactionAccountLocks> {
+    |                 ^^^^^^^^^^^^^^^^^^^^^^^ the same lifetime is hidden here
+    |
+    = help: the same lifetime is referred to in inconsistent ways, making the signature confusing
+help: use `'_` for type paths
+    |
+182 |     ) -> Result<TransactionAccountLocks<'_>> {
+    |                                        ++++
+
+warning: hiding a lifetime that's elided elsewhere is confusing
+   --> vendor/rust/solana-sdk-1.18.26/src/transaction/sanitized.rs:188:40
+    |
+188 |     pub fn get_account_locks_unchecked(&self) -> TransactionAccountLocks {
+    |                                        ^^^^^     ^^^^^^^^^^^^^^^^^^^^^^^ the same lifetime is hidden here
+    |                                        |
+    |                                        the lifetime is elided here
+    |
+    = help: the same lifetime is referred to in inconsistent ways, making the signature confusing
+help: use `'_` for type paths
+    |
+188 |     pub fn get_account_locks_unchecked(&self) -> TransactionAccountLocks<'_> {
+    |                                                                         ++++
+
+   Compiling aes-gcm-siv v0.10.3
+   Compiling sha3 v0.9.1
+warning: `solana-sdk` (lib) generated 57 warnings (run `cargo fix --lib -p solana-sdk` to apply 4 suggestions)
+   Compiling merlin v3.0.0
+   Compiling spl-program-error-derive v0.4.1
+   Compiling spl-discriminator-syn v0.2.1
+   Compiling spl-discriminator-derive v0.2.0
+   Compiling spl-program-error v0.4.4
+   Compiling solana-zk-token-sdk v1.18.26
+   Compiling spl-discriminator v0.2.5
+   Compiling anchor-lang-idl-spec v0.1.0
+   Compiling spl-pod v0.2.5
+   Compiling anchor-lang-idl v0.1.4
+   Compiling spl-type-length-value v0.4.6
+   Compiling spl-tlv-account-resolution v0.6.5
+   Compiling spl-transfer-hook-interface v0.6.5
+   Compiling spl-token-metadata-interface v0.3.5
+   Compiling spl-token-group-interface v0.2.5
+   Compiling spl-memo v4.0.4
+   Compiling spl-token v4.0.3
+   Compiling solana-security-txt v1.1.3
+   Compiling anchor-attribute-program v0.30.1
+   Compiling spl-token-2022 v3.0.5
+   Compiling anchor-derive-serde v0.30.1
+   Compiling anchor-attribute-account v0.30.1
+   Compiling anchor-attribute-event v0.30.1
+   Compiling anchor-derive-accounts v0.30.1
+   Compiling anchor-attribute-access-control v0.30.1
+   Compiling anchor-attribute-error v0.30.1
+   Compiling anchor-attribute-constant v0.30.1
+   Compiling anchor-derive-space v0.30.1
+   Compiling spl-associated-token-account v3.0.4
+   Compiling anchor-lang v0.30.1
+   Compiling basalt-token-policy v0.1.0 (/Users/umutyesildal/.codex/worktrees/backend-devnet-security/createyouretf/crates/token-policy)
+   Compiling basalt-rust-parent-verification v0.1.0 (/Users/umutyesildal/.codex/worktrees/backend-devnet-security/createyouretf/scripts/security/rust-parent-verification)
+   Compiling anchor-spl v0.30.1
+   Compiling basket v0.1.0 (/Users/umutyesildal/.codex/worktrees/backend-devnet-security/createyouretf/programs/basket)
+   Compiling whitelist v0.1.0 (/Users/umutyesildal/.codex/worktrees/backend-devnet-security/createyouretf/programs/whitelist)
+warning: unexpected `cfg` condition value: `anchor-debug`
+  --> programs/whitelist/src/lib.rs:15:1
+   |
+15 | #[program]
+   | ^^^^^^^^^^
+   |
+   = note: expected values for `feature` are: `cpi`, `default`, `idl-build`, `no-entrypoint`, `no-idl`, and `no-log-ix-name`
+   = note: using a cfg inside a attribute macro will use the cfgs from the destination crate and not the ones from the defining crate
+   = help: try referring to `program` crate for guidance on how handle this unexpected cfg
+   = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+   = note: `#[warn(unexpected_cfgs)]` on by default
+   = note: this warning originates in the attribute macro `program` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: unexpected `cfg` condition value: `anchor-debug`
+  --> programs/whitelist/src/lib.rs:15:1
+   |
+15 | #[program]
+   | ^^^^^^^^^^
+   |
+   = note: expected values for `feature` are: `cpi`, `default`, `idl-build`, `no-entrypoint`, `no-idl`, and `no-log-ix-name`
+   = note: using a cfg inside a derive macro will use the cfgs from the destination crate and not the ones from the defining crate
+   = help: try referring to `Accounts` crate for guidance on how handle this unexpected cfg
+   = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+   = note: this warning originates in the derive macro `Accounts` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: unexpected `cfg` condition value: `anchor-debug`
+   --> programs/whitelist/src/lib.rs:177:10
+    |
+177 | #[derive(Accounts)]
+    |          ^^^^^^^^
+    |
+    = note: expected values for `feature` are: `cpi`, `default`, `idl-build`, `no-entrypoint`, `no-idl`, and `no-log-ix-name`
+    = note: using a cfg inside a derive macro will use the cfgs from the destination crate and not the ones from the defining crate
+    = help: try referring to `Accounts` crate for guidance on how handle this unexpected cfg
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+    = note: this warning originates in the derive macro `Accounts` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: unexpected `cfg` condition value: `anchor-debug`
+   --> programs/whitelist/src/lib.rs:192:10
+    |
+192 | #[derive(Accounts)]
+    |          ^^^^^^^^
+    |
+    = note: expected values for `feature` are: `cpi`, `default`, `idl-build`, `no-entrypoint`, `no-idl`, and `no-log-ix-name`
+    = note: using a cfg inside a derive macro will use the cfgs from the destination crate and not the ones from the defining crate
+    = help: try referring to `Accounts` crate for guidance on how handle this unexpected cfg
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+    = note: this warning originates in the derive macro `Accounts` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: unexpected `cfg` condition value: `anchor-debug`
+   --> programs/whitelist/src/lib.rs:213:10
+    |
+213 | #[derive(Accounts)]
+    |          ^^^^^^^^
+    |
+    = note: expected values for `feature` are: `cpi`, `default`, `idl-build`, `no-entrypoint`, `no-idl`, and `no-log-ix-name`
+    = note: using a cfg inside a derive macro will use the cfgs from the destination crate and not the ones from the defining crate
+    = help: try referring to `Accounts` crate for guidance on how handle this unexpected cfg
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+    = note: this warning originates in the derive macro `Accounts` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: unexpected `cfg` condition value: `anchor-debug`
+   --> programs/whitelist/src/lib.rs:222:10
+    |
+222 | #[derive(Accounts)]
+    |          ^^^^^^^^
+    |
+    = note: expected values for `feature` are: `cpi`, `default`, `idl-build`, `no-entrypoint`, `no-idl`, and `no-log-ix-name`
+    = note: using a cfg inside a derive macro will use the cfgs from the destination crate and not the ones from the defining crate
+    = help: try referring to `Accounts` crate for guidance on how handle this unexpected cfg
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+    = note: this warning originates in the derive macro `Accounts` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: unexpected `cfg` condition value: `anchor-debug`
+   --> programs/whitelist/src/lib.rs:229:10
+    |
+229 | #[derive(Accounts)]
+    |          ^^^^^^^^
+    |
+    = note: expected values for `feature` are: `cpi`, `default`, `idl-build`, `no-entrypoint`, `no-idl`, and `no-log-ix-name`
+    = note: using a cfg inside a derive macro will use the cfgs from the destination crate and not the ones from the defining crate
+    = help: try referring to `Accounts` crate for guidance on how handle this unexpected cfg
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+    = note: this warning originates in the derive macro `Accounts` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: unexpected `cfg` condition value: `anchor-debug`
+   --> programs/basket/src/lib.rs:233:1
+    |
+233 | #[program]
+    | ^^^^^^^^^^
+    |
+    = note: expected values for `feature` are: `cpi`, `default`, `idl-build`, `no-entrypoint`, `no-idl`, and `no-log-ix-name`
+    = note: using a cfg inside a attribute macro will use the cfgs from the destination crate and not the ones from the defining crate
+    = help: try referring to `program` crate for guidance on how handle this unexpected cfg
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+    = note: `#[warn(unexpected_cfgs)]` on by default
+    = note: this warning originates in the attribute macro `program` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: unexpected `cfg` condition value: `anchor-debug`
+   --> programs/basket/src/lib.rs:233:1
+    |
+233 | #[program]
+    | ^^^^^^^^^^
+    |
+    = note: expected values for `feature` are: `cpi`, `default`, `idl-build`, `no-entrypoint`, `no-idl`, and `no-log-ix-name`
+    = note: using a cfg inside a derive macro will use the cfgs from the destination crate and not the ones from the defining crate
+    = help: try referring to `Accounts` crate for guidance on how handle this unexpected cfg
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+    = note: this warning originates in the derive macro `Accounts` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: unexpected `cfg` condition value: `anchor-debug`
+    --> programs/basket/src/lib.rs:1365:10
+     |
+1365 | #[derive(Accounts)]
+     |          ^^^^^^^^
+     |
+     = note: expected values for `feature` are: `cpi`, `default`, `idl-build`, `no-entrypoint`, `no-idl`, and `no-log-ix-name`
+     = note: using a cfg inside a derive macro will use the cfgs from the destination crate and not the ones from the defining crate
+     = help: try referring to `Accounts` crate for guidance on how handle this unexpected cfg
+     = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+     = note: this warning originates in the derive macro `Accounts` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: unexpected `cfg` condition value: `anchor-debug`
+    --> programs/basket/src/lib.rs:1380:10
+     |
+1380 | #[derive(Accounts)]
+     |          ^^^^^^^^
+     |
+     = note: expected values for `feature` are: `cpi`, `default`, `idl-build`, `no-entrypoint`, `no-idl`, and `no-log-ix-name`
+     = note: using a cfg inside a derive macro will use the cfgs from the destination crate and not the ones from the defining crate
+     = help: try referring to `Accounts` crate for guidance on how handle this unexpected cfg
+     = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+     = note: this warning originates in the derive macro `Accounts` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: unexpected `cfg` condition value: `anchor-debug`
+    --> programs/basket/src/lib.rs:1424:10
+     |
+1424 | #[derive(Accounts)]
+     |          ^^^^^^^^
+     |
+     = note: expected values for `feature` are: `cpi`, `default`, `idl-build`, `no-entrypoint`, `no-idl`, and `no-log-ix-name`
+     = note: using a cfg inside a derive macro will use the cfgs from the destination crate and not the ones from the defining crate
+     = help: try referring to `Accounts` crate for guidance on how handle this unexpected cfg
+     = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+     = note: this warning originates in the derive macro `Accounts` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: unexpected `cfg` condition value: `anchor-debug`
+    --> programs/basket/src/lib.rs:1470:10
+     |
+1470 | #[derive(Accounts)]
+     |          ^^^^^^^^
+     |
+     = note: expected values for `feature` are: `cpi`, `default`, `idl-build`, `no-entrypoint`, `no-idl`, and `no-log-ix-name`
+     = note: using a cfg inside a derive macro will use the cfgs from the destination crate and not the ones from the defining crate
+     = help: try referring to `Accounts` crate for guidance on how handle this unexpected cfg
+     = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+     = note: this warning originates in the derive macro `Accounts` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: `whitelist` (lib) generated 12 warnings (5 duplicates)
+   Compiling managed_basket v0.1.0 (/Users/umutyesildal/.codex/worktrees/backend-devnet-security/createyouretf/programs/managed_basket)
+warning: unexpected `cfg` condition value: `custom-heap`
+  --> programs/managed_basket/src/lib.rs:34:1
+   |
+34 | #[program]
+   | ^^^^^^^^^^
+   |
+   = note: expected values for `feature` are: `cpi`, `default`, `idl-build`, `localnet-fast-notice`, `no-entrypoint`, `no-idl`, and `no-log-ix-name`
+   = note: using a cfg inside a macro will use the cfgs from the destination crate and not the ones from the defining crate
+   = help: try referring to `$crate::custom_heap_default` crate for guidance on how handle this unexpected cfg
+   = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+   = note: `#[warn(unexpected_cfgs)]` on by default
+   = note: this warning originates in the macro `$crate::custom_heap_default` which comes from the expansion of the attribute macro `program` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: unexpected `cfg` condition value: `solana`
+  --> programs/managed_basket/src/lib.rs:34:1
+   |
+34 | #[program]
+   | ^^^^^^^^^^
+   |
+   = note: expected values for `target_os` are: `aix`, `amdhsa`, `android`, `cuda`, `cygwin`, `dragonfly`, `emscripten`, `espidf`, `freebsd`, `fuchsia`, `haiku`, `helenos`, `hermit`, `horizon`, `hurd`, `illumos`, `ios`, `l4re`, `linux`, `lynxos178`, `macos`, `managarm`, `motor`, `netbsd`, `none`, `nto`, `nuttx`, `openbsd`, `psp`, `psx`, `qnx`, `qurt`, `redox`, `rtems`, and `solaris` and 15 more
+   = note: using a cfg inside a macro will use the cfgs from the destination crate and not the ones from the defining crate
+   = help: try referring to `$crate::custom_heap_default` crate for guidance on how handle this unexpected cfg
+   = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+   = note: this warning originates in the macro `$crate::custom_heap_default` which comes from the expansion of the attribute macro `program` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: unexpected `cfg` condition value: `custom-panic`
+  --> programs/managed_basket/src/lib.rs:34:1
+   |
+34 | #[program]
+   | ^^^^^^^^^^
+   |
+   = note: expected values for `feature` are: `cpi`, `default`, `idl-build`, `localnet-fast-notice`, `no-entrypoint`, `no-idl`, and `no-log-ix-name`
+   = note: using a cfg inside a macro will use the cfgs from the destination crate and not the ones from the defining crate
+   = help: try referring to `$crate::custom_panic_default` crate for guidance on how handle this unexpected cfg
+   = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+   = note: this warning originates in the macro `$crate::custom_panic_default` which comes from the expansion of the attribute macro `program` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: unexpected `cfg` condition value: `solana`
+  --> programs/managed_basket/src/lib.rs:34:1
+   |
+34 | #[program]
+   | ^^^^^^^^^^
+   |
+   = note: expected values for `target_os` are: `aix`, `amdhsa`, `android`, `cuda`, `cygwin`, `dragonfly`, `emscripten`, `espidf`, `freebsd`, `fuchsia`, `haiku`, `helenos`, `hermit`, `horizon`, `hurd`, `illumos`, `ios`, `l4re`, `linux`, `lynxos178`, `macos`, `managarm`, `motor`, `netbsd`, `none`, `nto`, `nuttx`, `openbsd`, `psp`, `psx`, `qnx`, `qurt`, `redox`, `rtems`, and `solaris` and 15 more
+   = note: using a cfg inside a macro will use the cfgs from the destination crate and not the ones from the defining crate
+   = help: try referring to `$crate::custom_panic_default` crate for guidance on how handle this unexpected cfg
+   = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+   = note: this warning originates in the macro `$crate::custom_panic_default` which comes from the expansion of the attribute macro `program` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: unexpected `cfg` condition value: `anchor-debug`
+   --> programs/managed_basket/src/create.rs:377:10
+    |
+377 | #[derive(Accounts)]
+    |          ^^^^^^^^
+    |
+    = note: expected values for `feature` are: `cpi`, `default`, `idl-build`, `localnet-fast-notice`, `no-entrypoint`, `no-idl`, and `no-log-ix-name`
+    = note: using a cfg inside a derive macro will use the cfgs from the destination crate and not the ones from the defining crate
+    = help: try referring to `Accounts` crate for guidance on how handle this unexpected cfg
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+    = note: this warning originates in the derive macro `Accounts` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: unexpected `cfg` condition value: `anchor-debug`
+   --> programs/managed_basket/src/execution.rs:249:10
+    |
+249 | #[derive(Accounts)]
+    |          ^^^^^^^^
+    |
+    = note: expected values for `feature` are: `cpi`, `default`, `idl-build`, `localnet-fast-notice`, `no-entrypoint`, `no-idl`, and `no-log-ix-name`
+    = note: using a cfg inside a derive macro will use the cfgs from the destination crate and not the ones from the defining crate
+    = help: try referring to `Accounts` crate for guidance on how handle this unexpected cfg
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+    = note: this warning originates in the derive macro `Accounts` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: unexpected `cfg` condition value: `anchor-debug`
+   --> programs/managed_basket/src/proposal.rs:315:10
+    |
+315 | #[derive(Accounts)]
+    |          ^^^^^^^^
+    |
+    = note: expected values for `feature` are: `cpi`, `default`, `idl-build`, `localnet-fast-notice`, `no-entrypoint`, `no-idl`, and `no-log-ix-name`
+    = note: using a cfg inside a derive macro will use the cfgs from the destination crate and not the ones from the defining crate
+    = help: try referring to `Accounts` crate for guidance on how handle this unexpected cfg
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+    = note: this warning originates in the derive macro `Accounts` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: unexpected `cfg` condition value: `anchor-debug`
+   --> programs/managed_basket/src/proposal.rs:333:10
+    |
+333 | #[derive(Accounts)]
+    |          ^^^^^^^^
+    |
+    = note: expected values for `feature` are: `cpi`, `default`, `idl-build`, `localnet-fast-notice`, `no-entrypoint`, `no-idl`, and `no-log-ix-name`
+    = note: using a cfg inside a derive macro will use the cfgs from the destination crate and not the ones from the defining crate
+    = help: try referring to `Accounts` crate for guidance on how handle this unexpected cfg
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+    = note: this warning originates in the derive macro `Accounts` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: unexpected `cfg` condition value: `anchor-debug`
+   --> programs/managed_basket/src/proposal.rs:348:10
+    |
+348 | #[derive(Accounts)]
+    |          ^^^^^^^^
+    |
+    = note: expected values for `feature` are: `cpi`, `default`, `idl-build`, `localnet-fast-notice`, `no-entrypoint`, `no-idl`, and `no-log-ix-name`
+    = note: using a cfg inside a derive macro will use the cfgs from the destination crate and not the ones from the defining crate
+    = help: try referring to `Accounts` crate for guidance on how handle this unexpected cfg
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+    = note: this warning originates in the derive macro `Accounts` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: unexpected `cfg` condition value: `anchor-debug`
+   --> programs/managed_basket/src/proposal.rs:363:10
+    |
+363 | #[derive(Accounts)]
+    |          ^^^^^^^^
+    |
+    = note: expected values for `feature` are: `cpi`, `default`, `idl-build`, `localnet-fast-notice`, `no-entrypoint`, `no-idl`, and `no-log-ix-name`
+    = note: using a cfg inside a derive macro will use the cfgs from the destination crate and not the ones from the defining crate
+    = help: try referring to `Accounts` crate for guidance on how handle this unexpected cfg
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+    = note: this warning originates in the derive macro `Accounts` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: unexpected `cfg` condition value: `anchor-debug`
+   --> programs/managed_basket/src/shares.rs:400:10
+    |
+400 | #[derive(Accounts)]
+    |          ^^^^^^^^
+    |
+    = note: expected values for `feature` are: `cpi`, `default`, `idl-build`, `localnet-fast-notice`, `no-entrypoint`, `no-idl`, and `no-log-ix-name`
+    = note: using a cfg inside a derive macro will use the cfgs from the destination crate and not the ones from the defining crate
+    = help: try referring to `Accounts` crate for guidance on how handle this unexpected cfg
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+    = note: this warning originates in the derive macro `Accounts` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: unexpected `cfg` condition value: `anchor-debug`
+   --> programs/managed_basket/src/shares.rs:428:10
+    |
+428 | #[derive(Accounts)]
+    |          ^^^^^^^^
+    |
+    = note: expected values for `feature` are: `cpi`, `default`, `idl-build`, `localnet-fast-notice`, `no-entrypoint`, `no-idl`, and `no-log-ix-name`
+    = note: using a cfg inside a derive macro will use the cfgs from the destination crate and not the ones from the defining crate
+    = help: try referring to `Accounts` crate for guidance on how handle this unexpected cfg
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+    = note: this warning originates in the derive macro `Accounts` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: unexpected `cfg` condition value: `anchor-debug`
+  --> programs/managed_basket/src/lib.rs:34:1
+   |
+34 | #[program]
+   | ^^^^^^^^^^
+   |
+   = note: expected values for `feature` are: `cpi`, `default`, `idl-build`, `localnet-fast-notice`, `no-entrypoint`, `no-idl`, and `no-log-ix-name`
+   = note: using a cfg inside a attribute macro will use the cfgs from the destination crate and not the ones from the defining crate
+   = help: try referring to `program` crate for guidance on how handle this unexpected cfg
+   = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+   = note: this warning originates in the attribute macro `program` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: unexpected `cfg` condition value: `anchor-debug`
+  --> programs/managed_basket/src/lib.rs:34:1
+   |
+34 | #[program]
+   | ^^^^^^^^^^
+   |
+   = note: expected values for `feature` are: `cpi`, `default`, `idl-build`, `localnet-fast-notice`, `no-entrypoint`, `no-idl`, and `no-log-ix-name`
+   = note: using a cfg inside a derive macro will use the cfgs from the destination crate and not the ones from the defining crate
+   = help: try referring to `Accounts` crate for guidance on how handle this unexpected cfg
+   = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+   = note: this warning originates in the derive macro `Accounts` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: `basket` (lib) generated 11 warnings (5 duplicates)
+   Compiling basket_factory v0.1.0 (/Users/umutyesildal/.codex/worktrees/backend-devnet-security/createyouretf/programs/basket_factory)
+warning: unexpected `cfg` condition value: `custom-heap`
+  --> programs/basket_factory/src/lib.rs:34:1
+   |
+34 | #[program]
+   | ^^^^^^^^^^
+   |
+   = note: expected values for `feature` are: `cpi`, `default`, `idl-build`, `no-entrypoint`, `no-idl`, and `no-log-ix-name`
+   = note: using a cfg inside a macro will use the cfgs from the destination crate and not the ones from the defining crate
+   = help: try referring to `$crate::custom_heap_default` crate for guidance on how handle this unexpected cfg
+   = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+   = note: `#[warn(unexpected_cfgs)]` on by default
+   = note: this warning originates in the macro `$crate::custom_heap_default` which comes from the expansion of the attribute macro `program` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: unexpected `cfg` condition value: `solana`
+  --> programs/basket_factory/src/lib.rs:34:1
+   |
+34 | #[program]
+   | ^^^^^^^^^^
+   |
+   = note: expected values for `target_os` are: `aix`, `amdhsa`, `android`, `cuda`, `cygwin`, `dragonfly`, `emscripten`, `espidf`, `freebsd`, `fuchsia`, `haiku`, `helenos`, `hermit`, `horizon`, `hurd`, `illumos`, `ios`, `l4re`, `linux`, `lynxos178`, `macos`, `managarm`, `motor`, `netbsd`, `none`, `nto`, `nuttx`, `openbsd`, `psp`, `psx`, `qnx`, `qurt`, `redox`, `rtems`, and `solaris` and 15 more
+   = note: using a cfg inside a macro will use the cfgs from the destination crate and not the ones from the defining crate
+   = help: try referring to `$crate::custom_heap_default` crate for guidance on how handle this unexpected cfg
+   = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+   = note: this warning originates in the macro `$crate::custom_heap_default` which comes from the expansion of the attribute macro `program` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: unexpected `cfg` condition value: `custom-panic`
+  --> programs/basket_factory/src/lib.rs:34:1
+   |
+34 | #[program]
+   | ^^^^^^^^^^
+   |
+   = note: expected values for `feature` are: `cpi`, `default`, `idl-build`, `no-entrypoint`, `no-idl`, and `no-log-ix-name`
+   = note: using a cfg inside a macro will use the cfgs from the destination crate and not the ones from the defining crate
+   = help: try referring to `$crate::custom_panic_default` crate for guidance on how handle this unexpected cfg
+   = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+   = note: this warning originates in the macro `$crate::custom_panic_default` which comes from the expansion of the attribute macro `program` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: unexpected `cfg` condition value: `solana`
+  --> programs/basket_factory/src/lib.rs:34:1
+   |
+34 | #[program]
+   | ^^^^^^^^^^
+   |
+   = note: expected values for `target_os` are: `aix`, `amdhsa`, `android`, `cuda`, `cygwin`, `dragonfly`, `emscripten`, `espidf`, `freebsd`, `fuchsia`, `haiku`, `helenos`, `hermit`, `horizon`, `hurd`, `illumos`, `ios`, `l4re`, `linux`, `lynxos178`, `macos`, `managarm`, `motor`, `netbsd`, `none`, `nto`, `nuttx`, `openbsd`, `psp`, `psx`, `qnx`, `qurt`, `redox`, `rtems`, and `solaris` and 15 more
+   = note: using a cfg inside a macro will use the cfgs from the destination crate and not the ones from the defining crate
+   = help: try referring to `$crate::custom_panic_default` crate for guidance on how handle this unexpected cfg
+   = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+   = note: this warning originates in the macro `$crate::custom_panic_default` which comes from the expansion of the attribute macro `program` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: unexpected `cfg` condition value: `anchor-debug`
+  --> programs/basket_factory/src/lib.rs:34:1
+   |
+34 | #[program]
+   | ^^^^^^^^^^
+   |
+   = note: expected values for `feature` are: `cpi`, `default`, `idl-build`, `no-entrypoint`, `no-idl`, and `no-log-ix-name`
+   = note: using a cfg inside a attribute macro will use the cfgs from the destination crate and not the ones from the defining crate
+   = help: try referring to `program` crate for guidance on how handle this unexpected cfg
+   = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+   = note: this warning originates in the attribute macro `program` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: unexpected `cfg` condition value: `anchor-debug`
+  --> programs/basket_factory/src/lib.rs:34:1
+   |
+34 | #[program]
+   | ^^^^^^^^^^
+   |
+   = note: expected values for `feature` are: `cpi`, `default`, `idl-build`, `no-entrypoint`, `no-idl`, and `no-log-ix-name`
+   = note: using a cfg inside a derive macro will use the cfgs from the destination crate and not the ones from the defining crate
+   = help: try referring to `Accounts` crate for guidance on how handle this unexpected cfg
+   = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+   = note: this warning originates in the derive macro `Accounts` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: unexpected `cfg` condition value: `anchor-debug`
+   --> programs/basket_factory/src/lib.rs:734:10
+    |
+734 | #[derive(Accounts)]
+    |          ^^^^^^^^
+    |
+    = note: expected values for `feature` are: `cpi`, `default`, `idl-build`, `no-entrypoint`, `no-idl`, and `no-log-ix-name`
+    = note: using a cfg inside a derive macro will use the cfgs from the destination crate and not the ones from the defining crate
+    = help: try referring to `Accounts` crate for guidance on how handle this unexpected cfg
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+    = note: this warning originates in the derive macro `Accounts` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: unexpected `cfg` condition value: `anchor-debug`
+   --> programs/basket_factory/src/lib.rs:743:10
+    |
+743 | #[derive(Accounts)]
+    |          ^^^^^^^^
+    |
+    = note: expected values for `feature` are: `cpi`, `default`, `idl-build`, `no-entrypoint`, `no-idl`, and `no-log-ix-name`
+    = note: using a cfg inside a derive macro will use the cfgs from the destination crate and not the ones from the defining crate
+    = help: try referring to `Accounts` crate for guidance on how handle this unexpected cfg
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg/cargo-specifics.html> for more information about checking conditional configuration
+    = note: this warning originates in the derive macro `Accounts` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+warning: `basket_factory` (lib) generated 13 warnings (5 duplicates)
+warning: `managed_basket` (lib) generated 19 warnings (5 duplicates)
+warning: `basket_factory` (lib test) generated 13 warnings (13 duplicates)
+warning: `managed_basket` (lib test) generated 19 warnings (19 duplicates)
+warning: `basket` (lib test) generated 11 warnings (11 duplicates)
+warning: `whitelist` (lib test) generated 12 warnings (12 duplicates)
+    Finished `test` profile [unoptimized] target(s) in 54.07s
+     Running unittests src/lib.rs (/private/tmp/basalt-rust-parent-target/debug/deps/basalt_rust_parent_verification-ce1e620de9584920)
+
+running 4 tests
+test tests::frozen_abi_anonymous_map_api_survives_and_rejects_unsound_ranges ... ok
+test tests::logger_retains_default_explicit_environment_filters_and_append_output ... ok
+test tests::sdk_mmap_genesis_load_rejects_missing_empty_and_truncated_files ... ok
+test tests::sdk_mmap_genesis_load_preserves_serialized_bytes_fields_and_hash ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/lib.rs (/private/tmp/basalt-rust-parent-target/debug/deps/basalt_token_policy-44492ba6b80e93dd)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/policy.rs (/private/tmp/basalt-rust-parent-target/debug/deps/policy-5b923836c1f11ceb)
+
+running 29 tests
+test account_confidential_fee_guard_memo_unknown_and_mint_types_are_rejected ... ok
+test captured_official_mints_have_full_supported_profile ... ok
+test base_mint_coption_and_initialization_are_canonical ... ok
+test boolean_encoding_must_be_zero_or_one ... ok
+test duplicate_tlvs_are_rejected_even_with_valid_payloads ... ok
+test every_display_subset_is_admitted_without_privilege ... ok
+test extended_mint_padding_account_kind_and_multisig_length_are_checked ... ok
+test frozen_uninitialized_and_bad_account_coptions_are_rejected ... ok
+test hook_account_requires_canonical_false ... ok
+test initialized_base_account_returns_exact_identity_and_raw_amount ... ok
+test metadata_additional_pairs_are_fully_consumed ... ok
+test every_fixed_mint_payload_has_exact_size ... ok
+test metadata_huge_lengths_and_pair_counts_fail_without_allocation ... ok
+test metadata_pointer_and_metadata_must_bind_actual_mint ... ok
+test issuer_order_is_irrelevant_but_privileged_profile_must_be_complete ... ok
+test multiplier_and_schedule_do_not_change_raw_account_amount ... ok
+test official_fixture_mutations_reject_dangerous_semantics ... ok
+test plain_base_mint_preserves_decimals_and_freeze_info ... ok
+test paused_active_hook_and_frozen_default_rejected ... ok
+test standard_issuer_atas_are_accepted_in_any_order ... ok
+test positive_finite_multipliers_only_in_both_slots ... ok
+test unused_coption_key_bytes_are_not_mistaken_for_invalid_padding ... ok
+test token_account_duplicate_kind_wrong_tag_and_truncated_base_rejected ... ok
+test truncated_tlv_header_and_length_overruns_rejected ... ok
+test metadata_schema_rejects_truncation_trailing_and_invalid_utf8 ... ok
+test unsupported_known_and_unknown_mint_extensions_fail_closed ... ok
+test official_fixture_truncated_payloads_do_not_panic ... ok
+test zero_padding_is_allowed_only_after_real_extensions ... ok
+test arbitrary_mutation_fuzz_is_total_and_deterministic ... ok
+
+test result: ok. 29 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running unittests src/lib.rs (/private/tmp/basalt-rust-parent-target/debug/deps/basket-a790dcbdbd0b4c7e)
+
+running 136 tests
+test bas004_arithmetic_tests::checked_helpers_reject_narrowing_and_tolerance_overflow ... ok
+test bas004_arithmetic_tests::redeem_requires_nonzero_supply_and_burn_within_supply ... ok
+test bas004_arithmetic_tests::management_fee_rejects_checked_narrowing ... ok
+test bas004_arithmetic_tests::checked_fee_helpers_reject_invalid_bps_and_keep_u64_boundaries ... ok
+test bas004_arithmetic_tests::split_accounts_rejects_constituent_count_multiplication_overflow ... ok
+test impl_tests::test_compute_mint_gross_genesis_constant ... ok
+test impl_tests::test_compute_mint_gross_genesis_fixed ... ok
+test bas004_arithmetic_tests::deterministic_arithmetic_properties_hold_at_boundaries ... ok
+test impl_tests::test_compute_mint_gross_non_genesis_delegates ... ok
+test impl_tests::test_entry_fee_split_accounts_minted_total ... ok
+test impl_tests::test_fee_split_amounts_dust_cases ... ok
+test impl_tests::test_mgmt_fee_split_over_time_grid ... ok
+test impl_tests::test_redeem_aggregate_never_over_withdraws ... ok
+test impl_tests::test_redeem_burn_positive_when_fee_bps_capped ... ok
+test impl_tests::test_redeem_floor_favors_remaining_holders ... ok
+test impl_tests::test_redeem_full_supply_empties_vault_exactly ... ok
+test impl_tests::test_redeem_spec_example_54_725_000 ... ok
+test impl_tests::test_redeem_user_post_burn_balance_covers_fee_transfer ... ok
+test impl_tests::test_tolerance_exact_boundary_passes ... ok
+test impl_tests::test_tolerance_exact_one_raw_unit_over_fails ... ok
+test mega_tests::t10_fee_3_percent ... ok
+test mega_tests::t11_exit_1_percent ... ok
+test mega_tests::t12_mgmt_1_year_200bps ... ok
+test impl_tests::test_fee_split_amounts_sum_invariant_exhaustive ... ok
+test mega_tests::t13_mgmt_half_year ... ok
+test mega_tests::t14_split_half ... ok
+test mega_tests::t15_split_10 ... ok
+test mega_tests::t16_redeem_10_percent ... ok
+test mega_tests::t18_redeem_all ... ok
+test mega_tests::t17_redeem_50_percent ... ok
+test mega_tests::t19_gross_large_supply ... ok
+test mega_tests::t1_entry_zero ... ok
+test mega_tests::t20_gross_small_vault ... ok
+test mega_tests::t21_fuzz_entry ... ok
+test mega_tests::t22_fuzz_exit ... ok
+test mega_tests::t23_fuzz_mgmt ... ok
+test mega_tests::t24_fuzz_split ... ok
+test mega_tests::t26_redeem_never_exceeds ... ok
+test mega_tests::t25_redeem_floor ... ok
+test mega_tests::t27_gross_no_overflow ... ok
+test mega_tests::t28_mgmt_never_exceeds_cap_random ... ok
+test mega_tests::t29_entry_exact ... ok
+test mega_tests::t2_exit_zero ... ok
+test mega_tests::t30_exit_exact ... ok
+test mega_tests::t31_scaled_raw ... ok
+test mega_tests::t32_vault_consistency ... ok
+test mega_tests::t34_weight_exact ... ok
+test mega_tests::t33_weight_mismatch_edge ... ok
+test mega_tests::t35_fee_split_0 ... ok
+test mega_tests::t36_fee_split_100 ... ok
+test mega_tests::t38_mgmt_30_days ... ok
+test mega_tests::t37_gross_with_supply_1 ... ok
+test mega_tests::t39_mgmt_7_days ... ok
+test mega_tests::t3_split_zero ... ok
+test mega_tests::t40_redeem_multi ... ok
+test mega_tests::t4_mgmt_zero_supply ... ok
+test mega_tests::t5_mgmt_zero_elapsed ... ok
+test mega_tests::t6_redeem_empty ... ok
+test mega_tests::t7_gross_min_is_min ... ok
+test mega_tests::t8_gross_with_20_vals ... ok
+test mega_tests::t9_fee_1_percent ... ok
+test paused_gate_tests::test_factory_genesis_supply_small_first_deposit_pro_rata ... ok
+test paused_gate_tests::test_factory_genesis_supply_takes_pro_rata_path ... ok
+test paused_gate_tests::test_gross_uses_supply_read_from_mint_not_stale_field ... ok
+test paused_gate_tests::test_mint_extension_policy_rejects_extension_bearing_account ... ok
+test paused_gate_tests::test_parse_constituents_triplet_order ... ok
+test paused_gate_tests::test_paused_gate_active_passes ... ok
+test paused_gate_tests::test_paused_gate_data_length_boundary ... ok
+test paused_gate_tests::test_paused_gate_mint_field_mismatch_fails ... ok
+test paused_gate_tests::test_paused_gate_paused_new_mints_blocks_mint ... ok
+test paused_gate_tests::test_paused_gate_unknown_status_fails_closed ... ok
+test paused_gate_tests::test_mint_handler_calls_extension_policy ... ok
+test paused_gate_tests::test_paused_gate_wrong_discriminator_fails ... ok
+test paused_gate_tests::test_paused_gate_wrong_owner_fails ... ok
+test paused_gate_tests::test_redeem_doc_comment_permissionless_contract ... ok
+test paused_gate_tests::test_remaining_accounts_layout_ordering ... ok
+test paused_gate_tests::test_remaining_accounts_rejects_legacy_3n_layout ... ok
+test paused_gate_tests::test_remaining_accounts_rejects_wrong_lengths ... ok
+test paused_gate_tests::test_status_offset_pins_whitelisted_mint_layout ... ok
+test paused_gate_tests::test_redeem_struct_has_no_whitelist_dependency ... ok
+test paused_gate_tests::test_transfer_delta_rejects_short_destination_credit ... ok
+test paused_gate_tests::test_transfer_delta_exact_raw_amount ... ok
+test paused_gate_tests::test_transfer_delta_rejects_extra_source_debit ... ok
+test paused_gate_tests::test_whitelist_program_id_matches_declared_id ... ok
+test paused_gate_tests::test_whitelisted_mint_discriminator_constant ... ok
+test test_id ... ok
+test tests::test_deposits_full_redeem_property ... ok
+test tests::test_entry_fee_max_bps ... ok
+test paused_gate_tests::test_redeem_handler_has_no_whitelist_logic ... ok
+test tests::test_entry_fee_never_exceeds_gross ... ok
+test tests::test_entry_fee_zero_bps ... ok
+test tests::test_exit_fee_max_bps ... ok
+test tests::test_fee_math ... ok
+test tests::test_fee_overcharging_never ... ok
+test tests::test_fuzz_random_deposits_redeems ... ok
+test tests::test_genesis_fixed_shares ... ok
+test tests::test_gross_shares_20_constituents ... ok
+test tests::test_gross_shares_dust_amount ... ok
+test tests::test_gross_shares_large_numbers_no_overflow ... ok
+test tests::test_gross_shares_length_mismatch_fails ... ok
+test paused_gate_tests::test_token2022_owner_checks_are_pinned_on_token_entrypoints ... ok
+test tests::test_gross_shares_perfect ... ok
+test tests::test_gross_shares_single_constituent ... ok
+test tests::test_gross_shares_tolerance_boundary_fail ... ok
+test tests::test_gross_shares_tolerance_boundary_pass ... ok
+test tests::test_gross_shares_weight_mismatch ... ok
+test tests::test_gross_shares_zero_deposit_fails ... ok
+test tests::test_gross_shares_zero_supply_fails ... ok
+test tests::test_gross_shares_zero_vault_fails ... ok
+test tests::test_management_fee_compounding_not_exceeded ... ok
+test tests::test_legacy_basket_deserializes_with_zero_remainder_without_realloc ... ok
+test tests::test_management_fee_hourly_vs_yearly ... ok
+test tests::test_management_fee_one_year_cap ... ok
+test tests::test_management_fee_remainder_encoding_roundtrip ... ok
+test tests::test_management_fee_remainder_rejects_noncanonical_state ... ok
+test tests::test_management_fee_zero_bps ... ok
+test tests::test_management_fee_zero_elapsed ... ok
+test tests::test_management_fee_zero_supply ... ok
+test tests::test_management_fee_remainder_preserves_small_accruals ... ok
+test tests::test_management_never_exceeds_cap ... ok
+test tests::test_no_user_redeems_more_than_pro_rata ... ok
+test tests::test_redeem_amounts_floor ... ok
+test tests::test_redeem_consistency_multi_vault ... ok
+test tests::test_redeem_dust_floor ... ok
+test tests::test_redeem_full_supply ... ok
+test tests::test_redeem_half_supply ... ok
+test tests::test_redeem_never_exceeds_vault ... ok
+test tests::test_reentrancy_concept_no_cpi_reentry ... ok
+test tests::test_rounding_never_over_withdraws ... ok
+test tests::test_scaled_multiplier_invariance ... ok
+test tests::test_scaled_multiplier_various ... ok
+test tests::test_split_fee_dust ... ok
+test tests::test_split_fee_exact ... ok
+test tests::test_token_decimal_mismatch_concept ... ok
+test tests::test_total_value_consistency_after_ops ... ok
+test tests::test_frequent_cranks_cannot_suppress_annual_fee ... ok
+
+test result: ok. 136 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.05s
+
+     Running unittests src/lib.rs (/private/tmp/basalt-rust-parent-target/debug/deps/basket_factory-297ba7f9fd9ec888)
+
+running 45 tests
+test tests::test_basket_count_increment ... ok
+test test_id ... ok
+test tests::test_basket_account_size_covers_20_constituents ... ok
+test tests::test_check_lengths_helper ... ok
+test tests::test_check_metadata_hash_helper ... ok
+test tests::test_check_constituent_count_helper ... ok
+test tests::test_check_fee_caps_helper ... ok
+test tests::test_check_remaining_accounts_layout_helper ... ok
+test tests::test_check_no_duplicates_helper ... ok
+test tests::test_check_seed_amounts_helper ... ok
+test tests::test_check_weights_sum_helper ... ok
+test tests::test_check_whitelisted_record_ok ... ok
+test tests::test_check_whitelisted_record_forged_pda_fails ... ok
+test tests::test_constituent_count_bounds ... ok
+test tests::test_check_whitelisted_record_paused ... ok
+test tests::test_check_whitelisted_record_wrong_mint ... ok
+test tests::test_creator_split_valid ... ok
+test tests::test_decode_mint_decimals_truncated_fails ... ok
+test tests::test_decode_mint_decimals_base_mint ... ok
+test tests::test_decode_whitelisted_mint_roundtrip ... ok
+test tests::test_duplicate_detection ... ok
+test tests::test_factory_decoder_rejects_extension_bearing_mint ... ok
+test tests::test_factory_pda_seeds_deterministic ... ok
+test tests::test_factory_seeds ... ok
+test tests::test_create_entrypoint_reapplies_fail_closed_mint_policy ... ok
+test tests::test_factory_size ... ok
+test tests::test_genesis_matches_basket_program_constant ... ok
+test tests::test_fee_caps ... ok
+test tests::test_genesis_shares_constant ... ok
+test tests::test_length_mismatch ... ok
+test tests::test_metadata_hash_zero_rejected ... ok
+test tests::test_seed_amounts_zero_rejected ... ok
+test tests::test_share_mint_constants ... ok
+test tests::test_transfer_delta_accepts_max_raw_amount ... ok
+test tests::test_transfer_delta_exact_raw_amount ... ok
+test tests::test_transfer_delta_rejects_fee_or_hook_debit ... ok
+test tests::test_transfer_delta_rejects_short_credit ... ok
+test tests::test_weights_random_invalid ... ok
+test tests::test_weights_sum_invalid ... ok
+test tests::test_weights_sum_valid ... ok
+test tests::test_weights_various_valid ... ok
+test tests::test_vault_authority_pda_uses_basket_program_id ... ok
+test tests::test_whitelist_pda_derivation_deterministic ... ok
+test tests::test_vault_bump_written_canonical ... ok
+test tests::test_creator_split_helper_rejects_every_noncanonical_value ... ok
+
+test result: ok. 45 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+
+     Running unittests src/lib.rs (/private/tmp/basalt-rust-parent-target/debug/deps/managed_basket-7d8c32b8387ab04f)
+
+running 6 tests
+test math::tests::redemption_floors_each_raw_component ... ok
+test state::default_notice_tests::default_notice_remains_twenty_four_hours_nominally ... ok
+test math::tests::gross_shares_uses_live_raw_balances_and_one_percent_floor_tolerance ... ok
+test test_id ... ok
+test token::tests::admits_plain_token_2022_mint_without_freeze_authority ... ok
+test token::tests::rejects_plain_token_2022_mint_with_freeze_authority ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src/lib.rs (/private/tmp/basalt-rust-parent-target/debug/deps/whitelist-02ff68a6c002f5b6)
+
+running 27 tests
+test tests::test_check_decimals_ok ... ok
+test tests::test_add_mint_caches_onchain_decimals_semantics ... ok
+test test_id ... ok
+test tests::test_check_decimals_arg_over_cap_fails ... ok
+test tests::test_check_mint_owner_accepts_token_2022 ... ok
+test tests::test_check_decimals_mismatch_fails ... ok
+test tests::test_check_mint_owner_rejects_other_programs ... ok
+test tests::test_add_mint_entrypoint_uses_fail_closed_decoder ... ok
+test tests::test_config_size ... ok
+test tests::test_decimals_validation ... ok
+test tests::test_decode_mint_decimals_base_mint ... ok
+test tests::test_decode_mint_decimals_rejects_known_extensions ... ok
+test tests::test_decode_mint_decimals_rejects_malformed_tlv ... ok
+test tests::test_decode_mint_decimals_truncated_fails ... ok
+test tests::test_decode_mint_decimals_rejects_padded_empty_tlv_region ... ok
+test tests::test_decode_mint_decimals_rejects_uninitialized_base_mint ... ok
+test tests::test_mint_count_increment ... ok
+test tests::test_mint_count_overflow_is_rejected ... ok
+test tests::test_mint_size ... ok
+test tests::test_multiplier_watermark_default ... ok
+test tests::test_pause_idempotency ... ok
+test tests::test_pending_authority_none_initially ... ok
+test tests::test_price_source_length_validation ... ok
+test tests::test_price_source_various ... ok
+test tests::test_seed_constants ... ok
+test tests::test_transfer_authority_flow ... ok
+test tests::test_whitelist_status_values ... ok
+
+test result: ok. 27 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests basalt_rust_parent_verification
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests basalt_token_policy
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests basket
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests basket_factory
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests managed_basket
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+   Doc-tests whitelist
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s

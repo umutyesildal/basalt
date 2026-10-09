@@ -42,19 +42,19 @@ export function valuationQuality(row: Record<string, unknown>, now = new Date())
 export async function recordValuationAttempt(
   db: import("../db/client.js").PgLike,
   basket: string,
-  attempt: { complete: boolean; reason: string | null; attemptedAt: string },
+  attempt: { complete: boolean; reason: string | null; attemptedAt: string; missingPriceMints?: string[] },
 ): Promise<boolean> {
-  const result = await db.query(`INSERT INTO basket_valuation_state (basket,status,reason,attempted_at,last_complete_at)
-    VALUES ($1,$2,$3,$4,CASE WHEN $2 = 'complete' THEN $4::timestamptz ELSE NULL END)
+  const result = await db.query(`INSERT INTO basket_valuation_state (basket,status,reason,attempted_at,last_complete_at,missing_price_mints)
+    VALUES ($1,$2,$3,$4,CASE WHEN $2 = 'complete' THEN $4::timestamptz ELSE NULL END,$5::text[])
     ON CONFLICT (basket) DO UPDATE
-      SET status = EXCLUDED.status, reason = EXCLUDED.reason,
+      SET status = EXCLUDED.status, reason = EXCLUDED.reason, missing_price_mints=EXCLUDED.missing_price_mints,
           attempted_at = EXCLUDED.attempted_at,
           last_complete_at = CASE WHEN EXCLUDED.status = 'complete'
             THEN EXCLUDED.last_complete_at ELSE basket_valuation_state.last_complete_at END
       WHERE basket_valuation_state.attempted_at < EXCLUDED.attempted_at
          OR (basket_valuation_state.attempted_at = EXCLUDED.attempted_at
              AND (EXCLUDED.status = 'incomplete' OR basket_valuation_state.status = 'complete'))`,
-    [basket,attempt.complete ? "complete" : "incomplete",attempt.reason,new Date(attempt.attemptedAt)]);
+    [basket,attempt.complete ? "complete" : "incomplete",attempt.reason,new Date(attempt.attemptedAt),attempt.complete ? [] : (attempt.missingPriceMints ?? []).slice(0,20)]);
   return result.rowCount === 1;
 }
 

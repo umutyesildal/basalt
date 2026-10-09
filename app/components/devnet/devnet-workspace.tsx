@@ -611,7 +611,7 @@ export default function DevnetWorkspace() {
       </CardContent>
     </Card>}
     {refreshNotice ? <p role="status" className="text-sm text-muted-foreground">{refreshNotice}</p> : null}
-    <details className="text-xs leading-5 text-muted-foreground"><summary className="min-h-10 cursor-pointer content-center focus-visible:outline focus-visible:outline-2 focus-visible:outline-ring">About this devnet test</summary><p>Project mock tokens, not issuer-backed xStocks. Basket shares represent your share of the test tokens. This is not investment advice. LEGAL_REVIEW_REQUIRED.</p></details>
+    <details className="text-xs leading-5 text-muted-foreground"><summary className="min-h-10 cursor-pointer content-center focus-visible:outline focus-visible:outline-2 focus-visible:outline-ring">About this devnet test</summary><p>Project mock tokens, not issuer-backed xStocks. Test balances are token quantities, not USD values. Basket shares represent your share of the test tokens. This is not investment advice. LEGAL_REVIEW_REQUIRED.</p></details>
   </div>;
 }
 

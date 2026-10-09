@@ -1,3 +1,4 @@
+import { createReadOnlyRpcConnection } from "../rpc/requestBudget.js";
 /**
  * workers/feeCrank.ts — management-fee accrual crank (spec §7 queue
  * `fee_accrue_crank`, hourly; programs/basket accrue_management_fee).
@@ -30,7 +31,6 @@
  * tx without a fresh blockhash would be a lie).
  */
 import {
-  Connection,
   SystemProgram,
   Transaction,
   TransactionInstruction,
@@ -369,7 +369,7 @@ export function createFeeCrankFromEnv(opts: {
   let rpc: BlockhashRpc | null = opts.rpc ?? null;
   const rpcUrl = env.RPC_URL;
   if (!rpc && rpcUrl) {
-    const conn = new Connection(rpcUrl, { disableRetryOnRateLimit: true });
+    const conn = createReadOnlyRpcConnection(rpcUrl);
     rpc = {
       getLatestBlockhash: () => conn.getLatestBlockhash(),
     };

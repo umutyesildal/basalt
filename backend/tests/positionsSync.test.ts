@@ -103,6 +103,9 @@ function syncDb(
     eventUsers,
     query: async (sql: string, values: unknown[] = []): Promise<{ rows: unknown[]; rowCount: number }> => {
       calls.push({ sql, values });
+      if (sql.includes("FROM indexer_program_state")) return {rows:(values[0] as string[]).map(program_id=>({program_id,history_complete:true,scan_before:null,scan_head:null,finalized_through_slot:"100"})),rowCount:3};
+      if (sql.includes("FROM indexer_signature_queue")) return {rows:[{count:0}],rowCount:1};
+      if (sql.includes("FROM position_rebuild_required")) return {rows:[],rowCount:0};
       if (sql.includes("FROM baskets")) {
         return { rows: baskets.map((b) => ({ ...b })), rowCount: baskets.length };
       }
@@ -203,7 +206,7 @@ describe("positionsSync — token account parsing", () => {
     const invoke = vi.fn(async () => ({ token_accounts: [{ mint: SHARE_MINT, amount: 4000, owner: USER }] }));
     const blockedRpc = gpaRpcByMint({});
     blockedRpc.getProgramAccounts = async () => { throw new Error("excluded from account secondary indexes"); };
-    await expect(fetchShareHolders(blockedRpc, SHARE_MINT, { jsonRpcInvoke: invoke })).rejects.toThrow("excluded");
+    await expect(fetchShareHolders(blockedRpc, SHARE_MINT, { jsonRpcInvoke: invoke })).rejects.toThrow("unsupported");
     expect(invoke).not.toHaveBeenCalled();
   });
 
@@ -349,7 +352,7 @@ describe("positionsSync — authenticated finalized snapshots", () => {
     const pending=syncPositionsFromChain(f.rpc,db,{programs:f.programs,spacingMs:0,catchUpThroughSlot:()=>new Promise(()=>{})});
     await vi.advanceTimersByTimeAsync(10_000);
     expect(await pending).toMatchObject({basketsScanned:0,basketsFailed:1});
-    expect(db.calls.map(call=>call.sql)).toEqual(["SELECT pubkey FROM baskets ORDER BY pubkey"]);
+    expect(db.calls.some(call=>/^(BEGIN|INSERT|UPDATE|DELETE)/.test(call.sql))).toBe(false);
   });
   it("a stalled snapshot never acquires a database transaction or mutates existing balances",async()=>{
     vi.useFakeTimers();const f=positionRecoveryFixture();const db=syncDb([{pubkey:f.basket.toBase58(),share_mint:f.shareMint.toBase58()}]);
@@ -357,7 +360,7 @@ describe("positionsSync — authenticated finalized snapshots", () => {
     const pending=syncPositionsFromChain(f.rpc,db,{programs:f.programs,spacingMs:0});
     await vi.advanceTimersByTimeAsync(10_000);
     expect(await pending).toMatchObject({basketsScanned:0,basketsFailed:1});
-    expect(db.calls.map(call=>call.sql)).toEqual(["SELECT pubkey FROM baskets ORDER BY pubkey"]);expect(db.rows.size).toBe(0);
+    expect(db.calls.some(call=>/^(BEGIN|INSERT|UPDATE|DELETE)/.test(call.sql))).toBe(false);expect(db.rows.size).toBe(0);
   });
   it("requires explicit distinct canonical program roles",async()=>{
     const f=positionRecoveryFixture();await expect(fetchFinalizedPositionSnapshot(f.rpc,f.basket.toBase58(),{...f.programs,ids:[f.programs.basket.toBase58()]})).rejects.toThrow("program IDs");
@@ -368,7 +371,7 @@ describe("positionsSync — authenticated finalized snapshots", () => {
     await expect(syncPositionsFromChain(f.rpc,db)).rejects.toThrow("programs");expect(db.calls).toEqual([]);expect(f.calls).toEqual([]);
   });
   it("null DB returns honest empty statistics without RPC",async()=>{
-    const f=positionRecoveryFixture();expect(await syncPositionsFromChain(f.rpc,null)).toEqual({basketsScanned:0,basketsFailed:0,holders:0,balanceSynced:0,eventKept:0,zeroed:0});expect(f.calls).toEqual([]);
+    const f=positionRecoveryFixture();expect(await syncPositionsFromChain(f.rpc,null)).toEqual({basketsScanned:0,basketsFailed:0,basketsSkipped:0,holders:0,balanceSynced:0,eventKept:0,zeroed:0});expect(f.calls).toEqual([]);
   });
 });
 

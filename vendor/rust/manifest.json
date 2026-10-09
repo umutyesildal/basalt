@@ -1,0 +1,60 @@
+{
+  "schemaVersion": 1,
+  "upstreamRepository": "https://github.com/solana-labs/solana",
+  "upstreamTag": "v1.18.26",
+  "license": {
+    "path": "LICENSE-APACHE",
+    "source": "https://raw.githubusercontent.com/solana-labs/solana/v1.18.26/LICENSE",
+    "sha256": "048838ecab23173fe6db9b3a4f5d9e2f5480b8692dfca556fed4aa039ca06bc8"
+  },
+  "packages": [
+    {
+      "name": "solana-logger",
+      "version": "1.18.26",
+      "directory": "solana-logger-1.18.26",
+      "upstreamArchive": "upstream/solana-logger-1.18.26.crate",
+      "upstreamArchiveSha256": "121d36ffb3c6b958763312cbc697fbccba46ee837d3a0aa4fc0e90fcb3b884f3",
+      "upstreamCommit": "c2b350023ba849d1b33142592264aaa51fcb7f1e",
+      "upstreamPath": "logger",
+      "replacements": [
+        {
+          "file": "Cargo.toml",
+          "before": "[dependencies.env_logger]\nversion = \"0.9.3\"",
+          "after": "# Basalt 2026-10-09: reviewed host dependency pin; upstream Rust sources unchanged.\n[dependencies.env_logger]\nversion = \"=0.10.2\""
+        }
+      ]
+    },
+    {
+      "name": "solana-sdk",
+      "version": "1.18.26",
+      "directory": "solana-sdk-1.18.26",
+      "upstreamArchive": "upstream/solana-sdk-1.18.26.crate",
+      "upstreamArchiveSha256": "580ad66c2f7a4c3cb3244fe21440546bd500f5ecb955ad9826e92a78dded8009",
+      "upstreamCommit": "c2b350023ba849d1b33142592264aaa51fcb7f1e",
+      "upstreamPath": "sdk",
+      "replacements": [
+        {
+          "file": "Cargo.toml",
+          "before": "[dependencies.memmap2]\nversion = \"0.5.10\"",
+          "after": "# Basalt 2026-10-09: reviewed host dependency pin; upstream Rust sources unchanged.\n[dependencies.memmap2]\nversion = \"=0.9.11\""
+        }
+      ]
+    },
+    {
+      "name": "solana-frozen-abi",
+      "version": "1.18.26",
+      "directory": "solana-frozen-abi-1.18.26",
+      "upstreamArchive": "upstream/solana-frozen-abi-1.18.26.crate",
+      "upstreamArchiveSha256": "03ab2c30c15311b511c0d1151e4ab6bc9a3e080a37e7c6e7c2d96f5784cf9434",
+      "upstreamCommit": "c2b350023ba849d1b33142592264aaa51fcb7f1e",
+      "upstreamPath": "frozen-abi",
+      "replacements": [
+        {
+          "file": "Cargo.toml",
+          "before": "[target.\"cfg(not(target_os = \\\"solana\\\"))\".dependencies.memmap2]\nversion = \"0.5.10\"",
+          "after": "# Basalt 2026-10-09: reviewed host dependency pin; upstream Rust sources unchanged.\n[target.\"cfg(not(target_os = \\\"solana\\\"))\".dependencies.memmap2]\nversion = \"=0.9.11\""
+        }
+      ]
+    }
+  ]
+}

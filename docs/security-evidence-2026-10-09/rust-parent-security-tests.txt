@@ -1,0 +1,27 @@
+✔ all vendored upstream bytes match archives except the three permitted manifest lines (80.022375ms)
+✔ provenance guard rejects edited upstream Rust source (101.89375ms)
+✔ provenance guard rejects a broader manifest patch even if its declaration is altered (91.32675ms)
+✔ provenance guard rejects corrupted registry archives before inspecting sources (93.59025ms)
+✔ provenance guard rejects injected source files and symlinks (133.803167ms)
+✔ provenance guard rejects missing Cargo patch bindings (112.09075ms)
+✔ provenance guard rejects changed upstream license or VCS declaration (85.400792ms)
+✔ provenance guard rejects commented-out Cargo patch declarations (76.561334ms)
+✔ provenance guard rejects matching declarations outside the active patch section (79.111875ms)
+✔ provenance guard rejects duplicate active Cargo declarations or sections (127.025166ms)
+✔ bounded unsigned codec round trips full-width layouts and endian vectors (1.240417ms)
+✔ codec rejects overflow, negative, malformed and large work before conversion (0.332625ms)
+✔ all exposed public identities are permanently rejected for every role (0.405333ms)
+✔ history scanner detects committed and staged key arrays and reveals only metadata (186.612125ms)
+✔ oversized text stays blocked while real compiler binary headers are recognized (175.585542ms)
+✔ ceremony preflight rejects missing/invalid policy, spoofed vaults, retired or duplicate signers (7.501666ms)
+✔ Squads decoder supports both Borsh option lengths and rejects truncation (1.18325ms)
+✔ RPC preflight proves all authorities and Squads state with read methods only (16.389042ms)
+✔ Rust gate fails unknown advisories, changed locks, secret API reachability and expired exceptions (0.584833ms)
+ℹ tests 19
+ℹ suites 0
+ℹ pass 19
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 1041.000459

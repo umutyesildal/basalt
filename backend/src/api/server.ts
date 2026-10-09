@@ -13,6 +13,7 @@
  */
 import http from "http";
 import { readinessReport } from "./readiness.js";
+import { basketDataQuality, basketRecoverySql } from "./data-quality.js";
 import { PublicKey } from "@solana/web3.js";
 import { comparePrices, getChartSeries, readMockWhitelistRows } from "../workers/priceCompare.js";
 import { getXStockCatalog, getCachedXStockCatalog } from "../catalog/xstocks.js";
@@ -41,8 +42,11 @@ import { ApiResourceLimits, ApiResourceLimitError } from "./resource-limits.js";
 export const API_VERSION = "0.1.0";
 
 export interface SubsystemStatus {
+  positionsRpc?: Record<string,unknown>;
+  rpcRequests?: Record<string,unknown>;
+  positionsSync?: Record<string,unknown>;
   db: { connected: boolean; schemaApplied: boolean | null };
-  indexer: { enabled: boolean; running: boolean; discovery?: { programIds: string[]; genesisHash: string | null; finalizedSlot: number | null; completedAt: string | null } };
+  indexer: { enabled: boolean; running: boolean; collection?: Record<string,unknown>; rpc?: Record<string,unknown>; positionsSync?: Record<string,unknown>; discovery?: { programIds: string[]; genesisHash: string | null; finalizedSlot: number | null; completedAt: string | null } };
   navEngine: { enabled: boolean; running: boolean };
   feeCrank: { enabled: boolean; running: boolean };
   userSnapshot: { enabled: boolean; running: boolean };
@@ -196,11 +200,11 @@ async function resolveDb(ctx: ApiContext): Promise<PgLike | null> {
 // --- route implementations (exported for tests) ------------------------------
 
 const BASKETS_LIST_SQL = `
-  SELECT r.pubkey, r.creator, r.share_mint,
+  SELECT b.pubkey, b.creator, b.share_mint,
          b.constituents, b.weights_bps, b.metadata_json,
          cur.nav::text AS nav, cur.supply::text AS supply,
          cur.share_price::text AS share_price,
-         r.mint_count, r.refreshed_at, cur.ts AS nav_as_of, cur.valuation_eligible, cur.valuation_status, vq.status AS current_status, vq.reason AS current_reason, ${currentNavEligibilitySql("cur.basket", "cur")} AS current_eligible,
+         COALESCE(r.mint_count,0) AS mint_count, r.refreshed_at, cur.ts AS nav_as_of, cur.valuation_eligible, cur.valuation_status, vq.status AS current_status, vq.reason AS current_reason, vq.missing_price_mints, ${currentNavEligibilitySql("cur.basket", "cur")} AS current_eligible,
          NOT (COALESCE(vq.status='complete' AND vq.last_complete_at=cur.ts,false) AND cur.ts <= NOW() AND cur.ts >= NOW() - interval '15 minutes') AS stale,
          CASE WHEN ${BASKET_RETURN_CURRENT_SQL} AND h24.supply > 0 AND h24.share_price > 0 AND h24.share_price::text NOT IN ('NaN', 'Infinity', '-Infinity')
            THEN (cur.share_price - h24.share_price) / NULLIF(h24.share_price, 0) END AS return_24h,
@@ -208,58 +212,59 @@ const BASKETS_LIST_SQL = `
            THEN (cur.share_price - h168.share_price) / NULLIF(h168.share_price, 0) END AS return_7d,
          CASE WHEN ${BASKET_RETURN_CURRENT_SQL} AND h720.supply > 0 AND h720.share_price > 0 AND h720.share_price::text NOT IN ('NaN', 'Infinity', '-Infinity')
            THEN (cur.share_price - h720.share_price) / NULLIF(h720.share_price, 0) END AS return_30d,
-         COALESCE(h.holders, 0) AS holders
-  FROM basket_rankings r
-  JOIN baskets b ON b.pubkey = r.pubkey
-  LEFT JOIN basket_valuation_state vq ON vq.basket=r.pubkey
-  JOIN LATERAL (
-    SELECT basket, nav, supply, share_price, ts, valuation_eligible, valuation_status FROM nav_snapshots WHERE ${navEligibilitySql()} AND basket = r.pubkey ORDER BY ts DESC LIMIT 1
+         CASE WHEN ${positionProjectionReadySql("b.pubkey")} THEN COALESCE(h.holders,0) END AS holders,
+         ${basketRecoverySql("b.pubkey")}
+  FROM baskets b
+  LEFT JOIN basket_rankings r ON r.pubkey=b.pubkey
+  LEFT JOIN basket_valuation_state vq ON vq.basket=b.pubkey
+  LEFT JOIN LATERAL (
+    SELECT basket, nav, supply, share_price, ts, valuation_eligible, valuation_status FROM nav_snapshots WHERE ${navEligibilitySql()} AND basket = b.pubkey ORDER BY ts DESC LIMIT 1
   ) cur ON true
   LEFT JOIN LATERAL (
-    SELECT supply, share_price, valuation_eligible, valuation_status FROM nav_snapshots WHERE ${navEligibilitySql()} AND basket = r.pubkey
+    SELECT supply, share_price, valuation_eligible, valuation_status FROM nav_snapshots WHERE ${navEligibilitySql()} AND basket = b.pubkey
       AND ts <= cur.ts - interval '24 hours'
       AND ts >= cur.ts - interval '24 hours' - interval '1 hour' ORDER BY ts DESC LIMIT 1
   ) h24 ON true
   LEFT JOIN LATERAL (
-    SELECT supply, share_price, valuation_eligible, valuation_status FROM nav_snapshots WHERE ${navEligibilitySql()} AND basket = r.pubkey
+    SELECT supply, share_price, valuation_eligible, valuation_status FROM nav_snapshots WHERE ${navEligibilitySql()} AND basket = b.pubkey
       AND ts <= cur.ts - interval '7 days'
       AND ts >= cur.ts - interval '7 days' - interval '1 hour' ORDER BY ts DESC LIMIT 1
   ) h168 ON true
   LEFT JOIN LATERAL (
-    SELECT supply, share_price, valuation_eligible, valuation_status FROM nav_snapshots WHERE ${navEligibilitySql()} AND basket = r.pubkey
+    SELECT supply, share_price, valuation_eligible, valuation_status FROM nav_snapshots WHERE ${navEligibilitySql()} AND basket = b.pubkey
       AND ts <= cur.ts - interval '30 days'
       AND ts >= cur.ts - interval '30 days' - interval '1 hour' ORDER BY ts DESC LIMIT 1
   ) h720 ON true
   LEFT JOIN (
     SELECT basket, COUNT(*)::int AS holders FROM user_positions WHERE share_balance > 0 GROUP BY basket
-  ) h ON h.basket = r.pubkey
+  ) h ON h.basket = b.pubkey
 `;
 
 /** Shared WHERE — every request value is bound, never interpolated. */
 const BASKETS_LIST_WHERE = `
-    WHERE ($1::text IS NULL OR r.creator = $1)
-      AND ($2::numeric IS NULL OR cur.nav >= $2::numeric)
-      AND ($3::text IS NULL OR r.pubkey ILIKE '%' || $3 || '%' OR r.creator ILIKE '%' || $3 || '%' OR r.share_mint ILIKE '%' || $3 || '%')`;
+    WHERE ($1::text IS NULL OR b.creator = $1)
+      AND ($2::numeric IS NULL OR (${BASKET_RETURN_CURRENT_SQL} AND cur.nav >= $2::numeric))
+      AND ($3::text IS NULL OR b.pubkey ILIKE '%' || $3 || '%' OR b.creator ILIKE '%' || $3 || '%' OR b.share_mint ILIKE '%' || $3 || '%')`;
 
 /** Static SQL per allowlisted sort. All return fields stay fractional ratios. */
 const BASKETS_LIST_SQL_BY_SORT: Record<SortKey, string> = {
   aum: `${BASKETS_LIST_SQL}${BASKETS_LIST_WHERE}
-    ORDER BY cur.nav DESC NULLS LAST, r.pubkey ASC
+    ORDER BY CASE WHEN ${BASKET_RETURN_CURRENT_SQL} THEN cur.nav END DESC NULLS LAST, b.pubkey ASC
     LIMIT $4`,
   return_24h: `${BASKETS_LIST_SQL}${BASKETS_LIST_WHERE}
-    ORDER BY return_24h DESC NULLS LAST, r.pubkey ASC
+    ORDER BY return_24h DESC NULLS LAST, b.pubkey ASC
     LIMIT $4`,
   return_7d: `${BASKETS_LIST_SQL}${BASKETS_LIST_WHERE}
-    ORDER BY return_7d DESC NULLS LAST, r.pubkey ASC
+    ORDER BY return_7d DESC NULLS LAST, b.pubkey ASC
     LIMIT $4`,
   return_30d: `${BASKETS_LIST_SQL}${BASKETS_LIST_WHERE}
-    ORDER BY return_30d DESC NULLS LAST, r.pubkey ASC
+    ORDER BY return_30d DESC NULLS LAST, b.pubkey ASC
     LIMIT $4`,
   holders: `${BASKETS_LIST_SQL}${BASKETS_LIST_WHERE}
-    ORDER BY holders DESC NULLS LAST, r.pubkey ASC
+    ORDER BY holders DESC NULLS LAST, b.pubkey ASC
     LIMIT $4`,
   mint_count: `${BASKETS_LIST_SQL}${BASKETS_LIST_WHERE}
-    ORDER BY r.mint_count DESC NULLS LAST, r.pubkey ASC
+    ORDER BY r.mint_count DESC NULLS LAST, b.pubkey ASC
     LIMIT $4`,
 };
 
@@ -295,12 +300,18 @@ export async function listBaskets(
   const sql = BASKETS_LIST_SQL_BY_SORT[sortKey] ?? BASKETS_LIST_SQL_BY_SORT.aum;
   const res = await db.query(sql, [creator, minAUM === null ? null : String(minAUM), search, limit]);
   const rows = res.rows as Array<Record<string, unknown>>;
-  const data = rows.map((row) => ({
-    ...row,
-    source: "onchain-indexed",
-    asOf: snapshotTime(row.nav_as_of),
-    quality: valuationQuality({ ...row, ts: row.nav_as_of }),
-  }));
+  const data = rows.map((row) => {
+    const quality=valuationQuality({...row,ts:row.nav_as_of});
+    return {
+      ...row,
+      // Retained historical observations keep their asOf/quality; consumers
+      // must not present them as current when eligible is false.
+      source:"onchain-indexed",
+      asOf:snapshotTime(row.nav_as_of),
+      quality,
+      dataQuality:basketDataQuality(row),
+    };
+  });
   return {
     status: 200,
     payload: {
@@ -308,7 +319,7 @@ export async function listBaskets(
       count: data.length,
       sort: sortKey,
       source: "onchain-indexed",
-      note: "Empty list means nothing is indexed yet — never fabricated.",
+      note: "Indexed baskets remain visible when USD values are unavailable. Missing prices and unverified history are never fabricated.",
     },
   };
 }
@@ -320,7 +331,11 @@ export async function basketDetail(db: PgLike, pubkey: string): Promise<{ status
     `SELECT pubkey, factory, creator, treasury, share_mint, nonce, created_at,
             metadata_hash, metadata_json, num_constituents, constituents,
             weights_bps, entry_fee_bps, exit_fee_bps, management_fee_bps,
-            last_fee_accrual_ts
+            last_fee_accrual_ts,
+            (SELECT status FROM basket_valuation_state WHERE basket=$1) AS current_status,
+            (SELECT reason FROM basket_valuation_state WHERE basket=$1) AS current_reason,
+            (SELECT missing_price_mints FROM basket_valuation_state WHERE basket=$1) AS missing_price_mints,
+            ${basketRecoverySql("$1")}
      FROM baskets WHERE pubkey = $1`,
     [pubkey],
   );
@@ -361,6 +376,7 @@ export async function basketDetail(db: PgLike, pubkey: string): Promise<{ status
               quality: valuationQuality({ ...navRow, current_eligible: holdingsComplete && navRow.current_status === "complete" }),
             }
           : null,
+        dataQuality: basketDataQuality({ ...basket, ...(navRow ?? {}), nav_as_of: navRow?.ts, current_eligible: holdingsComplete && navRow?.current_status === "complete" }),
         drift: drift ? { actualWeightsBps: drift.actualWeightsBps, driftBps: drift.driftBps, basis: "vault_holdings.scaled_amount vs baskets.weights_bps (AGENTS §17)" } : null,
         holdings: holdings.map((h) => ({ ...h, source: "onchain-indexed" })),
         source: "onchain-indexed",
@@ -851,6 +867,10 @@ export async function healthReport(
               (SELECT COUNT(*) FROM vault_holdings) AS holdings_rows,
               (SELECT MAX(updated_at) FROM vault_holdings WHERE authenticated IS TRUE) AS holdings_updated_at,
               (SELECT COUNT(*) FROM indexer_signature_queue WHERE status='pending') AS pending_signatures,
+              (SELECT COUNT(*) FROM indexer_signature_queue WHERE status='pending' AND canonical_collected_at IS NULL) AS pending_evidence,
+              (SELECT COUNT(*) FROM indexer_signature_queue WHERE status='pending' AND canonical_collected_at IS NOT NULL) AS collected_pending_effects,
+              (SELECT COUNT(*) FROM indexer_signature_queue WHERE status='pending' AND projection_blocked_basket IS NOT NULL) AS projection_blocked_signatures,
+              (SELECT COUNT(DISTINCT sig) FROM indexer_signature_queue WHERE status='quarantined') AS quarantined_transactions,
               (SELECT MIN(discovered_at) FROM indexer_signature_queue WHERE status='pending') AS oldest_pending_at,
               (SELECT MIN(block_time) FROM indexer_signature_queue WHERE status='pending') AS oldest_pending_chain_at,
               (SELECT COUNT(*) FROM indexer_signature_queue WHERE status='quarantined') AS quarantined_signatures,
@@ -880,6 +900,10 @@ export async function healthReport(
           indexerLagSeconds: lastEventTs ? Math.floor((nowMs - lastEventTs.getTime()) / 1000) : null,
           history: {
             pendingSignatures: Number(row.pending_signatures ?? 0),
+            pendingEvidence: Number(row.pending_evidence ?? 0),
+            collectedPendingEffects: Number(row.collected_pending_effects ?? 0),
+            projectionBlockedSignatures: Number(row.projection_blocked_signatures ?? 0),
+            quarantinedTransactions: Number(row.quarantined_transactions ?? 0),
             oldestPendingAt: row.oldest_pending_at ?? null,
             oldestPendingChainAt: row.oldest_pending_chain_at ?? null,
             quarantinedSignatures: Number(row.quarantined_signatures ?? 0),

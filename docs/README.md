@@ -1,6 +1,8 @@
 # Basalt documentation map
 
-- [Backend/devnet security remediation, 2026-10-09](backend-devnet-security-2026-10-09.md): all ten findings mapped to implemented controls, real database tests, current devnet proof, approved recovery implementation and live rollout gates; live rollout remains separate.
+- [Devnet data repair, 2026-10-09](devnet-data-repair-2026-10-09.md): bounded canonical evidence collection, shared RPC limits/verified optional holder provider, explicit price/position quality, host Rust remediation and frozen Vercel install source. Previous contained application rollout completed; this new release and hosted proof remain pending.
+
+- [Backend/devnet security remediation, 2026-10-09](backend-devnet-security-2026-10-09.md): all ten findings mapped to implemented controls, real database tests, devnet proof and approved recovery implementation; use the latest data-repair record above for current rollout status.
 
 - [Approved ledger recovery implementation](ledger-recovery-2026-10-09.md): authenticated finalized snapshots, replay barriers, immutable backups and isolated PostgreSQL fault tests; no live activation.
 
