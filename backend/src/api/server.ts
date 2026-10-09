@@ -31,6 +31,9 @@ import {
 import { DEVNET_FLAGSHIP_BASKET, MOCK_XSTOCKS } from "../catalog/mockStocks.js";
 import { handleZapIn, handleZapOut, type QuoteContext } from "./quotes.js";
 import { tryHandleSocialRoute } from "./social.js";
+import { socialAuthSecret, isValidWalletPubkey } from "./auth.js";
+import { JsonBodyError, readJsonBody } from "./json-body.js";
+import { ApiResourceLimits, ApiResourceLimitError } from "./resource-limits.js";
 
 export const API_VERSION = "0.1.0";
 
@@ -54,6 +57,10 @@ export interface ApiContext {
   status?: () => SubsystemStatus;
   xstockQuotes?: XStockQuoteService;
   xstockHistory?: XStockHistoryService;
+  /** Resolved once at startup; the production entrypoint validates before workers start. */
+  authSecret?: string;
+  /** One process-local budget for this API instance (injectable for tests). */
+  resourceLimits?: ApiResourceLimits;
 }
 
 // --- helpers -----------------------------------------------------------------
@@ -181,22 +188,6 @@ const SUPPORTED_SORT_PARAMS: Record<string, string> = {
 async function resolveDb(ctx: ApiContext): Promise<PgLike | null> {
   if (ctx.db) return isPgLike(ctx.db) ? ctx.db : null;
   return await connectFromEnv();
-}
-
-async function readJsonBody(req: http.IncomingMessage): Promise<Record<string, unknown> | null> {
-  return new Promise((resolve) => {
-    let body = "";
-    req.on("data", (chunk) => (body += chunk));
-    req.on("end", () => {
-      try {
-        const parsed = JSON.parse(body || "{}");
-        resolve(typeof parsed === "object" && parsed !== null ? (parsed as Record<string, unknown>) : null);
-      } catch {
-        resolve(null);
-      }
-    });
-    req.on("error", () => resolve(null));
-  });
 }
 
 // --- route implementations (exported for tests) ------------------------------
@@ -860,9 +851,11 @@ export async function healthReport(
 // --- handler -----------------------------------------------------------------
 
 export function createHandler(ctx: ApiContext = { db: null }) {
+  const authSecret = ctx.authSecret ?? socialAuthSecret();
+  const limits = ctx.resourceLimits ?? new ApiResourceLimits();
   const xstockQuotes = ctx.xstockQuotes ?? new XStockQuoteService({ fetchImpl: ctx.fetchImpl, now: ctx.now, cachePath: null });
   const xstockHistory = ctx.xstockHistory ?? new XStockHistoryService({ fetchImpl: ctx.fetchImpl, now: ctx.now, ...(ctx.fetchImpl ? { cachePath: null } : {}) });
-  return async (req: http.IncomingMessage, res: http.ServerResponse): Promise<void> => {
+  const dispatch = async (req: http.IncomingMessage, res: http.ServerResponse): Promise<void> => {
     const url = new URL(req.url || "/", `http://${req.headers.host}`);
     const pathname = url.pathname;
     res.setHeader("Content-Type", "application/json");
@@ -871,10 +864,24 @@ export function createHandler(ctx: ApiContext = { db: null }) {
     res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
     if (req.method === "OPTIONS") { res.statusCode = 204; res.end(); return; }
 
+    const authAction = req.method === "POST" && pathname === "/api/v1/auth/nonce" ? "auth-nonce"
+      : req.method === "POST" && pathname === "/api/v1/auth/verify" ? "auth-verify" : null;
+    const isQuote = req.method === "POST" && (pathname === "/api/v1/quotes/zap-in" || pathname === "/api/v1/quotes/zap-out");
+    // Socket peers cannot be forged with Forwarded/X-Forwarded-For headers.
+    // Behind Caddy this budget is shared by its clients; wallet quotas remain independent.
+    if (authAction || isQuote) limits.consumeIp(authAction ?? "quote", req.socket?.remoteAddress ?? "unknown-peer");
+    const readSocialBody = async (request: http.IncomingMessage): Promise<Record<string, unknown> | null> => {
+      const body = await readJsonBody(request);
+      if (authAction && typeof body?.wallet === "string" && isValidWalletPubkey(body.wallet)) {
+        limits.consumeWallet(authAction, body.wallet);
+      }
+      return body;
+    };
+
     // --- Social layer (profiles / follows / posts / feed / leaderboard /
     // wallet-signature auth). Falls through for non-social paths. ---
     if (await tryHandleSocialRoute(
-      { getDb: () => resolveDb(ctx), readJsonBody },
+      { getDb: () => resolveDb(ctx), readJsonBody: readSocialBody, authSecret },
       req,
       res,
       url,
@@ -1185,24 +1192,61 @@ export function createHandler(ctx: ApiContext = { db: null }) {
     }
 
     // --- Zap quotes (spec §8; Jupiter legs, never fabricated) ---
-    if ((pathname === "/api/v1/quotes/zap-in" || pathname === "/api/v1/quotes/zap-out") && req.method === "POST") {
+    if (isQuote) {
       const body = await readJsonBody(req);
       if (body === null) { sendError(res, 400, "INVALID_JSON", "request body must be a JSON object"); return; }
-      const qctx: QuoteContext = { db: ctx.db, cache: ctx.cache ?? null, fetchImpl: ctx.fetchImpl, now: ctx.now };
-      // Quotes resolve the DB lazily like the GET routes (null → handlers 503).
-      if (!qctx.db) qctx.db = await connectFromEnv();
+      const release = limits.acquireQuote();
       try {
+        let upstreamRejection: ApiResourceLimitError | undefined;
+        const originalFetch = ctx.fetchImpl ?? fetch;
+        const budgetedFetch: typeof fetch = async (...args) => {
+          try {
+            limits.consumeQuoteUpstream();
+          } catch (error) {
+            if (error instanceof ApiResourceLimitError) upstreamRejection = error;
+            throw error;
+          }
+          return originalFetch(...args);
+        };
+        const qctx: QuoteContext = { db: ctx.db, cache: ctx.cache ?? null, fetchImpl: budgetedFetch, now: ctx.now };
+        // Quotes resolve the DB lazily like the GET routes (null → handlers 503).
+        if (!qctx.db) qctx.db = await connectFromEnv();
         const out = pathname.endsWith("zap-in")
           ? await handleZapIn(qctx, body)
           : await handleZapOut(qctx, body);
+        // Quote helpers turn failed legs into 503; retain the quota's precise 429.
+        if (upstreamRejection) throw upstreamRejection;
         sendJson(res, out.status, out.payload);
       } catch (err) {
+        if (err instanceof ApiResourceLimitError) throw err;
         sendError(res, 500, "QUOTE_ERROR", err instanceof Error ? err.message : "quote handler failed");
+      } finally {
+        release();
       }
       return;
     }
 
     sendError(res, 404, "NOT_FOUND", `no route for ${req.method} ${pathname}`);
+  };
+  return async (req: http.IncomingMessage, res: http.ServerResponse): Promise<void> => {
+    try {
+      await dispatch(req, res);
+    } catch (error) {
+      if (res.destroyed || res.writableEnded) return;
+      // Reject without draining an arbitrarily large/slow request. Node closes
+      // the connection after flushing the error response.
+      req.pause();
+      res.shouldKeepAlive = false;
+      res.setHeader("Connection", "close");
+      if (error instanceof JsonBodyError) {
+        sendError(res, error.status, error.code, error.message);
+      } else if (error instanceof ApiResourceLimitError) {
+        res.setHeader("Retry-After", String(error.retryAfterSeconds));
+        sendError(res, error.status, error.code, error.message);
+      } else {
+        sendError(res, 500, "INTERNAL_ERROR", "request failed");
+      }
+    }
   };
 }
 

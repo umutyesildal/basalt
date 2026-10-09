@@ -120,6 +120,7 @@ EOF
 cp ../backend/.env.production.example ../backend/.env.production
 nano ../backend/.env.production
 #   Put the output of `openssl rand -hex 32` into SOCIAL_AUTH_SECRET
+#   Missing/short/placeholder secrets fail startup; never use the development opt-in here.
 #   Fill in HELIUS_API_KEY if you have one (otherwise the public devnet RPC is used)
 
 # Start (the first run builds the image and takes 1–2 minutes)
@@ -208,7 +209,7 @@ docker system prune -af --volumes --filter "until=72h"   # WARNING: read the vol
 
 | Symptom | Resolution |
 |---|---|
-| `docker compose ps` backend `unhealthy` | Run `docker compose logs backend` — this is usually caused by `SOCIAL_AUTH_SECRET` or a database wait issue; restarting is usually enough. |
+| `docker compose ps` backend `unhealthy` | Check `docker compose logs backend`. Auth configuration failures intentionally stop before workers/listen: provide a generated `SOCIAL_AUTH_SECRET` in `backend/.env.production`, then recreate the backend. Restarting alone does not repair missing/weak/placeholder configuration. Diagnose DB failures separately. |
 | Certificate could not be obtained | Is the DNS A record using the proxy-free (gray cloud) setting? `dig api.domain +short` should return the server IP. |
 | `/api/v1/health` returns `DB_UNAVAILABLE` | Run `docker compose logs postgres`; verify that the password matches `deploy/.env`. |
 | Indexer is not progressing | Check the `indexer lag` field in the `/api/v1/health` output; the public devnet RPC may be rate-limited → add `HELIUS_API_KEY`. |
@@ -218,6 +219,7 @@ docker system prune -af --volumes --filter "until=72h"   # WARNING: read the vol
 
 - Enable a Hetzner snapshot/backup policy for Postgres (in the panel, about a
   20% additional charge)
-- Plan `SOCIAL_AUTH_SECRET` rotation and rate limiting (Caddy or Cloudflare WAF)
+- Roll out the [2026-10-09 auth/resource controls](../docs/backend-devnet-security-2026-10-09.md): provide a generated secret, rebuild/recreate backend, validate/reload Caddy, then verify small controlled 413/429 and normal health requests. Rotating the secret invalidates all existing social tokens; users sign in again. Local code/test evidence is not a live rollout.
+- Socket-peer quotas are shared behind Caddy; the API ignores arbitrary forwarded headers. Review trusted-proxy identities and shared limits before adding replicas or changing the proxy topology.
 - Complete the `cso` + `review-and-iterate` security passes and legal review
   (README "Legal" section) — required for mainnet.

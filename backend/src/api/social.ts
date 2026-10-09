@@ -21,7 +21,10 @@ import type http from "http";
 import { PublicKey } from "@solana/web3.js";
 import type { PgLike } from "../db/client.js";
 import { BASKET_RETURN_CURRENT_SQL, snapshotTime } from "./basket-returns.js";
+import { JsonBodyError } from "./json-body.js";
+import { ApiResourceLimitError } from "./resource-limits.js";
 import {
+  AuthRateLimitError,
   consumeNonce,
   issueNonce,
   isValidWalletPubkey,
@@ -1168,7 +1171,13 @@ export async function tryHandleSocialRoute(
       sendError(res, 400, "INVALID_WALLET", "wallet must be a base58 Solana pubkey");
       return true;
     }
-    sendJson(res, 200, issueNonce(wallet));
+    try {
+      sendJson(res, 200, issueNonce(wallet));
+    } catch (error) {
+      if (!(error instanceof AuthRateLimitError)) throw error;
+      res.setHeader("Retry-After", String(error.retryAfterSeconds));
+      sendError(res, error.status, error.code, error.message);
+    }
     return true;
   }
   if (pathname === "/api/v1/auth/verify" && method === "POST") {
@@ -1215,6 +1224,7 @@ export async function tryHandleSocialRoute(
       });
       sendJson(res, out.status, out.payload);
     } catch (err) {
+      if (err instanceof JsonBodyError || err instanceof ApiResourceLimitError) throw err;
       sendError(res, 503, "DB_UNAVAILABLE", err instanceof Error ? err.message : "feed query failed");
     }
     return true;
@@ -1232,6 +1242,7 @@ export async function tryHandleSocialRoute(
       const out = await getBasketLeaderboard(db, url.searchParams.get("window") ?? "all");
       sendJson(res, out.status, out.payload);
     } catch (err) {
+      if (err instanceof JsonBodyError || err instanceof ApiResourceLimitError) throw err;
       sendError(res, 503, "DB_UNAVAILABLE", err instanceof Error ? err.message : "baskets leaderboard query failed");
     }
     return true;
@@ -1247,6 +1258,7 @@ export async function tryHandleSocialRoute(
       const out = await getLeaderboard(db, url.searchParams.get("window") ?? "all");
       sendJson(res, out.status, out.payload);
     } catch (err) {
+      if (err instanceof JsonBodyError || err instanceof ApiResourceLimitError) throw err;
       sendError(res, 503, "DB_UNAVAILABLE", err instanceof Error ? err.message : "leaderboard query failed");
     }
     return true;
@@ -1281,6 +1293,7 @@ export async function tryHandleSocialRoute(
         return true;
       }
     } catch (err) {
+      if (err instanceof JsonBodyError || err instanceof ApiResourceLimitError) throw err;
       sendError(res, 503, "DB_UNAVAILABLE", err instanceof Error ? err.message : "profile query failed");
       return true;
     }
@@ -1347,6 +1360,7 @@ export async function tryHandleSocialRoute(
         }
       }
     } catch (err) {
+      if (err instanceof JsonBodyError || err instanceof ApiResourceLimitError) throw err;
       if (err instanceof Error && err.message.startsWith("invalid wallet")) {
         sendError(res, 400, "INVALID_WALLET", err.message);
         return true;
@@ -1377,6 +1391,7 @@ export async function tryHandleSocialRoute(
       const out = await createPost(db, viewerWallet, body);
       sendJson(res, out.status, out.payload);
     } catch (err) {
+      if (err instanceof JsonBodyError || err instanceof ApiResourceLimitError) throw err;
       sendError(res, 503, "DB_UNAVAILABLE", err instanceof Error ? err.message : "post failed");
     }
     return true;
@@ -1436,6 +1451,7 @@ export async function tryHandleSocialRoute(
         return true;
       }
     } catch (err) {
+      if (err instanceof JsonBodyError || err instanceof ApiResourceLimitError) throw err;
       sendError(res, 503, "DB_UNAVAILABLE", err instanceof Error ? err.message : "post query failed");
       return true;
     }

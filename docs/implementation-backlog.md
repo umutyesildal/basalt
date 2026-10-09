@@ -1,5 +1,7 @@
 # Basalt implementation backlog
 
+> **4 October audit continuation, 2026-10-09:** BAS-AUD-02/03 auth/resource controls and regression tests are complete on `codex/backend-devnet-security`; deployment remains pending. BAS-AUD-01/04 and 05–10 remain open. The [dated remediation record](backend-devnet-security-2026-10-09.md) carries exact scope, evidence and dependencies; BAS-019/022 below remain active.
+
 > **Current devnet wallet UI, 2026-10-03:** `/devnet` and `/create/onchain` now expose wallet-signed test-token claim, atomic basket creation, in-kind mint and redemption. The same four project-issued eight-decimal Token-2022 mocks, BSTESTA–D, back every new test basket; each basket gets its own share mint. `/create` offers **Try on devnet** and a shared preview offers **Create on devnet**. The funded, once-per-wallet faucet is `2GBfjd9jPKLoqNXdX7GDN9MHRKwzwXbHk65xQVf9HAcf`. Verified basket, supply, vault and wallet reads use direct devnet RPC, without a database or backend signer. [The wallet-flow record](devnet-ui-wallet-flow-2026-10-03.md) links the finalized claim and shipped UI-builder proof: **seven finalized transactions and 20 assertions**. Names and theses are browser-local, verified against the immutable onchain metadata hash. An owner extension-wallet signature was not performed; build and responsive checks are recorded separately. This supersedes earlier redirect-only and incomplete mock-UI statements. Official xStocks, mainnet and Managed V2 release boundaries remain unchanged. Source changes remain local and unpushed.
 
 > **UI update, 2026-10-02:** The discovery landing, Feed/Managers refresh, copy cleanup, and Colosseum research are recorded in [session updates](session-updates-2026-10-02.md). `/create/onchain` redirects to `/create`; prior transaction-wizard acceptance notes describe retained implementation, not current route availability. This pass does not close protocol, provenance, legal, or deployment gates.
@@ -286,9 +288,10 @@ Local workflow evidence (2026-09-18):
 
 ### BAS-019 — Multi-event transaction schema
 
-- [ ] Add `event_index` migration.
-- [ ] Enforce `(sig,event_index)` uniqueness.
-- [ ] Update decoder and replay.
+- [ ] Carry deterministic attributed `log_index` from the actual transaction log and migrate both ledgers.
+- [ ] Enforce `(sig,log_index)` uniqueness in events and position effects, including repeated kinds/multiple baskets.
+- [ ] Replay original transaction logs and reconcile lost history; defaulting old rows to index zero does not recover dropped events.
+- [ ] Make claim plus all position/fee effects atomic on a dedicated Pool client, with rollback and concurrency tests (BAS-AUD-06).
 - [ ] Add multi-event regression tests.
 
 **Acceptance:** No event is lost when one signature emits several events.

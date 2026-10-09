@@ -6,6 +6,7 @@
  */
 import { describe, it, expect } from "vitest";
 import http from "http";
+import { PassThrough } from "node:stream";
 import { PublicKey, VersionedTransaction } from "@solana/web3.js";
 import { TOKEN_2022_PROGRAM_ID } from "@solana/spl-token";
 
@@ -804,11 +805,7 @@ describe("server — GET routes (fake PgLike)", () => {
     expect(payload.warning).toContain("sequential");
 
     // malformed JSON body ⇒ 400 INVALID_JSON
-    const bad = makeReq("POST", "/api/v1/quotes/zap-in");
-    (bad as unknown as { on: (event: string, cb: (chunk?: Buffer) => void) => void }).on = (event, cb) => {
-      if (event === "data") cb(Buffer.from("{not json"));
-      if (event === "end") cb();
-    };
+    const bad = makeReq("POST", "/api/v1/quotes/zap-in", undefined, "{not json");
     const { res: res2, state: state2 } = makeRes();
     await handler(bad, res2);
     expect(state2.statusCode).toBe(400);
@@ -818,17 +815,16 @@ describe("server — GET routes (fake PgLike)", () => {
 
 // --- http mocks for handler-level tests --------------------------------------
 
-function makeReq(method: string, url: string, body?: unknown): http.IncomingMessage {
-  const payload = body === undefined ? "" : JSON.stringify(body);
-  const req = {
+function makeReq(method: string, url: string, body?: unknown, rawBody?: string): http.IncomingMessage {
+  // Use an actual readable stream so byte limits, once/off and pause behave
+  // like IncomingMessage rather than synchronously invoking fake callbacks.
+  const req = Object.assign(new PassThrough(), {
     method,
     url,
     headers: { host: "localhost:3001" },
-    on: (event: string, cb: (chunk?: Buffer) => void) => {
-      if (event === "data" && payload) cb(Buffer.from(payload));
-      if (event === "end") cb();
-    },
-  };
+    aborted: false,
+  });
+  req.end(rawBody ?? (body === undefined ? "" : JSON.stringify(body)));
   return req as unknown as http.IncomingMessage;
 }
 
