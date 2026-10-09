@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import { Chakra_Petch, Geist, Geist_Mono } from "next/font/google";
 import { cn } from "@/lib/utils";
+import { SiteAnalytics } from "@/components/analytics/site-analytics";
 
 import { SiteHeader } from "@/components/shell/site-header";
 import { MobileNav } from "@/components/shell/mobile-nav";
@@ -62,6 +63,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <MobileNav />
           </div>
         </AppProviders>
+        <SiteAnalytics />
       </body>
     </html>
   );

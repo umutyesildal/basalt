@@ -1,5 +1,7 @@
 # Basalt documentation map
 
+- [Vercel Web Analytics, 2026-10-10](vercel-web-analytics-2026-10-10.md): official page-view integration, URL filtering and live verification.
+
 - [Basket tweet template, 2026-10-10](basket-tweet-template-2026-10-10.md): verified weekly return, thesis/short link and final Basalt account line.
 
 - [Basket short links and preview actions, 2026-10-10](basket-short-links-2026-10-10.md): persistent compact share addresses and consolidated actions.

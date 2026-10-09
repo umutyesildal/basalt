@@ -1,3 +1,5 @@
+> **Vercel Web Analytics, 2026-10-10:** Official Next Analytics integration is in progress with query/fragment removal and creator-address redaction. Follow [the current setup and release record](docs/vercel-web-analytics-2026-10-10.md).
+
 > **Basket tweet template, 2026-10-10:** Share copy leads with the eligible weekly model return, then thesis/short link and `Check out more at @basalt_sol`. Published at https://basalt.markets from `4ffbfdc2174d1bca96fa6efc1d40bb324d24cf08`; all six CI jobs passed and the actual Chrome X draft was verified. Backend remains at `307053d`. See [the current record](docs/basket-tweet-template-2026-10-10.md).
 
 > **Basket short links and preview actions, 2026-10-10:** Short `/b/<id>` addresses preserve complete basket snapshots, with one calmer Actions card and editable X drafts. Published from `307053da1310331c658c0401d0107f8405912199` to the existing VPS and https://basalt.markets; Chrome copy/X/image/mobile checks and all six CI jobs passed. Follow [the release record](docs/basket-short-links-2026-10-10.md). Continue from current main/the attached release checkout; preserve the older dirty UI checkout.
