@@ -23,3 +23,7 @@ e0e1edce2978ae8a717ef0b87d8683bddc296b19:docs/assets/xstocks-contract-compatibil
 56fd56c684c519e957b35d75817c91dfc695e3e8:docs/assets/backend-security-2026-10-09/verification-summary.json:generic-api-key:92
 # Verified public checksum for scripts/security/retired-keys.mjs
 56fd56c684c519e957b35d75817c91dfc695e3e8:docs/assets/backend-security-2026-10-09/verification-summary.json:generic-api-key:93
+
+# Verified public SHA-256 of programs/managed_basket/src/token.rs at 8518f8efdac8b0a88aed6960b8e6d3f815a0f2c3; same source digest as the earlier manifest above.
+# Exact immutable finding only; proof bytes and all other scan findings remain checked.
+8518f8efdac8b0a88aed6960b8e6d3f815a0f2c3:docs/security-evidence-2026-10-09/rust-parent-sbf-proof.json:generic-api-key:24
