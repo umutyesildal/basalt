@@ -1,4 +1,4 @@
-> **Vercel Web Analytics, 2026-10-10:** Official Next Analytics integration is in progress with query/fragment removal and creator-address redaction. Follow [the current setup and release record](docs/vercel-web-analytics-2026-10-10.md).
+> **Vercel Web Analytics, 2026-10-10:** Official Next Analytics is live at https://basalt.markets from `b3e835c2aeeb1336fea6d610f3f6e79508a40952`. Query/fragment data and creator addresses are filtered. All six CI jobs passed and collection was verified privately in Chrome. Backend remains at `307053d`. See [setup, checks and publication](docs/vercel-web-analytics-2026-10-10.md).
 
 > **Basket tweet template, 2026-10-10:** Share copy leads with the eligible weekly model return, then thesis/short link and `Check out more at @basalt_sol`. Published at https://basalt.markets from `4ffbfdc2174d1bca96fa6efc1d40bb324d24cf08`; all six CI jobs passed and the actual Chrome X draft was verified. Backend remains at `307053d`. See [the current record](docs/basket-tweet-template-2026-10-10.md).
 
