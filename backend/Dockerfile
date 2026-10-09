@@ -8,7 +8,7 @@ FROM toolchain AS build
 WORKDIR /app/backend
 COPY vendor/basalt-bigint-buffer-1.0.0.tgz /app/vendor/basalt-bigint-buffer-1.0.0.tgz
 COPY backend/package.json backend/package-lock.json ./
-RUN npm ci --workspaces=false --ignore-scripts --no-audit --no-fund
+RUN npm ci --workspaces=false --legacy-peer-deps=false --ignore-scripts --no-audit --no-fund
 COPY backend/tsconfig.json ./
 COPY backend/src ./src
 RUN npm run build
@@ -18,7 +18,7 @@ WORKDIR /app/backend
 ENV NODE_ENV=production
 COPY vendor/basalt-bigint-buffer-1.0.0.tgz /app/vendor/basalt-bigint-buffer-1.0.0.tgz
 COPY backend/package.json backend/package-lock.json ./
-RUN npm ci --workspaces=false --ignore-scripts --omit=dev --no-audit --no-fund && npm cache clean --force
+RUN npm ci --workspaces=false --legacy-peer-deps=false --ignore-scripts --omit=dev --no-audit --no-fund && npm cache clean --force
 COPY --from=build /app/backend/dist ./dist
 EXPOSE 3001
 HEALTHCHECK --interval=30s --timeout=5s --start-period=30s --retries=5 \

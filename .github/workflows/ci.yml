@@ -61,7 +61,7 @@ jobs:
           cache: npm
           cache-dependency-path: package-lock.json
       - name: Clean workspace install
-        run: npm ci --ignore-scripts
+        run: npm ci --ignore-scripts --legacy-peer-deps=false
       - name: Generate deployment manifest
         env:
           SOURCE_DATE_EPOCH: "0"
