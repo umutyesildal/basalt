@@ -25,7 +25,7 @@ import type { BasketDataQuality } from "@/lib/basket-data-quality";
  * weights). Below: mono share price with the unlabeled 24h change riding
  * beside it (owner feedback round 2 — no "24h" caption, the number only;
  * hidden when the price is missing), AUM, and a bottom zone carrying the
- * 30d cell plus the optional gray vs-SPY comparison, closed by the trust
+ * 7D and 30d cells plus the optional gray vs-SPY comparison, closed by the trust
  * provenance line (NAV estimate, with an explicit devnet/mock qualifier when
  * applicable). Cells exist only when the indexer actually carries the
  * figure. The whole card is one link; nothing interactive lives inside.
@@ -60,6 +60,8 @@ export interface BasketCardProps {
   /** True when the visible indexer data describes devnet/localnet mock tokens. */
   devnetPreview?: boolean;
   return24h?: number | null;
+  /** Seven-day return in percentage points; absent until verified history exists. */
+  return7d?: number | null;
   return30d?: number | null;
   /** vs-SPY comparison — only passed by the page when benchmark data exists. */
   compare?: BasketCardCompare | null;
@@ -77,6 +79,7 @@ export function BasketCard({
   aum: suppliedAum,
   devnetPreview = false,
   return24h: suppliedReturn24h = null,
+  return7d: suppliedReturn7d = null,
   return30d: suppliedReturn30d = null,
   compare: suppliedCompare = null,
 }: BasketCardProps) {
@@ -84,6 +87,7 @@ export function BasketCard({
   const price = eligible ? suppliedPrice : null;
   const aum = eligible ? suppliedAum : null;
   const return24h = eligible ? suppliedReturn24h : null;
+  const return7d = eligible && typeof suppliedReturn7d === "number" && Number.isFinite(suppliedReturn7d) ? suppliedReturn7d : null;
   const return30d = eligible ? suppliedReturn30d : null;
   const compare = eligible ? suppliedCompare : null;
   const unavailable = price === null;
@@ -93,9 +97,12 @@ export function BasketCard({
   // fabrication for baskets whose weights the feed does not carry.
   const shownWeights =
     Array.isArray(weights) && weights.length > 0 ? weights : null;
-  // Footer stat cells: 30d only — the 24h change lives beside the price now
-  // (owner feedback round 2). A cell exists only when the figure exists.
-  const stats = return30d !== null ? [{ key: "30d", value: return30d }] : [];
+  // The current 24h change sits beside the price. Longer windows appear
+  // only when their eligible historical figure exists.
+  const stats = [
+    ...(return7d !== null ? [{ key: "7D", value: return7d }] : []),
+    ...(return30d !== null ? [{ key: "30d", value: return30d }] : []),
+  ];
   const hasFooter = stats.length > 0 || compare !== null;
 
   return (
@@ -156,7 +163,7 @@ export function BasketCard({
 
       {!eligible ? <div className="mt-auto pt-4"><BasketDataNote quality={quality} /></div> : null}
 
-      {/* Bottom zone: the 30d/vs-SPY footer (when any figure exists) and a
+      {/* Bottom zone: the 7D/30d/vs-SPY footer (when any figure exists) and a
           concise NAV provenance line. Do not imply mock-token valuations are
           live xStocks NAV. */}
       {hasFooter || !unavailable ? (

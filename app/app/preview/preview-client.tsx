@@ -9,7 +9,7 @@ import Image from "next/image";
 import { getBasketCover } from "@/lib/basket-covers";
 import { BasketImageButton } from "@/components/preview/basket-image-button";
 import { CreationCelebration } from "@/components/preview/creation-celebration";
-import { CONCEPT_BASKETS } from "@/lib/concept-samples";
+import { findBasketPerformanceSample } from "@/lib/basket-share-performance";
 import { PieCenter } from "@/components/charts/pie-center";
 import { PieChart } from "@/components/charts/pie-chart";
 import { PieSlice } from "@/components/charts/pie-slice";
@@ -25,7 +25,7 @@ import { devnetCreateHref } from "@/lib/devnet-links";
 import { basketPublicLink } from "@/lib/basket-social-share";
 
 export default function ConceptPreviewClient({ basket, created = false }: { basket: ConceptBasket | null; created?: boolean }) {
-  const sample = basket ? CONCEPT_BASKETS.find((entry) => entry.name === basket.name && entry.assets.length === basket.assets.length && entry.assets.every((asset) => basket.assets.some((candidate) => candidate.symbol === asset.symbol && candidate.weightBps === asset.weightBps && (!candidate.mint || getConceptAsset(candidate.symbol, candidate.mint)?.symbol === asset.symbol)))) : undefined;
+  const sample = basket ? findBasketPerformanceSample(basket) : undefined;
   const [shareUrl, setShareUrl] = useState("");
   const [shareStatus, setShareStatus] = useState("");
   const [showFullLink, setShowFullLink] = useState(false);

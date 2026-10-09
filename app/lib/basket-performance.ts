@@ -1,7 +1,7 @@
 export const MODEL_BASE_DATE = "2026-09-01";
 export const MODEL_BASE_VALUE = 100 as const;
 const DAY_MS = 86_400_000;
-const MAX_CLOSE_AGE_DAYS = 4;
+export const MAX_CLOSE_AGE_DAYS = 4;
 
 export interface BasketPerformanceItem {
   basketId: string;

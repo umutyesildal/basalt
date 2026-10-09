@@ -1,5 +1,7 @@
 # Basalt documentation map
 
+- [7D basket sharing, 2026-10-10](basket-weekly-sharing-2026-10-10.md): exact-mix weekly model in downloaded posters, existing card metrics and eligible indexed-card wiring; production release evidence.
+
 - [Live devnet release, 2026-10-09](devnet-live-release-2026-10-09.md): exact backend/Vercel identities, retained backup/candidate limitations, live evidence-collection progress, guarded financial projections and post-freeze SBF build proof.
 
 - [Devnet data repair, 2026-10-09](devnet-data-repair-2026-10-09.md): bounded canonical evidence collection, shared RPC limits/verified optional holder provider, explicit price/position quality, host Rust remediation and frozen Vercel install source. Source preparation checkpoint; the live release record above supersedes its pending rollout/hosted-proof status.

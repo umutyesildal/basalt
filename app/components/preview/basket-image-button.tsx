@@ -8,10 +8,26 @@ import { createBasketImage } from "@/lib/basket-image";
 import { basketImageFilename } from "@/lib/basket-image-layout";
 import { basketPublicLink, basketSocialText, basketXIntent } from "@/lib/basket-social-share";
 import type { ConceptBasket } from "@/lib/concept-basket";
+import type { BasketPerformanceResponse } from "@/lib/basket-performance";
+import { findBasketPerformanceSample, getBasketSharePerformance } from "@/lib/basket-share-performance";
+import { useBasketPerformance } from "@/lib/use-basket-performance";
+import { formatPercent } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import styles from "./basket-image.module.css";
 
 export function BasketImageButton({ basket }: { basket: ConceptBasket }) {
+  // Custom mixes have no model history. They can still export immediately.
+  return findBasketPerformanceSample(basket)
+    ? <SampleBasketImageButton basket={basket} />
+    : <BasketImageControl basket={basket} performanceData={null} waitingForPerformance={false} />;
+}
+
+function SampleBasketImageButton({ basket }: { basket: ConceptBasket }) {
+  const { data, status } = useBasketPerformance();
+  return <BasketImageControl basket={basket} performanceData={data} waitingForPerformance={status === "loading"} />;
+}
+
+function BasketImageControl({ basket, performanceData, waitingForPerformance }: { basket: ConceptBasket; performanceData: BasketPerformanceResponse | null; waitingForPerformance: boolean }) {
   const [open, setOpen] = useState(false);
   const [image, setImage] = useState<string | null>(null);
   const [file, setFile] = useState<File | null>(null);
@@ -21,6 +37,13 @@ export function BasketImageButton({ basket }: { basket: ConceptBasket }) {
   const [shareError, setShareError] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [attempt, setAttempt] = useState(0);
+  const generatedKey = useRef<string | null>(null);
+  const performance = getBasketSharePerformance(basket, performanceData);
+  const performanceKey = JSON.stringify(performance);
+  const generationKey = JSON.stringify([basket, performanceKey]);
+  const latestPerformanceData = useRef(performanceData);
+  latestPerformanceData.current = performanceData;
   const dialog = useRef<HTMLDialogElement>(null);
   const request = useRef(0);
   const previousBasket = useRef(basket);
@@ -43,6 +66,7 @@ export function BasketImageButton({ basket }: { basket: ConceptBasket }) {
     if (previousBasket.current === basket) return;
     previousBasket.current = basket;
     request.current += 1;
+    generatedKey.current = null;
     setOpen(false); setImage(null); setFile(null); setBusy(false); setError(""); setShareError("");
   }, [basket]);
   useEffect(() => () => { request.current += 1; }, []);
@@ -52,21 +76,32 @@ export function BasketImageButton({ basket }: { basket: ConceptBasket }) {
     catch { setCanShare(false); }
   }, [file, shareUrl, basket]);
 
-  async function generate() {
-    if (busy) return;
-    setOpen(true);
-    if (image) return;
+  useEffect(() => {
+    if (!open) { setBusy(false); return; }
+    if (generatedKey.current === generationKey) return;
+    // Invalidate the old download when the weekly window/value changes. Late
+    // market data also regenerates an already-open poster rather than freezing it.
     const current = ++request.current;
-    setBusy(true); setError("");
-    try {
-      const blob = await createBasketImage(basket);
-      if (current === request.current) {
-        setImage(URL.createObjectURL(blob));
-        setFile(new File([blob], basketImageFilename(basket.name), { type: "image/png" }));
-      }
-    } catch {
-      if (current === request.current) setError("Couldn't create your image. Try again.");
-    } finally { if (current === request.current) setBusy(false); }
+    setImage(null); setFile(null); setShareError(""); setError(""); setBusy(true);
+    if (waitingForPerformance) return;
+    void (async () => {
+      try {
+        const blob = await createBasketImage(basket, latestPerformanceData.current);
+        if (current === request.current) {
+          generatedKey.current = generationKey;
+          setImage(URL.createObjectURL(blob));
+          setFile(new File([blob], basketImageFilename(basket.name), { type: "image/png" }));
+        }
+      } catch {
+        if (current === request.current) setError("Couldn't create your image. Try again.");
+      } finally { if (current === request.current) setBusy(false); }
+    })();
+    return () => { request.current += 1; };
+  }, [open, basket, generationKey, waitingForPerformance, attempt]);
+
+  function generate() {
+    setOpen(true);
+    if (error) { generatedKey.current = null; setAttempt((value) => value + 1); }
   }
 
   async function shareImage() {
@@ -89,13 +124,13 @@ export function BasketImageButton({ basket }: { basket: ConceptBasket }) {
           <CardHeader className="flex flex-row items-center justify-between gap-4 border-b border-border">
             <div>
               <CardTitle id={titleId} className="font-display text-xl">Your basket, ready to share.</CardTitle>
-              <p id={descriptionId} className="sr-only">An image of {basket.name}, its cover, thesis and all {basket.assets.length} holdings with allocation weights.</p>
+              <p id={descriptionId} className="sr-only">An image of {basket.name}, its cover, thesis and all {basket.assets.length} holdings with allocation weights.{performance ? ` Seven-day stock-close model return: ${formatPercent(performance.return7dPct, { signed: true })}, as of ${performance.asOf}.` : ""}</p>
             </div>
             <Button type="button" variant="ghost" aria-label="Close image" onClick={() => setOpen(false)} className="size-11 shrink-0 p-0"><X aria-hidden="true" className="size-5" /></Button>
           </CardHeader>
           <CardContent className="space-y-4 pt-5">
             <div className="flex min-h-64 items-center justify-center overflow-hidden rounded-lg border border-border bg-background" aria-busy={busy}>
-              {image ? <img src={image} alt={`${basket.name}. ${basket.thesis} ${basket.assets.map((asset) => `${asset.symbol} ${asset.weightBps / 100}%`).join(", ")}.`} className={styles.image} /> : error ? <div className="space-y-3 p-6 text-center"><p role="alert" className="text-sm text-muted-foreground">{error}</p><Button variant="outline" onClick={generate} className="min-h-11">Try again</Button></div> : <p role="status" className="flex items-center gap-3 p-6 text-sm text-muted-foreground"><Loader2 aria-hidden="true" className="size-5 motion-safe:animate-spin" />Creating your image…</p>}
+              {image ? <img src={image} alt={`${basket.name}. ${basket.thesis} ${basket.assets.map((asset) => `${asset.symbol} ${asset.weightBps / 100}%`).join(", ")}.${performance ? ` 7D ${formatPercent(performance.return7dPct, { signed: true })}. Stock-close model as of ${performance.asOf}.` : ""}`} className={styles.image} /> : error ? <div className="space-y-3 p-6 text-center"><p role="alert" className="text-sm text-muted-foreground">{error}</p><Button variant="outline" onClick={generate} className="min-h-11">Try again</Button></div> : <p role="status" className="flex items-center gap-3 p-6 text-sm text-muted-foreground"><Loader2 aria-hidden="true" className="size-5 motion-safe:animate-spin" />{waitingForPerformance ? "Loading weekly performance…" : "Creating your image…"}</p>}
             </div>
             {image && <div className="space-y-2">
               <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">

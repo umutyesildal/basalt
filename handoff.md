@@ -1,3 +1,5 @@
+> **7D basket sharing, 2026-10-10:** Existing named sample mixes now reuse their real completed-stock-close weekly model in downloadable PNG posters. Exact holdings/mint matching and provenance guards prevent inheriting a different basket’s result; indexed cards display `7D` only when their own backend history and valuation are eligible. Unknown custom mixes and devnet mocks receive no fabricated metric. See [implementation, checks and release state](docs/basket-weekly-sharing-2026-10-10.md).
+
 # Basalt handoff, landing revision 2026-10-03
 
 > **Bounty draft, 2026-10-05:** [Form answers, live-link/devnet verification and demo plan](docs/bounty-submission-2026-10-05.md). Owner supplied @yesildal, Basalt Colosseum page, previous Ideathon submission and X profile. The specific tweet, working-product demo video and exact Ideathon origin remain pending. No external submit or publishing occurred.

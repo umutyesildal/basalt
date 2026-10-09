@@ -612,6 +612,7 @@ export default function ExploreClient() {
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
               {visible.map((b, index) => {
                 const change = returnPercent(b.return_24h);
+                const r7 = returnPercent(b.return_7d);
                 const r30 = returnPercent(b.return_30d);
                 const compare = comparisonOf(b, bench);
                 const info = cardInfoByPubkey.get(b.pubkey);
@@ -644,6 +645,7 @@ export default function ExploreClient() {
                       aum={num(b.nav)}
                       devnetPreview={DEVNET_PREVIEW}
                       return24h={change}
+                      return7d={r7}
                       return30d={r30}
                       compare={compare}
                     />

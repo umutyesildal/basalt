@@ -2,12 +2,15 @@ import { getBasketCover } from "@/lib/basket-covers";
 import { allocationColor } from "@/lib/allocation-colors";
 import { getConceptAsset, getConceptAssetName } from "@/lib/concept-assets";
 import { validateConceptBasket, type ConceptBasket } from "@/lib/concept-basket";
-import { formatBpsAsPercent } from "@/lib/format";
+import { getBasketSharePerformance } from "@/lib/basket-share-performance";
+import type { BasketPerformanceResponse } from "@/lib/basket-performance";
+import { formatBpsAsPercent, formatPercent } from "@/lib/format";
 import { basketImageGrid, basketImageStacks, wrapImageText } from "./basket-image-layout";
 
 // Fixed export colors are the canonical dark Basalt brand, independent of the
 // viewer's theme. Canvas cannot inherit semantic CSS variables automatically.
 const INK = "#0A0A0B", PAPER = "#F6F6F4", YELLOW = "#FCEE0A", MUTED = "#AAA9A3", RULE = "#303032";
+const POSITIVE = "#50D69A", NEGATIVE = "#FF818A";
 const WIDTH = 1600, PAD = 88;
 type Asset = ConceptBasket["assets"][number];
 type Fonts = { display: string; body: string; mono: string };
@@ -134,10 +137,11 @@ async function loadCover(coverId?: string): Promise<HTMLImageElement> {
 }
 
 /** A designed share poster, drawn directly from validated basket data. */
-export async function createBasketImage(input: ConceptBasket): Promise<Blob> {
+export async function createBasketImage(input: ConceptBasket, performanceData: BasketPerformanceResponse | null = null): Promise<Blob> {
   const validation = validateConceptBasket(input);
   if (!validation.ok) throw new Error("This basket cannot be turned into an image.");
   const basket = validation.value;
+  const performance = getBasketSharePerformance(basket, performanceData);
   const fonts = fontFamilies();
   await Promise.all([document.fonts.load(`600 80px ${fonts.display}`), document.fonts.load(`400 30px ${fonts.body}`), document.fonts.load(`500 24px ${fonts.mono}`)]);
   await document.fonts.ready;
@@ -155,13 +159,21 @@ export async function createBasketImage(input: ConceptBasket): Promise<Blob> {
   ctx.font = `400 30px ${fonts.body}`;
   const thesisLines = wrapImageText(basket.thesis, 790, (value) => ctx.measureText(value).width);
   const thesisTop = titleBottom + 30;
-  const grid = basketImageGrid(basket.assets.length, thesisLines.length ? thesisTop + thesisLines.length * 44 : titleBottom);
+  const contentBottom = thesisLines.length ? thesisTop + thesisLines.length * 44 : titleBottom;
+  const performanceTop = contentBottom + 36;
+  const grid = basketImageGrid(basket.assets.length, performance ? performanceTop + 94 : contentBottom);
   canvas.width = WIDTH; canvas.height = grid.height;
   ctx.fillStyle = INK; ctx.fillRect(0, 0, WIDTH, grid.height);
   drawBrand(ctx, fonts);
   text(ctx, "A POINT OF VIEW, IN ONE BASKET.", PAD, 195, `400 17px ${fonts.mono}`, YELLOW);
   titleLines.forEach((value, index) => text(ctx, value, PAD, 238 + index * (titleSize + 10), `600 ${titleSize}px ${fonts.display}`));
   thesisLines.forEach((value, index) => text(ctx, value, PAD, thesisTop + index * 44, `400 30px ${fonts.body}`, MUTED));
+  if (performance) {
+    text(ctx, "7D", PAD, performanceTop + 9, `500 24px ${fonts.mono}`, MUTED);
+    text(ctx, formatPercent(performance.return7dPct, { signed: true }), PAD + 68, performanceTop, `600 46px ${fonts.mono}`, performance.return7dPct > 0 ? POSITIVE : performance.return7dPct < 0 ? NEGATIVE : PAPER);
+    const date = new Date(performance.asOf + "T12:00:00Z").toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" });
+    text(ctx, `Stock-close model · ${date}`, PAD, performanceTop + 61, `400 17px ${fonts.mono}`, MUTED);
+  }
 
   const [cover, bitmaps] = await Promise.all([loadCover(basket.coverId), Promise.all(basket.assets.map(loadLogo))]);
   try {
