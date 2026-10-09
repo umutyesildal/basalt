@@ -1,6 +1,6 @@
 # Basalt Backend — Devnet/Demo Deployment Runbook (VPS + Docker + Caddy)
 
-> **Current follow-up, 2026-10-09:** The previous contained devnet website/backend release is complete. The [data-repair source and verification](../docs/devnet-data-repair-2026-10-09.md) are ready for a new rollout; hosted build and live evidence remain pending. This guide retains bootstrap instructions below and the exact candidate/release boundaries in §9.
+> **Current release, 2026-10-09:** The data-repair website/backend release is live. Read the [exact deployment, rollback, hosted-build and runtime evidence](../docs/devnet-live-release-2026-10-09.md). Earlier pending-build statements below describe preparation; historical financial recovery remains guarded. This guide retains bootstrap instructions and the exact candidate/release boundaries in §9.
 
 This runbook brings the Basalt backend (indexer + NAV engine + REST API) online
 24/7 on a VPS. The frontend (Vercel) and Solana programs (devnet) are already

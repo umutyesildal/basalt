@@ -1,5 +1,7 @@
 # Devnet data repair — 2026-10-09
 
+> **Superseded release status:** The follow-up was subsequently deployed on 2026-10-09. Read the [live release record](devnet-live-release-2026-10-09.md) for exact source/image/Vercel identities, observed collection progress and the successful post-freeze SBF build. Pending statements below describe the pre-release checkpoint; historical financial recovery remains guarded.
+
 The previous security/readiness application release (`ae6253765bfd8d7cdfcf219b0e98acff6b5ab855`, subsequently merged by PR #9) was deployed to the existing devnet website and VPS backend. Its incomplete projection status was disclosed; deployment did not establish complete historical balances or USD valuations. This follow-up on `codex/devnet-data-repair`, based on `3e2312304d147d407dab9f4dc136e1bf90021d4c`, is verified source awaiting its own rollout. Earlier documents saying the previous application rollout is still pending are historical. Key retirement, governance, historical recovery and mainnet approval remain separate open work.
 
 ## Runtime problem and bounded progress
