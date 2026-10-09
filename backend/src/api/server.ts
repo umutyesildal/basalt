@@ -12,7 +12,8 @@
  * JS numbers. `multiplier` (an f64 display factor) is the one numeric field.
  */
 import http from "http";
-import { readinessReport } from "./readiness.js";
+import { currentBalancesForWallet, balanceCoverageNote, type BalanceEvidence } from "./current-balances.js";
+import { DEVNET_PROGRAMS, readinessReport } from "./readiness.js";
 import { basketDataQuality, basketRecoverySql } from "./data-quality.js";
 import { PublicKey } from "@solana/web3.js";
 import { comparePrices, getChartSeries, readMockWhitelistRows } from "../workers/priceCompare.js";
@@ -727,10 +728,8 @@ export async function userPortfolio(db: PgLike, user: string): Promise<{ status:
      FROM user_positions up WHERE up."user" = $1 AND up.share_balance > 0 ORDER BY up.basket`,
     [user],
   );
-  const positions = res.rows as Array<Record<string, unknown>>;
-  if (positions.length === 0) {
-    return { status: 200, payload: { data: [], count: 0, source: "onchain-indexed", note: "no indexed positions for this wallet" } };
-  }
+  const snapshots = await currentBalancesForWallet(db,user);
+  const positions = (res.rows as Array<Record<string, unknown>>).filter(row=>!snapshots.covered.has(row.basket as string));
   const navs = await db.query(
     `SELECT DISTINCT ON (ns.basket) ns.basket, nav::text AS nav, supply::text AS supply,
             share_price::text AS share_price, ts, valuation_eligible, valuation_status,
@@ -745,6 +744,8 @@ export async function userPortfolio(db: PgLike, user: string): Promise<{ status:
     const sharePrice = nav ? decimalToFixedUnits(nav.share_price as string, NAV_SCALE) : 0n;
     return {
       ...p,
+      basket:p.basket as string,
+      cost_basis:p.projection_pending ? null : p.cost_basis,
       nav: nav ? { value: nav.nav, supply: nav.supply, asOf: nav.ts } : null,
       // value estimate in the same raw terms as share_price = nav/supply
       estimatedValue: nav && !p.projection_pending && sharePrice > 0n ? fixedUnitsToDecimalString(balance * sharePrice, NAV_SCALE) : null,
@@ -754,7 +755,14 @@ export async function userPortfolio(db: PgLike, user: string): Promise<{ status:
       asOf: nav?.ts ?? p.updated_at,
     };
   });
-  return { status: 200, payload: { data, count: data.length, source: "onchain-indexed" } };
+  const verified = snapshots.rows.map(row=>({basket:row.basket,share_balance:row.shares,cost_basis:null,
+    updated_at:row.evidence.observedAt,nav:null,estimatedValue:null,projectionStatus:"snapshot-verified",
+    quality:{eligible:false,complete:false,status:"history-incomplete",stale:false,asOf:row.evidence.observedAt},
+    source:"finalized-balance-snapshot",asOf:row.evidence.observedAt,balanceEvidence:row.evidence}));
+  const allData=[...data,...verified].sort((a,b)=>String(a.basket).localeCompare(String(b.basket)));
+  return { status: 200, payload: { data:allData, count:allData.length,
+    source:verified.length||snapshots.coverage.verifiedBaskets?"finalized-balance-snapshot":"onchain-indexed",
+    coverage:snapshots.coverage,note:balanceCoverageNote(snapshots.coverage.complete) } };
 }
 
 /**
@@ -801,7 +809,8 @@ export interface WalletPositionItem {
   /** Freshness of sharePrice. */
   sharePriceAsOf: string | null;
   quality: ReturnType<typeof valuationQuality>;
-  projectionStatus: "rebuild-required" | "history-pending" | "indexed";
+  projectionStatus: "rebuild-required" | "history-pending" | "indexed" | "snapshot-verified";
+  balanceEvidence?: BalanceEvidence;
 }
 
 /**
@@ -815,28 +824,34 @@ export async function userPositionsByWallet(
   wallet: string,
 ): Promise<{ status: number; payload: unknown }> {
   const res = await db.query(POSITIONS_BY_WALLET_SQL, [wallet]);
-  const rows = res.rows as Array<Record<string, unknown>>;
+  const snapshots = await currentBalancesForWallet(db,wallet);
+  const rows = (res.rows as Array<Record<string, unknown>>).filter(row=>!snapshots.covered.has(row.basket as string));
   const data: WalletPositionItem[] = rows.map((r) => ({
     basket: r.basket as string,
     basketSymbol: (r.basket_symbol as string | null) ?? null,
     shareBalance: r.share_balance as string,
     sharePrice: (r.share_price as string | null) ?? null,
     valueUsd: r.projection_pending ? null : (r.value_usd as string | null) ?? null,
-    costBasis: (r.cost_basis as string | null) ?? null,
+    costBasis: r.projection_pending ? null : (r.cost_basis as string | null) ?? null,
     source: (r.cost_basis_source as string | null) ?? null,
     sharePriceAsOf: r.share_price_as_of ? new Date(r.share_price_as_of as string).toISOString() : null,
     quality: valuationQuality({ ...r, ts: r.share_price_as_of }),
     projectionStatus: r.legacy_projection_pending ? "rebuild-required" : r.projection_pending ? "history-pending" : "indexed",
   }));
+  for (const row of snapshots.rows) data.push({basket:row.basket,basketSymbol:row.symbol,shareBalance:row.shares,
+    sharePrice:null,valueUsd:null,costBasis:null,source:"finalized-balance-snapshot",sharePriceAsOf:null,
+    quality:valuationQuality({}),projectionStatus:"snapshot-verified",balanceEvidence:row.evidence});
+  data.sort((a,b)=>a.basket.localeCompare(b.basket));
   return {
     status: 200,
     payload: {
       data,
       count: data.length,
+      coverage:snapshots.coverage,
       wallet,
       asOf: new Date().toISOString(),
       source: "onchain-indexed",
-      note: "share_balance is reconciled to on-chain token accounts by the indexer positions sync; an empty list means this wallet has no live positions on indexed baskets.",
+      note: balanceCoverageNote(snapshots.coverage.complete),
     },
   };
 }
@@ -863,6 +878,8 @@ export async function healthReport(
     const res = await db.query(
       `SELECT (SELECT COUNT(*) FROM baskets) AS basket_count,
               (SELECT MAX(slot) FROM events) AS last_slot,
+              (SELECT COUNT(*) FROM current_balance_snapshots WHERE status='verified' AND history_complete IS FALSE AND program_ids=ARRAY[${DEVNET_PROGRAMS.map(id=>`'${id}'`).join(',')}]::text[] AND observed_at BETWEEN NOW()-interval '5 minutes' AND NOW()) AS current_balance_baskets,
+              (SELECT MIN(observed_at) FROM current_balance_snapshots WHERE status='verified' AND history_complete IS FALSE AND program_ids=ARRAY[${DEVNET_PROGRAMS.map(id=>`'${id}'`).join(',')}]::text[] AND observed_at BETWEEN NOW()-interval '5 minutes' AND NOW()) AS current_balance_oldest_at,
               (SELECT MAX(ts) FROM events) AS last_event_ts,
               (SELECT COUNT(*) FROM vault_holdings) AS holdings_rows,
               (SELECT MAX(updated_at) FROM vault_holdings WHERE authenticated IS TRUE) AS holdings_updated_at,
@@ -895,6 +912,9 @@ export async function healthReport(
           connected: true,
           basketCount: Number(row.basket_count),
           currentValuations: Number(row.current_valuations ?? 0),
+          currentBalances: {verifiedBaskets:Number(row.current_balance_baskets ?? 0),
+            indexedBaskets:Number(row.basket_count),oldestObservedAt:row.current_balance_oldest_at ?? null,
+            historyComplete:false,costBasisKnown:false},
           lastSlot: row.last_slot ?? null,
           lastEventTs: lastEventTs?.toISOString() ?? null,
           indexerLagSeconds: lastEventTs ? Math.floor((nowMs - lastEventTs.getTime()) / 1000) : null,

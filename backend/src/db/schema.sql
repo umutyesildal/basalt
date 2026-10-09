@@ -154,6 +154,27 @@ CREATE INDEX IF NOT EXISTS user_positions_basket_idx ON user_positions(basket);
 -- by the indexer (an estimate, not a fill price). NULL = cost basis unknown.
 ALTER TABLE user_positions ADD COLUMN IF NOT EXISTS cost_basis_source TEXT;
 
+-- Independent current balances; never a historical position-ledger activation.
+-- A verified row proves raw holder totals == authenticated mint supply at one
+-- finalized context. Missing historical events and costs remain unresolved.
+CREATE TABLE IF NOT EXISTS current_balance_snapshots (
+  basket TEXT PRIMARY KEY REFERENCES baskets(pubkey) ON DELETE CASCADE,
+  program_ids TEXT[] NOT NULL CHECK (cardinality(program_ids)=3),
+  slot BIGINT CHECK (slot >= 0),
+  supply NUMERIC(20,0) CHECK (supply >= 0 AND supply <= 18446744073709551615),
+  balances JSONB NOT NULL DEFAULT '[]'::jsonb CHECK (jsonb_typeof(balances)='array'),
+  accounts_digest TEXT,
+  account_count INTEGER NOT NULL DEFAULT 0 CHECK (account_count BETWEEN 0 AND 1000),
+  candidate_accounts JSONB NOT NULL DEFAULT '[]'::jsonb CHECK (jsonb_typeof(candidate_accounts)='array'),
+  observed_at TIMESTAMPTZ,
+  attempted_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  status TEXT NOT NULL DEFAULT 'incomplete' CHECK (status IN ('verified','incomplete')),
+  reason TEXT,
+  history_complete BOOLEAN NOT NULL DEFAULT FALSE CHECK (history_complete IS FALSE),
+  CHECK (status <> 'verified' OR (slot IS NOT NULL AND supply IS NOT NULL AND
+    observed_at IS NOT NULL AND accounts_digest IS NOT NULL AND accounts_digest ~ '^[a-f0-9]{64}$'))
+);
+
 -- ---------------------------------------------------------------------------
 -- position_events — idempotency ledger for user_positions writes (indexer).
 -- Every applied Minted/Redeemed/FeeAccrued claims its runtime (sig, log_index)

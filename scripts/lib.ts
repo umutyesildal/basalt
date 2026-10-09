@@ -59,6 +59,16 @@ export const ASSOCIATED_TOKEN_PROGRAM_ID = new PublicKey(
 );
 export const SYSTEM_PROGRAM_ID = SystemProgram.programId;
 
+/** Authenticated canonical ProgramData PDA for the upgradeable loader. */
+export const UPGRADEABLE_LOADER_PROGRAM_ID = new PublicKey(
+  "BPFLoaderUpgradeab1e11111111111111111111111",
+);
+export function deriveProgramData(programId: PublicKey): PublicKey {
+  return PublicKey.findProgramAddressSync(
+    [programId.toBuffer()], UPGRADEABLE_LOADER_PROGRAM_ID,
+  )[0];
+}
+
 // ===================== Anchor sighash =====================
 
 /** Anchor 8-byte instruction discriminator: sha256("global:<name>")[..8]. */
@@ -279,14 +289,17 @@ function m(pubkey: PublicKey, isWritable: boolean, isSigner = false): Meta {
   return { pubkey, isSigner, isWritable };
 }
 
-/** whitelist init_config — config, authority(signer), system. */
+/** whitelist init_config — config, authority(signer), system, self program, canonical loader ProgramData. */
 export function ixInitConfig(authority: PublicKey): TransactionInstruction {
+  assertNotRetiredPublicKey(authority, "whitelist authority");
   return new TransactionInstruction({
     programId: WHITELIST_PROGRAM_ID,
     keys: [
       m(deriveWhitelistConfig(), true),
       m(authority, true, true),
       m(SYSTEM_PROGRAM_ID, false),
+      m(WHITELIST_PROGRAM_ID, false),
+      m(deriveProgramData(WHITELIST_PROGRAM_ID), false),
     ],
     data: sighash("init_config"),
   });
@@ -337,7 +350,7 @@ export function ixSetMintPaused(
 
 /**
  * factory init_factory(treasury, creator_fee_split_bps) — factory,
- * authority(signer), system.
+ * authority(signer), system, self program, canonical loader ProgramData.
  *
  * The on-chain u16 remains in the instruction for V0 wire compatibility, but
  * the split is protocol-fixed and cannot be selected by callers.
@@ -360,6 +373,8 @@ export function ixInitFactory(
       m(deriveFactoryConfig(), true),
       m(authority, true, true),
       m(SYSTEM_PROGRAM_ID, false),
+      m(FACTORY_PROGRAM_ID, false),
+      m(deriveProgramData(FACTORY_PROGRAM_ID), false),
     ],
     data: concat(
       sighash("init_factory"),
