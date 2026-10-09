@@ -1,5 +1,7 @@
 # Basalt documentation map
 
+- [Share poster cleanup, 2026-10-10](basket-share-cleanup-2026-10-10.md): fewer repeated labels beneath stacks, retained 7D and complete holdings.
+
 - [7D basket sharing, 2026-10-10](basket-weekly-sharing-2026-10-10.md): exact-mix weekly model in downloaded posters, existing card metrics and eligible indexed-card wiring; production release evidence.
 
 - [Live devnet release, 2026-10-09](devnet-live-release-2026-10-09.md): exact backend/Vercel identities, retained backup/candidate limitations, live evidence-collection progress, guarded financial projections and post-freeze SBF build proof.

@@ -36,14 +36,15 @@ test("share poster renders only the exact basket's authentic weekly model", asyn
   }
   try {
     for (const [change, label, color] of [[4.56, "+4.56%", "#50D69A"], [-4.56, "-4.56%", "#FF818A"], [0, "0.00%", "#F6F6F4"]] as const) {
-      await t.test(`7D ${label} retains sign, scale and provenance`, async () => {
+      await t.test(`7D ${label} retains sign and scale`, async () => {
         await render(basket, data(change));
         assert.equal(written.find((entry) => entry.value === label)?.color, color);
         assert.ok(written.some((entry) => entry.value === "7D"));
-        assert.ok(written.some((entry) => entry.value === "Stock-close model · Oct 9, 2026"));
-        const provenance = written.find((entry) => entry.value.startsWith("Stock-close model"))!;
+        assert.ok(!written.some((entry) => entry.value.startsWith("Stock-close model") || entry.value.includes("Oct 9") || entry.value.includes("holdings below")));
+        for (const { symbol } of basket.assets) assert.equal(written.filter((entry) => entry.value === symbol).length, 1, "ticker appears only in the holdings ledger");
+        const metric = written.find((entry) => entry.value === label)!;
         const holdings = written.find((entry) => entry.value.endsWith(" HOLDINGS"))!;
-        assert.ok(holdings.y > provenance.y + 44, "weekly metric clears holdings ledger");
+        assert.ok(holdings.y > metric.y + 55, "weekly metric clears holdings ledger");
       });
     }
     await t.test("renamed or unavailable baskets still export without inherited returns", async () => {

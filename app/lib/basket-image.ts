@@ -115,14 +115,8 @@ function drawSculpture(ctx: CanvasRenderingContext2D, assets: Asset[], logos: (H
     ctx.restore();
     const size = Math.min(48, width - 12);
     assetMark(ctx, asset, logos[index], x + (width - size) / 2, top - facet - size - 20, size, fonts);
-    const labelSize = stacks.length > 4 ? 19 : 24;
-    ctx.textAlign = "center";
-    text(ctx, formatBpsAsPercent(asset.weightBps), x + half, 592, `500 ${labelSize}px ${fonts.mono}`);
-    ctx.font = `400 16px ${fonts.mono}`;
-    text(ctx, fitText(ctx, asset.symbol, 475 / stacks.length - 8), x + half, 626, `400 16px ${fonts.mono}`, MUTED);
-    ctx.textAlign = "left";
+
   }
-  if (assets.length > stacks.length) text(ctx, `+${assets.length - stacks.length} holdings below`, 1010, 652, `400 16px ${fonts.mono}`, MUTED);
 }
 
 async function loadCover(coverId?: string): Promise<HTMLImageElement> {
@@ -171,8 +165,7 @@ export async function createBasketImage(input: ConceptBasket, performanceData: B
   if (performance) {
     text(ctx, "7D", PAD, performanceTop + 9, `500 24px ${fonts.mono}`, MUTED);
     text(ctx, formatPercent(performance.return7dPct, { signed: true }), PAD + 68, performanceTop, `600 46px ${fonts.mono}`, performance.return7dPct > 0 ? POSITIVE : performance.return7dPct < 0 ? NEGATIVE : PAPER);
-    const date = new Date(performance.asOf + "T12:00:00Z").toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric", timeZone: "UTC" });
-    text(ctx, `Stock-close model · ${date}`, PAD, performanceTop + 61, `400 17px ${fonts.mono}`, MUTED);
+
   }
 
   const [cover, bitmaps] = await Promise.all([loadCover(basket.coverId), Promise.all(basket.assets.map(loadLogo))]);
