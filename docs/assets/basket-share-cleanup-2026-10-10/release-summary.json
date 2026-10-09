@@ -1,0 +1,22 @@
+{
+  "checkedAt": "2026-10-09T22:17:49.120515+00:00",
+  "sourceSha": "ee7a4455d831eb5ab35296b84f5a026aa5fc7dd3",
+  "domain": "https://basalt.markets",
+  "deploymentId": "dpl_AJvvU1od887UFEKpqdQMVyVhmYTm",
+  "immutableUrl": "https://basalt-9xsvziknc-yesildaladams-projects.vercel.app",
+  "readyState": "READY",
+  "focusedChecks": 31,
+  "staticPages": 29,
+  "livePoster": {
+    "basket": "Terminally Online",
+    "width": 1600,
+    "height": 1270,
+    "stackLabels": false,
+    "visibleModelDateCaption": false,
+    "return7dLabel": "7D +1.11%",
+    "ledgerHoldings": 7
+  },
+  "backendOrChainMutation": false,
+  "ci": "https://github.com/umutyesildal/basalt/actions/runs/37998151317",
+  "ciConclusion": "success"
+}

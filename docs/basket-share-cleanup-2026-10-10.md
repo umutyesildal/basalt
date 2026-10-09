@@ -1,6 +1,6 @@
 # Share poster cleanup, 2026-10-10
 
-Status: implementation prepared; production verification pending.
+Status: live and verified at https://basalt.markets. Focused renderer/eligibility checks, hosted production build, exact source attestation and public browser verification passed.
 
 The owner requested a quieter exported image. Removed the percentage and ticker labels underneath each stock stack and the `+N holdings below` line. Stock logos and proportional stack heights/colors remain; every holding’s name, ticker and percentage still appear in the full ledger. Removed the visible `Stock-close model · date` line beneath the weekly percentage. The signed `7D` figure remains.
 
@@ -15,4 +15,14 @@ The latest release baseline is `6eba591`; existing backend/devnet security, name
 
 ![Local cleaned share poster](assets/basket-share-cleanup-2026-10-10/local-share.jpg)
 
-Exact published source and live verification will be appended after promotion.
+## Live release
+
+- Application source [`ee7a4455d831eb5ab35296b84f5a026aa5fc7dd3`](https://github.com/umutyesildal/basalt/commit/ee7a4455d831eb5ab35296b84f5a026aa5fc7dd3) is pushed to main.
+- Ready deployment `dpl_AJvvU1od887UFEKpqdQMVyVhmYTm`, immutable URL `https://basalt-9xsvziknc-yesildaladams-projects.vercel.app`. Authoritative metadata confirms sourceSha and gitCommitSha match the application source exactly. Frozen npm 11.6.2 workspace installation and hosted Next.js 15.5.27 production build passed.
+- Exact promotion succeeded. Public-domain inspect confirms basalt.markets resolves to this deployment. Previous `dpl_8E4yBspPLroWTW2mcSyFGkR1bSYS` remains the rollback target.
+- Live browser regenerated Terminally Online’s actual 1600 × 1270 PNG: no text underneath the stacks, no visible source/date caption, `7D +1.11%` retained, and all seven ledger entries intact. Download filename remains `basalt-terminally-online.png`. Default viewport width and document width both 663px, no overflow. The production tab was refreshed and retained for the owner.
+- [Exact-source GitHub CI](https://github.com/umutyesildal/basalt/actions/runs/37998151317) passed all six jobs, including the complete Node workspace tests/typecheck/build/hygiene, Rust/Clippy and security/dependency gates.
+
+![Live cleaned share poster](assets/basket-share-cleanup-2026-10-10/live-share.jpg)
+
+No backend deployment, chain action, wallet signature or social post occurred. A later evidence-only documentation commit does not change deployed application bytes. The original dirty UI checkout remains preserved; future implementation should continue from current main/the attached release worktree.
