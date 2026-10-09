@@ -1,3 +1,4 @@
+import { getBasketCover, resolveLegacyBasketCover } from "@/lib/basket-covers";
 import type { ConceptBasket } from "@/lib/concept-basket";
 import { conceptPreviewHref } from "@/lib/concept-share";
 
@@ -74,6 +75,7 @@ function sample(
     name,
     symbol,
     thesis,
+    coverId: resolveLegacyBasketCover(name, allocations),
     creatorId,
     allocations,
     assets: allocations.map(({ symbol: assetSymbol, weightBps }) => ({
@@ -232,18 +234,9 @@ export const CONCEPT_BASKETS: ConceptBasketSample[] = [
 
 export const FEATURED_BASKETS = CONCEPT_BASKETS.slice(0, 4);
 
-export const BASKET_STORY_COVERS: Record<string, string> = {
-  "concept-basket-mega-cap-tech": "/images/baskets/terminally-online.png",
-  "concept-basket-index-core": "/images/baskets/touch-grass.png",
-  "concept-basket-motion": "/images/baskets/no-hands.png",
-  "concept-basket-quality-compounders": "/images/baskets/daily-ritual.png",
-  "concept-basket-chip-happens": "/images/baskets/chip-happens.png",
-  "concept-basket-after-hours": "/images/baskets/after-hours.png",
-  "concept-basket-payday": "/images/baskets/payday.png",
-  "concept-basket-offline-mode": "/images/baskets/offline-mode.png",
-  "concept-basket-power-hungry": "/images/baskets/power-hungry.png",
-  "concept-basket-main-character": "/images/baskets/main-character.png",
-};
+export const BASKET_STORY_COVERS: Record<string, string> = Object.fromEntries(
+  CONCEPT_BASKETS.map((basket) => [basket.id, getBasketCover(basket.coverId).src]),
+);
 
 /** Static example copy. No transaction claims, performance figures or timestamps. */
 export const CONCEPT_ACTIVITY: ConceptActivity[] = [

@@ -80,3 +80,17 @@ Historical palette and type choices from the 2026-09-01 Mineral Desk pass and 20
 ## Model metrics and weekly discovery, 2026-10-02
 
 Preserve the four featured covers and all ten unique sample identities; the opening follows the calm stock-basket discovery correction above. Keep only Model price and 7D on basket cards; use signed green/red returns and tabular numerals. The ten-basket leaderboard is a restrained artwork/name/price/return table. One source/date note and collapsed methodology explain historical models. Never imply sample profile returns are achieved investor results. People remains a leaderboard tab. Keep copy concise and avoid em dashes.
+
+
+## Earlier basket allocation and share artwork, 2026-10-09
+
+The product domain is **https://basalt.markets**. Basket allocation graphics use the owner's approved bright reference colors: NVDA `#F9F528`, QQQ `#1FDBF8`, WMT `#F33EA3`, GLD `#36D887`. Other assets use stable bright identity colors from `allocationColor`; general price-chart palettes stay separate. These colors encode holdings rather than decorating the product chrome.
+
+For share posters, use the chosen editorial cover as a small header identity and weighted isometric stock stacks as the main illustration. Keep the full logo/name/ticker/percentage ledger. The footer contains basalt.markets only, with no duplicate allocation strip or annual-fee line. Actual fee disclosures remain in the product. [Implementation and evidence](docs/basket-share-refinement-2026-10-09.md).
+
+
+## Current basket colors from stock and ETF logos, 2026-10-09
+
+Use each asset's actual stock/ETF logo as the source for its basket allocation color. The newest owner direction supersedes the earlier fixed bright four-color mapping above and the earlier restrained ticker palette. Colors should read as belonging to their asset, with representative colors extracted from real logo pixels and cached for consistent rendering. All 1,271 issuer logos have cached colors, with alpha-weighted dominant hue and a minimal visibility lift for dark colors. The confirmed algorithm, example colors and evidence are in [the current logo-color record](docs/logo-derived-basket-colors-2026-10-09.md). Do not treat earlier screenshots or hex tables as the latest color authority.
+
+Keep the Basalt primary action/focus accent `#FCEE0A`, public domain **https://basalt.markets**, selected-cover identity, weighted isometric stock stacks and full holdings ledger. The share poster footer shows the domain without a duplicate allocation strip or annual-fee label; actual product fee disclosures remain. No return, investment outcome or brand endorsement is implied by an extracted logo color.

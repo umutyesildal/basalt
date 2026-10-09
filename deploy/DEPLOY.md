@@ -160,7 +160,7 @@ docker compose logs -f backend   # Look for "[db] schema applied" and indexer li
 1. Go to https://vercel.com → the basalt project → **Settings → Environment Variables**.
 2. Set `NEXT_PUBLIC_API` to `https://api.YOURDOMAIN.COM` (Production + Preview).
 3. Go to **Deployments → latest → ⋯ → Redeploy**.
-4. Test: https://basalt-coral.vercel.app/explore should now load data from the
+4. Test: https://basalt.markets/explore should now load data from the
    live backend.
 
 ### Current release path (2026-10-09)
@@ -183,7 +183,7 @@ vercel promote DEPLOYMENT_ID_OR_URL --yes --scope yesildaladams-projects
 
 Production uses `NEXT_PUBLIC_API=https://basalt.178.104.34.252.sslip.io`,
 `NEXT_PUBLIC_CLUSTER=devnet`, a verified devnet RPC and
-`NEXT_PUBLIC_SITE_URL=https://basalt-coral.vercel.app`. Preserve the existing
+`NEXT_PUBLIC_SITE_URL=https://basalt.markets`. Preserve the existing
 home-demo setting when updating infrastructure.
 
 The checked-in `app/vercel.json` now invokes the frozen root-workspace installer,

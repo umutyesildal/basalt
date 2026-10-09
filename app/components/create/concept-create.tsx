@@ -9,6 +9,8 @@ import { motion, useReducedMotion } from "motion/react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { CoverPicker } from "@/components/create/cover-picker";
+import { getBasketCover, resolveLegacyBasketCover, type BasketCoverId } from "@/lib/basket-covers";
 import { CreatePreviewDonut } from "@/components/create/create-preview-donut";
 import { initialCreateDraft, rememberCreatedPreview, RECOMMENDED_MANAGEMENT_BPS } from "@/components/create/create-feedback";
 import styles from "./concept-create.module.css";
@@ -18,14 +20,7 @@ import { fetchXStockCatalog, sortXStocksForDiscovery, matchesAssetSearch, assetS
 import { type ConceptBasket, validateConceptBasket } from "@/lib/concept-basket";
 import { conceptPreviewHref } from "@/lib/concept-share";
 import { formatBpsAsPercent, formatGroupedAmountInput, formatUsd, parseGroupedAmountInput } from "@/lib/format";
-
-const COLORS = [
-  "hsl(var(--chart-1))",
-  "hsl(var(--chart-2))",
-  "hsl(var(--chart-3))",
-  "hsl(var(--chart-4))",
-  "hsl(var(--chart-5))",
-] as const;
+import { allocationColor } from "@/lib/allocation-colors";
 
 const STEPS = ["Choose", "Set up", "Start", "Review"] as const;
 type Step = 0 | 1 | 2 | 3;
@@ -47,8 +42,9 @@ function asBasket(
   assets: SelectedAsset[],
   amountUsd: number,
   fees: ConceptBasket["fees"],
+  coverId?: BasketCoverId,
 ): ConceptBasket {
-  return { v: 1, name, thesis, assets, amountUsd, fees };
+  return { v: 1, name, thesis, assets, amountUsd, fees, ...(coverId ? { coverId } : {}) };
 }
 
 export default function ConceptCreate({ initialBasket = null }: { initialBasket?: ConceptBasket | null }) {
@@ -79,6 +75,7 @@ export default function ConceptCreate({ initialBasket = null }: { initialBasket?
   const [fees, setFees] = useState<ConceptBasket["fees"]>(initialDraft.fees);
   const [name, setName] = useState(initialDraft.name);
   const [thesis, setThesis] = useState(initialBasket?.thesis ?? "");
+  const [coverId, setCoverId] = useState<BasketCoverId | undefined>(() => initialBasket ? initialBasket.coverId ?? resolveLegacyBasketCover(initialBasket.name, initialBasket.assets) : undefined);
   const [shareError, setShareError] = useState<string | null>(null);
   const [mixStatus, setMixStatus] = useState("");
   const stepHeadingRef = useRef<HTMLHeadingElement>(null);
@@ -129,7 +126,7 @@ export default function ConceptCreate({ initialBasket = null }: { initialBasket?
   }, [search, catalogAssets]);
   const visibleAssets = matchingAssets.slice(0, catalogVisible);
 
-  const currentBasket = asBasket(name, thesis, assets, amountIsValid ? parsedAmount : 0, fees);
+  const currentBasket = asBasket(name, thesis, assets, amountIsValid ? parsedAmount : 0, fees, coverId);
   const validation = validateConceptBasket(currentBasket);
   const mixIsValid =
     assets.length >= 2 &&
@@ -140,10 +137,10 @@ export default function ConceptCreate({ initialBasket = null }: { initialBasket?
   const canContinue = step === 0
     ? assets.length >= 2 && assets.length <= 20
     : step === 1
-      ? mixIsValid
+      ? mixIsValid && Boolean(name.trim()) && Boolean(coverId)
       : step === 2
         ? amountIsValid
-        : validation.ok;
+        : validation.ok && Boolean(coverId);
 
   function toggleAsset(symbol: string) {
     const existing = assets.some((asset) => asset.symbol === symbol);
@@ -216,6 +213,11 @@ export default function ConceptCreate({ initialBasket = null }: { initialBasket?
 
   function createPreview() {
     setShareError(null);
+    if (!coverId) {
+      setShareError("Choose a basket image before sharing.");
+      goToStep(1);
+      return;
+    }
     if (!validation.ok || !amountIsValid) {
       setShareError(validation.ok ? "Choose a valid starting amount." : validation.errors[0]);
       return;
@@ -231,12 +233,12 @@ export default function ConceptCreate({ initialBasket = null }: { initialBasket?
     }
   }
 
-  const stepTitle = ["Pick your stocks", "Set the weights", "Try an amount", "Review and share"][step];
+  const stepTitle = ["Pick your stocks", "Make it yours", "Try an amount", "Review and share"][step];
   const stepDescription = [
     "Choose the stocks and ETFs for your idea.",
-    "How much of each stock belongs in your basket?",
+    "Give your basket a name, an image and a mix.",
     "See the dollar split across your stocks.",
-    "Name your basket and check the mix.",
+    "Check your basket before sharing.",
   ][step];
 
   return (
@@ -248,7 +250,7 @@ export default function ConceptCreate({ initialBasket = null }: { initialBasket?
             Pick your stocks. Set the mix. Share your basket.
           </p>
         </div>
-        <Link href={devnetCreateHref({ name, thesis, managementFeeBps: fees.managementBps })} className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-border px-4 text-sm transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+        <Link href={devnetCreateHref({ name, thesis, managementFeeBps: fees.managementBps, coverId })} className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-border px-4 text-sm transition-colors hover:bg-muted focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
           Try on devnet <ArrowRight className="size-4" aria-hidden="true" />
         </Link>
       </div>
@@ -395,6 +397,36 @@ export default function ConceptCreate({ initialBasket = null }: { initialBasket?
 
             {step === 1 && (
               <section aria-labelledby="mix-heading" className="space-y-5">
+                <div>
+                  <label htmlFor="basket-name" className="mb-1.5 block text-sm font-medium">Basket name <span className="text-destructive">*</span></label>
+                  <input
+                    id="basket-name"
+                    type="text"
+                    autoComplete="off"
+                    maxLength={60}
+                    value={name}
+                    onChange={(event) => setName(event.target.value)}
+                    aria-invalid={!name.trim()}
+                    placeholder="e.g. My tech basket"
+                    className="min-h-12 w-full rounded-lg border border-input bg-background px-3 text-sm outline-none placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="basket-thesis" className="mb-1.5 block text-sm font-medium">Why these stocks? <span className="font-normal text-muted-foreground">(optional)</span></label>
+                  <textarea
+                    id="basket-thesis"
+                    rows={3}
+                    maxLength={240}
+                    value={thesis}
+                    onChange={(event) => setThesis(event.target.value)}
+                    placeholder="What connects these companies?"
+                    className="w-full resize-y rounded-lg border border-input bg-background px-3 py-2.5 text-sm leading-6 outline-none placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring"
+                  />
+                  <p className="mt-1 text-right font-mono text-xs tabular-nums text-muted-foreground">{thesis.length}/240</p>
+                </div>
+                <CoverPicker value={coverId} onChange={setCoverId} />
+                {!coverId && <p className="text-xs text-muted-foreground">Select an image to continue.</p>}
+                <div className="border-t border-border/70 pt-5" />
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div>
                     <h3 id="mix-heading" className="text-sm font-medium">Set each asset’s share</h3>
@@ -544,33 +576,7 @@ export default function ConceptCreate({ initialBasket = null }: { initialBasket?
 
             {step === 3 && (
               <section aria-labelledby="review-heading" className="space-y-6">
-                <div>
-                  <label htmlFor="basket-name" className="mb-1.5 block text-sm font-medium">Basket name <span className="text-destructive">*</span></label>
-                  <input
-                    id="basket-name"
-                    type="text"
-                    autoComplete="off"
-                    maxLength={60}
-                    value={name}
-                    onChange={(event) => setName(event.target.value)}
-                    aria-invalid={!name.trim()}
-                    placeholder="e.g. My tech basket"
-                    className="min-h-12 w-full rounded-lg border border-input bg-background px-3 text-sm outline-none placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring"
-                  />
-                </div>
-                <div>
-                  <label htmlFor="basket-thesis" className="mb-1.5 block text-sm font-medium">Why these stocks? <span className="font-normal text-muted-foreground">(optional)</span></label>
-                  <textarea
-                    id="basket-thesis"
-                    rows={3}
-                    maxLength={240}
-                    value={thesis}
-                    onChange={(event) => setThesis(event.target.value)}
-                    placeholder="What connects these companies?"
-                    className="w-full resize-y rounded-lg border border-input bg-background px-3 py-2.5 text-sm leading-6 outline-none placeholder:text-muted-foreground focus-visible:ring-2 focus-visible:ring-ring"
-                  />
-                  <p className="mt-1 text-right font-mono text-xs tabular-nums text-muted-foreground">{thesis.length}/240</p>
-                </div>
+                {coverId && <div className="flex items-center gap-4 rounded-lg border border-border p-3"><img src={getBasketCover(coverId).src} alt="" width={80} height={80} className="size-20 rounded-md object-cover" /><div className="min-w-0"><h3 className="break-words font-display text-lg font-medium">{name}</h3><p className="mt-1 text-sm text-muted-foreground">{thesis || "Your stock basket"}</p><button type="button" onClick={() => goToStep(1)} className="mt-2 min-h-9 text-xs text-muted-foreground underline underline-offset-4 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">Edit basket details</button></div></div>}
 
                 <div className="lg:hidden">
                   <LiveSummary basket={currentBasket} />
@@ -592,7 +598,7 @@ export default function ConceptCreate({ initialBasket = null }: { initialBasket?
                 Continue <ArrowRight className="hidden size-4 sm:block" aria-hidden="true" />
               </Button>
             ) : (
-              <Button type="button" className="min-h-11 min-w-0 flex-1 px-2 sm:min-w-40 sm:flex-none sm:px-2.5" disabled={!validation.ok || !amountIsValid} onClick={createPreview}>
+              <Button type="button" className="min-h-11 min-w-0 flex-1 px-2 sm:min-w-40 sm:flex-none sm:px-2.5" disabled={!validation.ok || !amountIsValid || !coverId} onClick={createPreview}>
                 Share basket <ArrowRight className="hidden size-4 sm:block" aria-hidden="true" />
               </Button>
             )}
@@ -615,13 +621,13 @@ export default function ConceptCreate({ initialBasket = null }: { initialBasket?
 function AssetLogo({ symbol, mint, size }: { symbol: string; mint?: string; size: number }) {
   const asset = getConceptAsset(symbol, mint);
   const [failed, setFailed] = useState(false);
-  const colorIndex = symbol.split("").reduce((value, char) => value + char.charCodeAt(0), 0) % COLORS.length;
+  const color = allocationColor(symbol, mint);
   const style = {
     width: size,
     height: size,
-    color: COLORS[colorIndex],
-    borderColor: `color-mix(in hsl, ${COLORS[colorIndex]} 45%, transparent)`,
-    backgroundColor: `color-mix(in hsl, ${COLORS[colorIndex]} 14%, transparent)`,
+    color,
+    borderColor: `color-mix(in hsl, ${color} 45%, transparent)`,
+    backgroundColor: `color-mix(in hsl, ${color} 14%, transparent)`,
   } as CSSProperties;
   if (!asset || failed) {
     return (
@@ -640,11 +646,11 @@ function AssetLogo({ symbol, mint, size }: { symbol: string; mint?: string; size
 
 function LiveSummary({ basket }: { basket: ConceptBasket }) {
   const total = basket.assets.reduce((sum, asset) => sum + asset.weightBps, 0);
-  const chartSlices = basket.assets.map((asset, index) => ({
+  const chartSlices = basket.assets.map((asset) => ({
     key: asset.symbol,
     label: asset.symbol,
     value: asset.weightBps,
-    color: COLORS[index % COLORS.length],
+    color: allocationColor(asset.symbol, asset.mint),
   }));
 
   return (
@@ -653,6 +659,7 @@ function LiveSummary({ basket }: { basket: ConceptBasket }) {
         <div className="min-w-0">
           <h2 className="font-display mt-1 truncate text-lg font-semibold">{basket.name || "Your basket"}</h2>
         </div>
+        {basket.coverId && <img src={getBasketCover(basket.coverId).src} alt="" width={48} height={48} className="size-12 shrink-0 rounded-md object-cover" />}
       </CardHeader>
       <CardContent className="space-y-5">
         <div className="flex justify-center py-2">
@@ -662,12 +669,12 @@ function LiveSummary({ basket }: { basket: ConceptBasket }) {
         </div>
         {basket.assets.length > 0 ? (
           <ul className="space-y-2.5" aria-label="Basket allocation">
-            {basket.assets.map((asset, index) => {
+            {basket.assets.map((asset) => {
               const info = getConceptAsset(asset.symbol, asset.mint);
               const amount = (basket.amountUsd * asset.weightBps) / 10_000;
               return (
                 <li key={asset.symbol} className="flex min-w-0 items-center gap-2">
-                  <span className="size-2 shrink-0 rounded-full" style={{ backgroundColor: COLORS[index % COLORS.length] }} aria-hidden="true" />
+                  <span className="size-2 shrink-0 rounded-full" style={{ backgroundColor: allocationColor(asset.symbol, asset.mint) }} aria-hidden="true" />
                   <span className="min-w-0 flex-1 truncate text-xs">{info?.name ?? asset.symbol}</span>
                   <span className="shrink-0 font-mono text-xs tabular-nums text-muted-foreground">{formatCompactPercent(asset.weightBps)}</span>
                   <span className="min-w-16 shrink-0 whitespace-nowrap text-right font-mono text-xs tabular-nums">{formatUsd(amount)}</span>

@@ -12,6 +12,7 @@ function storage() {
 test("new drafts start empty with the recommended management fee inside the existing cap", () => {
   const draft = initialCreateDraft(null);
   assert.deepEqual(draft.assets, []);
+  assert.equal(draft.coverId, undefined, "a new basket still needs an explicit cover choice");
   assert.equal(draft.name, "My stock basket");
   assert.deepEqual(draft.fees, { entryBps: 0, exitBps: 0, managementBps: 200 });
   assert.equal(draft.fees.managementBps, RECOMMENDED_MANAGEMENT_BPS);
@@ -21,7 +22,7 @@ test("new drafts start empty with the recommended management fee inside the exis
 
 test("copying a basket preserves zero or custom fees, its mix and original amount precision", () => {
   for (const managementBps of [0, 125, 300]) {
-    const source: ConceptBasket = { v: 1, name: "My existing idea", thesis: "Keep my choices.", assets: [{ symbol: "AAPL", weightBps: 6000 }, { symbol: "MSFT", weightBps: 4000 }], amountUsd: 1234.56789, fees: { managementBps, entryBps: 75, exitBps: 20 } };
+    const source: ConceptBasket = { v: 1, name: "My existing idea", coverId: "orbit", thesis: "Keep my choices.", assets: [{ symbol: "AAPL", weightBps: 6000 }, { symbol: "MSFT", weightBps: 4000 }], amountUsd: 1234.56789, fees: { managementBps, entryBps: 75, exitBps: 20 } };
     const draft = initialCreateDraft(source);
     assert.deepEqual(draft, source);
     draft.fees.managementBps = 200;

@@ -1,0 +1,16 @@
+.dialog {
+  width: min(60rem, calc(100vw - 2rem));
+  max-height: calc(100dvh - 2rem);
+  margin: auto;
+  overflow-y: auto;
+  border-radius: var(--radius);
+  scrollbar-width: thin;
+  scrollbar-color: hsl(var(--border-strong)) hsl(var(--card));
+}
+.dialog::backdrop { background: hsl(var(--background) / 0.88); }
+.image { display: block; width: 100%; height: auto; max-height: 68dvh; object-fit: contain; }
+
+:global(.dark) .dialog { color-scheme: dark; }
+.dialog::-webkit-scrollbar { width: 6px; }
+.dialog::-webkit-scrollbar-track { background: hsl(var(--card)); }
+.dialog::-webkit-scrollbar-thumb { background: hsl(var(--border-strong)); border-radius: 8px; }

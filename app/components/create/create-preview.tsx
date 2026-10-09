@@ -4,14 +4,10 @@ import { useMemo, useState } from "react";
 import { ChevronDown } from "lucide-react";
 
 import { formatBpsAsPercent, formatUsd } from "@/lib/format";
+import { allocationColor } from "@/lib/allocation-colors";
 import { cn } from "@/lib/utils";
 import { CreatePreviewDonut, type CreatePreviewSlice } from "./create-preview-donut";
 import type { ConstituentDraft } from "./types";
-
-/** Same palette cycling as the basket About page composition donut. */
-function sliceColor(index: number): string {
-  return `hsl(var(--chart-${(index % 5) + 1}))`;
-}
 
 export interface CreatePreviewProps {
   name: string;
@@ -48,16 +44,15 @@ function CreatePreviewContent({
 }: CreatePreviewProps) {
   const [hoveredKey, setHoveredKey] = useState<string | null>(null);
 
-  // Colors track the constituent's position in the list (About-page parity),
-  // so re-weights never reshuffle a ticker's hue.
+  // Asset identity keeps colors consistent through reordering and sharing.
   const slices = useMemo<CreatePreviewSlice[]>(
     () =>
       constituents
-        .map((c, index) => ({
+        .map((c) => ({
           key: c.mint,
           label: c.ticker,
           value: c.weightBps,
-          color: sliceColor(index),
+          color: allocationColor(c.ticker, c.mint),
         }))
         .filter((s) => s.value > 0),
     [constituents],
@@ -114,7 +109,7 @@ function CreatePreviewContent({
           </div>
 
           <ul className="divide-y divide-border/60" aria-label="Allocation breakdown">
-            {constituents.map((c, index) => (
+            {constituents.map((c) => (
               <li
                 key={c.mint}
                 onMouseEnter={() => setHoveredKey(c.mint)}
@@ -128,7 +123,7 @@ function CreatePreviewContent({
                   <span
                     aria-hidden="true"
                     className="inline-block size-2 shrink-0 rounded-sm"
-                    style={{ backgroundColor: sliceColor(index) }}
+                    style={{ backgroundColor: allocationColor(c.ticker, c.mint) }}
                   />
                   <span className="truncate font-mono text-xs font-medium text-foreground">
                     {c.ticker}

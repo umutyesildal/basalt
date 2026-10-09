@@ -12,9 +12,12 @@ keys/
 scripts/.e2e/
 scripts/.e2e-devnet/
 .mimosa/
-docs/
+/docs/
 brag-output-*/
-brand/
-pitch-deck-*.html
+/brand/
+pitch-deck-*
 programs/
 crates/
+
+# Vendored Rust sources are not frontend build inputs.
+/vendor/rust/

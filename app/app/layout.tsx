@@ -7,6 +7,7 @@ import { SiteHeader } from "@/components/shell/site-header";
 import { MobileNav } from "@/components/shell/mobile-nav";
 import { PendingTxBanner } from "@/components/feedback/pending-tx-banner";
 import { AppProviders } from "./providers";
+import { siteUrl } from "./site";
 
 const geist = Geist({subsets:['latin'],variable:'--font-sans'});
 const geistMono = Geist_Mono({subsets:['latin'],variable:'--font-mono'});
@@ -16,8 +17,7 @@ const geistMono = Geist_Mono({subsets:['latin'],variable:'--font-mono'});
 const chakraPetch = Chakra_Petch({subsets:['latin'],weight:['500','600','700'],variable:'--font-display'});
 
 export const metadata: Metadata = {
-  // TODO(roman-empire): swap for the production domain before launch.
-  metadataBase: new URL("http://localhost:3000"),
+  metadataBase: new URL(siteUrl()),
   title: {
     default: "Basalt | Stock baskets on Solana",
     template: "%s · Basalt",

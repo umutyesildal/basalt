@@ -9,6 +9,7 @@ const basket: ConceptBasket = {
   v: 1,
   name: "Maya’s $10 idea",
   thesis: "A small start with two companies.",
+  coverId: "moon-shot",
   assets: [
     { symbol: "AAPL", weightBps: 6_000 },
     { symbol: "MSFT", weightBps: 4_000 },
@@ -21,7 +22,7 @@ assert.deepEqual(decodeConceptBasket(encodeConceptBasket(basket)), basket, "UTF-
 assert.deepEqual(decodeConceptBasket(encodeConceptBasket({ ...basket, thesis: "AI & chips", fees: { entryBps: 50, exitBps: 25, managementBps: 100 } })), {
   ...basket, thesis: "AI & chips", fees: { entryBps: 50, exitBps: 25, managementBps: 100 },
 }, "Optional thesis and fees round-trip");
-assert.equal(encodeConceptBasket(basket).startsWith("2."), true);
+assert.equal(encodeConceptBasket(basket).startsWith("4."), true);
 assert.equal(conceptPreviewHref(basket).startsWith("/preview?d="), true);
 assert.equal(conceptCopyHref(basket).startsWith("/create?copy="), true);
 assert.deepEqual(DISCOVERY_ASSETS.slice(0, 8).map((asset) => asset.symbol), ["AAPL", "MSFT", "NVDA", "AMZN", "GOOGL", "META", "TSLA", "SPY"]);
@@ -47,6 +48,7 @@ for (const sample of CONCEPT_BASKETS) {
     v: 1,
     name: sample.name,
     thesis: sample.thesis,
+    coverId: sample.coverId,
     assets: sample.assets,
     amountUsd: sample.amountUsd,
     fees: sample.fees,

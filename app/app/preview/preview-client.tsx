@@ -5,7 +5,9 @@ import { ArrowLeft, ArrowUpRight, Check, Copy, Share2 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 
 import { BasketMetrics, ModelPerformanceNote } from "@/components/basket/basket-performance";
-import { BasketCover } from "@/components/basket/basket-story-card";
+import Image from "next/image";
+import { getBasketCover } from "@/lib/basket-covers";
+import { BasketImageButton } from "@/components/preview/basket-image-button";
 import { CreationCelebration } from "@/components/preview/creation-celebration";
 import { CONCEPT_BASKETS } from "@/lib/concept-samples";
 import { PieCenter } from "@/components/charts/pie-center";
@@ -17,9 +19,10 @@ import { getConceptAsset, getConceptAssetName } from "@/lib/concept-assets";
 import { type ConceptBasket } from "@/lib/concept-basket";
 import { conceptCopyHref, conceptPreviewHref } from "@/lib/concept-share";
 import { formatBpsAsPercent, formatUsd } from "@/lib/format";
-import { tickerColor } from "@/lib/ticker-color";
+import { allocationColor } from "@/lib/allocation-colors";
 import { cn } from "@/lib/utils";
 import { devnetCreateHref } from "@/lib/devnet-links";
+import { basketPublicLink } from "@/lib/basket-social-share";
 
 export default function ConceptPreviewClient({ basket, created = false }: { basket: ConceptBasket | null; created?: boolean }) {
   const sample = basket ? CONCEPT_BASKETS.find((entry) => entry.name === basket.name && entry.assets.length === basket.assets.length && entry.assets.every((asset) => basket.assets.some((candidate) => candidate.symbol === asset.symbol && candidate.weightBps === asset.weightBps && (!candidate.mint || getConceptAsset(candidate.symbol, candidate.mint)?.symbol === asset.symbol)))) : undefined;
@@ -29,14 +32,14 @@ export default function ConceptPreviewClient({ basket, created = false }: { bask
 
   useEffect(() => {
     if (!basket) return;
-    setShareUrl(`${window.location.origin}${conceptPreviewHref(basket)}`);
+    setShareUrl(basketPublicLink(basket, window.location.origin));
   }, [basket]);
 
   const chartData = useMemo(
     () => basket?.assets.map((asset) => ({
       label: asset.symbol,
       value: asset.weightBps / 100,
-      color: tickerColor(asset.symbol),
+      color: allocationColor(asset.symbol, asset.mint),
     })) ?? [],
     [basket],
   );
@@ -92,11 +95,9 @@ export default function ConceptPreviewClient({ basket, created = false }: { bask
             Explore
           </Link>
           <div className="flex min-w-0 items-start gap-4">
-            {sample && (
-              <div className="size-16 shrink-0 overflow-hidden rounded-lg sm:size-20 [&>.basket-story-cover]:h-full [&>.basket-story-cover]:aspect-square">
-                <BasketCover basket={sample} />
-              </div>
-            )}
+            <div className="size-16 shrink-0 overflow-hidden rounded-lg sm:size-20">
+              <Image src={getBasketCover(basket.coverId).src} alt="" width={80} height={80} className="size-full object-cover" />
+            </div>
             <div className="min-w-0 flex-1">
               <h1 className="break-words font-display text-3xl font-semibold tracking-tight sm:text-4xl">
                 {basket.name}
@@ -141,6 +142,7 @@ export default function ConceptPreviewClient({ basket, created = false }: { bask
               <ul className="divide-y divide-border/70" aria-label="Asset allocations">
                 {basket.assets.map((asset) => (
                   <li key={asset.symbol} className="flex items-center gap-3 py-3 first:pt-0 last:pb-0">
+                    <span aria-hidden="true" className="size-2 shrink-0 rounded-full" style={{ backgroundColor: allocationColor(asset.symbol, asset.mint) }} />
                     <AssetMark symbol={asset.symbol} mint={asset.mint} />
                     <span className="min-w-0 flex-1">
                       <span className="block truncate text-sm font-medium text-foreground">
@@ -190,6 +192,7 @@ export default function ConceptPreviewClient({ basket, created = false }: { bask
                 {shareStatus === "Link copied" ? <Check aria-hidden="true" className="size-4" /> : <Copy aria-hidden="true" className="size-4" />}
                 {shareStatus === "Link copied" ? "Link copied" : "Copy basket link"}
               </Button>
+              <BasketImageButton basket={basket} />
               <button type="button" onClick={() => setShowFullLink((show) => !show)} aria-expanded={showFullLink} className="min-h-9 text-xs text-muted-foreground underline-offset-4 hover:text-foreground hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
                 {showFullLink ? "Hide full link" : "Show full link"}
               </button>
@@ -215,7 +218,7 @@ export default function ConceptPreviewClient({ basket, created = false }: { bask
               <CardTitle className="text-base">Create onchain</CardTitle>
             </CardHeader>
             <CardContent>
-              <Link href={devnetCreateHref({ name: basket.name, thesis: basket.thesis, managementFeeBps: basket.fees.managementBps })} className={cn(buttonVariants(), "min-h-11 w-full")}>Create on devnet</Link>
+              <Link href={devnetCreateHref({ name: basket.name, thesis: basket.thesis, managementFeeBps: basket.fees.managementBps, coverId: basket.coverId })} className={cn(buttonVariants(), "min-h-11 w-full")}>Create on devnet</Link>
             </CardContent>
           </Card>
         </div>

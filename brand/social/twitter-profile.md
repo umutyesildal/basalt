@@ -174,7 +174,7 @@ Next: the Stocklana hackathon. Submissions close Sep 18.
 
 Fill in the exact rank/placement once the sponsor posts the winner list —
 "top-10" is the safe claim until then. Reply-thread candidate: the live demo
-link (basalt-coral.vercel.app/explore) + the MAG SIX devnet explorer tx.
+link (basalt.markets/explore) + the MAG SIX devnet explorer tx.
 
 Posting order: brand account launch tweet first, then this from the personal
 account as a quote-reply or standalone with the handle pointer — personal

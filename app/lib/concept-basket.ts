@@ -1,4 +1,5 @@
 import { getConceptAsset, hasConceptAssetIdentityConflict } from "@/lib/concept-assets";
+import { isBasketCoverId, resolveLegacyBasketCover, type BasketCoverId } from "@/lib/basket-covers";
 import { isSolanaMint } from "@/lib/xstock-types";
 
 /** Public, wallet-free basket shape used by the hackathon concept preview. */
@@ -6,6 +7,8 @@ export interface ConceptBasket {
   v: 1;
   name: string;
   thesis: string;
+  /** Optional only for old links. Validation always supplies an original Basalt cover. */
+  coverId?: BasketCoverId;
   /** Optional mint identifies a shared idea; it never grants transaction permission. */
   assets: { symbol: string; weightBps: number; mint?: string }[];
   amountUsd: number;
@@ -45,6 +48,10 @@ export function validateConceptBasket(input: unknown): ConceptBasketValidation {
   }
   if (!Number.isFinite(value.amountUsd) || (value.amountUsd as number) <= 0 || (value.amountUsd as number) > CONCEPT_BASKET_LIMITS.maxAmountUsd) {
     errors.push("Choose a starting amount greater than $0 and no more than $1,000,000.");
+  }
+
+  if (value.coverId !== undefined && !isBasketCoverId(value.coverId)) {
+    errors.push("Choose a basket image from the gallery.");
   }
 
   const assets = Array.isArray(value.assets) ? value.assets : [];
@@ -105,6 +112,7 @@ export function validateConceptBasket(input: unknown): ConceptBasketValidation {
       v: 1,
       name: (value.name as string).trim(),
       thesis: (value.thesis as string).trim(),
+      coverId: isBasketCoverId(value.coverId) ? value.coverId : resolveLegacyBasketCover(value.name as string, assets as { symbol: string }[]),
       assets: assets.map((asset) => {
         const row = asset as Record<string, unknown>;
         return { symbol: row.symbol as string, weightBps: row.weightBps as number, ...(typeof row.mint === "string" ? { mint: row.mint } : {}) };

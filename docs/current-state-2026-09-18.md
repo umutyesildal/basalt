@@ -14,7 +14,7 @@ BAS-004 checked arithmetic is complete in the working tree. Economic narrowing a
 
 - Canonical branch: `main`
 - Audited commit: `9ddee47`
-- Live app: `https://basalt-coral.vercel.app/`
+- Live app: `https://basalt.markets/`
 - Solana cluster: `devnet`
 - Basket program: `6Q43vFh4aqGxzvtU2vQwJX9PmX3skfYsGWZdA3fwJB9k`
 - Factory program: `3hzoPep9JKgTmzLT6CNW5x3EN7WNYDevM6KHVM7pLgMF`

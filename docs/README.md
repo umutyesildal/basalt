@@ -96,3 +96,13 @@ Basket counts, test counts, API versions, and deployment claims in older files a
 - Never present mock or simulated data as live backing, real AUM, or on-chain proof.
 
 - [Indexed return integrity](indexed-basket-return-integrity.md): raw-share units, complete historical windows, derived-view upgrade and actual PostgreSQL verification.
+
+
+## Basket artwork and sharing, 2026-10-09
+
+- [Preview colors and basket share images, 2026-10-09](preview-share-image-2026-10-09.md): stable allocation colors across Create/Preview, branded local PNG export with every holding, bounded catalog-only logo route, 14 pure checks and six mocked route checks passed. Typecheck, responsive/maximum-content browser checks, Escape/focus checks and the final 27-page production build passed.
+- [Required basket artwork and portable cover links, 2026-10-09](basket-cover-selection-2026-10-09.md): 34 original covers, required artwork in public/devnet creation, cover-bearing v4 links with legacy support, cover-aware PNG posters and editable X drafts. Desktop/mobile flows, all assets, basket-specific 1200 × 630 link cards, TypeScript, 65 combined Node checks and the 28-page production build passed. Work remains local and unpushed.
+- [Basket share refinement and public domain, 2026-10-09](basket-share-refinement-2026-10-09.md): custom-domain metadata/share links, retired-hostname replacement, and the coordinated share-artwork correction. Domain/social checks pass; final artwork/build evidence is recorded in the linked document.
+- [Current logo-derived basket colors, 2026-10-09](logo-derived-basket-colors-2026-10-09.md): implemented logo-derived allocation colors covering all 1,271 issuer logos; supersedes earlier ticker/fixed palettes. Includes source provenance, 35 passing checks, production build and browser evidence. Domain and selected-cover/stock-stack decisions remain current.
+
+- [Basket artwork frontend release, 2026-10-09](basket-art-live-release-2026-10-09.md): integrated latest main baseline, verified test/build results, exact deployment and live checks.

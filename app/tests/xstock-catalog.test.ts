@@ -11,7 +11,7 @@ const assets = normalizeXStockAssets(snapshot.data);
 const first = assets[0];
 const second = assets[1];
 const futureMint = "11111111111111111111111111111111";
-const sample: ConceptBasket = { v: 1, name: "New issuer assets", thesis: "A stock basket idea", amountUsd: 1_000, assets: [{ symbol: first.underlyingSymbol.toUpperCase(), weightBps: 5000, mint: first.mint }, { symbol: second.underlyingSymbol.toUpperCase(), weightBps: 5000, mint: second.mint }], fees: { entryBps: 0, exitBps: 0, managementBps: 100 } };
+const sample: ConceptBasket = { v: 1, name: "New issuer assets", coverId: "deep-value", thesis: "A stock basket idea", amountUsd: 1_000, assets: [{ symbol: first.underlyingSymbol.toUpperCase(), weightBps: 5000, mint: first.mint }, { symbol: second.underlyingSymbol.toUpperCase(), weightBps: 5000, mint: second.mint }], fees: { entryBps: 0, exitBps: 0, managementBps: 100 } };
 
 test("all snapshot assets survive validation without mock prices or wrong-chain rows", () => {
   assert.equal(assets.length, snapshot.data.length);
@@ -74,12 +74,12 @@ test("mint validation checks decoded32bytes, rejecting malformed or oversized ad
   for (const mint of ["1111111111111111111111111111111", "111111111111111111111111111111111", "O".repeat(44), "z".repeat(44), "", null]) assert.equal(isSolanaMint(mint), false);
 });
 
-test("v3 links preserve new asset mint identities and legacy v2 stays unchanged", () => {
+test("v4 links preserve mint identities, covers and symbol-only baskets", () => {
   const encoded = encodeConceptBasket(sample);
-  assert.ok(encoded.startsWith("3."));
+  assert.ok(encoded.startsWith("4."));
   assert.deepEqual(decodeConceptBasket(encoded), sample);
   const legacy = { ...sample, assets: [{ symbol: "AAPL", weightBps: 5000 }, { symbol: "MSFT", weightBps: 5000 }] };
-  assert.ok(encodeConceptBasket(legacy).startsWith("2."));
+  assert.ok(encodeConceptBasket(legacy).startsWith("4."));
   assert.deepEqual(decodeConceptBasket(encodeConceptBasket(legacy)), legacy);
   assert.equal(LEGACY_CONCEPT_ASSETS.length, 41);
 });

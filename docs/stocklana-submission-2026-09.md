@@ -18,7 +18,7 @@ Build your own basket or discover a creator's idea. Inspect the allocation, chan
 
 ## TRY THE PRODUCT
 
-1. Open https://basalt-coral.vercel.app/ and choose a sample creator.
+1. Open https://basalt.markets/ and choose a sample creator.
 2. Select **Use this mix**, adjust the stocks and weights, and create your own preview. Or start with **Build a basket**.
 3. Share the basket link. It carries the name, thesis and allocation, so the next person can inspect and remix the same idea.
 

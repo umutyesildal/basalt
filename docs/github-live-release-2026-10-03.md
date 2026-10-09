@@ -5,7 +5,7 @@ Status: publication and final live checks complete. The latest product source is
 ## Existing targets
 
 - Repository: `https://github.com/umutyesildal/basalt`, branch `main`.
-- Website: `https://basalt-coral.vercel.app`, existing Vercel project `basalt`.
+- Website: `https://basalt.markets`, existing Vercel project `basalt`.
 - API: `https://basalt.178.104.34.252.sslip.io`.
 - VPS deployment: `/opt/basalt/backend` and `/opt/basalt/deploy`, existing Docker Compose backend/Postgres/Caddy services.
 - Wallet network: Solana devnet. Website deployment does not deploy programs to mainnet.
@@ -46,7 +46,7 @@ Public technical logs are audited for credentials and normalized only for traili
 ## Published source and deployment identities
 
 - Initial product source: [`e0e1edce2978ae8a717ef0b87d8683bddc296b19`](https://github.com/umutyesildal/basalt/commit/e0e1edce2978ae8a717ef0b87d8683bddc296b19). GitHub `main` matched this exact commit immediately after the push. The checksum correction does not change application code; the backend runtime correction below supersedes this initial backend source.
-- Frontend deployment: `dpl_FNSeEzmNUyoK5DesY3jfcwnXmJAj`, built Ready with production settings and promoted to [the existing website](https://basalt-coral.vercel.app). Immutable build: `https://basalt-6fgnr8tir-yesildaladams-projects.vercel.app`.
+- Frontend deployment: `dpl_FNSeEzmNUyoK5DesY3jfcwnXmJAj`, built Ready with production settings and promoted to [the existing website](https://basalt.markets). Immutable build: `https://basalt-6fgnr8tir-yesildaladams-projects.vercel.app`.
 - Initial VPS backend image: `sha256:9cadab9b63962240deda043935ae3d3c703a615d4b5de0c489c75455c861bd0f`. Source marker: `/opt/basalt/release-source-sha`. Backend recreated on 2026-10-03 at 11:03 UTC; its Docker healthcheck reports healthy.
 - PostgreSQL and Caddy stayed running from their existing September 17 starts. Post-release row counts were 5 baskets, 40 whitelist entries, 17 holdings, 22,530 NAV snapshots and 39 events. NAV snapshots continue accumulating; the data was not reset.
 - Backend cache is mounted read/write at `/app/.cache` from `deploy_backend_cache`. The two copied public snapshots retained their original SHA-256 digests and timestamps: 176 quote entries and 13 histories. Remote private environment files and database dumps remain on the server.

@@ -40,7 +40,7 @@ Unchanged creation drafts reuse a nonce keyed by owner, chain, programs, metadat
 - Existing Vercel project: `basalt`, `prj_qqKHz0ys2JAFFrWOVaYfPdljZFAR`, scope `yesildaladams-projects`.
 - Deployment: `dpl_3SGmPVkrWxRmAk7a1wbwqBtqUepf`, Ready, then promoted after staged HTTP/client-bundle checks.
 - Immutable URL: `https://basalt-2nwhnthfo-yesildaladams-projects.vercel.app`.
-- Public route: [Create on devnet](https://basalt-coral.vercel.app/create/onchain). `/devnet` serves the same workspace.
+- Public route: [Create on devnet](https://basalt.markets/create/onchain). `/devnet` serves the same workspace.
 - Live HTTP returned 200 and referenced the same checked UI and setup chunks. Browser hydration read the actual public basket and showed the single Add/Withdraw action with a real onchain share estimate. Disconnected controls stayed disabled. [Live screenshot](assets/devnet-single-pipeline-2026-10-03/live.png), [deployment checks](assets/devnet-single-pipeline-2026-10-03/deployment-checks.json).
 - The prior Vercel deployment `dpl_FNSeEzmNUyoK5DesY3jfcwnXmJAj` remains the rollback target. Existing public API/devnet settings are preserved. The VPS/backend/program deployment is unchanged by this frontend revision.
 
