@@ -1,5 +1,7 @@
 # Basalt Backend — Devnet/Demo Deployment Runbook (VPS + Docker + Caddy)
 
+> **Share-link follow-up, 2026-10-10:** Frontend and VPS backend now run source `307053da1310331c658c0401d0107f8405912199`, with persistent immutable preview short links. [Exact release, retained backups and Chrome verification](../docs/basket-short-links-2026-10-10.md). Historical projection/recovery guards remain in place.
+
 > **Current release, 2026-10-09:** The data-repair website/backend release is live. Read the [exact deployment, rollback, hosted-build and runtime evidence](../docs/devnet-live-release-2026-10-09.md). Earlier pending-build statements below describe preparation; historical financial recovery remains guarded. This guide retains bootstrap instructions and the exact candidate/release boundaries in §9.
 
 This runbook brings the Basalt backend (indexer + NAV engine + REST API) online

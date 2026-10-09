@@ -1,0 +1,10 @@
+{
+  "id": "3SY6THM-V28xDZqKXh_f",
+  "url": "https://basalt.markets/b/3SY6THM-V28xDZqKXh_f",
+  "encoded": "4.WzQsIlRlcm1pbmFsbHkgT25saW5lIiwxMDAwLFsiTlZEQSIsMjIwMCxudWxsLCJNU0ZUIiwxODAwLG51bGwsIkFBUEwiLDE2MDAsbnVsbCwiQU1aTiIsMTQwMCxudWxsLCJHT09HTCIsMTIwMCxudWxsLCJNRVRBIiwxMDAwLG51bGwsIkFWR08iLDgwMCxudWxsXSwiUGxhdGZvcm1zLCBjaGlwcyBhbmQgdGhlIHdvcmxkIG9uIHlvdXIgc2NyZWVuLiIsWzAsMCwwXSwidGVybWluYWxseS1vbmxpbmUiXQ",
+  "exactRoundTrip": true,
+  "idempotent": true,
+  "missingStatus": 404,
+  "invalidStatus": 400,
+  "readCache": "public, max-age=86400, immutable"
+}

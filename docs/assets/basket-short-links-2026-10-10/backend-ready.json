@@ -1,0 +1,48 @@
+{
+  "checkedAt": "2026-10-09T22:39:10.413Z",
+  "origin": "https://basalt.178.104.34.252.sslip.io",
+  "sourceSha": "307053da1310331c658c0401d0107f8405912199",
+  "serviceReady": true,
+  "projectionReady": false,
+  "containedDevnetRelease": true,
+  "network": {
+    "cluster": "devnet",
+    "genesisHash": "EtWTRABZaYq6iMfeYKouRu166VU2xqa1wcaWoxPkrZBG",
+    "programIds": [
+      "3hzoPep9JKgTmzLT6CNW5x3EN7WNYDevM6KHVM7pLgMF",
+      "6Q43vFh4aqGxzvtU2vQwJX9PmX3skfYsGWZdA3fwJB9k",
+      "FRavMcYQb2FVAHbbG6fGieQHdKk1UrQqgKsAAXTPRQeS"
+    ]
+  },
+  "discovery": {
+    "finalizedSlot": 509332312,
+    "completedAt": "2026-10-09T22:39:10.347Z",
+    "fresh": true
+  },
+  "basketCount": 10,
+  "currentValuations": 0,
+  "history": {
+    "pendingSignatures": 104,
+    "pendingEvidence": 0,
+    "collectedPendingEffects": 104,
+    "projectionBlockedSignatures": 1,
+    "quarantinedTransactions": 2,
+    "oldestPendingAt": "2026-10-09T13:33:48.165Z",
+    "oldestPendingChainAt": "2026-09-04T16:52:50.000Z",
+    "quarantinedSignatures": 4,
+    "scansPending": 0,
+    "indexedPrograms": 3,
+    "programIds": [
+      "3hzoPep9JKgTmzLT6CNW5x3EN7WNYDevM6KHVM7pLgMF",
+      "6Q43vFh4aqGxzvtU2vQwJX9PmX3skfYsGWZdA3fwJB9k",
+      "FRavMcYQb2FVAHbbG6fGieQHdKk1UrQqgKsAAXTPRQeS"
+    ],
+    "finalizedThroughSlot": "509332312",
+    "missingCoverage": 0,
+    "rebuildRequiredBaskets": 6,
+    "reconciliationWritesEnabled": true,
+    "reconciliationGuarded": true,
+    "automaticActivationEnabled": false,
+    "activatedRecoveryRuns": 0
+  }
+}
