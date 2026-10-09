@@ -6,7 +6,11 @@
     "dev": "next dev",
     "build": "next build",
     "typecheck": "tsc --noEmit --incremental false",
-    "start": "next start"
+    "start": "next start",
+    "test": "npm run test:node && npm run test:vitest && npm run test:concept-preview",
+    "test:node": "tsx --test lib/*.test.ts components/create/*.test.ts tests/alt-setup-recovery.test.ts tests/create-basket-security.test.ts tests/devnet-baskets.test.ts tests/token-2022.test.ts tests/xstock-catalog.test.ts tests/xstock-history.test.ts",
+    "test:vitest": "vitest run components/devnet/*.test.ts tests/managed-chain.test.ts tests/sign-and-send-local.test.ts",
+    "test:concept-preview": "tsx tests/concept-preview.test.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.7.0",
@@ -51,7 +55,8 @@
     "tailwindcss": "^3.4.0",
     "tailwindcss-animate": "^1.0.7",
     "typescript": "^5.4.0",
-    "vitest": "^1.4.0"
+    "vitest": "^1.4.0",
+    "tsx": "4.23.13"
   },
   "overrides": {
     "lodash": "4.18.1",

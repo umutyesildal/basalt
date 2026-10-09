@@ -72,6 +72,8 @@ jobs:
         run: npm --prefix backend test -- --run
       - name: Test security guards and dependency compatibility
         run: npm run test:security && node scripts/security/dependency-smoke.mjs
+      - name: Test app
+        run: npm --prefix app test
       - name: Typecheck app
         run: npm --prefix app run typecheck
       - name: Build app
@@ -99,6 +101,8 @@ jobs:
         run: >-
           docker run --rm --network none --read-only --entrypoint node basalt-backend:ci -e
           "const assert=require('node:assert/strict');
+          assert.equal(process.versions.node.split('.')[0],'20');
+          assert.equal(require('/usr/local/lib/node_modules/npm/package.json').version,'11.6.2');
           for(const name of ['@solana/web3.js','@solana/spl-token','pg']) require(name);
           assert.equal(require('bigint-buffer/package.json').name,'@basalt/bigint-buffer');
           assert.equal(require('bigint-buffer/package.json').version,'1.0.0');

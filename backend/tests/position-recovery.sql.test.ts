@@ -55,10 +55,10 @@ describe.skipIf(!url)("reviewed position recovery against disposable PostgreSQL"
   const activate = (database = db, rpc: PositionsSyncRpc = fixture.rpc, hash = run.historyHash) => activateStagedPositionRebuild(database,rpc,run.runId,hash,fixture.programs);
   async function projectionState() {
     const queries = [
-      'SELECT * FROM user_positions ORDER BY "user",basket', 'SELECT * FROM position_events ORDER BY sig,log_index',
+      'SELECT * FROM user_positions ORDER BY "user" COLLATE "C",basket', 'SELECT * FROM position_events ORDER BY sig COLLATE "C",log_index',
       'SELECT * FROM position_rebuild_required ORDER BY basket', 'SELECT * FROM position_reconciliation_state ORDER BY basket',
-      'SELECT * FROM position_rebuild_runs ORDER BY run_id', 'SELECT * FROM position_rebuild_positions_backup ORDER BY run_id,"user",basket',
-      'SELECT * FROM position_rebuild_claims_backup ORDER BY run_id,sig,log_index',
+      'SELECT * FROM position_rebuild_runs ORDER BY run_id', 'SELECT * FROM position_rebuild_positions_backup ORDER BY run_id,"user" COLLATE "C",basket',
+      'SELECT * FROM position_rebuild_claims_backup ORDER BY run_id,sig COLLATE "C",log_index',
     ];
     return Promise.all(queries.map(async sql => (await pool.query(sql)).rows));
   }
@@ -74,9 +74,9 @@ describe.skipIf(!url)("reviewed position recovery against disposable PostgreSQL"
     } };
   }
   async function assertPublished() {
-    expect((await pool.query('SELECT "user",share_balance::text AS balance,cost_basis,cost_basis_source FROM user_positions ORDER BY "user"')).rows)
+    expect((await pool.query('SELECT "user",share_balance::text AS balance,cost_basis,cost_basis_source FROM user_positions ORDER BY "user" COLLATE "C"')).rows)
       .toEqual([{user,balance:"1000000",cost_basis:null,cost_basis_source:null},{user:orphan,balance:"0",cost_basis:null,cost_basis_source:null}].sort((a,b)=>a.user<b.user?-1:1));
-    expect((await pool.query("SELECT sig,log_index,slot::text AS slot FROM position_events ORDER BY sig,log_index")).rows)
+    expect((await pool.query("SELECT sig,log_index,slot::text AS slot FROM position_events ORDER BY sig COLLATE \"C\",log_index")).rows)
       .toEqual([{sig:"0-redeem",log_index:8,slot:"40"},{sig:"Z-mint",log_index:2,slot:"20"},{sig:"a-fee",log_index:4,slot:"30"},{sig:"legacy",log_index:-1,slot:null}]);
     expect((await pool.query("SELECT activated_run_id FROM position_rebuild_required")).rows[0].activated_run_id).toBe(run.runId);
     expect((await pool.query("SELECT snapshot_slot::text FROM position_reconciliation_state")).rows[0].snapshot_slot).toBe("100");
@@ -86,11 +86,11 @@ describe.skipIf(!url)("reviewed position recovery against disposable PostgreSQL"
   it("quarantines pre-slot atomic claims in place and activation repairs slots with immutable old evidence", async () => {
     await pool.query("DELETE FROM position_events WHERE log_index<0");
     await pool.query("DELETE FROM position_rebuild_required");
-    const before=(await pool.query('SELECT * FROM user_positions ORDER BY "user"')).rows;
+    const before=(await pool.query('SELECT * FROM user_positions ORDER BY "user" COLLATE "C"')).rows;
     expect(await applySchema(db)).toBe(true);
     expect((await pool.query("SELECT reason,activated_run_id FROM position_rebuild_required")).rows[0])
       .toEqual({reason:"missing-finalized-position-slot",activated_run_id:null});
-    expect((await pool.query('SELECT * FROM user_positions ORDER BY "user"')).rows).toEqual(before);
+    expect((await pool.query('SELECT * FROM user_positions ORDER BY "user" COLLATE "C"')).rows).toEqual(before);
     await activate();
     expect((await pool.query("SELECT slot::text FROM position_events WHERE sig='Z-mint'")).rows[0].slot).toBe("20");
     expect((await pool.query("SELECT slot FROM position_rebuild_claims_backup WHERE sig='Z-mint'")).rows[0].slot).toBe(null);
@@ -102,18 +102,18 @@ describe.skipIf(!url)("reviewed position recovery against disposable PostgreSQL"
     const basket=fixture.basket.toBase58();
     await pool.query("DELETE FROM position_rebuild_required");
     await pool.query('UPDATE user_positions SET share_balance=5 WHERE "user"=$1',[user]);
-    const positionsBefore=(await pool.query('SELECT * FROM user_positions ORDER BY "user"')).rows;
+    const positionsBefore=(await pool.query('SELECT * FROM user_positions ORDER BY "user" COLLATE "C"')).rows;
     const event={type:"Redeemed" as const,basket,user,sharesBurned:"110",exitFeeShares:"0"};
     await expect(applyRedeemed(db,"0-redeem",event,8,40)).rejects.toBeInstanceOf(PositionProjectionGapError);
     expect((await pool.query("SELECT 1 FROM position_events WHERE sig='0-redeem'")).rows).toEqual([]);
-    expect((await pool.query('SELECT * FROM user_positions ORDER BY "user"')).rows).toEqual(positionsBefore);
+    expect((await pool.query('SELECT * FROM user_positions ORDER BY "user" COLLATE "C"')).rows).toEqual(positionsBefore);
     // This is the same exported persistence path the durable listener uses after rollback.
     await markPositionRebuildRequired(db,basket,"position-projection-gap");
     expect((await pool.query("SELECT reason,activated_run_id FROM position_rebuild_required")).rows[0])
       .toEqual({reason:"position-projection-gap",activated_run_id:null});
     // Maintenance replay keeps canonical events but does not apply the broken projection.
     run=await stagePositionRebuild(db,basket,fixture.programs.ids,{slot:fixture.slot,supply:"1000000",balances:[{user,shares:"1000000"}]});
-    expect((await pool.query('SELECT * FROM user_positions ORDER BY "user"')).rows).toEqual(positionsBefore);
+    expect((await pool.query('SELECT * FROM user_positions ORDER BY "user" COLLATE "C"')).rows).toEqual(positionsBefore);
     await activate();
     const published=await projectionState();
     expect(await applyRedeemed(db,"0-redeem",event,8,40)).toBe(false);
@@ -125,9 +125,9 @@ describe.skipIf(!url)("reviewed position recovery against disposable PostgreSQL"
   it("publishes exact finalized holders and claims while preserving old values and negative legacy evidence", async () => {
     const receipt = await activate(); await assertPublished();
     expect(receipt).toMatchObject({runId:run.runId,basket:fixture.basket.toBase58(),historyHash:run.historyHash,finalizedSlot:"100"});
-    expect((await pool.query('SELECT "user",share_balance::text,cost_basis::text,cost_basis_source FROM position_rebuild_positions_backup ORDER BY "user"')).rows)
+    expect((await pool.query('SELECT "user",share_balance::text,cost_basis::text,cost_basis_source FROM position_rebuild_positions_backup ORDER BY "user" COLLATE "C"')).rows)
       .toEqual([{user,share_balance:"888",cost_basis:"12",cost_basis_source:"reference"},{user:orphan,share_balance:"77",cost_basis:"5",cost_basis_source:"reference"}].sort((a,b)=>a.user<b.user?-1:1));
-    expect((await pool.query("SELECT sig,log_index,slot FROM position_rebuild_claims_backup ORDER BY sig")).rows)
+    expect((await pool.query("SELECT sig,log_index,slot FROM position_rebuild_claims_backup ORDER BY sig COLLATE \"C\"")).rows)
       .toEqual([{sig:"Z-mint",log_index:2,slot:null},{sig:"legacy",log_index:-1,slot:null}]);
   });
 

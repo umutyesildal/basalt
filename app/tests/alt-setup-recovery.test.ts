@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test, { afterEach } from "node:test";
 import { createHash } from "node:crypto";
 import { spawnSync } from "node:child_process";
+import { fileURLToPath } from "node:url";
 import {
   AddressLookupTableAccount, AddressLookupTableInstruction, AddressLookupTableProgram,
   PublicKey, TransactionInstruction, type Connection, type VersionedTransaction,
@@ -265,7 +266,8 @@ test("a fresh process resumes the serialized receipt after create succeeds and t
   const script = `
     import assert from "node:assert/strict";
     import { AddressLookupTableAccount, AddressLookupTableInstruction, AddressLookupTableProgram, PublicKey, TransactionInstruction } from "@solana/web3.js";
-    import { ensureMintRedeemAlt } from "./app/lib/transactions.ts";
+    import * as transactionsModule from "./lib/transactions.ts";
+    const { ensureMintRedeemAlt } = transactionsModule.default ?? transactionsModule;
     const payload = ${JSON.stringify(payload)};
     const values = new Map(payload.storage);
     globalThis.window = { localStorage: { getItem: key => values.get(key) ?? null, setItem: (key, value) => values.set(key, value), removeItem: key => values.delete(key) } };
@@ -296,7 +298,9 @@ test("a fresh process resumes the serialized receipt after create succeeds and t
     console.log(JSON.stringify({ created: result.created, approvals: result.approvals, address: result.lookupTableAddress.toBase58(), sends }));
   `;
   const child = spawnSync(process.execPath, ["--import", "tsx", "--input-type=module", "-e", script], {
-    cwd: process.cwd(), env: { ...process.env, TSX_TSCONFIG_PATH: `${process.cwd()}/app/tsconfig.json` }, timeout: 10_000, encoding: "utf8",
+    cwd: fileURLToPath(new URL("../", import.meta.url)),
+    env: { ...process.env, TSX_TSCONFIG_PATH: fileURLToPath(new URL("../tsconfig.json", import.meta.url)) },
+    timeout: 10_000, encoding: "utf8",
   });
   assert.equal(child.status, 0, child.stderr);
   assert.deepEqual(JSON.parse(child.stdout), { created: false, approvals: 1, address: original.key.toBase58(), sends: 1 });
