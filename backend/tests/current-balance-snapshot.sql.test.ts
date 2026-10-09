@@ -6,6 +6,7 @@ import { PublicKey, type ParsedTransactionWithMeta } from "@solana/web3.js";
 import { applySchema } from "../src/db/init";
 import type { PgLike } from "../src/db/client";
 import { decodeBasketState } from "../src/indexer/basketState";
+import { RpcReadError } from "../src/rpc/requestBudget";
 import { DEVNET_RPC_GENESIS } from "../src/rpc/positionsProvider";
 import { discoverCurrentBalanceCandidates, persistCurrentBalanceSnapshot, readCurrentBalanceSnapshot, syncCurrentBalanceSnapshots, type CurrentBalanceRpc } from "../src/indexer/currentBalanceSnapshot";
 import { positionRecoveryFixture, recoveryKey } from "./fixtures/position-recovery";
@@ -50,7 +51,7 @@ describe.skipIf(!url)("current-balance snapshot persistence against disposable P
   });
   it("recovers a nonATA holder through authenticated transaction-key hints even with original logs truncated",async()=>{
     const f=fixture();await seed(f);const before=await oldEvidence();expect(await syncCurrentBalanceSnapshots(f.rpc,db(),f.programs)).toMatchObject({attempted:1,verified:1,incomplete:0});
-    expect((await pool.query("SELECT status,history_complete,account_count FROM current_balance_snapshots")).rows[0]).toEqual({status:"verified",history_complete:false,account_count:1});expect(f.reads).toHaveLength(2);expect(await oldEvidence()).toEqual(before);
+    expect((await pool.query("SELECT status,history_complete,account_count FROM current_balance_snapshots")).rows[0]).toEqual({status:"verified",history_complete:false,account_count:1});expect(f.reads).toHaveLength(2);expect(f.calls).toHaveLength(1);expect(await oldEvidence()).toEqual(before);
   });
   it("stores u64MAX exactly in JSONB/NUMERIC without touching legacyBIGINT rows",async()=>{
     const f=fixture(),amount=(1n<<64n)-1n;f.accounts[0].account.data.writeBigUInt64LE(amount,64);f.mintAccount.data.writeBigUInt64LE(amount,36);await seed(f);const before=await oldEvidence();
@@ -126,6 +127,25 @@ describe.skipIf(!url)("current-balance snapshot persistence against disposable P
     const a=fixture(7n),b=fixture(8n);await seed(a);await seed(b);const rpc:CurrentBalanceRpc={...a.rpc,getAccountInfoAndContext:()=>new Promise(()=>{})};
     const started=Date.now();expect(await syncCurrentBalanceSnapshots(rpc,db(),a.programs,{passDeadlineMs:100})).toEqual({attempted:1,verified:0,incomplete:1,deferred:1});
     expect(Date.now()-started).toBeLessThan(2_000);expect((await pool.query("SELECT status,reason FROM current_balance_snapshots")).rows).toEqual([{status:"incomplete",reason:"snapshot-deadline"}]);
+  });
+
+  it.each(["genesis","basket","transaction"])("retries a transient429 at %s once without changing the financial ledger",async phase=>{
+    const f=fixture();await seed(f);const before=await oldEvidence();let attempts=0;
+    if(phase==="genesis"){const original=f.rpc.getGenesisHash;f.rpc.getGenesisHash=async()=>{if(++attempts===1)throw new Error("HTTP429");return original();};}
+    if(phase==="basket"){const original=f.rpc.getAccountInfoAndContext;f.rpc.getAccountInfoAndContext=async(...args)=>{if(++attempts===1)throw new Error("HTTP429");return original(...args);};}
+    if(phase==="transaction"){const original=f.rpc.getParsedTransaction;f.rpc.getParsedTransaction=async(...args)=>{if(++attempts===1)throw new Error("HTTP429");return original(...args);};}
+    const sleep=vi.fn(async()=>{});expect(await syncCurrentBalanceSnapshots(f.rpc,db(),f.programs,{backoffSleep:sleep})).toEqual({attempted:1,verified:1,incomplete:0,deferred:0});
+    expect(attempts).toBe(2);expect(sleep).toHaveBeenCalledTimes(1);expect(f.calls).toHaveLength(1);expect(await oldEvidence()).toEqual(before);
+  });
+  it("bounds persistent429 retries and leaves every historical effect unchanged",async()=>{
+    const f=fixture();await seed(f);const before=await oldEvidence();let attempts=0;f.rpc.getAccountInfoAndContext=async()=>{attempts++;throw new Error("HTTP429");};
+    const sleep=vi.fn(async()=>{});expect(await syncCurrentBalanceSnapshots(f.rpc,db(),f.programs,{backoffSleep:sleep})).toMatchObject({verified:0,incomplete:1});
+    expect(attempts).toBe(3);expect(sleep).toHaveBeenCalledTimes(2);expect(f.reads).toEqual([]);expect(await oldEvidence()).toEqual(before);
+  });
+  it.each(["rpc-queue-deadline","rpc-request-deadline","private-secret=https://private.invalid"])("exposes only known fixed transport reason %s",async code=>{
+    const f=fixture();await seed(f);const before=await oldEvidence();f.rpc.getAccountInfoAndContext=async()=>{throw new RpcReadError(code);};
+    await syncCurrentBalanceSnapshots(f.rpc,db(),f.programs);
+    expect((await pool.query("SELECT status,reason FROM current_balance_snapshots")).rows[0]).toEqual({status:"incomplete",reason:code.startsWith("private")?"snapshot-read-or-storage-unavailable":code});expect(await oldEvidence()).toEqual(before);
   });
 
 });

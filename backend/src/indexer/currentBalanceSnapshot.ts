@@ -5,6 +5,7 @@ import { TOKEN_2022_PROGRAM_ID, getAssociatedTokenAddressSync, unpackMint } from
 import { isTransactionPool, type PgLike, type PgTransactionClient } from "../db/client.js";
 import { DEVNET_RPC_GENESIS } from "../rpc/positionsProvider.js";
 import { withRpcBackoff } from "../rpc/backoff.js";
+import { RpcReadError } from "../rpc/requestBudget.js";
 import { decodeBasketState, type DecodedBasketState } from "./basketState.js";
 import { parseShareHolders, type RecoveryPrograms } from "./positionsSync.js";
 import { assertBasketProjectionMatches } from "./positionSnapshotProjection.js";
@@ -99,9 +100,12 @@ function assertFreshObservation(snapshot: CurrentBalanceSnapshot): void {
   const timestamp = snapshot.observedAt instanceof Date ? snapshot.observedAt.getTime() : NaN, now = Date.now();
   if (!Number.isFinite(timestamp) || timestamp > now || now - timestamp > MAX_SNAPSHOT_AGE_MS) throw new CurrentBalanceSnapshotError("snapshot-observation-stale-or-future");
 }
-async function verifyNetwork(rpc: CurrentBalanceRpc, deadline: number): Promise<void> {
+async function retryRead<T>(read: () => Promise<T>, deadline: number, sleep?: (ms: number) => Promise<void>): Promise<T> {
+  return bounded(() => withRpcBackoff(() => bounded(read, deadline), { sleep, logKey: "current-balances" }), deadline);
+}
+async function verifyNetwork(rpc: CurrentBalanceRpc, deadline: number, sleep?: (ms: number) => Promise<void>): Promise<void> {
   if ((identity.get(rpc) ?? 0) > Date.now()) return;
-  if (await bounded(() => rpc.getGenesisHash(), deadline) !== DEVNET_RPC_GENESIS) throw new CurrentBalanceSnapshotError("wrong-network");
+  if (await retryRead(() => rpc.getGenesisHash(), deadline, sleep) !== DEVNET_RPC_GENESIS) throw new CurrentBalanceSnapshotError("wrong-network");
   identity.set(rpc, Date.now() + 60_000);
 }
 function accountBytes(info: AccountInfo<Buffer>): string {
@@ -112,7 +116,7 @@ function accountBytes(info: AccountInfo<Buffer>): string {
 /** Candidate addresses are hints. Exact authenticated raw supply conservation proves coverage. */
 export async function readCurrentBalanceSnapshot(
   rpc: CurrentBalanceRpc, basket: string, programs: RecoveryPrograms, candidates: readonly string[],
-  options: { deadlineMs?: number; backoffSleep?: (ms: number) => Promise<void> } = {},
+  options: { deadlineMs?: number; backoffSleep?: (ms: number) => Promise<void>; preparedBasket?: Awaited<ReturnType<CurrentBalanceRpc["getAccountInfoAndContext"]>> } = {},
 ): Promise<CurrentBalanceSnapshot> {
   validatePrograms(programs); const basketAddress = key(basket, true);
   if (!Array.isArray(candidates) || candidates.length > MAX_CANDIDATES) throw new CurrentBalanceSnapshotError("candidate-limit-exceeded");
@@ -120,9 +124,11 @@ export async function readCurrentBalanceSnapshot(
   const duration = options.deadlineMs ?? 10_000;
   if (!Number.isSafeInteger(duration) || duration < 1 || duration > 10_000) throw new CurrentBalanceSnapshotError("invalid-snapshot-deadline");
   const deadline = Date.now() + duration;
-  const read = <T>(fn: () => Promise<T>) => bounded(() => withRpcBackoff(() => bounded(fn, deadline), { sleep: options.backoffSleep, logKey: "current-balances" }), deadline);
-  await verifyNetwork(rpc, deadline);
-  const initial = await read(() => rpc.getAccountInfoAndContext(basketAddress, { commitment: "finalized" }));
+  const read = <T>(fn: () => Promise<T>) => retryRead(fn, deadline, options.backoffSleep);
+  await verifyNetwork(rpc, deadline, options.backoffSleep);
+  // This prior read supplies hints/minContextSlot only. Every proof batch below
+  // independently authenticates the canonical raw basket, mint and holders.
+  const initial = options.preparedBasket ?? await read(() => rpc.getAccountInfoAndContext(basketAddress, { commitment: "finalized" }));
   let minimum = slot(initial.context);
   if (!initial.value) throw new CurrentBalanceSnapshotError("basket-unavailable");
   const firstState = decodeBasketState(basket, initial.value, programs);
@@ -192,13 +198,13 @@ export async function discoverCurrentBalanceCandidates(db: PgLike, basket: strin
   });
 }
 
-async function expandTransactionHints(rpc: CurrentBalanceRpc, db: PgLike, basket: string, programs: RecoveryPrograms, candidates: string[], passDeadline: number): Promise<string[]> {
+async function expandTransactionHints(rpc: CurrentBalanceRpc, db: PgLike, basket: string, programs: RecoveryPrograms, candidates: string[], passDeadline: number, sleep?: (ms: number) => Promise<void>): Promise<string[]> {
   const rows = (await snapshotTransaction(db, passDeadline, client => client.query(`SELECT sig,MAX(slot) AS slot FROM (SELECT sig,slot FROM events WHERE basket=$1
     UNION SELECT sig,slot FROM indexer_signature_queue WHERE program_id=ANY($2::text[]) AND status='quarantined') hints
     GROUP BY sig ORDER BY MAX(slot) DESC,sig COLLATE "C" LIMIT 4`, [basket, [...programs.ids]]))).rows;
   const found = new Set(candidates), deadline = Math.min(passDeadline, Date.now() + 10_000);
   for (const row of rows) {
-    const tx = await bounded(() => rpc.getParsedTransaction(row.sig, { commitment: "finalized", maxSupportedTransactionVersion: 0 }), deadline);
+    const tx = await retryRead(() => rpc.getParsedTransaction(row.sig, { commitment: "finalized", maxSupportedTransactionVersion: 0 }), deadline, sleep);
     if (!tx || !tx.meta || tx.meta.err || tx.transaction.signatures[0] !== row.sig || !Number.isSafeInteger(tx.slot) || tx.slot !== Number(row.slot)) throw new CurrentBalanceSnapshotError("transaction-hint-unavailable");
     if (!Array.isArray(tx.transaction.message.accountKeys) || tx.transaction.message.accountKeys.length > 256) throw new CurrentBalanceSnapshotError("transaction-hint-invalid");
     for (const account of tx.transaction.message.accountKeys) found.add(key(account.pubkey.toBase58()).toBase58());
@@ -248,9 +254,19 @@ export async function persistCurrentBalanceSnapshot(db: PgLike, snapshot: Curren
   });
 }
 
+// Expose only transport codes owned by our read-only adapter, never provider
+// messages, endpoints, request bodies or arbitrary error.code values.
+const RPC_FAILURE_CODES = new Set(["rpc-queue-deadline", "rpc-queue-full", "rpc-request-deadline", "rpc-request-aborted",
+  "rpc-transport-unavailable", "rpc-response-too-large", "rpc-response-body-unavailable", "rpc-invalid-json", "rpc-response-identity-mismatch"]);
+function snapshotFailureReason(error: unknown): string {
+  if (error instanceof CurrentBalanceSnapshotError) return error.code;
+  if (error instanceof RpcReadError && (RPC_FAILURE_CODES.has(error.code) || /^rpc-http-[1-5]\d{2}$/.test(error.code))) return error.code;
+  return "snapshot-read-or-storage-unavailable";
+}
+
 const passCursors = new WeakMap<PgLike, number>();
 export async function syncCurrentBalanceSnapshots(rpc: CurrentBalanceRpc, db: PgLike, programs: RecoveryPrograms,
-  options: { maxBasketsPerPass?: number; passDeadlineMs?: number } = {},
+  options: { maxBasketsPerPass?: number; passDeadlineMs?: number; backoffSleep?: (ms: number) => Promise<void> } = {},
 ): Promise<{ attempted: number; verified: number; incomplete: number; deferred: number }> {
   validatePrograms(programs);
   const maxBaskets = options.maxBasketsPerPass ?? 10, passDuration = options.passDeadlineMs ?? 30_000;
@@ -267,21 +283,21 @@ export async function syncCurrentBalanceSnapshots(rpc: CurrentBalanceRpc, db: Pg
     const attemptedAt = new Date(); stats.attempted++;
     const remaining = () => Math.min(10_000, Math.max(1, passDeadline - Date.now()));
     try {
-      await verifyNetwork(rpc, Math.min(passDeadline, Date.now() + 10_000));
-      const account = await bounded(() => rpc.getAccountInfoAndContext(key(row.pubkey), { commitment: "finalized" }), Math.min(passDeadline, Date.now() + 10_000));
+      await verifyNetwork(rpc, Math.min(passDeadline, Date.now() + 10_000), options.backoffSleep);
+      const account = await retryRead(() => rpc.getAccountInfoAndContext(key(row.pubkey), { commitment: "finalized" }), Math.min(passDeadline, Date.now() + 10_000), options.backoffSleep);
       slot(account.context); if (!account.value) throw new CurrentBalanceSnapshotError("basket-unavailable");
       const state = decodeBasketState(row.pubkey, account.value, programs);
       let candidates = await discoverCurrentBalanceCandidates(db, row.pubkey, state, passDeadline), snapshot: CurrentBalanceSnapshot;
-      try { snapshot = await readCurrentBalanceSnapshot(rpc, row.pubkey, programs, candidates, { deadlineMs: remaining() }); }
+      try { snapshot = await readCurrentBalanceSnapshot(rpc, row.pubkey, programs, candidates, { deadlineMs: remaining(), preparedBasket: account, backoffSleep: options.backoffSleep }); }
       catch (error) {
         if (!(error instanceof CurrentBalanceSnapshotError) || error.code !== "share-supply-coverage-incomplete") throw error;
-        candidates = await expandTransactionHints(rpc, db, row.pubkey, programs, candidates, passDeadline);
-        snapshot = await readCurrentBalanceSnapshot(rpc, row.pubkey, programs, candidates, { deadlineMs: remaining() });
+        candidates = await expandTransactionHints(rpc, db, row.pubkey, programs, candidates, passDeadline, options.backoffSleep);
+        snapshot = await readCurrentBalanceSnapshot(rpc, row.pubkey, programs, candidates, { deadlineMs: remaining(), preparedBasket: account, backoffSleep: options.backoffSleep });
       }
       if (await persistCurrentBalanceSnapshot(db, snapshot, programs, attemptedAt, passDeadline)) stats.verified++;
     } catch (error) {
       stats.incomplete++;
-      await failSnapshot(db, row.pubkey, programs, attemptedAt, error instanceof CurrentBalanceSnapshotError ? error.code : "snapshot-read-or-storage-unavailable", Math.max(passDeadline, Date.now() + 1_000));
+      await failSnapshot(db, row.pubkey, programs, attemptedAt, snapshotFailureReason(error), Math.max(passDeadline, Date.now() + 1_000));
     }
   }
   stats.deferred = baskets.length - stats.attempted;

@@ -131,4 +131,11 @@ describe("independent authenticated finalized current balances",()=>{
     expect(client.query).toHaveBeenCalledTimes(calls);
   });
 
+  it("prepared basket hints avoid another initial RPC read while raw batch authentication remains mandatory",async()=>{
+    const f=fixture();const prior=await f.rpc.getAccountInfoAndContext(f.basket,{commitment:"finalized"});
+    expect(await fetchSnapshot(f,undefined,{preparedBasket:prior})).toMatchObject({supply:"10",slot:100});expect(f.calls).toHaveLength(1);expect(f.reads).toHaveLength(1);
+    const original=f.rpc.getMultipleAccountsInfoAndContext;f.rpc.getMultipleAccountsInfoAndContext=async(...args)=>{const response=await original(...args),bad={...f.basketAccount,data:Buffer.from(f.basketAccount.data)};bad.data[0]^=255;response.value[0]=bad;return response;};
+    await expect(fetchSnapshot(f,undefined,{preparedBasket:prior})).rejects.toThrow("discriminator");expect(f.calls).toHaveLength(1);expect(f.reads).toHaveLength(2);
+  });
+
 });
