@@ -1,6 +1,6 @@
 # Basket tweet template, 2026-10-10
 
-Status: implementation and checks passed; publication is in progress.
+Status: published to https://basalt.markets and verified in Chrome on 10 October 2026.
 
 The owner requested a weekly-performance first sentence, then the thesis and short basket link, with `Check out more at @basalt_sol` last. Both preview and image-modal X actions use the same formatter. Native image sharing uses the same copy while supplying its URL separately.
 
@@ -29,5 +29,15 @@ The number above reflects the observed public model response on 10 October 2026,
 
 - 40 focused social/performance/origin checks passed.
 - Full app suite: 313 Node, 57 Vitest and concept preview/sample integrity checks passed, zero failures/skips.
-- App typecheck passed. Production build and final publication evidence will be recorded below.
+- App typecheck, local production build and frozen hosted production build passed. All six GitHub CI jobs passed for the exact application source.
 - No backend, contract, price-worker, fee or financial-state change. The existing VPS remains at short-link source `307053da1310331c658c0401d0107f8405912199`; this is a frontend-only follow-up.
+
+## Publication and browser verification
+
+- Application source: `4ffbfdc2174d1bca96fa6efc1d40bb324d24cf08`, pushed to public `origin/main`.
+- Exact-source CI: https://github.com/umutyesildal/basalt/actions/runs/38001501373 . All six jobs succeeded, including app/backend tests, production build, Rust/Clippy, security scans and container checks.
+- Vercel production deployment: `dpl_76CyNAWxa6rwndGqmeGCPK5h8xjX`, immutable URL https://basalt-5nxzbryw9-yesildaladams-projects.vercel.app . Deployment metadata confirms both source and Git commit SHA above. The ready deployment was explicitly promoted; inspecting https://basalt.markets resolved to that exact production deployment.
+- Frontend rollback: `dpl_3ccnXao9qcYChJgnbistgugne2WF`. No backend deployment was performed for this follow-up.
+- In the owner's requested Chrome browser, the actual live Main Character page's **Share on X** action opened an editable X composer. Reading its **Post text** textbox confirmed the exact name, `2.76%`, thesis, short URL and final account line shown above. The link preview resolved to `Main Character · Basalt`.
+- A full screenshot was captured locally at `/tmp/basalt-main-character-x-draft-full-20261010.jpg`. The surrounding personal feed is deliberately excluded from repository evidence. A clipped-capture attempt did not show the composer and is not evidence. The browser extension disconnected after verification and requested an update, so later tab cleanup could not be confirmed. No **Post** action was performed.
+- Sanitized public deployment identities and the observed draft are recorded in [verification evidence](assets/basket-tweet-template-2026-10-10/verification.md). Documentation-only commits after the source above do not change deployed application bytes.
