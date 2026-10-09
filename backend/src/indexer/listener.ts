@@ -1,10 +1,12 @@
 import { createReadOnlyRpcConnection, guardedRpcFetch } from "../rpc/requestBudget.js";
 import { readIndexerGenesisHash } from "./rpcIdentity.js";
+import { PROGRAM_NAMESPACES, namespaceForProgram, namespaceProgramIds, registeredProgramIds,
+  validateNamespaceRegistry, type ProgramNamespace } from "../config/programNamespaces.js";
 /**
  * indexer/listener.ts — read-only event indexer for the three Basalt programs.
  *
- * Polls `getSignaturesForAddress` per program ID (env: PROGRAM_WHITELIST,
- * PROGRAM_FACTORY, PROGRAM_BASKET), fetches each transaction, decodes the four
+ * Polls `getSignaturesForAddress` across the closed namespace union, authenticates
+ * the optional PROGRAM_* role selector, and fetches each transaction, decodes the four
  * Anchor CPI events (BasketCreated / Minted / Redeemed / FeeAccrued) from
  * `Program data:` logs via the sha256("event:<Name>") discriminator matcher in
  * ./events.ts, and upserts them into the `events` table — plus a full
@@ -73,6 +75,8 @@ export interface ChainStateRpc extends SolanaRpc {
 
 export interface IndexerConfig {
   programIds: string[];
+  /** Source-controlled trust roots; isolated registries are injected only by tests. */
+  namespaces?: readonly ProgramNamespace[];
   /** Verified read-only RPC identity captured at environment startup. */
   genesisHash?: string;
   /** Required in env-created production indexers. Tests may exercise the DB-less decoder. */
@@ -142,6 +146,9 @@ const STATE_SYNC_SPACING_MS = 100;
 /** Leave public-RPC headroom for the independent NAV and state workers. */
 const TRANSACTION_SPACING_MS = 400;
 class CanonicalLogsIncompleteError extends Error {}
+class NamespaceProjectionError extends Error {
+  constructor(message: string, readonly emitters: string[] = []) { super(message); }
+}
 
 type SignatureInfo = Awaited<ReturnType<SolanaRpc["getSignaturesForAddress"]>>[number];
 
@@ -304,7 +311,9 @@ export class EventIndexer {
   private readonly attempts = new Map<string, number>();
   /** Failed reads remain retryable even after leaving the newest-signature page. */
   private readonly pending = new Map<string, { programId: string; info: SignatureInfo }>();
-  private readonly knownBaskets = new Set<string>();
+  private readonly knownBaskets = new Map<string, string | undefined>();
+  private readonly namespaces: readonly ProgramNamespace[] | null;
+  private readonly completedNamespaceSlots = new Map<string, number>();
   private readonly factoryTreasuries = new Map<string, string>();
   private readonly attemptedThisPoll = new Set<string>();
   private readonly rpcPacer: Pacer;
@@ -343,6 +352,24 @@ export class EventIndexer {
     private readonly cfg: IndexerConfig,
     private readonly db: PgLike | null = null,
   ) {
+    // Durable production and maintenance callers cannot select arbitrary trust roots.
+    // A registered complete trio remains accepted for per-basket recovery, while
+    // collection always covers the entire reviewed union exactly once.
+    this.namespaces = cfg.namespaces ? validateNamespaceRegistry(cfg.namespaces) :
+      cfg.durableHistory && isPgLike(db) ? PROGRAM_NAMESPACES : null;
+    if (this.namespaces) {
+      const requested = [...cfg.programIds].sort(), union = registeredProgramIds(this.namespaces);
+      const exact = (ids: string[]) => JSON.stringify(requested) === JSON.stringify(ids);
+      if (!exact(union) && !this.namespaces.some(namespace => exact(namespaceProgramIds(namespace)))) {
+        throw new Error("Durable indexer programs must match a registered namespace or the closed union");
+      }
+      const roles = [cfg.whitelistProgramId, cfg.factoryProgramId, cfg.basketProgramId];
+      if (roles.some(value => value !== undefined) && !this.namespaces.some(namespace =>
+        roles[0] === namespace.programs.whitelist && roles[1] === namespace.programs.factory && roles[2] === namespace.programs.basket)) {
+        throw new Error("Indexer roles must match one complete registered namespace");
+      }
+      this.cfg = { ...cfg, programIds: union, namespaces: this.namespaces };
+    }
     this.history = cfg.durableHistory && isPgLike(db) ? new DurableHistory(db) : null;
     if (this.history && typeof db?.connect !== "function") throw new Error("Durable indexer requires a PostgreSQL pool");
     this.rpcPacer = createPacer(cfg.transactionSpacingMs ?? TRANSACTION_SPACING_MS, { sleep: cfg.backoffSleep });
@@ -391,85 +418,66 @@ export class EventIndexer {
   private async syncChainState(): Promise<void> {
     if (!isPgLike(this.db)) return;
     const full = this.rpc as ChainStateRpc;
-    if (typeof full.getProgramAccounts !== "function") return; // hand-rolled test rpc
-    const now = Date.now();
-    const spacing = this.cfg.stateSyncSpacingMs ?? STATE_SYNC_SPACING_MS;
-    // Discover authenticated Basket accounts even when creation logs were truncated or pruned.
-    if (this.cfg.basketProgramId && this.cfg.factoryProgramId && now - this.lastDiscoveryMs >= 300_000) {
+    if (typeof full.getProgramAccounts !== "function") return;
+    const now = Date.now(), spacing = this.cfg.stateSyncSpacingMs ?? STATE_SYNC_SPACING_MS;
+    const routes = this.namespaces ?? (this.cfg.basketProgramId && this.cfg.factoryProgramId ? [{
+      id: "diagnostic", programs: { basket: this.cfg.basketProgramId, factory: this.cfg.factoryProgramId, whitelist: this.cfg.whitelistProgramId },
+    }] : []);
+    const options = this.namespaces ? { namespaces: this.namespaces } : {};
+    if (now - this.lastDiscoveryMs >= 300_000) {
       this.lastDiscoveryMs = now;
-      try {
-        const accounts = await this.pacedRead(() => full.getProgramAccounts(new PublicKey(this.cfg.basketProgramId!), { commitment: "finalized", filters: [{ dataSize: 888 }] }));
-        for (const account of accounts) {
-          try {
-            const state = decodeBasketState(account.pubkey.toBase58(), account.account, { basket: new PublicKey(this.cfg.basketProgramId), factory: new PublicKey(this.cfg.factoryProgramId) });
-            if (await this.fetchTreasury(state.factory, this.cfg.factoryProgramId) !== state.treasury) throw new Error("factory treasury mismatch");
-            await upsertBasketFromCreation(this.db, state);
-            this.rememberBasket(state.pubkey);
-            await incrementCreatorStats(this.db, state.creator);
-          } catch (error) { console.warn("[indexer] basket discovery rejected account", account.pubkey.toBase58(), error instanceof Error ? error.message : error); }
-        }
-      } catch (error) { console.warn("[indexer] basket discovery failed", error instanceof Error ? error.message : error); }
+      for (const route of routes) try {
+        const accounts = await this.pacedRead(() => full.getProgramAccounts(new PublicKey(route.programs.basket), { commitment: "finalized", filters: [{ dataSize: 888 }] }));
+        for (const account of accounts) try {
+          const state = decodeBasketState(account.pubkey.toBase58(), account.account, { basket: new PublicKey(route.programs.basket), factory: new PublicKey(route.programs.factory) });
+          if (await this.fetchTreasury(state.factory, route.programs.factory) !== state.treasury) throw new Error("factory treasury mismatch");
+          await upsertBasketFromCreation(this.db, state);
+          this.rememberBasket(state.pubkey, route.id);
+          await incrementCreatorStats(this.db, state.creator);
+        } catch (error) { console.warn("[indexer] basket discovery rejected account", account.pubkey.toBase58(), error instanceof Error ? error.message : error); }
+      } catch (error) { console.warn("[indexer] basket discovery failed", route.id, error instanceof Error ? error.message : error); }
     }
-    if (this.cfg.whitelistProgramId && now - this.lastWhitelistSyncMs >= WHITELIST_SYNC_INTERVAL_MS) {
+    if (now - this.lastWhitelistSyncMs >= WHITELIST_SYNC_INTERVAL_MS) {
       this.lastWhitelistSyncMs = now;
-      try {
-        const n = await syncWhitelistedMints(full, this.cfg.whitelistProgramId, this.db);
+      const whitelistPrograms = this.namespaces ? this.namespaces.map(route => route.programs.whitelist) : this.cfg.whitelistProgramId ? [this.cfg.whitelistProgramId] : [];
+      for (const program of whitelistPrograms) try {
+        const n = await syncWhitelistedMints(full, program, this.db, options);
         if (n > 0) console.log(`[indexer] whitelist sync: ${n} mints upserted`);
-      } catch (err) {
-        console.warn("[indexer] whitelist sync failed:", err instanceof Error ? err.message : err);
-      }
+      } catch (error) { console.warn("[indexer] whitelist sync failed:", error instanceof Error ? error.message : error); }
     }
-    const holdingsIntervalMs = this.cfg.holdingsSyncIntervalMs ?? HOLDINGS_SYNC_INTERVAL_MS;
-    if (now - this.lastHoldingsSyncMs >= holdingsIntervalMs) {
+    if (now - this.lastHoldingsSyncMs >= (this.cfg.holdingsSyncIntervalMs ?? HOLDINGS_SYNC_INTERVAL_MS)) {
       this.lastHoldingsSyncMs = now;
       try {
-        const n = await syncIndexedBaskets(full, this.db, { spacingMs: spacing });
+        const n = await syncIndexedBaskets(full, this.db, { spacingMs: spacing, ...options });
         if (n > 0) console.log(`[indexer] holdings sync: ${n} baskets refreshed`);
-      } catch (err) {
-        console.warn("[indexer] holdings sync failed:", err instanceof Error ? err.message : err);
-      }
+      } catch (error) { console.warn("[indexer] holdings sync failed:", error instanceof Error ? error.message : error); }
     }
-    // A separate current-state proof can succeed with missing historical logs.
-    // It never activates/replaces financial claims, positions or quarantine.
-    if (!this.cfg.replayOnly && this.cfg.basketProgramId && this.cfg.factoryProgramId &&
-        typeof (full as unknown as CurrentBalanceRpc).getMultipleAccountsInfoAndContext === "function" &&
-        now-this.lastCurrentBalancesMs >= 60_000) {
-      this.lastCurrentBalancesMs=now;
-      try {
-        const stats=await syncCurrentBalanceSnapshots(full as unknown as CurrentBalanceRpc,this.db,{
-          basket:new PublicKey(this.cfg.basketProgramId),factory:new PublicKey(this.cfg.factoryProgramId),ids:this.cfg.programIds,
-        });
-        console.log("[indexer] independent finalized current balance verification:",JSON.stringify(stats));
+    if (typeof (full as unknown as CurrentBalanceRpc).getMultipleAccountsInfoAndContext === "function" && now - this.lastCurrentBalancesMs >= 60_000) {
+      this.lastCurrentBalancesMs = now;
+      for (const route of routes) try {
+        const ids = this.namespaces ? namespaceProgramIds(route as ProgramNamespace) : this.cfg.programIds;
+        const stats = await syncCurrentBalanceSnapshots(full as unknown as CurrentBalanceRpc, this.db, {
+          basket: new PublicKey(route.programs.basket), factory: new PublicKey(route.programs.factory), ids,
+        }, options);
+        console.log("[indexer] independent finalized current balance verification:", route.id, JSON.stringify(stats));
       } catch { console.warn("[indexer] current balance verification unavailable; history guards remain active"); }
     }
-    const positionsIntervalMs = this.cfg.positionsSyncIntervalMs ?? POSITIONS_SYNC_INTERVAL_MS;
-    if (!this.cfg.replayOnly && now - this.lastPositionsSyncMs >= positionsIntervalMs) {
+    if (now - this.lastPositionsSyncMs >= (this.cfg.positionsSyncIntervalMs ?? POSITIONS_SYNC_INTERVAL_MS)) {
       this.lastPositionsSyncMs = now;
-      try {
-        // Structural cast: the real Connection (and the test doubles that opt
-        // in) carries getProgramAccounts; hand-rolled test RPCs without it are
-        // filtered out above.
-        const stats = await syncPositionsFromChain(
-          full as unknown as PositionsSyncRpc,
-          this.db,
-          { spacingMs: spacing, backoffSleep: this.cfg.backoffSleep, jsonRpcInvoke: this.cfg.jsonRpcInvoke,
-            catchUpThroughSlot: async (requiredSlot: number) => {
-              if (!this.history) throw new Error("Finalized reconciliation requires durable canonical discovery");
-              await this.pollDurableHistory();
-              if (this.lastCompletedDiscoverySlot === null || this.lastCompletedDiscoverySlot < requiredSlot) throw new Error("Canonical discovery could not reach finalized snapshot slot within this poll budget");
-            },
-            programs: this.cfg.basketProgramId && this.cfg.factoryProgramId ? { basket:new PublicKey(this.cfg.basketProgramId),factory:new PublicKey(this.cfg.factoryProgramId),ids:this.cfg.programIds } : undefined },
-        );
-        if (stats.basketsScanned > 0) {
-          console.log(
-            `[indexer] positions sync: ${stats.holders} holders across ${stats.basketsScanned} baskets ` +
-              `(${stats.eventKept} event-derived, ${stats.balanceSynced} balance-sync, ${stats.zeroed} zeroed` +
-              `${stats.basketsFailed > 0 ? `, ${stats.basketsFailed} baskets failed (retry next tick)` : ""})`,
-          );
-        }
-      } catch (err) {
-        console.warn("[indexer] positions sync failed:", err instanceof Error ? err.message : err);
-      }
+      for (const route of routes) try {
+        const ids = this.namespaces ? namespaceProgramIds(route as ProgramNamespace) : this.cfg.programIds;
+        const stats = await syncPositionsFromChain(full as unknown as PositionsSyncRpc, this.db, {
+          spacingMs: spacing, backoffSleep: this.cfg.backoffSleep, jsonRpcInvoke: this.cfg.jsonRpcInvoke, ...options,
+          programs: { basket: new PublicKey(route.programs.basket), factory: new PublicKey(route.programs.factory), ids },
+          catchUpThroughSlot: async requiredSlot => {
+            if (!this.history) throw new Error("Finalized reconciliation requires durable canonical discovery");
+            await this.pollDurableHistory();
+            const completed = this.namespaces ? this.completedNamespaceSlots.get(route.id) : this.lastCompletedDiscoverySlot;
+            if (completed === undefined || completed === null || completed < requiredSlot) throw new Error("Canonical discovery could not reach finalized snapshot slot within this poll budget");
+          },
+        });
+        if (stats.basketsScanned > 0) console.log(`[indexer] positions sync (${route.id}): ${stats.holders} holders across ${stats.basketsScanned} baskets (${stats.basketsFailed} failed)`);
+      } catch (error) { console.warn("[indexer] positions sync failed:", route.id, error instanceof Error ? error.message : error); }
     }
   }
 
@@ -484,7 +492,7 @@ export class EventIndexer {
           ...(state.scan_before ? {before:state.scan_before} : {}),
           ...((state.scan_until ?? state.head_signature) ? {until:(state.scan_until ?? state.head_signature)!} : {}),
         },"finalized")), {logKey:"indexer:getSignaturesForAddress",sleep:this.cfg.backoffSleep});
-        if (await this.history!.savePage(state,page,this.cfg.signaturesPerPoll)) {
+        if (await this.history!.savePage(state,page,this.cfg.signaturesPerPoll,this.cfg.programIds)) {
           // A resumed scan has an older head. Finish a fresh catch-up scan before
           // effects, or another program could expose a newer event first.
           if (state.scan_before === null && state.scan_head === null) return true;
@@ -497,6 +505,7 @@ export class EventIndexer {
   private async pollDurableHistory(): Promise<PollResult[]> {
     this.completedDiscoverySlot = null;
     this.completedDiscoveryAt = null;
+    this.completedNamespaceSlots.clear();
     const generation = ++this.discoveryGeneration;
     return this.history!.withPollLock(() => this.drainDurableHistory(generation),this.cfg.programIds.map(programId => ({programId,signaturesSeen:0,events:[]})));
   }
@@ -506,33 +515,46 @@ export class EventIndexer {
     if (!this.rpc.getSlot) throw new Error("Durable history requires a finalized slot watermark");
     const watermark = await withRpcBackoff(() => this.pacedRead(() => this.rpc.getSlot!("finalized")),{logKey:"indexer:getSlot",sleep:this.cfg.backoffSleep});
     if (!Number.isSafeInteger(watermark) || watermark < 0) throw new Error("Invalid finalized slot watermark");
-    let ready = true;
+    const discovered = new Set<string>();
     for (const program of this.cfg.programIds) {
-      if (await this.discoverProgram(program,watermark)) await this.history!.markVerifiedThrough(program,watermark);
-      else ready = false;
+      if (await this.discoverProgram(program, watermark)) {
+        await this.history!.markVerifiedThrough(program, watermark);
+        discovered.add(program);
+      }
     }
-    if (!ready) return [...results.values()];
-    const quarantined=await this.history!.hasQuarantined(this.cfg.programIds);
-    if (generation === this.discoveryGeneration) {
+    const eligible = new Set<string>();
+    if (this.namespaces) {
+      for (const namespace of this.namespaces) {
+        const ids = namespaceProgramIds(namespace);
+        if (!ids.every(id => discovered.has(id))) continue;
+        if (generation === this.discoveryGeneration) this.completedNamespaceSlots.set(namespace.id, watermark);
+        if (!await this.history!.hasQuarantined(ids)) eligible.add(namespace.id);
+      }
+    }
+    if (discovered.size === this.cfg.programIds.length && generation === this.discoveryGeneration) {
       this.completedDiscoverySlot = watermark;
       this.completedDiscoveryAt = new Date().toISOString();
     }
-    // A history gap blocks position effects, not collection of later authentic
-    // facts. Collection never processes the queue or publishes positions.
-    if (quarantined) {
-      this.collection.blockedReason="quarantined-history";
+    const activePrograms = () => this.namespaces ? this.namespaces.filter(namespace => eligible.has(namespace.id)).flatMap(namespaceProgramIds) : this.cfg.programIds;
+    if (!this.namespaces && discovered.size !== this.cfg.programIds.length) return [...results.values()];
+    const quarantined = await this.history!.hasQuarantined(this.cfg.programIds);
+    if (quarantined) this.collection.blockedReason = "quarantined-history";
+    if (!this.namespaces && quarantined) {
       if (!this.cfg.replayOnly) await this.collectRecoveryFacts(watermark);
       return [...results.values()];
     }
     let projectionBlocked=false;
     const budget = Math.max(1,Math.min(1000,this.cfg.signaturesPerPoll));
     for (let i=0;i<budget;i++) {
-      let info = await this.history!.nextPendingGlobal(this.cfg.programIds);
+      let info = await this.history!.nextPendingGlobal(activePrograms());
       if (!info || info.slot > watermark) break;
       if (!this.cfg.replayOnly && await this.history!.projectionBlocked(this.cfg.programIds,info.signature)) {
         this.collection.blockedReason="position-rebuild-required";
         projectionBlocked=true;
-        break;
+        const namespace = namespaceForProgram(info.programId, this.namespaces ?? [])?.namespace;
+        if (!namespace) break;
+        eligible.delete(namespace.id);
+        continue;
       }
       try {
         if (info.txIndex === null) {
@@ -547,20 +569,28 @@ export class EventIndexer {
             this.finalizedBlocks.set(info.slot,signatures);
             if (this.finalizedBlocks.size > 32) this.finalizedBlocks.delete(this.finalizedBlocks.keys().next().value!);
           } else await this.history!.assignTransactionIndices(this.cfg.programIds,info.slot,signatures);
-          info = await this.history!.nextPendingGlobal(this.cfg.programIds);
+          info = await this.history!.nextPendingGlobal(activePrograms());
           if (!info || info.txIndex === null) throw new Error("Queued signature missing from canonical finalized block");
         }
-        const processed = await this.processSignatures(info.programId,[info],true);
+        const processed = await this.processSignatures(info.programId,[info],true,false,eligible);
         const result = results.get(info.programId)!;
         result.signaturesSeen += processed.signaturesSeen; result.events.push(...processed.events);
-        if (processed.blocked) { projectionBlocked=await this.history!.projectionBlocked(this.cfg.programIds,info.signature); break; }
+        if (processed.blocked) {
+          projectionBlocked ||= await this.history!.projectionBlocked(this.cfg.programIds,info.signature);
+          const namespace = namespaceForProgram(info.programId, this.namespaces ?? [])?.namespace;
+          if (!namespace) break;
+          eligible.delete(namespace.id);
+          for (const other of this.namespaces!) if (await this.history!.hasQuarantined(namespaceProgramIds(other))) eligible.delete(other.id);
+        }
       } catch(error) {
         if (info) await this.history!.retryGlobal(this.cfg.programIds,info.signature,error);
         rateLimitedWarn("indexer:global-order",`[indexer] global history retained for retry: ${error instanceof Error ? error.message : String(error)}`);
-        break;
+        const namespace = info && namespaceForProgram(info.programId, this.namespaces ?? [])?.namespace;
+        if (!namespace) break;
+        eligible.delete(namespace.id);
       }
     }
-    if (!this.cfg.replayOnly && projectionBlocked) await this.collectRecoveryFacts(watermark);
+    if (!this.cfg.replayOnly && (projectionBlocked || quarantined)) await this.collectRecoveryFacts(watermark);
     return [...results.values()];
   }
 
@@ -602,7 +632,7 @@ export class EventIndexer {
     }
   }
 
-  private async processSignatures(programId: string, sigInfos: SignatureInfo[], globalDrain: boolean, evidenceOnly=false): Promise<PollResult & {blocked:boolean}> {
+  private async processSignatures(programId: string, sigInfos: SignatureInfo[], globalDrain: boolean, evidenceOnly=false, eligibleNamespaces?: ReadonlySet<string>): Promise<PollResult & {blocked:boolean}> {
     const events: DecodedFolioxEvent[] = [];
     let signaturesSeen = 0;
     // getSignaturesForAddress returns NEWEST-first; process OLDEST-first so a
@@ -624,7 +654,14 @@ export class EventIndexer {
         this.failedTxSkips++;
         continue;
       }
-      if (!evidenceOnly && this.seen.has(sigInfo.signature)) {
+      if (!evidenceOnly && globalDrain) {
+        const completion = await this.history!.reusableCompletion(this.cfg.programIds,sigInfo.signature,sigInfo.slot);
+        if (completion) {
+          await finish(sigInfo.signature,completion.status === "quarantined" ? completion.reason ?? "quarantined-history" : undefined);
+          if (completion.status === "quarantined") { blocked=true; break; }
+          continue;
+        }
+      } else if (!evidenceOnly && this.seen.has(sigInfo.signature)) {
         await finish(sigInfo.signature);
         continue;
       }
@@ -675,7 +712,7 @@ export class EventIndexer {
         }
         const rows: EventRow[] = [];
         // Events decoded from THIS transaction only (for the positions sync).
-        const txEvents: Array<{ event: DecodedFolioxEvent; logIndex: number }> = [];
+        const txEvents: Array<{ event: DecodedFolioxEvent; logIndex: number; namespace?: ProgramNamespace }> = [];
         const creations: Array<{ event: Extract<DecodedFolioxEvent, { type: "BasketCreated" }>; args: CreateBasketArgs | null; programId: string }> = [];
 
         for (const { programId: emitter, payload, logIndex } of extractAttributedProgramDataLogs(tx.meta.logMessages)) {
@@ -686,7 +723,7 @@ export class EventIndexer {
             if (globalDrain) throw new Error(`Malformed trusted ${type} event payload; retained for review`);
             continue;
           }
-          txEvents.push({ event, logIndex });
+          txEvents.push({ event, logIndex, namespace: this.namespaces ? namespaceForProgram(emitter, this.namespaces)?.namespace : undefined });
           // Durable history uses canonical chain time only. The DB-less decoder
           // keeps its legacy test clock; production never substitutes wall time.
           const tsSec = sigInfo.blockTime ?? tx.blockTime ?? (event.type === "BasketCreated" ? event.ts : globalDrain ? undefined : Math.floor(Date.now() / 1000));
@@ -707,6 +744,16 @@ export class EventIndexer {
           });
         }
 
+        // Validate the entire transaction before any projection or parent writes.
+        // Cross-namespace execution is deliberately unsupported: no first-half effects.
+        const eventNamespaces = new Set(txEvents.map(item => item.namespace?.id).filter((id): id is string => id !== undefined));
+        if (eventNamespaces.size > 1) throw new NamespaceProjectionError("Mixed namespace transaction requires review", rows.map(row => String(row.data.programId)));
+        if (!evidenceOnly && eligibleNamespaces && [...eventNamespaces].some(id => !eligibleNamespaces.has(id))) throw new Error("Transaction namespace history is not ready; retained for retry");
+        if (this.namespaces && isPgLike(this.db)) for (const {event,namespace} of txEvents) {
+          if (!namespace) throw new NamespaceProjectionError("Unregistered transaction emitter");
+          const existing = await this.db.query("SELECT factory FROM baskets WHERE pubkey=$1", [event.basket]);
+          if (existing.rows[0] && existing.rows[0].factory !== namespace.factoryConfig) throw new NamespaceProjectionError("Event basket belongs to a different namespace", rows.map(row => String(row.data.programId)));
+        }
         if (rows.length > 0) {
           // BasketCreated must upsert the baskets row BEFORE the event rows:
           // events.basket carries a FK to baskets(pubkey), so on a fresh sync
@@ -718,17 +765,17 @@ export class EventIndexer {
             if (!args || args.constituents.length !== event.numConstituents) continue;
             const factory = await this.resolveFactory(tx, emitter, event.basket);
             if (!factory) continue;
+            const namespace = this.namespaces ? namespaceForProgram(emitter, this.namespaces)?.namespace : undefined;
+            if (namespace && factory !== namespace.factoryConfig) throw new NamespaceProjectionError("Creation factory differs from registered singleton", [emitter]);
             const treasury = await this.fetchTreasury(factory, emitter);
             await upsertBasketFromCreation(this.db, buildBasketUpsert(event, factory, args, treasury));
-            if (isPgLike(this.db)) this.rememberBasket(event.basket);
+            if (isPgLike(this.db)) this.rememberBasket(event.basket, namespace?.id);
           }
           // Old creations may be outside the bounded history page. Recover
           // absent FK parents from authenticated current chain state, retaining
           // the actual immutable Clock timestamps; never synthesize a creation
           // event or increment creator_stats for this recovery path.
-          for (const basket of new Set(rows.map((row) => row.basket).filter((value): value is string => value !== null))) {
-            await this.ensureBasketExists(basket);
-          }
+          for (const {event,namespace} of txEvents) await this.ensureBasketExists(event.basket, namespace);
           // Only persist downstream rows when the event insert is fresh, so
           // re-processing a signature can never double-count creator_stats.
         }
@@ -748,10 +795,10 @@ export class EventIndexer {
         // runs even when the events row insert above was not fresh (recovery
         // after a crash between the two writes). Degrades to a warn when db
         // is null; per-event failures never break the poll loop.
-        if (!this.cfg.replayOnly && !evidenceOnly) for (const { event, logIndex } of txEvents) {
+        if (!this.cfg.replayOnly && !evidenceOnly) for (const { event, logIndex, namespace } of txEvents) {
           // Failure retains the signature in the durable queue; successful earlier
           // effects are independently idempotent and safe to retry after a crash.
-          await applyPositionEvent(this.db, sigInfo.signature, event, logIndex, sigInfo.slot);
+          await applyPositionEvent(this.db, sigInfo.signature, event, logIndex, sigInfo.slot, namespace?.factoryConfig);
         }
       } catch (err) {
         if (err instanceof PositionProjectionGapError && isPgLike(this.db)) {
@@ -763,10 +810,11 @@ export class EventIndexer {
         if (err instanceof PositionRebuildRequiredError || err instanceof PositionProjectionGapError) {
           if (globalDrain) await this.history!.markProjectionBlocked(this.cfg.programIds,sigInfo.signature,err.basket);
         }
-        if (err instanceof BasketStateDecodeError || err instanceof CanonicalLogsIncompleteError) {
+        if (err instanceof NamespaceProjectionError && globalDrain) await this.history!.quarantineEmitters(err.emitters, sigInfo.signature, sigInfo.slot, err.message);
+        if (err instanceof BasketStateDecodeError || err instanceof CanonicalLogsIncompleteError || err instanceof NamespaceProjectionError) {
           // A malformed/wrong-program account is explicit quarantine, never
           // an invented FK parent. Transport and DB errors take the retry path.
-          console.warn(`[indexer] rejected basket state for ${sigInfo.signature}: ${err instanceof BasketStateDecodeError ? err.reason : "truncated-runtime-logs"}`);
+          console.warn(`[indexer] rejected basket state for ${sigInfo.signature}: ${err instanceof BasketStateDecodeError ? err.reason : err instanceof NamespaceProjectionError ? "namespace-mismatch" : "truncated-runtime-logs"}`);
           await finish(sigInfo.signature, err.message);
           if (!evidenceOnly) this.markSeen(sigInfo.signature);
           if (globalDrain) { blocked = true; break; }
@@ -839,26 +887,31 @@ export class EventIndexer {
   }
 
   private isTrustedEmitter(programId: string, type: FolioxEventType): boolean {
+    if (this.namespaces) return namespaceForProgram(programId, this.namespaces)?.role === (type === "BasketCreated" ? "factory" : "basket");
     const expected = type === "BasketCreated" ? this.cfg.factoryProgramId : this.cfg.basketProgramId;
     return expected ? programId === expected : this.cfg.programIds.includes(programId);
   }
 
-  private rememberBasket(address: string): void {
-    this.knownBaskets.add(address);
+  private rememberBasket(address: string, namespaceId?: string): void {
+    this.knownBaskets.set(address, namespaceId);
     if (this.knownBaskets.size > this.cfg.maxSeenCache) {
-      const oldest = this.knownBaskets.values().next().value;
+      const oldest = this.knownBaskets.keys().next().value;
       if (oldest !== undefined) this.knownBaskets.delete(oldest);
     }
   }
 
-  private async ensureBasketExists(address: string): Promise<void> {
-    if (!isPgLike(this.db) || this.knownBaskets.has(address)) return;
-    const existing = await this.db.query("SELECT pubkey FROM baskets WHERE pubkey = $1", [address]);
+  private async ensureBasketExists(address: string, namespace?: ProgramNamespace): Promise<void> {
+    if (!isPgLike(this.db)) return;
+    if (this.knownBaskets.has(address) && this.knownBaskets.get(address) === namespace?.id) return;
+    const existing = await this.db.query(namespace ? "SELECT pubkey,factory FROM baskets WHERE pubkey = $1" : "SELECT pubkey FROM baskets WHERE pubkey = $1", [address]);
     if (existing.rows.length > 0) {
-      this.rememberBasket(address);
+      if (namespace && existing.rows[0].factory !== namespace.factoryConfig) throw new NamespaceProjectionError("Basket namespace mismatch", [namespace.programs.basket]);
+      this.rememberBasket(address, namespace?.id);
       return;
     }
-    if (!this.cfg.basketProgramId || !this.cfg.factoryProgramId) {
+    const basketProgramId = namespace?.programs.basket ?? this.cfg.basketProgramId;
+    const factoryProgramId = namespace?.programs.factory ?? this.cfg.factoryProgramId;
+    if (!basketProgramId || !factoryProgramId) {
       throw new Error("basket recovery requires PROGRAM_BASKET and PROGRAM_FACTORY");
     }
     const info = await withRpcBackoff(
@@ -867,13 +920,12 @@ export class EventIndexer {
     );
     if (!info) throw new Error("basket account temporarily unavailable; retained for retry");
     const state = decodeBasketState(address, info, {
-      basket: new PublicKey(this.cfg.basketProgramId),
-      factory: new PublicKey(this.cfg.factoryProgramId),
+      basket: new PublicKey(basketProgramId), factory: new PublicKey(factoryProgramId),
     });
-    const treasury = await this.fetchTreasury(state.factory, this.cfg.factoryProgramId);
+    const treasury = await this.fetchTreasury(state.factory, factoryProgramId);
     if (treasury !== state.treasury) throw new BasketStateDecodeError("factory-treasury-mismatch", "Basket treasury differs from the canonical FactoryConfig treasury");
     await upsertBasketFromCreation(this.db, state);
-    this.rememberBasket(address);
+    this.rememberBasket(address, namespace?.id);
     console.log(`[indexer] recovered basket from chain state: ${address}`);
   }
 
@@ -939,17 +991,15 @@ export class EventIndexer {
 export function indexerConfigFromEnv(env: NodeJS.ProcessEnv = process.env): (IndexerConfig & { rpcUrl: string }) | null {
   const rpcUrl = env.RPC_URL;
   if (!rpcUrl) return null;
-  const programIds = [env.PROGRAM_WHITELIST, env.PROGRAM_FACTORY, env.PROGRAM_BASKET]
-    .filter((p): p is string => typeof p === "string" && p.length > 0);
-  try {
-    if (programIds.length !== 3 || new Set(programIds).size !== 3 || programIds.some(id => new PublicKey(id).toBase58() !== id)) throw new Error("invalid program roles");
-  } catch {
-    console.warn("[indexer] disabled: PROGRAM_WHITELIST, PROGRAM_FACTORY and PROGRAM_BASKET must be three distinct valid public keys");
+  const selected = PROGRAM_NAMESPACES.find(namespace => namespace.programs.whitelist === env.PROGRAM_WHITELIST && namespace.programs.factory === env.PROGRAM_FACTORY && namespace.programs.basket === env.PROGRAM_BASKET);
+  if (!selected) {
+    console.warn("[indexer] disabled: PROGRAM_* must match one registered namespace with three distinct valid public keys");
     return null;
   }
+  const programIds = registeredProgramIds(PROGRAM_NAMESPACES);
   return {
     rpcUrl,
-    programIds, durableHistory: true, historyPagesPerPoll: 2,
+    programIds, namespaces: PROGRAM_NAMESPACES, durableHistory: true, historyPagesPerPoll: 2,
     whitelistProgramId: env.PROGRAM_WHITELIST,
     basketProgramId: env.PROGRAM_BASKET,
     factoryProgramId: env.PROGRAM_FACTORY,

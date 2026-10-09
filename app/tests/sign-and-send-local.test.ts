@@ -153,4 +153,21 @@ describe("local managed transaction broadcast", () => {
     expect(sendRawTransaction).not.toHaveBeenCalled();
   });
 
+  it("checks current intent synchronously before invoking the local wallet signer", async () => {
+    const transaction = new Transaction({feePayer:signer.publicKey,recentBlockhash:blockhash}).add(transfer);
+    const sign = vi.fn(async <T extends Transaction | VersionedTransaction>(tx:T):Promise<T> => tx), sendRawTransaction = vi.fn(async () => "unreachable");
+    await expect(signAndSendLocal(transaction,sign,{sendRawTransaction},undefined,undefined,() => {throw new Error("Intent changed");})).rejects.toThrow("Intent changed");
+    expect(sign).not.toHaveBeenCalled(); expect(sendRawTransaction).not.toHaveBeenCalled();
+  });
+
+  it("a context change queued after async broadcast validation cannot reach the actual RPC send", async () => {
+    const transaction = new Transaction({feePayer:signer.publicKey,recentBlockhash:blockhash}).add(transfer);
+    const sign = vi.fn(async <T extends Transaction | VersionedTransaction>(tx:T):Promise<T> => {if(tx instanceof Transaction) tx.sign(signer); return tx;});
+    let current = true;
+    const sendRawTransaction = vi.fn(async () => "unreachable");
+    const prepare = async () => {queueMicrotask(() => {current = false;});};
+    await expect(signAndSendLocal(transaction,sign,{sendRawTransaction},undefined,prepare,() => {if(!current) throw new Error("Intent changed");})).rejects.toThrow("Intent changed");
+    expect(sign).toHaveBeenCalledOnce(); expect(sendRawTransaction).not.toHaveBeenCalled();
+  });
+
 });

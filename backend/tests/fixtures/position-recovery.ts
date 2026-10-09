@@ -16,16 +16,17 @@ export function recoveryTokenAccount(user: PublicKey, mint: PublicKey, amount: b
   return { pubkey: address, account: info(data) };
 }
 export function positionRecoveryFixture(options: {
-  nonce?: bigint; slot?: number; supply?: bigint;
+  nonce?: bigint; slot?: number; supply?: bigint; programs?: RecoveryPrograms;
   holders?: Array<{ user: PublicKey; amount: bigint }>;
 } = {}) {
+  const programs=options.programs??recoveryPrograms;
   const nonce = options.nonce ?? 7n, slot = options.slot ?? 100;
   const creator = recoveryKey(201), treasury = recoveryKey(202);
-  const [factory] = PublicKey.findProgramAddressSync([Buffer.from("factory")], recoveryPrograms.factory);
+  const [factory] = PublicKey.findProgramAddressSync([Buffer.from("factory")], programs.factory);
   const seed = Buffer.alloc(8); seed.writeBigUInt64LE(nonce);
-  const [basket, basketBump] = PublicKey.findProgramAddressSync([Buffer.from("basket"), factory.toBuffer(), creator.toBuffer(), seed], recoveryPrograms.factory);
-  const [shareMint] = PublicKey.findProgramAddressSync([Buffer.from("share_mint"), basket.toBuffer()], recoveryPrograms.factory);
-  const [vaultAuthority, vaultBump] = PublicKey.findProgramAddressSync([Buffer.from("basket"), basket.toBuffer()], recoveryPrograms.basket);
+  const [basket, basketBump] = PublicKey.findProgramAddressSync([Buffer.from("basket"), factory.toBuffer(), creator.toBuffer(), seed], programs.factory);
+  const [shareMint] = PublicKey.findProgramAddressSync([Buffer.from("share_mint"), basket.toBuffer()], programs.factory);
+  const [vaultAuthority, vaultBump] = PublicKey.findProgramAddressSync([Buffer.from("basket"), basket.toBuffer()], programs.basket);
   const data = Buffer.alloc(888);
   createHash("sha256").update("account:Basket").digest().subarray(0, 8).copy(data);
   factory.toBuffer().copy(data, 8); creator.toBuffer().copy(data, 40); treasury.toBuffer().copy(data, 72); shareMint.toBuffer().copy(data, 104);
@@ -33,7 +34,7 @@ export function positionRecoveryFixture(options: {
   Buffer.alloc(32, 7).copy(data, 160); data[192] = 2;
   recoveryKey(1).toBuffer().copy(data, 193); recoveryKey(2).toBuffer().copy(data, 225);
   data.writeUInt16LE(5000, 833); data.writeUInt16LE(5000, 835); data[879] = basketBump; data[880] = vaultBump;
-  const basketAccount = info(data, recoveryPrograms.basket);
+  const basketAccount = info(data, programs.basket);
   const holders = options.holders ?? [{ user: recoveryKey(20), amount: 1_000_000n }];
   const accounts = holders.map((holder, i) => recoveryTokenAccount(holder.user, shareMint, holder.amount, recoveryKey(100 + i)));
   const supply = options.supply ?? holders.reduce((total, holder) => total + holder.amount, 0n);
@@ -54,6 +55,6 @@ export function positionRecoveryFixture(options: {
       return { context: { slot }, value: accounts };
     },
   };
-  return { basket, factory, creator, treasury, shareMint, vaultAuthority, basketAccount, mintAccount, accounts, supply, slot, rpc, calls, programs: recoveryPrograms };
+  return { basket, factory, creator, treasury, shareMint, vaultAuthority, basketAccount, mintAccount, accounts, supply, slot, rpc, calls, programs };
 }
 export type PositionRecoveryFixture = ReturnType<typeof positionRecoveryFixture>;

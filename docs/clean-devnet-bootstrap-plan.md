@@ -56,14 +56,14 @@ All plan modes keep `executionAuthorized`, `deployable` and `creationReady` fals
 
 The tool verifies exact current declarations before proposing patch locations in the three Rust programs and both Anchor cluster mappings. The future reviewed release must update **all** compiled cross-program bindings, regenerate IDLs/build artifacts, and repeat frozen dependency, Rust, SBF and TypeScript/security gates. Changing environment variables alone cannot change the compiled factory/whitelist trust rules.
 
-The current app and backend each trust one fixed trio. A global replacement of `app/lib/solana.ts` would make legacy owner/PDA/share-mint/vault checks reject existing baskets and could hide their redemption path. Before reopening Create, introduce an explicit, audited namespace registry:
+The app and backend now route through a closed source-controlled namespace registry in `backend/src/config/programNamespaces.ts`, with one registered legacy trio and no selected creation namespace. API or environment values cannot register arbitrary new emitters. A global replacement of legacy IDs would reject existing baskets and could hide redemption; the registry instead preserves these obligations:
 
 - Creation uses only the clean trio and checks its immutable clean treasury immediately before preparation/signing.
 - Reads and redemption resolve the exact supported namespace from authenticated basket owner/factory/PDA evidence; they retain the current legacy trio.
 - Backend discovery, canonical history, positions, holdings, readiness and rollout verification preserve both namespace identities and durable cursors without accepting arbitrary emitters or mixing their factory/whitelist roles.
 - Legacy basket redemption remains permissionless and oracle-free. A retired treasury guard restricts **new creation**, never a holder's withdrawal.
 
-This routing work is a prerequisite recorded by the planner, not implemented by the bootstrap tooling. Mainnet approval and program upgrades are separate scopes.
+Routing source preparation now covers factory-bound client builders and RPC authentication, separate whitelist admission, partitioned holdings/balance workers, a globally ordered union indexer with namespace-scoped effect guards, and namespace-bound portfolio/NAV/fee preparation. Isolated two-namespace tests exercise these paths without adding fictitious production identities. Registration of actual clean IDs, corresponding compiled Rust bindings, operator proof and real new/legacy runtime verification are still prerequisites before Create can reopen. The bootstrap planner itself does not deploy or enable the registry. Mainnet approval and program upgrades are separate scopes.
 
 ## Human signing sequence
 

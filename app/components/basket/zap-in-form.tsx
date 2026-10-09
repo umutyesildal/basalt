@@ -1,5 +1,7 @@
 "use client";
 
+import { assertBasketCoreKeysOnChain } from "@/lib/basket-account-security";
+
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { PublicKey, Transaction, VersionedTransaction } from "@solana/web3.js";
 import { useConnection, useWallet } from "@solana/wallet-adapter-react";
@@ -31,6 +33,7 @@ import {
   buildMintInKind,
   buildMintInKindTransaction,
   deriveAta,
+  parseBasketCoreKeys,
   type BasketCoreKeys,
   type ExpectedAccount,
 } from "@/lib/transactions";
@@ -162,15 +165,7 @@ export function ZapInForm({
   const coreKeys: BasketCoreKeys | null = useMemo(
     () =>
       publicKey
-        ? {
-            basket: new PublicKey(detail.pubkey),
-            factory: new PublicKey(detail.factory),
-            creator: new PublicKey(detail.creator),
-            treasury: new PublicKey(detail.treasury),
-            shareMint: new PublicKey(detail.share_mint),
-            constituents: detail.constituents,
-            user: publicKey,
-          }
+        ? parseBasketCoreKeys(detail, publicKey)
         : null,
     [detail, publicKey],
   );
@@ -477,7 +472,7 @@ export function ZapInForm({
    * a second swap for a signature whose confirmation is ambiguous.
    */
   const executeSwaps = useCallback(async () => {
-    if (!publicKey || !quote || !signTransaction) return;
+    if (!publicKey || !quote || !signTransaction || !coreKeys) return;
     const executionContextKey = zapContextKey;
     if (!isZapContextActive(executionContextKey)) return;
     if (!attemptRef.current && isZapQuoteStale(quote)) {
@@ -489,6 +484,15 @@ export function ZapInForm({
     }
     setPhase("swapping");
     setSwapWarning(null);
+    try { await assertBasketCoreKeysOnChain(connection, coreKeys); }
+    catch {
+      if (isZapContextActive(executionContextKey)) {
+        setSwapWarning("The basket accounts could not be verified. Refresh the basket before preparing a swap.");
+        setPhase("quoted");
+      }
+      return;
+    }
+    if (!isZapContextActive(executionContextKey)) return;
 
     // (1) prepare — create missing constituent ATAs so swaps have destinations.
     const missing: number[] = [];
@@ -769,6 +773,7 @@ export function ZapInForm({
     setPhase("ready-to-mint");
   }, [
     connection,
+    coreKeys,
     detail.constituents,
     ensureZapAttempt,
     freezeMintAmounts,
@@ -836,6 +841,7 @@ export function ZapInForm({
     const parsed = mintAmounts;
     void flow.run(
       async () => {
+        await assertBasketCoreKeysOnChain(connection, coreKeys);
         if (!needsAlt) {
           return buildMintInKind({
             keys: coreKeys,
@@ -854,6 +860,8 @@ export function ZapInForm({
       },
       needsAlt ? () => prewarm.ensureAlt() : undefined,
       {
+        beforeSign: prewarm.assertCurrentContext,
+        assertCurrent: prewarm.assertCurrentContext,
         onComplete: () => onSuccess?.(),
         describe: {
           kind: "buy",

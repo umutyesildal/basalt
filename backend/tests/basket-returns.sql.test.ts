@@ -1,3 +1,4 @@
+import {PROGRAM_NAMESPACES,registeredProgramIds} from "../src/config/programNamespaces";
 /**
  * Real SQL regressions, opt-in only against an explicitly supplied disposable
  * database. Never fall back to DATABASE_URL. Each run owns a unique schema.
@@ -45,6 +46,7 @@ describe.skipIf(!url)("basket returns against disposable PostgreSQL", () => {
     await client.query(`DROP SCHEMA "${schema}" CASCADE`);
     await client.query(`CREATE SCHEMA "${schema}"`);
     expect(await applySchema(db)).toBe(true);
+    for(const program of registeredProgramIds())await client.query("INSERT INTO indexer_program_state(program_id,history_complete,finalized_through_slot) VALUES($1,true,200)",[program]);
   });
 
   async function basket(id: number) {
@@ -54,7 +56,7 @@ describe.skipIf(!url)("basket returns against disposable PostgreSQL", () => {
       metadata_json,num_constituents,constituents,weights_bps,
       entry_fee_bps,exit_fee_bps,management_fee_bps,last_fee_accrual_ts)
       VALUES($1,$2,$3,$4,$5,$6,$7,'test',$8,2,$9,$10,0,0,0,$7)`,
-      [pubkey,key(220),key(221),key(222),key(id + 100),String(id),now,
+      [pubkey,PROGRAM_NAMESPACES[0].factoryConfig,key(221),key(222),key(id + 100),String(id),now,
         {name: `Basket ${id}`,symbol:`B${id}`},[key(223),key(224)],[5000,5000]]);
     return pubkey;
   }

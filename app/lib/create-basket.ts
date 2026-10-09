@@ -43,7 +43,7 @@ import {
   type Connection,
 } from "@solana/web3.js";
 
-import { PROGRAMS } from "@/lib/solana";
+import { APP_NAMESPACE_ROUTING, namespacePrograms, type NamespaceRouting } from "./program-namespaces";
 
 /** Anchor discriminator: first 8 bytes of sha256("global:create_basket"). */
 const CREATE_BASKET_DISCRIMINATOR = Uint8Array.from([
@@ -188,7 +188,9 @@ export function deriveCreateBasketPdas(
     CreateBasketArgs,
     "nonce" | "constituents"
   >,
+  routing: NamespaceRouting = APP_NAMESPACE_ROUTING,
 ): ResolvedCreateBasketPdas {
+  const PROGRAMS = namespacePrograms(routing.creation());
   const creatorKey = new PublicKey(creator);
   const nonceLe = u64Le(args.nonce);
   const constituentKeys = args.constituents.map((m) => new PublicKey(m));
@@ -255,8 +257,9 @@ export function listCreateBasketAccounts(
   creator: string,
   args: CreateBasketArgs,
   tickers?: string[],
+  routing: NamespaceRouting = APP_NAMESPACE_ROUTING,
 ): CreateBasketAccountListEntry[] {
-  const pda = deriveCreateBasketPdas(creator, args);
+  const pda = deriveCreateBasketPdas(creator, args, routing);
   const entries: CreateBasketAccountListEntry[] = [
     { role: "factory", pubkey: pda.factory.toBase58(), writable: true, signer: false, note: "PDA [\"factory\"] — basket_count increments" },
     { role: "basket", pubkey: pda.basket.toBase58(), writable: true, signer: false, note: "PDA [\"basket\", factory, creator, nonce_le] — initialized immutable" },
@@ -326,13 +329,15 @@ export function validateCreateBasketArgs(args: CreateBasketArgs): string[] {
 export function buildCreateBasketInstruction(
   creator: string,
   args: CreateBasketArgs,
+  routing: NamespaceRouting = APP_NAMESPACE_ROUTING,
 ): TransactionInstruction {
+  const PROGRAMS = namespacePrograms(routing.creation());
   const validationErrors = validateCreateBasketArgs(args);
   if (validationErrors.length > 0) {
     throw new Error(`Invalid create_basket arguments: ${validationErrors.join(" ")}`);
   }
 
-  const pda = deriveCreateBasketPdas(creator, args);
+  const pda = deriveCreateBasketPdas(creator, args, routing);
   const creatorKey = new PublicKey(creator);
 
   const data = concat([

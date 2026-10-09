@@ -154,7 +154,7 @@ export default async function BasketPage({
       {detail ? (
         <details className="rounded-xl border border-border bg-card p-5 text-sm">
           <summary className="cursor-pointer font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">Advanced details — verify on-chain addresses</summary>
-          <div className="mt-5"><BasketPageVerify basket={detail.pubkey} shareMint={detail.share_mint} /></div>
+          <div className="mt-5"><BasketPageVerify basket={detail.pubkey} factory={detail.factory} shareMint={detail.share_mint} /></div>
         </details>
       ) : null}
     </div>

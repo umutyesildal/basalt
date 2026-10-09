@@ -1,6 +1,7 @@
 /** Authenticated finalized holder snapshots and atomic position reconciliation. */
 import { PublicKey, type AccountInfo, type Context } from "@solana/web3.js";
 import { TOKEN_2022_PROGRAM_ID, unpackAccount, unpackMint } from "@solana/spl-token";
+import { PROGRAM_NAMESPACES, validateNamespaceRegistry, namespaceForPrograms, type ProgramNamespace } from "../config/programNamespaces.js";
 import { unresolvedPositionRebuildCondition } from "../db/projectionGuard.js";
 import { isPgLike, withTransaction, type PgLike } from "../db/client.js";
 import { positionsRpcForSnapshot } from "../rpc/positionsProvider.js";
@@ -31,6 +32,7 @@ export interface PositionsSyncOptions {
   /** Kept for caller compatibility; enhanced parsed balances are never trusted. */
   jsonRpcInvoke?: JsonRpcInvoker;
   programs?: RecoveryPrograms;
+  namespaces?: readonly ProgramNamespace[];
   /** Discover and drain canonical history after the snapshot, before taking locks. */
   catchUpThroughSlot?: (slot: number) => Promise<void>;
 }
@@ -244,7 +246,9 @@ export async function syncPositionsFromChain(
   if (!opts.programs) throw new Error("Authenticated recovery programs are required");
   const programs = opts.programs;
   validatePrograms(programs);
-  const baskets = (await db.query("SELECT pubkey FROM baskets ORDER BY pubkey")).rows;
+  const namespace=namespaceForPrograms(programs,validateNamespaceRegistry(opts.namespaces??PROGRAM_NAMESPACES));
+  if(!namespace)throw new Error("Unregistered position program namespace");
+  const baskets = (await db.query("SELECT pubkey,factory FROM baskets WHERE factory=$1 ORDER BY pubkey",[namespace.factoryConfig])).rows;
   lastSync = { attemptedAt: new Date().toISOString(), completedAt: null, reason: null, basketsScanned: 0, basketsFailed: 0, basketsSkipped: 0 };
   try {
     if (await publicationBlocked(db, programs.ids)) {
@@ -260,6 +264,7 @@ export async function syncPositionsFromChain(
   const pacer = createPacer(opts.spacingMs ?? 100);
   for (const row of baskets) {
     try {
+      if(row.factory!==namespace.factoryConfig)throw new Error("Position namespace factory mismatch");
       const guard = await db.query(`SELECT basket FROM position_rebuild_required r WHERE basket=$1 AND ${unresolvedPositionRebuildCondition("r")}`, [row.pubkey]);
       if (guard.rows.length) {
         stats.basketsFailed++; stats.basketsSkipped++;

@@ -1,18 +1,21 @@
 /** Current finalized balances are independent of incomplete historical claims. */
 import type { PgLike } from "../db/client.js";
-import { DEVNET_PROGRAMS } from "./readiness.js";
+import { PROGRAM_NAMESPACES, namespaceProgramIds, validateNamespaceRegistry, type ProgramNamespace } from "../config/programNamespaces.js";
 export const CURRENT_BALANCE_MAX_AGE_MS = 5 * 60_000;
 export interface BalanceEvidence { slot:number; observedAt:string; historyComplete:false; costBasisKnown:false }
 export interface CurrentBalanceRow { basket:string; symbol:string|null; shares:string; evidence:BalanceEvidence }
-export async function currentBalancesForWallet(db:PgLike,user:string,now=new Date(),programIds:readonly string[]=DEVNET_PROGRAMS) {
+export async function currentBalancesForWallet(db:PgLike,user:string,now=new Date(),namespaces:readonly ProgramNamespace[]=PROGRAM_NAMESPACES) {
+  const registry=validateNamespaceRegistry(namespaces);
+  const scope=registry.map(entry=>({factory:entry.factoryConfig,program_ids:namespaceProgramIds(entry)}));
   const result=await db.query(`SELECT b.pubkey AS basket,b.metadata_json->>'symbol' AS symbol,
     COUNT(*) OVER()::int AS indexed_baskets,cs.slot::text,cs.observed_at,
     cs.status='verified' AS balance_verified,h.value IS NOT NULL AS holder_present,h.value->>'shares' AS shares
-    FROM baskets b LEFT JOIN current_balance_snapshots cs ON cs.basket=b.pubkey
-      AND cs.status='verified' AND cs.history_complete IS FALSE AND cs.program_ids=$2::text[]
+    FROM baskets b LEFT JOIN jsonb_to_recordset($2::jsonb) AS ns(factory TEXT,program_ids TEXT[]) ON ns.factory=b.factory
+    LEFT JOIN current_balance_snapshots cs ON cs.basket=b.pubkey
+      AND cs.status='verified' AND cs.history_complete IS FALSE AND cs.program_ids=ns.program_ids
       AND cs.observed_at BETWEEN $3::timestamptz-interval '5 minutes' AND $3::timestamptz
     LEFT JOIN LATERAL jsonb_array_elements(COALESCE(cs.balances,'[]'::jsonb)) h(value)
-      ON h.value->>'user'=$1 ORDER BY b.pubkey LIMIT 1001`,[user,[...programIds].sort(),now.toISOString()]);
+      ON h.value->>'user'=$1 ORDER BY b.pubkey LIMIT 1001`,[user,JSON.stringify(scope),now.toISOString()]);
   const rows:CurrentBalanceRow[]=[],covered=new Set<string>(),seen=new Set<string>();
   let indexedBaskets=0;
   for (const row of result.rows as Array<Record<string,unknown>>) {

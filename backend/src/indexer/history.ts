@@ -13,6 +13,16 @@ const STATE = `SELECT program_id,head_signature,scan_before,scan_until,scan_head
 export class DurableHistory {
   constructor(private readonly db: PgLike) {}
 
+  /** Runtime-authenticated emitters bind an unsafe transaction to every affected namespace. */
+  async quarantineEmitters(programs: string[], sig: string, slot: number, reason: string): Promise<void> {
+    if (!programs.length) return;
+    await withTransaction(this.db, async client => {
+      for (const program of new Set(programs)) await client.query(`INSERT INTO indexer_signature_queue(program_id,sig,slot,status,last_error)
+        VALUES($1,$2,$3,'quarantined',$4) ON CONFLICT(program_id,sig) DO UPDATE SET status='quarantined',last_error=EXCLUDED.last_error`,
+        [program,sig,slot,reason.slice(0,500)]);
+    });
+  }
+
   async state(program: string): Promise<ProgramHistory> {
     await this.db.query(`INSERT INTO indexer_program_state(program_id) VALUES($1) ON CONFLICT DO NOTHING`, [program]);
     const result = await this.db.query(STATE, [program]);
@@ -21,15 +31,29 @@ export class DurableHistory {
   }
 
   /** Enqueue first, then advance the scan cursor IN THE SAME transaction. */
-  async savePage(previous: ProgramHistory, page: HistorySignature[], limit: number): Promise<boolean> {
+  async savePage(previous: ProgramHistory, page: HistorySignature[], limit: number, canonicalPrograms?: readonly string[]): Promise<boolean> {
     return withTransaction(this.db, async (client) => {
       await client.query(`SELECT pg_advisory_xact_lock(hashtextextended($1,0))`, [`indexer-history:${previous.program_id}`]);
       const current = (await client.query(STATE, [previous.program_id])).rows[0] as ProgramHistory;
       if (JSON.stringify(current) !== JSON.stringify(previous)) return false; // another scanner advanced; reload next poll
       for (const info of page) {
-        await client.query(`INSERT INTO indexer_signature_queue(program_id,sig,slot,block_time,status)
-          VALUES($1,$2,$3,$4,$5) ON CONFLICT(program_id,sig) DO NOTHING`,
-        [previous.program_id,info.signature,info.slot, info.blockTime == null ? null : new Date(info.blockTime * 1000), info.err ? "processed" : "pending"]);
+        if (!Number.isSafeInteger(info.slot) || info.slot < 0 || typeof info.signature !== "string" || !info.signature) throw new Error("Invalid finalized history signature");
+        const inconsistent = await client.query("SELECT 1 FROM indexer_signature_queue WHERE sig=$1 AND slot<>$2 LIMIT 1",[info.signature,info.slot]);
+        if (inconsistent.rows.length) throw new Error("Shared signature has inconsistent finalized slots");
+        // A different namespace may discover the same transaction later. Full
+        // canonical completion deduplicates it; quarantine always wins and must
+        // follow the signature into every newly discovered role queue.
+        const prior = (await client.query(`SELECT status,last_error,tx_index,canonical_collected_at,canonical_event_count,canonical_program_ids
+          FROM indexer_signature_queue WHERE sig=$1 AND (status='quarantined' OR (status='processed' AND canonical_collected_at IS NOT NULL AND canonical_program_ids=$2::text[]))
+          ORDER BY CASE WHEN status='quarantined' THEN 0 ELSE 1 END,program_id COLLATE "C" LIMIT 1`,[info.signature,canonicalPrograms ? [...canonicalPrograms].sort() : null])).rows[0];
+        const status = prior?.status ?? (info.err ? "processed" : "pending");
+        await client.query(`INSERT INTO indexer_signature_queue(program_id,sig,slot,block_time,status,last_error,tx_index,canonical_collected_at,canonical_event_count,canonical_program_ids,processed_at)
+          VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,CASE WHEN $5='pending' THEN NULL ELSE NOW() END)
+          ON CONFLICT(program_id,sig) DO UPDATE SET
+            status=CASE WHEN EXCLUDED.status='quarantined' THEN 'quarantined' ELSE indexer_signature_queue.status END,
+            last_error=CASE WHEN EXCLUDED.status='quarantined' THEN EXCLUDED.last_error ELSE indexer_signature_queue.last_error END`,
+        [previous.program_id,info.signature,info.slot, info.blockTime == null ? null : new Date(info.blockTime * 1000),
+          status,prior?.last_error ?? null,prior?.tx_index ?? null,prior?.canonical_collected_at ?? null,prior?.canonical_event_count ?? null,prior?.canonical_program_ids ?? null]);
       }
       const scanHead = previous.scan_head ?? page[0]?.signature ?? null;
       const complete = page.length < limit;
@@ -104,12 +128,20 @@ export class DurableHistory {
       txIndex:row.tx_index==null?null:Number(row.tx_index),blockTime:row.block_time?new Date(row.block_time).getTime()/1000:null } : null;
   }
 
+  /** A process cache never substitutes for exact durable decoder provenance. */
+  async reusableCompletion(programs: readonly string[], sig: string, slot: number): Promise<{status:"processed"|"quarantined";reason:string|null}|null> {
+    const row=(await this.db.query(`SELECT status,last_error FROM indexer_signature_queue WHERE sig=$1 AND slot=$2
+      AND (status='quarantined' OR (status='processed' AND canonical_collected_at IS NOT NULL AND canonical_program_ids=$3::text[]))
+      ORDER BY CASE WHEN status='quarantined' THEN 0 ELSE 1 END LIMIT 1`,[sig,slot,[...programs].sort()])).rows[0];
+    return row ? {status:row.status as "processed"|"quarantined",reason:typeof row.last_error==="string" ? row.last_error : null} : null;
+  }
+
   async markCanonicalCollected(programs: readonly string[], sig: string, slot: number, eventCount: number): Promise<void> {
     if (!Number.isSafeInteger(slot) || slot<0 || !Number.isSafeInteger(eventCount) || eventCount<0 || eventCount>10000) throw new Error("Invalid canonical collection identity");
     const result=await this.db.query(`UPDATE indexer_signature_queue
-      SET canonical_collected_at=COALESCE(canonical_collected_at,NOW()),canonical_event_count=$4
+      SET canonical_collected_at=COALESCE(canonical_collected_at,NOW()),canonical_event_count=$4,canonical_program_ids=$1::text[]
       WHERE program_id=ANY($1::text[]) AND sig=$2 AND slot=$3 AND status='pending' AND tx_index IS NOT NULL
-        AND (canonical_event_count IS NULL OR canonical_event_count=$4) RETURNING sig`, [[...programs],sig,slot,eventCount]);
+        AND (canonical_program_ids IS DISTINCT FROM $1::text[] OR canonical_event_count IS NULL OR canonical_event_count=$4) RETURNING sig`, [[...programs].sort(),sig,slot,eventCount]);
     if (!result.rows.length) throw new Error("Canonical collection could not bind queued signature/order");
   }
 

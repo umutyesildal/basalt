@@ -331,11 +331,15 @@ async function applyEffect(db: PgLike, ev: PositionEvent): Promise<boolean> {
   return applyFeeAccruedEffect(db, ev);
 }
 
-async function applyAtomic(db: PgLike | null | undefined, sig: string, ev: PositionEvent, logIndex?: number, slot?: number): Promise<boolean> {
+async function applyAtomic(db: PgLike | null | undefined, sig: string, ev: PositionEvent, logIndex?: number, slot?: number, expectedFactory?: string): Promise<boolean> {
   if (!isPgLike(db)) return false;
   assertLogIndex(logIndex);
   return withTransaction(db, async (client) => {
     await lockBasket(client, ev.basket);
+    if (expectedFactory !== undefined) {
+      const basket = (await client.query("SELECT factory FROM baskets WHERE pubkey=$1 FOR SHARE",[ev.basket])).rows[0];
+      if (!basket || basket.factory !== expectedFactory) throw new Error("Position event basket namespace mismatch");
+    }
     const marker = (await client.query("SELECT snapshot_slot::text AS snapshot_slot FROM position_reconciliation_state WHERE basket=$1",[ev.basket])).rows[0];
     if ((marker || slot !== undefined) && (!Number.isSafeInteger(slot) || slot! < 0)) throw new Error("A finalized runtime slot is required after reconciliation");
     if (marker && !/^\d+$/.test(String(marker.snapshot_slot))) throw new Error("Invalid finalized reconciliation barrier");
@@ -367,8 +371,9 @@ export async function applyPositionEvent(
   ev: DecodedFolioxEvent,
   logIndex?: number,
   slot?: number,
+  expectedFactory?: string,
 ): Promise<boolean> {
-  return ev.type === "BasketCreated" ? false : applyAtomic(db, sig, ev, logIndex, slot);
+  return ev.type === "BasketCreated" ? false : applyAtomic(db, sig, ev, logIndex, slot, expectedFactory);
 }
 
 

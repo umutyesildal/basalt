@@ -1,5 +1,7 @@
 "use client";
 
+import { assertBasketCoreKeysOnChain } from "@/lib/basket-account-security";
+
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { PublicKey } from "@solana/web3.js";
 import { useConnection, useWallet } from "@solana/wallet-adapter-react";
@@ -35,6 +37,7 @@ import {
   buildMintInKind,
   buildMintInKindTransaction,
   deriveAta,
+  parseBasketCoreKeys,
   type BasketCoreKeys,
   type ExpectedAccount,
 } from "@/lib/transactions";
@@ -95,15 +98,7 @@ export function InKindMintForm({
   const coreKeys: BasketCoreKeys | null = useMemo(
     () =>
       publicKey
-        ? {
-            basket: new PublicKey(detail.pubkey),
-            factory: new PublicKey(detail.factory),
-            creator: new PublicKey(detail.creator),
-            treasury: new PublicKey(detail.treasury),
-            shareMint: new PublicKey(detail.share_mint),
-            constituents: detail.constituents,
-            user: publicKey,
-          }
+        ? parseBasketCoreKeys(detail, publicKey)
         : null,
     [detail, publicKey],
   );
@@ -289,6 +284,7 @@ export function InKindMintForm({
     const parsed = amounts as bigint[];
     void flow.run(
       async () => {
+        await assertBasketCoreKeysOnChain(connection, coreKeys);
         if (!needsAlt) {
           // n ≤ 3: legacy wire exactly as before — the flow hook adds
           // the compute-budget instructions.
@@ -314,6 +310,8 @@ export function InKindMintForm({
       },
       needsAlt ? () => prewarm.ensureAlt() : undefined,
       {
+        beforeSign: prewarm.assertCurrentContext,
+        assertCurrent: prewarm.assertCurrentContext,
         onComplete: () => {
           void refreshBalances();
           onSuccess?.();

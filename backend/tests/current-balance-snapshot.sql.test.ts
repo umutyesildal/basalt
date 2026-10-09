@@ -8,8 +8,12 @@ import type { PgLike } from "../src/db/client";
 import { decodeBasketState } from "../src/indexer/basketState";
 import { RpcReadError } from "../src/rpc/requestBudget";
 import { DEVNET_RPC_GENESIS } from "../src/rpc/positionsProvider";
-import { discoverCurrentBalanceCandidates, persistCurrentBalanceSnapshot, readCurrentBalanceSnapshot, syncCurrentBalanceSnapshots, type CurrentBalanceRpc } from "../src/indexer/currentBalanceSnapshot";
-import { positionRecoveryFixture, recoveryKey } from "./fixtures/position-recovery";
+import { discoverCurrentBalanceCandidates, persistCurrentBalanceSnapshot as persistSnapshot, readCurrentBalanceSnapshot, syncCurrentBalanceSnapshots as syncSnapshots, type CurrentBalanceRpc } from "../src/indexer/currentBalanceSnapshot";
+import { positionRecoveryFixture as rawPositionRecoveryFixture, recoveryKey } from "./fixtures/position-recovery";
+const positionRecoveryFixture=(options:Parameters<typeof rawPositionRecoveryFixture>[0]={})=>rawPositionRecoveryFixture({programs:namespaceRecoveryPrograms(0),...options});
+import { namespaceRecoveryPrograms, namespaceForRecoveryFixture } from "./fixtures/program-namespaces";
+const persistCurrentBalanceSnapshot:typeof persistSnapshot=(db,s,programs,attempt,deadline)=>persistSnapshot(db,s,programs,attempt,deadline,[namespaceForRecoveryFixture(programs)]);
+const syncCurrentBalanceSnapshots:typeof syncSnapshots=(rpc,db,programs,options={})=>syncSnapshots(rpc,db,programs,{namespaces:[namespaceForRecoveryFixture(programs)],...options});
 const url=process.env.BASKET_RETURNS_TEST_DATABASE_URL,schema=`current_balances_${process.pid}_${Date.now()}`;
 let admin:pg.Pool,pool:pg.Pool;const db=()=>pool as unknown as PgLike;
 function fixture(nonce=7n){

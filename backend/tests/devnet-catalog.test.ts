@@ -1,3 +1,4 @@
+import {PROGRAM_NAMESPACES,registeredProgramIds} from "../src/config/programNamespaces";
 /**
  * devnet-catalog.test.ts — devnet readiness for the 36-stock mock xStock
  * universe. Pure / offline only (NO listening, NO RPC, NO real Postgres):
@@ -620,7 +621,7 @@ describe("Production NAV rejects underlying-equity reference and mock prices", (
   const M_NVDA = mintPubkey(41);
   const M_AAPL = mintPubkey(42);
   const M_MSFT = mintPubkey(43);
-  const BASKET = { pubkey: "BASKET_X", share_mint: "SHARE_X", constituents: [M_NVDA, M_AAPL, M_MSFT], weights_bps: [4000, 3200, 2800] };
+  const BASKET = { factory:PROGRAM_NAMESPACES[0].factoryConfig,pubkey: "BASKET_X", share_mint: "SHARE_X", constituents: [M_NVDA, M_AAPL, M_MSFT], weights_bps: [4000, 3200, 2800] };
   const holdingsDb = () => fakeDb([{ match: "FROM vault_holdings", rows: [
     { mint: M_NVDA, scaled_amount: "40", authenticated: true, updated_at: NOW },
     { mint: M_AAPL, scaled_amount: "32", authenticated: true, updated_at: NOW },
@@ -704,7 +705,7 @@ describe(".env.devnet.example — tracked profile parses with the exact env name
       "FRavMcYQb2FVAHbbG6fGieQHdKk1UrQqgKsAAXTPRQeS",
       "3hzoPep9JKgTmzLT6CNW5x3EN7WNYDevM6KHVM7pLgMF",
       "6Q43vFh4aqGxzvtU2vQwJX9PmX3skfYsGWZdA3fwJB9k",
-    ]);
+    ].sort());
     // Devnet pacing (shared public RPC): 30s poll, 20 sigs, 60s holdings pass.
     expect(cfg?.pollIntervalMs).toBe(30000);
     expect(cfg?.signaturesPerPoll).toBe(20);

@@ -16,6 +16,7 @@ import {
   type RetryEvent,
 } from "@/lib/rpc-retry";
 import { RPC_ENDPOINT, describeRpcError, describeWalletError } from "@/lib/wallet";
+import { assertWalletIntent, assertWalletIntentNow, sendWithReviewedIntent } from "@/lib/wallet-intent";
 import { signAndSendLocal } from "@/lib/sign-and-send-local";
 import {
   computeBudgetInstructions,
@@ -158,6 +159,8 @@ function sleepMs(ms: number): Promise<void> {
 export function useTransactionFlow() {
   const { connection } = useConnection();
   const { publicKey, sendTransaction, signTransaction } = useWallet();
+  const currentWalletIntent = useRef({connection, wallet:publicKey?.toBase58() ?? null});
+  currentWalletIntent.current = {connection, wallet:publicKey?.toBase58() ?? null};
   const [state, setState] = useState<TransactionFlowState>(INITIAL);
   // Guards against double-submits (modal buttons + crank) while in flight.
   const inFlight = useRef(false);
@@ -189,7 +192,7 @@ export function useTransactionFlow() {
     async (
       build: TransactionBuild,
       prepare?: () => Promise<unknown>,
-      options?: { onComplete?: () => void; describe?: PendingTxDescribe; sendViaConnection?: boolean; beforeSign?: () => void | Promise<void> },
+      options?: { onComplete?: () => void; describe?: PendingTxDescribe; sendViaConnection?: boolean; beforeSign?: () => void | Promise<void>; assertCurrent?: () => void },
     ): Promise<boolean> => {
       if (inFlight.current) return false;
       if (!publicKey) {
@@ -197,6 +200,11 @@ export function useTransactionFlow() {
         return false;
       }
       inFlight.current = true;
+      const assertSigningContext = () => {
+        assertWalletIntentNow({connection, wallet:publicKey.toBase58()}, currentWalletIntent.current);
+        options?.assertCurrent?.();
+      };
+      const beforeSign = () => assertWalletIntent({connection, wallet:publicKey.toBase58()}, () => currentWalletIntent.current, options?.beforeSign);
 
       // Pre-arm the banner registry: the entry exists from flow start with an
       // empty signature and is patched in the moment the tx is really sent.
@@ -353,7 +361,7 @@ export function useTransactionFlow() {
       let signature: TransactionSignature;
       try {
         // A caller can recheck its wallet and network after an async simulation.
-        await options?.beforeSign?.();
+        await beforeSign();
         if (options?.sendViaConnection) {
           // Local lab wallets can have an unrelated extension network selected.
           // Sign only in the wallet, then broadcast on the connection that just
@@ -364,18 +372,19 @@ export function useTransactionFlow() {
             signTransaction,
             connection,
             onRetryEvent,
-            options?.beforeSign,
+            beforeSign,
+            assertSigningContext,
           );
         } else {
           signature = await withRetry(
-            () =>
+            () => sendWithReviewedIntent(() =>
               sendTransaction(legacy ?? prepared!.transaction, connection, {
                 // The flow already simulated clean above — skipPreflight keeps
                 // the count of simulations at ONE and removes the cluster's
                 // preflight from the 429 blast radius.
                 skipPreflight: true,
                 preflightCommitment: "confirmed",
-              }),
+              }), beforeSign, assertSigningContext),
             { label: "wallet send", onRetry: onRetryEvent },
           );
         }

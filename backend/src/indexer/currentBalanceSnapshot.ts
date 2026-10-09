@@ -1,4 +1,5 @@
 /** Independent current-balance evidence. Never changes historical claims or projections. */
+import { PROGRAM_NAMESPACES, validateNamespaceRegistry, namespaceForPrograms, type ProgramNamespace } from "../config/programNamespaces.js";
 import { createHash } from "node:crypto";
 import { PublicKey, type AccountInfo, type Context, type ParsedTransactionWithMeta } from "@solana/web3.js";
 import { TOKEN_2022_PROGRAM_ID, getAssociatedTokenAddressSync, unpackMint } from "@solana/spl-token";
@@ -221,8 +222,10 @@ async function failSnapshot(db: PgLike, basket: string, programs: RecoveryProgra
       WHERE current_balance_snapshots.attempted_at<=EXCLUDED.attempted_at`, [basket, [...programs.ids].sort(ordinal), reason, attemptedAt]);
   });
 }
-export async function persistCurrentBalanceSnapshot(db: PgLike, snapshot: CurrentBalanceSnapshot, programs: RecoveryPrograms, attemptedAt: Date, deadline = Date.now() + 15_000): Promise<boolean> {
+export async function persistCurrentBalanceSnapshot(db: PgLike, snapshot: CurrentBalanceSnapshot, programs: RecoveryPrograms, attemptedAt: Date, deadline = Date.now() + 15_000, namespaces: readonly ProgramNamespace[] = PROGRAM_NAMESPACES): Promise<boolean> {
   validatePrograms(programs); assertFreshObservation(snapshot);
+  const namespace=namespaceForPrograms(programs,validateNamespaceRegistry(namespaces));
+  if(!namespace || snapshot.basketState.factory!==namespace.factoryConfig)throw new CurrentBalanceSnapshotError("unregistered-snapshot-namespace");
   if (snapshot.historyComplete !== false || JSON.stringify(snapshot.programIds) !== JSON.stringify([...programs.ids].sort(ordinal)) ||
     !Number.isSafeInteger(snapshot.slot) || snapshot.slot < 0 || !/^[a-f0-9]{64}$/.test(snapshot.accountsDigest) ||
     !Number.isSafeInteger(snapshot.accountCount) || snapshot.accountCount < 0 || snapshot.accountCount > MAX_CANDIDATES ||
@@ -264,25 +267,29 @@ function snapshotFailureReason(error: unknown): string {
   return "snapshot-read-or-storage-unavailable";
 }
 
-const passCursors = new WeakMap<PgLike, number>();
+const passCursors = new WeakMap<PgLike, Map<string,number>>();
 export async function syncCurrentBalanceSnapshots(rpc: CurrentBalanceRpc, db: PgLike, programs: RecoveryPrograms,
-  options: { maxBasketsPerPass?: number; passDeadlineMs?: number; backoffSleep?: (ms: number) => Promise<void> } = {},
+  options: { maxBasketsPerPass?: number; passDeadlineMs?: number; backoffSleep?: (ms: number) => Promise<void>; namespaces?:readonly ProgramNamespace[] } = {},
 ): Promise<{ attempted: number; verified: number; incomplete: number; deferred: number }> {
   validatePrograms(programs);
   const maxBaskets = options.maxBasketsPerPass ?? 10, passDuration = options.passDeadlineMs ?? 30_000;
   if (!Number.isSafeInteger(maxBaskets) || maxBaskets < 1 || maxBaskets > 10 || !Number.isSafeInteger(passDuration) || passDuration < 1 || passDuration > 60_000) throw new CurrentBalanceSnapshotError("invalid-pass-budget");
+  const namespace=namespaceForPrograms(programs,validateNamespaceRegistry(options.namespaces??PROGRAM_NAMESPACES));
+  if(!namespace)throw new CurrentBalanceSnapshotError("unregistered-snapshot-namespace");
   const passDeadline = Date.now() + passDuration;
-  const baskets = (await snapshotTransaction(db, passDeadline, client => client.query("SELECT pubkey FROM baskets ORDER BY pubkey LIMIT 101"))).rows;
+  const baskets = (await snapshotTransaction(db, passDeadline, client => client.query("SELECT pubkey,factory FROM baskets WHERE factory=$1 ORDER BY pubkey LIMIT 101",[namespace.factoryConfig]))).rows;
   if (baskets.length > 100) throw new CurrentBalanceSnapshotError("basket-limit-exceeded");
   const stats = { attempted: 0, verified: 0, incomplete: 0, deferred: 0 };
-  const start = (passCursors.get(db) ?? 0) % Math.max(1, baskets.length);
+  const cursors=passCursors.get(db)??new Map<string,number>();passCursors.set(db,cursors);
+  const start = (cursors.get(namespace.id) ?? 0) % Math.max(1, baskets.length);
   for (let index = 0; index < Math.min(maxBaskets, baskets.length); index++) {
     if (Date.now() >= passDeadline) break;
     const offset = (start + index) % baskets.length, row = baskets[offset];
-    passCursors.set(db, (offset + 1) % baskets.length);
+    cursors.set(namespace.id, (offset + 1) % baskets.length);
     const attemptedAt = new Date(); stats.attempted++;
     const remaining = () => Math.min(10_000, Math.max(1, passDeadline - Date.now()));
     try {
+      if(row.factory!==namespace.factoryConfig)throw new CurrentBalanceSnapshotError("snapshot-namespace-factory-mismatch");
       await verifyNetwork(rpc, Math.min(passDeadline, Date.now() + 10_000), options.backoffSleep);
       const account = await retryRead(() => rpc.getAccountInfoAndContext(key(row.pubkey), { commitment: "finalized" }), Math.min(passDeadline, Date.now() + 10_000), options.backoffSleep);
       slot(account.context); if (!account.value) throw new CurrentBalanceSnapshotError("basket-unavailable");
@@ -294,7 +301,7 @@ export async function syncCurrentBalanceSnapshots(rpc: CurrentBalanceRpc, db: Pg
         candidates = await expandTransactionHints(rpc, db, row.pubkey, programs, candidates, passDeadline, options.backoffSleep);
         snapshot = await readCurrentBalanceSnapshot(rpc, row.pubkey, programs, candidates, { deadlineMs: remaining(), preparedBasket: account, backoffSleep: options.backoffSleep });
       }
-      if (await persistCurrentBalanceSnapshot(db, snapshot, programs, attemptedAt, passDeadline)) stats.verified++;
+      if (await persistCurrentBalanceSnapshot(db, snapshot, programs, attemptedAt, passDeadline, options.namespaces??PROGRAM_NAMESPACES)) stats.verified++;
     } catch (error) {
       stats.incomplete++;
       await failSnapshot(db, row.pubkey, programs, attemptedAt, snapshotFailureReason(error), Math.max(passDeadline, Date.now() + 1_000));

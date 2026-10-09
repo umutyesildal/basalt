@@ -1,3 +1,5 @@
+import {namespaceFixtures} from "./fixtures/program-namespaces";
+import { PROGRAM_NAMESPACES } from "../src/config/programNamespaces";
 /**
  * waveb-nav-api.test.ts — Wave B tasks 4-5: exact NAV math (integer-safe
  * fixed point), drift, performance windows, quote leg math with mocked
@@ -113,6 +115,7 @@ const NOW = new Date("2026-09-01T12:00:00Z");
 const FAKE_BLOCKHASH = new PublicKey(Buffer.alloc(32, 7));
 
 const BASKET_ROW = {
+  factory:PROGRAM_NAMESPACES[0].factoryConfig,
   pubkey: BASKET,
   share_mint: SHARE_MINT,
   constituents: [MINT_A, MINT_B, MINT_C],
@@ -222,7 +225,7 @@ describe("navEngine — exact fixed-point math", () => {
 describe("NavEngine worker", () => {
   function happyDb() {
     return fakeDb([
-      { match: "FROM baskets ORDER", rows: [{ pubkey: BASKET, share_mint: "ShareMint11111111111111111111111111111111111", constituents: [MINT_A, MINT_B], weights_bps: [6000, 4000] }] },
+      { match: "FROM baskets ORDER", rows: [{ factory:PROGRAM_NAMESPACES[0].factoryConfig,pubkey: BASKET, share_mint: "ShareMint11111111111111111111111111111111111", constituents: [MINT_A, MINT_B], weights_bps: [6000, 4000] }] },
       { match: "FROM vault_holdings WHERE basket", rows: [{ mint: MINT_A, scaled_amount: "500", authenticated: true, updated_at: NOW }, { mint: MINT_B, scaled_amount: "300", authenticated: true, updated_at: NOW }] },
       { match: "INSERT INTO nav_snapshots", rows: [], rowCount: 1 },
       { match: "REFRESH MATERIALIZED VIEW", rows: [], rowCount: 1 },
@@ -320,7 +323,7 @@ describe("NavEngine worker", () => {
 
   it("skips baskets without indexed holdings", async () => {
     const db = fakeDb([
-      { match: "FROM baskets ORDER", rows: [{ pubkey: BASKET, share_mint: "S", constituents: [MINT_A], weights_bps: [10000] }] },
+      { match: "FROM baskets ORDER", rows: [{ factory:PROGRAM_NAMESPACES[0].factoryConfig,pubkey: BASKET, share_mint: "S", constituents: [MINT_A], weights_bps: [10000] }] },
       { match: "FROM vault_holdings WHERE basket", rows: [] },
     ]);
     const engine = new NavEngine({ db, fetchQuotes: async () => quotes });
@@ -504,6 +507,7 @@ describe("quotes — POST /quotes/zap-out (mocked Jupiter)", () => {
 
 describe("feeCrank — hourly accrue_management_fee builder", () => {
   const ELIGIBLE_ROW = {
+    factory:PROGRAM_NAMESPACES[0].factoryConfig,
     pubkey: BASKET,
     share_mint: SHARE_MINT,
     creator: CREATOR,
@@ -513,6 +517,15 @@ describe("feeCrank — hourly accrue_management_fee builder", () => {
     supply: "10000000000",
   };
 
+  it("routes unsigned fee preparation through the selected registered factory",async()=>{
+    const namespace=namespaceFixtures[1];
+    const crank=new FeeCrank({db:null,namespaces:namespaceFixtures});
+    const built=await crank.buildFeeTx({...ELIGIBLE_ROW,factory:namespace.factoryConfig});
+    expect(built.instructions[0].programId).toBe(namespace.programs.basket);
+    expect(built.instructions[0].accounts.find(account=>account.name==="vault_authority")?.pubkey).toBe(PublicKey.findProgramAddressSync([Buffer.from("basket"),new PublicKey(BASKET).toBuffer()],new PublicKey(namespace.programs.basket))[0].toBase58());
+    expect(built.signatures).toBe(0);expect(built.transactionBase64).toBeNull();
+    await expect(crank.buildFeeTx({...ELIGIBLE_ROW,factory:"unregistered"})).rejects.toThrow("Unsupported basket namespace");
+  });
   it("buildFeeTx returns an unsigned versioned tx + 11-account descriptor (AccrueFee layout)", async () => {
     const crank = new FeeCrank({
       db: fakeDb(),

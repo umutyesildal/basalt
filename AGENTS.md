@@ -1,3 +1,5 @@
+> 2026-10-09: Closed devnet namespace routing is prepared in `docs/devnet-namespace-routing.md`. Production registers only the deployed legacy trio; creation remains disabled. Preserve exact per-basket namespace proofs and legacy redemption.
+
 # AGENTS.md — Basalt Project Context for AI Agents
 
 > **Live devnet release, 2026-10-09:** The data-repair source `d2812bb` is now deployed to the existing website/backend; PR #10 passed all six CI checks and the hosted frozen Vercel build was promoted. Canonical evidence collection is progressing, while historical financial projections remain guarded (initially 108 pending rows/six rebuilds) and mock tokens retain unavailable USD valuations. The isolated three-program SBF build also passed; no program upgrade, authority change or live recovery activation occurred. See [exact deployment, backup, runtime and SBF evidence](docs/devnet-live-release-2026-10-09.md). Earlier pending-release notes below are dated checkpoints.

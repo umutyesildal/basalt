@@ -8,14 +8,18 @@ import { getFeed, getUserHistory, getFollowList, getUserProfile } from "../src/a
 import { DurableHistory } from "../src/indexer/history";
 import { ANCHOR_EVENT_DISCRIMINATORS } from "../src/indexer/events";
 import type { PgLike } from "../src/db/client";
+import { namespaceFixtures } from "./fixtures/program-namespaces";
+import { namespaceProgramIds, registeredProgramIds, type ProgramNamespace } from "../src/config/programNamespaces";
+import { applyPositionEvent } from "../src/indexer/positions";
 
 const url = process.env.INDEXER_HISTORY_TEST_DATABASE_URL ?? process.env.BASKET_RETURNS_TEST_DATABASE_URL;
 const schema = `indexer_history_${process.pid}_${Date.now()}`;
-const program = new PublicKey(Buffer.alloc(32, 90)).toBase58();
+const namespace = namespaceFixtures[0];
+const program = namespace.programs.basket;
 let admin: pg.Client, pool: pg.Pool, db: PgLike;
 const signature = (slot: number) => ({ signature: `signature-${slot}`, slot, err: null, blockTime: 1700000000 + slot });
 const tx = { transaction: { message: { instructions: [] } }, meta: { err: null, logMessages: [], innerInstructions: [] } } as unknown as ParsedTransactionWithMeta;
-const config = { programIds: [program], pollIntervalMs: 1, signaturesPerPoll: 2, maxSeenCache: 2, transactionSpacingMs: 0, durableHistory: true, historyPagesPerPoll: 2 };
+const config = { namespaces: [namespace], programIds: namespaceProgramIds(namespace), pollIntervalMs: 1, signaturesPerPoll: 2, maxSeenCache: 2, transactionSpacingMs: 0, durableHistory: true, historyPagesPerPoll: 2 };
 
 describe.skipIf(!url)("durable finalized indexer history", () => {
   beforeAll(async () => {
@@ -33,7 +37,8 @@ describe.skipIf(!url)("durable finalized indexer history", () => {
   });
   function rpc(slots: number[], reads: string[], fail?: Set<string>): SolanaRpc {
     return {
-      async getSignaturesForAddress(_address, options, commitment) {
+      async getSignaturesForAddress(address, options, commitment) {
+        if (address.toBase58() !== program) return [];
         expect(commitment).toBe("finalized"); expect(options?.minContextSlot).toBe(Math.max(0,...slots));
         const until = options?.until ? Number(options.until.split("-")[1]) : 0;
         const before = options?.before ? Number(options.before.split("-")[1]) : Infinity;
@@ -56,7 +61,7 @@ describe.skipIf(!url)("durable finalized indexer history", () => {
     expect(reads).toEqual(["signature-1","signature-2","signature-3","signature-4","signature-5"]);
     chain.push(6,7,8); await resumed.pollOnce(); await resumed.pollOnce(); await resumed.pollOnce();
     expect(new Set(reads).size).toBe(8);
-    expect((await pool.query("SELECT head_signature FROM indexer_program_state")).rows[0].head_signature).toBe("signature-8");
+    expect((await pool.query("SELECT head_signature FROM indexer_program_state WHERE program_id=$1",[program])).rows[0].head_signature).toBe("signature-8");
   });
   it("retains a failed transaction across restart and pages, then retries without losing cursor", async () => {
     const reads: string[] = [], failed = new Set(["signature-1"]), chain = [1,2,3];
@@ -88,7 +93,7 @@ describe.skipIf(!url)("durable finalized indexer history", () => {
   it("applies same-slot mint then redeem by finalized block order, despite reversed lexical signatures", async () => {
     const key = (n:number) => new PublicKey(Buffer.alloc(32,n)), basket=key(20), user=key(21), owner=key(22), share=key(23), ts=new Date();
     await pool.query(`INSERT INTO baskets(pubkey,factory,creator,treasury,share_mint,nonce,created_at,metadata_hash,num_constituents,constituents,weights_bps,entry_fee_bps,exit_fee_bps,management_fee_bps,last_fee_accrual_ts)
-      VALUES($1,$2,$2,$2,$3,1,$4,'test',2,$5,ARRAY[5000,5000],0,0,0,$4)`,[basket.toBase58(),owner.toBase58(),share.toBase58(),ts,[key(24).toBase58(),key(25).toBase58()]]);
+      VALUES($1,'${namespace.factoryConfig}',$2,$2,$3,1,$4,'test',2,$5,ARRAY[5000,5000],0,0,0,$4)`,[basket.toBase58(),owner.toBase58(),share.toBase58(),ts,[key(24).toBase58(),key(25).toBase58()]]);
     await pool.query(`INSERT INTO nav_snapshots(basket,ts,nav,supply,share_price,price_source,valuation_eligible,valuation_status) VALUES($1,$2,1,1,2,'{}',true,'complete')`,[basket.toBase58(),ts]);
     const u64=(n:bigint) => {const bytes=Buffer.alloc(8);bytes.writeBigUInt64LE(n);return bytes;};
     const eventTx=(kind:'Minted'|'Redeemed') => {
@@ -108,7 +113,7 @@ describe.skipIf(!url)("durable finalized indexer history", () => {
   it("persists a projection-gap guard after rollback, then permits history-only replay without financial effects",async()=>{
     const key=(n:number)=>new PublicKey(Buffer.alloc(32,n)),basket=key(40),user=key(41),owner=key(42),share=key(43),ts=new Date();
     await pool.query(`INSERT INTO baskets(pubkey,factory,creator,treasury,share_mint,nonce,created_at,metadata_hash,num_constituents,constituents,weights_bps,entry_fee_bps,exit_fee_bps,management_fee_bps,last_fee_accrual_ts)
-      VALUES($1,$2,$2,$2,$3,1,$4,'test',2,$5,ARRAY[5000,5000],0,0,0,$4)`,[basket.toBase58(),owner.toBase58(),share.toBase58(),ts,[key(44).toBase58(),key(45).toBase58()]]);
+      VALUES($1,'${namespace.factoryConfig}',$2,$2,$3,1,$4,'test',2,$5,ARRAY[5000,5000],0,0,0,$4)`,[basket.toBase58(),owner.toBase58(),share.toBase58(),ts,[key(44).toBase58(),key(45).toBase58()]]);
     await pool.query(`INSERT INTO position_rebuild_runs(run_id,basket,chain_slot,chain_supply,event_count,history_hash,program_ids,status,activated_at,activated_slot)
       VALUES('prior-recovery',$1,6,100,0,$2,$3,'activated',NOW(),6)`,[basket.toBase58(),'a'.repeat(64),[program]]);
     await pool.query(`INSERT INTO position_rebuild_required(basket,reason,activated_run_id) VALUES($1,'prior-gap','prior-recovery')`,[basket.toBase58()]);
@@ -132,9 +137,9 @@ describe.skipIf(!url)("durable finalized indexer history", () => {
     expect((await pool.query('SELECT activated_run_id FROM position_rebuild_required WHERE basket=$1',[basket.toBase58()])).rows[0].activated_run_id).toBeNull();
   });
   it("blocks all programs behind a failed shared signature and deduplicates it across restart", async () => {
-    const other=new PublicKey(Buffer.alloc(32,91)).toBase58(), reads:string[]=[], failed=new Set(['old-shared']);
+    const other=namespace.programs.factory, reads:string[]=[], failed=new Set(['old-shared']);
     const source=orderedRpc({[program]:[{signature:'last',slot:3},{signature:'old-shared',slot:1}],[other]:[{signature:'middle',slot:2},{signature:'old-shared',slot:1}]},{1:['old-shared'],2:['middle'],3:['last']},reads,{},failed);
-    const cfg={...config,programIds:[program,other],signaturesPerPoll:10};
+    const cfg={...config,programIds:namespaceProgramIds(namespace),signaturesPerPoll:10};
     await new EventIndexer(source,cfg,db).pollOnce();
     expect(reads).toEqual(['old-shared']);
     expect((await pool.query("SELECT attempts,status FROM indexer_signature_queue WHERE sig='old-shared'")).rows).toEqual([{attempts:1,status:'pending'},{attempts:1,status:'pending'}]);
@@ -294,7 +299,7 @@ describe.skipIf(!url)("durable finalized indexer history", () => {
     const key = (n: number) => new PublicKey(Buffer.alloc(32,n)).toBase58();
     const basket = key(1), user = key(2), ts = new Date();
     await pool.query(`INSERT INTO baskets(pubkey,factory,creator,treasury,share_mint,nonce,created_at,metadata_hash,num_constituents,constituents,weights_bps,entry_fee_bps,exit_fee_bps,management_fee_bps,last_fee_accrual_ts)
-      VALUES($1,$2,$2,$2,$3,1,$4,'test',2,$5,ARRAY[5000,5000],0,0,0,$4)`,[basket,user,key(3),ts,[key(4),key(5)]]);
+      VALUES($1,'${namespace.factoryConfig}',$2,$2,$3,1,$4,'test',2,$5,ARRAY[5000,5000],0,0,0,$4)`,[basket,user,key(3),ts,[key(4),key(5)]]);
     for (const index of [-1,2,9]) await pool.query(`INSERT INTO events(sig,log_index,slot,basket,type,data,ts) VALUES('same-signature',$1,1,$2,'Minted',$3,$4)`,[index,basket,{basket,user,netShares:'1000000'},ts]);
     const profile = (await getUserProfile(db,user,null)).payload as any;
     expect(profile.stats.tradeCount).toBe(2);
@@ -335,7 +340,7 @@ describe.skipIf(!url)("durable finalized indexer history", () => {
   async function evidenceBasket(id=120) {
     const key=(n:number)=>new PublicKey(Buffer.alloc(32,n)),basket=key(id),user=key(id+1),owner=key(id+2),ts=new Date();
     await pool.query(`INSERT INTO baskets(pubkey,factory,creator,treasury,share_mint,nonce,created_at,metadata_hash,num_constituents,constituents,weights_bps,entry_fee_bps,exit_fee_bps,management_fee_bps,last_fee_accrual_ts)
-      VALUES($1,$2,$2,$2,$3,1,$4,'test',2,$5,ARRAY[5000,5000],0,0,0,$4)`,[basket.toBase58(),owner.toBase58(),key(id+3).toBase58(),ts,[key(id+4).toBase58(),key(id+5).toBase58()]]);
+      VALUES($1,'${namespace.factoryConfig}',$2,$2,$3,1,$4,'test',2,$5,ARRAY[5000,5000],0,0,0,$4)`,[basket.toBase58(),owner.toBase58(),key(id+3).toBase58(),ts,[key(id+4).toBase58(),key(id+5).toBase58()]]);
     const u64=(n:bigint)=>{const b=Buffer.alloc(8);b.writeBigUInt64LE(n);return b;};
     const payload=Buffer.concat([ANCHOR_EVENT_DISCRIMINATORS.Minted,basket.toBuffer(),user.toBuffer(),u64(100n),u64(100n),u64(0n)]);
     const minted={...tx,meta:{...tx.meta!,logMessages:[`Program ${program} invoke [1]`,`Program data: ${payload.toString('base64')}`,`Program ${program} success`]}};
@@ -406,6 +411,189 @@ describe.skipIf(!url)("durable finalized indexer history", () => {
     expect((await pool.query('SELECT sig,status,canonical_event_count FROM indexer_signature_queue ORDER BY slot')).rows)
       .toEqual([{sig:'truncated',status:'quarantined',canonical_event_count:null},{sig:'empty',status:'pending',canonical_event_count:0},{sig:'failed',status:'pending',canonical_event_count:0}]);
     expect((await pool.query('SELECT COUNT(*)::int AS n FROM events')).rows[0].n).toBe(0);
+  });
+
+  async function namespaceBasket(route: ProgramNamespace, id: number) {
+    const key=(n:number)=>new PublicKey(Buffer.alloc(32,n)), basket=key(id), user=key(id+1), now=new Date();
+    await pool.query(`INSERT INTO baskets(pubkey,factory,creator,treasury,share_mint,nonce,created_at,metadata_hash,num_constituents,constituents,weights_bps,entry_fee_bps,exit_fee_bps,management_fee_bps,last_fee_accrual_ts)
+      VALUES($1,$2,$3,$3,$4,1,$5,'namespace-test',2,$6,ARRAY[5000,5000],0,0,0,$5)`,[basket.toBase58(),route.factoryConfig,key(id+2).toBase58(),key(id+3).toBase58(),now,[key(id+4).toBase58(),key(id+5).toBase58()]]);
+    const bytes=(n:bigint)=>{const b=Buffer.alloc(8);b.writeBigUInt64LE(n);return b;};
+    const payload=Buffer.concat([ANCHOR_EVENT_DISCRIMINATORS.Minted,basket.toBuffer(),user.toBuffer(),bytes(100n),bytes(100n),bytes(0n)]);
+    const logs=[`Program ${route.programs.basket} invoke [1]`,`Program data: ${payload.toString('base64')}`,`Program ${route.programs.basket} success`];
+    return {basket:basket.toBase58(),user:user.toBase58(),logs,minted:{...tx,meta:{...tx.meta!,logMessages:logs}}};
+  }
+  const unionConfig={...config,namespaces:namespaceFixtures,programIds:registeredProgramIds(namespaceFixtures),signaturesPerPoll:10};
+
+  it("keeps quarantined namespace effects blocked while independently ordered fresh namespace advances",async()=>{
+    const a=await namespaceBasket(namespaceFixtures[0],150),b=await namespaceBasket(namespaceFixtures[1],160),reads:string[]=[];
+    const source=orderedRpc({[namespaceFixtures[0].programs.basket]:[{signature:'a-later',slot:3},{signature:'a-gap',slot:1}],
+      [namespaceFixtures[1].programs.basket]:[{signature:'b-valid',slot:2}]},{1:['a-gap'],2:['b-valid'],3:['a-later']},reads,
+      {'a-gap':{...tx,meta:{...tx.meta!,logMessages:['Log truncated']}},'a-later':a.minted,'b-valid':b.minted});
+    const indexer=new EventIndexer(source,unionConfig,db);await indexer.pollOnce();await indexer.pollOnce();
+    expect((await pool.query('SELECT basket,share_balance::text,cost_basis FROM user_positions')).rows).toEqual([{basket:b.basket,share_balance:'100',cost_basis:null}]);
+    expect((await pool.query('SELECT sig,status FROM indexer_signature_queue ORDER BY slot')).rows).toEqual([
+      {sig:'a-gap',status:'quarantined'},{sig:'b-valid',status:'processed'},{sig:'a-later',status:'pending'}]);
+    expect((await pool.query('SELECT sig FROM position_events')).rows).toEqual([{sig:'b-valid'}]);
+    expect((await pool.query('SELECT program_id,finalized_through_slot::text FROM indexer_program_state')).rows).toHaveLength(6);
+    expect(reads.filter(sig=>sig==='b-valid')).toHaveLength(1);
+    expect(await new DurableHistory(db).hasQuarantined(registeredProgramIds(namespaceFixtures))).toBe(true);
+  });
+
+  it("does not let an incomplete namespace scan prevent a complete namespace projection or attest global readiness",async()=>{
+    const b=await namespaceBasket(namespaceFixtures[1],170),reads:string[]=[];
+    const source=orderedRpc({[program]:[{signature:'a-4',slot:4},{signature:'a-3',slot:3},{signature:'a-2',slot:2}],
+      [namespaceFixtures[1].programs.basket]:[{signature:'b-valid',slot:1}]},{1:['b-valid'],2:['a-2'],3:['a-3'],4:['a-4']},reads,{'b-valid':b.minted});
+    const indexer=new EventIndexer(source,{...unionConfig,signaturesPerPoll:2,historyPagesPerPoll:1},db);await indexer.pollOnce();
+    expect(reads).toEqual(['b-valid']);expect(indexer.lastCompletedDiscoverySlot).toBeNull();
+    expect((await pool.query('SELECT basket,share_balance::text FROM user_positions')).rows).toEqual([{basket:b.basket,share_balance:'100'}]);
+    expect((await new DurableHistory(db).state(program)).finalized_through_slot).toBeNull();
+    for (const id of namespaceProgramIds(namespaceFixtures[1])) expect((await new DurableHistory(db).state(id)).finalized_through_slot).toBe('4');
+  });
+
+  it("quarantines every runtime namespace before any facts or financial effects of a mixed transaction",async()=>{
+    const a=await namespaceBasket(namespaceFixtures[0],180),b=await namespaceBasket(namespaceFixtures[1],190),reads:string[]=[];
+    // B's signature discovery is incomplete; authenticated runtime emitters still
+    // persist its quarantine, rather than allowing a later B projection to pass.
+    const source=orderedRpc({[program]:[{signature:'mixed',slot:1}],
+      [namespaceFixtures[1].programs.whitelist]:[{signature:'b-tail2',slot:3},{signature:'b-tail1',slot:2}]},
+      {1:['mixed'],2:['b-tail1'],3:['b-tail2']},reads,{'mixed':{...tx,meta:{...tx.meta!,logMessages:[...a.logs,...b.logs]}}});
+    const indexer=new EventIndexer(source,{...unionConfig,signaturesPerPoll:2,historyPagesPerPoll:1},db);await indexer.pollOnce();
+    expect(reads).toEqual(['mixed']);
+    expect((await pool.query('SELECT COUNT(*)::int AS n FROM events')).rows[0].n).toBe(0);
+    expect((await pool.query('SELECT COUNT(*)::int AS n FROM position_events')).rows[0].n).toBe(0);
+    expect((await pool.query('SELECT COUNT(*)::int AS n FROM user_positions')).rows[0].n).toBe(0);
+    for(const route of namespaceFixtures) expect(await new DurableHistory(db).hasQuarantined(namespaceProgramIds(route))).toBe(true);
+  });
+
+  it("rejects a registered emitter referencing a basket in another namespace without claiming it",async()=>{
+    const b=await namespaceBasket(namespaceFixtures[1],200),reads:string[]=[];
+    const wrongLogs=b.logs.map(line=>line.replaceAll(namespaceFixtures[1].programs.basket,program));
+    const source=orderedRpc({[program]:[{signature:'substitution',slot:1}]},{1:['substitution']},reads,
+      {substitution:{...tx,meta:{...tx.meta!,logMessages:wrongLogs}}});
+    await new EventIndexer(source,unionConfig,db).pollOnce();
+    expect((await pool.query('SELECT COUNT(*)::int AS n FROM events')).rows[0].n).toBe(0);
+    expect((await pool.query('SELECT COUNT(*)::int AS n FROM position_events')).rows[0].n).toBe(0);
+    expect((await pool.query("SELECT status FROM indexer_signature_queue WHERE sig='substitution'")).rows[0].status).toBe('quarantined');
+  });
+
+  it("rechecks factory binding under the position lock before any atomic claim",async()=>{
+    const b=await namespaceBasket(namespaceFixtures[1],210);
+    await expect(applyPositionEvent(db,'wrong-projection',{type:'Minted',basket:b.basket,user:b.user,grossShares:'100',netShares:'100',entryFee:'0'},1,1,namespace.factoryConfig)).rejects.toThrow(/namespace mismatch/);
+    expect((await pool.query('SELECT COUNT(*)::int AS n FROM position_events')).rows[0].n).toBe(0);
+    expect((await pool.query('SELECT COUNT(*)::int AS n FROM user_positions')).rows[0].n).toBe(0);
+  });
+
+  it("deduplicates one shared transaction across the closed union and restart",async()=>{
+    const b=await namespaceBasket(namespaceFixtures[1],220),reads:string[]=[];
+    const pages=Object.fromEntries(registeredProgramIds(namespaceFixtures).map(id=>[id,[{signature:'shared',slot:1}]]));
+    const source=orderedRpc(pages,{1:['shared']},reads,{shared:b.minted});
+    await new EventIndexer(source,unionConfig,db).pollOnce();await new EventIndexer(source,unionConfig,db).pollOnce();
+    expect(reads).toEqual(['shared']);
+    expect((await pool.query('SELECT status FROM indexer_signature_queue')).rows).toEqual(Array.from({length:6},()=>({status:'processed'})));
+    expect((await pool.query('SELECT COUNT(*)::int AS n FROM position_events')).rows[0].n).toBe(1);
+    expect((await pool.query('SELECT share_balance::text FROM user_positions')).rows[0].share_balance).toBe('100');
+  });
+
+  it("propagates a quarantined shared signature discovered later by another namespace",async()=>{
+    const reads:string[]=[],a=namespaceFixtures[0],b=namespaceFixtures[1];
+    const pages:Record<string,Array<{signature:string;slot:number}>>={
+      [a.programs.basket]:[{signature:'shared-truncated',slot:1}],
+      [b.programs.basket]:[{signature:'b-4',slot:4},{signature:'b-3',slot:3},{signature:'shared-truncated',slot:1}],
+    };
+    const source=orderedRpc(pages,{1:['shared-truncated'],3:['b-3'],4:['b-4']},reads,
+      {'shared-truncated':{...tx,meta:{...tx.meta!,logMessages:['Log truncated']}}});
+    const indexer=new EventIndexer(source,{...unionConfig,signaturesPerPoll:2,historyPagesPerPoll:1},db);
+    await indexer.pollOnce();expect(reads).toEqual(['shared-truncated']);
+    expect((await pool.query('SELECT status FROM indexer_signature_queue WHERE program_id=$1 AND sig=$2',[b.programs.basket,'shared-truncated'])).rows).toEqual([]);
+    await indexer.pollOnce();await indexer.pollOnce();
+    expect((await pool.query("SELECT program_id,status FROM indexer_signature_queue WHERE sig='shared-truncated' ORDER BY program_id")).rows)
+      .toEqual([a.programs.basket,b.programs.basket].sort().map(program_id=>({program_id,status:'quarantined'})));
+    expect(await new DurableHistory(db).hasQuarantined(namespaceProgramIds(b))).toBe(true);
+    expect((await pool.query('SELECT COUNT(*)::int AS n FROM position_events')).rows[0].n).toBe(0);
+  });
+
+  it("inherits a full canonical completion when another namespace discovers the signature after restart",async()=>{
+    const reads:string[]=[],a=namespaceFixtures[0],b=namespaceFixtures[1];
+    const pages:Record<string,Array<{signature:string;slot:number}>>={
+      [a.programs.basket]:[{signature:'shared-empty',slot:1}],
+      [b.programs.basket]:[{signature:'b-4',slot:4},{signature:'b-3',slot:3},{signature:'shared-empty',slot:1}],
+    };
+    const source=orderedRpc(pages,{1:['shared-empty'],3:['b-3'],4:['b-4']},reads);
+    const cfg={...unionConfig,signaturesPerPoll:2,historyPagesPerPoll:1};
+    await new EventIndexer(source,cfg,db).pollOnce();expect(reads).toEqual(['shared-empty']);
+    const restarted=new EventIndexer(source,cfg,db);for(let i=0;i<4;i++)await restarted.pollOnce();
+    expect(reads.filter(sig=>sig==='shared-empty')).toHaveLength(1);
+    expect((await pool.query("SELECT status,canonical_event_count FROM indexer_signature_queue WHERE sig='shared-empty'")).rows)
+      .toEqual([{status:'processed',canonical_event_count:0},{status:'processed',canonical_event_count:0}]);
+  });
+
+  it("contains an unresolved legacy projection guard to its namespace without clearing it",async()=>{
+    const a=await namespaceBasket(namespaceFixtures[0],230),b=await namespaceBasket(namespaceFixtures[1],240),reads:string[]=[];
+    await pool.query("INSERT INTO position_rebuild_required(basket,reason) VALUES($1,'legacy-ledger')",[a.basket]);
+    const source=orderedRpc({[program]:[{signature:'a-later',slot:1},{signature:'a-blocked',slot:1}],
+      [namespaceFixtures[1].programs.basket]:[{signature:'b-valid',slot:1}]},{1:['a-blocked','b-valid','a-later']},reads,
+      {'a-blocked':a.minted,'a-later':a.minted,'b-valid':b.minted});
+    const indexer=new EventIndexer(source,unionConfig,db);await indexer.pollOnce();await indexer.pollOnce();
+    expect((await pool.query('SELECT basket,share_balance::text FROM user_positions')).rows).toEqual([{basket:b.basket,share_balance:'100'}]);
+    expect((await pool.query('SELECT sig FROM position_events')).rows).toEqual([{sig:'b-valid'}]);
+    expect((await pool.query('SELECT activated_run_id FROM position_rebuild_required WHERE basket=$1',[a.basket])).rows[0].activated_run_id).toBeNull();
+    expect((await pool.query('SELECT sig,status,tx_index FROM indexer_signature_queue ORDER BY tx_index')).rows).toEqual([
+      {sig:'a-blocked',status:'pending',tx_index:0},{sig:'b-valid',status:'processed',tx_index:1},{sig:'a-later',status:'pending',tx_index:2}]);
+  });
+
+  it.each(['old-union','legacy-null'])("does not reuse %s completion when registration expands and new runtime effects are recognized",async provenance=>{
+    const a=await namespaceBasket(namespaceFixtures[0],70),b=await namespaceBasket(namespaceFixtures[1],80),reads:string[]=[];
+    const pages:Record<string,Array<{signature:string;slot:number}>>={
+      [program]:[{signature:'before-registration',slot:1}],
+      [namespaceFixtures[1].programs.basket]:[{signature:'before-registration',slot:1}],
+    };
+    const mixed={...tx,meta:{...tx.meta!,logMessages:[...a.logs,...b.logs]}};
+    const source=orderedRpc(pages,{1:['before-registration']},reads,{'before-registration':mixed});
+    await new EventIndexer(source,{...config,signaturesPerPoll:10},db).pollOnce();
+    expect((await pool.query('SELECT basket,share_balance::text FROM user_positions')).rows).toEqual([{basket:a.basket,share_balance:'100'}]);
+    if(provenance==='legacy-null')await pool.query('UPDATE indexer_signature_queue SET canonical_program_ids=NULL');
+    const previous=(await pool.query('SELECT canonical_program_ids FROM indexer_signature_queue')).rows[0].canonical_program_ids;
+    expect(previous).toEqual(provenance==='legacy-null'?null:namespaceProgramIds(namespace));
+    await new EventIndexer(source,unionConfig,db).pollOnce();
+    expect(reads).toEqual(['before-registration','before-registration']);
+    expect((await pool.query('SELECT basket,share_balance::text FROM user_positions')).rows).toEqual([{basket:a.basket,share_balance:'100'}]);
+    expect((await pool.query('SELECT COUNT(*)::int AS n FROM position_events')).rows[0].n).toBe(1);
+    expect((await pool.query('SELECT COUNT(*)::int AS n FROM events')).rows[0].n).toBe(1);
+    for(const route of namespaceFixtures)expect(await new DurableHistory(db).hasQuarantined(namespaceProgramIds(route))).toBe(true);
+  });
+
+  it("does not let an in-memory seen entry bypass missing durable decode provenance",async()=>{
+    const a=await namespaceBasket(namespaceFixtures[0],90),reads:string[]=[];
+    const pages:Record<string,Array<{signature:string;slot:number}>>={[program]:[{signature:'seen-without-proof',slot:1}]};
+    const source=orderedRpc(pages,{1:['seen-without-proof']},reads,{'seen-without-proof':a.minted});
+    const indexer=new EventIndexer(source,unionConfig,db);await indexer.pollOnce();
+    await pool.query('UPDATE indexer_signature_queue SET canonical_program_ids=NULL');
+    pages[namespaceFixtures[1].programs.basket]=[{signature:'seen-without-proof',slot:1}];
+    await indexer.pollOnce();
+    expect(reads).toEqual(['seen-without-proof','seen-without-proof']);
+    expect((await pool.query('SELECT COUNT(*)::int AS n FROM position_events')).rows[0].n).toBe(1);
+    expect((await pool.query('SELECT share_balance::text FROM user_positions')).rows[0].share_balance).toBe('100');
+    expect((await pool.query('SELECT canonical_program_ids FROM indexer_signature_queue WHERE program_id=$1',[namespaceFixtures[1].programs.basket])).rows[0].canonical_program_ids)
+      .toEqual(registeredProgramIds(namespaceFixtures));
+  });
+
+  it("rejects conflicting event counts under the same exact canonical decoder union",async()=>{
+    const history=new DurableHistory(db),state=await history.state(program);
+    await history.savePage(state,[signature(1)],2,registeredProgramIds(namespaceFixtures));
+    await history.assignTransactionIndices(registeredProgramIds(namespaceFixtures),1,['signature-1']);
+    await history.markCanonicalCollected(registeredProgramIds(namespaceFixtures),'signature-1',1,1);
+    await expect(history.markCanonicalCollected(registeredProgramIds(namespaceFixtures),'signature-1',1,2)).rejects.toThrow(/could not bind/);
+    expect((await pool.query("SELECT canonical_event_count,canonical_program_ids FROM indexer_signature_queue WHERE sig='signature-1'")).rows[0])
+      .toEqual({canonical_event_count:1,canonical_program_ids:registeredProgramIds(namespaceFixtures)});
+  });
+
+  it("rolls back a late namespace scan with a contradictory slot for a known signature",async()=>{
+    const history=new DurableHistory(db),first=await history.state(program),other=namespaceFixtures[1].programs.basket;
+    await history.savePage(first,[signature(1)],2,registeredProgramIds(namespaceFixtures));
+    const second=await history.state(other);
+    await expect(history.savePage(second,[{...signature(1),slot:2}],2,registeredProgramIds(namespaceFixtures))).rejects.toThrow(/inconsistent finalized slots/);
+    expect((await pool.query('SELECT program_id,slot::text FROM indexer_signature_queue')).rows).toEqual([{program_id:program,slot:'1'}]);
+    expect((await history.state(other)).head_signature).toBeNull();
   });
 
 });

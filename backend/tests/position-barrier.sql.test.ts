@@ -1,3 +1,5 @@
+import { namespaceFixtures, namespaceRecoveryPrograms } from "./fixtures/program-namespaces";
+import { PROGRAM_NAMESPACES, registeredProgramIds } from "../src/config/programNamespaces";
 /** Approved source tests: isolated PostgreSQL schemas, never application DATABASE_URL. */
 import { beforeAll, afterAll, beforeEach, afterEach, describe, it, expect } from "vitest";
 import pg from "pg";
@@ -11,7 +13,7 @@ import { decodeBasketState } from "../src/indexer/basketState";
 import { positionRecoveryFixture, recoveryKey } from "./fixtures/position-recovery";
 
 const url=process.env.POSITION_EVENTS_TEST_DATABASE_URL ?? process.env.BASKET_RETURNS_TEST_DATABASE_URL;
-const fixture=positionRecoveryFixture({slot:100,holders:[{user:recoveryKey(20),amount:100n},{user:recoveryKey(201),amount:10n},{user:recoveryKey(202),amount:20n}]});
+const fixture=positionRecoveryFixture({programs:namespaceRecoveryPrograms(0),slot:100,holders:[{user:recoveryKey(20),amount:100n},{user:recoveryKey(201),amount:10n},{user:recoveryKey(202),amount:20n}]});
 const basket=fixture.basket.toBase58(),otherBasket="other-basket",user=recoveryKey(20).toBase58(),creator=fixture.creator.toBase58(),treasury=fixture.treasury.toBase58();
 const minted={type:"Minted" as const,basket,user,netShares:"100",grossShares:"110",entryFeeShares:"10"};
 let admin:pg.Client,pool:pg.Pool,db:PgLike,schema:string,counter=0;
@@ -25,7 +27,8 @@ describe.skipIf(!url)("snapshot-covered position claims against disposable Postg
     pool=new pg.Pool({connectionString:url,options:`-c search_path=${schema}`,max:8});db=pool as unknown as PgLike;
     expect(await applySchema(db)).toBe(true);
     for(const key of [basket,otherBasket]) await pool.query(`INSERT INTO baskets(pubkey,factory,creator,treasury,share_mint,nonce,created_at,metadata_hash,num_constituents,constituents,weights_bps,entry_fee_bps,exit_fee_bps,management_fee_bps,last_fee_accrual_ts)
-      VALUES($1,'factory',$2,$3,$4,1,NOW(),'hash',2,ARRAY['m1','m2'],ARRAY[5000,5000],100,50,200,NOW())`,[key,creator,treasury,`share-${key}`]);
+      VALUES($1,'${PROGRAM_NAMESPACES[0].factoryConfig}',$2,$3,$4,1,NOW(),'hash',2,ARRAY['m1','m2'],ARRAY[5000,5000],100,50,200,NOW())`,[key,creator,treasury,`share-${key}`]);
+    for(const program of registeredProgramIds()) await pool.query("INSERT INTO indexer_program_state(program_id,history_complete,finalized_through_slot) VALUES($1,true,200)",[program]);
     await pool.query(`INSERT INTO user_positions("user",basket,share_balance,cost_basis,cost_basis_source) VALUES($1,$4,100,7,'reference'),($2,$4,10,NULL,NULL),($3,$4,20,NULL,NULL)`,[user,creator,treasury,basket]);
     await pool.query(`INSERT INTO nav_snapshots(basket,nav,supply,share_price,price_source,valuation_eligible,valuation_status) VALUES($1,100,100,1,'{}',true,'complete')`,[basket]);
     await pool.query(`INSERT INTO position_reconciliation_state(basket,snapshot_slot) VALUES($1,100)`,[basket]);
@@ -107,11 +110,11 @@ describe.skipIf(!url)("snapshot-covered position claims against disposable Postg
     await pool.query("DELETE FROM baskets WHERE pubkey=$1",[otherBasket]);
     const state=decodeBasketState(basket,fixture.basketAccount,fixture.programs);
     await pool.query(`UPDATE baskets SET factory=$2,creator=$3,treasury=$4,share_mint=$5,nonce=$6,created_at=$7,metadata_hash=$8,num_constituents=$9,constituents=$10,weights_bps=$11,entry_fee_bps=$12,exit_fee_bps=$13,management_fee_bps=$14 WHERE pubkey=$1`,[basket,state.factory,state.creator,state.treasury,state.shareMint,state.nonce,state.createdAt,state.metadataHash,state.numConstituents,state.constituents,state.weightsBps,state.entryFeeBps,state.exitFeeBps,state.managementFeeBps]);
-    for(const program of fixture.programs.ids) await pool.query("INSERT INTO indexer_program_state(program_id,history_complete,finalized_through_slot) VALUES($1,true,200)",[program]);
+    for(const program of fixture.programs.ids) await pool.query("INSERT INTO indexer_program_state(program_id,history_complete,finalized_through_slot) VALUES($1,true,200) ON CONFLICT(program_id) DO UPDATE SET history_complete=true,finalized_through_slot=200",[program]);
   }
   it("preserves a newer direct event applied after snapshot read and before reconciliation locks",async()=>{
     await prepareReconciliation();
-    const result=await syncPositionsFromChain(fixture.rpc,db,{spacingMs:0,programs:fixture.programs,catchUpThroughSlot:async(slot)=>{
+    const result=await syncPositionsFromChain(fixture.rpc,db,{spacingMs:0,programs:fixture.programs,namespaces:namespaceFixtures,catchUpThroughSlot:async(slot)=>{
       expect(slot).toBe(100);await applyMinted(db,"after-snapshot",minted,1,101);
     }});
     expect(result).toMatchObject({basketsScanned:0,basketsFailed:1});
@@ -130,7 +133,7 @@ describe.skipIf(!url)("snapshot-covered position claims against disposable Postg
         return result;
       }};
     }};
-    const reconcile=syncPositionsFromChain(fixture.rpc,held,{spacingMs:0,programs:fixture.programs,catchUpThroughSlot:async()=>{}});
+    const reconcile=syncPositionsFromChain(fixture.rpc,held,{spacingMs:0,programs:fixture.programs,namespaces:namespaceFixtures,catchUpThroughSlot:async()=>{}});
     await started;
     const event=applyMinted(db,"after-reconcile",minted,1,101);
     release();expect(await reconcile).toMatchObject({basketsScanned:1,basketsFailed:0});expect(await event).toBe(true);

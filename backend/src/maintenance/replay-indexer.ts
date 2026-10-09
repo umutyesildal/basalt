@@ -13,7 +13,7 @@ import { stagePositionRebuild } from "../indexer/positions.js";
 import { fetchFinalizedPositionSnapshot } from "../indexer/positionsSync.js";
 import { replayThroughFinalizedSlot } from "./historyReadiness.js";
 import {
-  loadCandidateContext, assertCandidateIdentity, openCandidateDatabase, candidateRpc, RecoveryOperatorError,
+  loadCandidateContext, assertCandidateIdentity, openCandidateDatabase, candidateRpc, candidateProgramSet, RecoveryOperatorError,
 } from "./recovery-operator.js";
 
 export const REPLAY_HELP = [
@@ -64,12 +64,11 @@ export async function runCandidateReplay(args: string[], env: NodeJS.ProcessEnv 
     const report = (progress:Record<string,unknown>) => console.log(JSON.stringify(progress));
     await replayThroughFinalizedSlot(indexer,db,cfg.programIds,budget,0,report);
     if (!options.basketArg) return;
-    const snapshot = await fetchFinalizedPositionSnapshot(rpc,options.basketArg,{
-      basket:new PublicKey(ids.basket),factory:new PublicKey(ids.factory),ids:cfg.programIds,
-    });
+    const proofPrograms = candidateProgramSet(context.manifest);
+    const snapshot = await fetchFinalizedPositionSnapshot(rpc,options.basketArg,proofPrograms);
     // A fresh discovery after the snapshot rules out omitted zero-net history.
     await replayThroughFinalizedSlot(indexer,db,cfg.programIds,budget,snapshot.slot,report);
-    const staged = await stagePositionRebuild(db,options.basketArg,cfg.programIds,snapshot);
+    const staged = await stagePositionRebuild(db,options.basketArg,proofPrograms.ids,snapshot);
     console.log(JSON.stringify({...staged,basket:options.basketArg,candidateId:context.manifest.candidateId,activeProjectionChanged:false}));
   } finally { await db.end(); }
 }

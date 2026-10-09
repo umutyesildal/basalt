@@ -1,5 +1,7 @@
 "use client";
 
+import { APP_NAMESPACE_ROUTING, CREATION_DISABLED_MESSAGE } from "@/lib/program-namespaces";
+
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import {
   Connection,
@@ -146,10 +148,11 @@ export function DeployPanel({
       }
     : null;
 
-  const validationErrors = args ? validateCreateBasketArgs(args) : [];
+  const creationActive = (() => { try { APP_NAMESPACE_ROUTING.creation(); return true; } catch { return false; } })();
+  const validationErrors = [...(args ? validateCreateBasketArgs(args) : []), ...(!creationActive ? [CREATION_DISABLED_MESSAGE] : [])];
   const accountList =
-    args && creator ? listCreateBasketAccounts(creator, args, constituents.map((c) => c.ticker)) : [];
-  const pda = args && creator ? deriveCreateBasketPdas(creator, args) : null;
+    args && creator && creationActive ? listCreateBasketAccounts(creator, args, constituents.map((c) => c.ticker)) : [];
+  const pda = args && creator && creationActive ? deriveCreateBasketPdas(creator, args) : null;
   const estSize = constituents.length > 0 ? estimateCreateBasketTxSize(constituents.length) : 0;
   const overLimit = estSize > PACKET_LIMIT;
 

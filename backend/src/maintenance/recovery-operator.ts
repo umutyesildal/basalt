@@ -1,3 +1,4 @@
+import { PROGRAM_NAMESPACES, registeredProgramIds, validateNamespaceRegistry, type ProgramNamespace } from "../config/programNamespaces.js";
 /**
  * Candidate-only operator. Default inspect/export never modify the database.
  * Activation reuses the reviewed atomic API; no bootstrap/worker calls this CLI.
@@ -113,7 +114,7 @@ function boundedId(value: unknown): asserts value is string {
 function raw(value: unknown, maximum = (1n << 64n) - 1n): asserts value is string {
   if (typeof value !== "string" || value.length > 20 || !/^(0|[1-9]\d*)$/.test(value) || BigInt(value) > maximum) fail("Invalid canonical raw amount");
 }
-export function validateCandidateManifest(value: unknown): CandidateManifest {
+export function validateCandidateManifest(value: unknown, namespaces: readonly ProgramNamespace[] = PROGRAM_NAMESPACES): CandidateManifest {
   const item = record(value);
   exactKeys(item, ["schemaVersion","candidateId","databaseName","sourceDatabase","sourceSha","backupSha256","programIds","genesisHash"], ["snapshotAt","backupFile"]);
   if (item.schemaVersion !== 1 || item.sourceDatabase !== "foliox" || item.genesisHash !== DEVNET_GENESIS) fail("Only the explicit devnet candidate manifest is supported");
@@ -123,7 +124,7 @@ export function validateCandidateManifest(value: unknown): CandidateManifest {
   const programs = record(item.programIds);
   exactKeys(programs, ["basket","factory","whitelist"]);
   Object.values(programs).forEach(canonicalKey);
-  if (stable(programs) !== stable(RELEASE_PROGRAM_IDS)) fail("Program roles must match the existing devnet release namespace");
+  if (!validateNamespaceRegistry(namespaces).some(namespace => stable(namespace.programs) === stable(programs))) fail("Program roles must match one registered devnet namespace");
   if (item.snapshotAt !== undefined) isoDate(item.snapshotAt);
   if (item.backupFile !== undefined && (typeof item.backupFile !== "string" || item.backupFile.length > 160 || !/^[a-zA-Z0-9][a-zA-Z0-9_.-]*$/.test(item.backupFile) || basename(item.backupFile) !== item.backupFile)) fail("Backup filename must be a plain basename");
   return item as unknown as CandidateManifest;
@@ -190,10 +191,13 @@ export function candidateRpc(url: string | undefined, signal: AbortSignal): Conn
       return fetch(input, { ...init, signal: AbortSignal.any(signals) });
     } });
 }
-function programs(context: CandidateContext) {
-  const ids = context.manifest.programIds;
-  return { basket: new PublicKey(ids.basket), factory: new PublicKey(ids.factory), ids: [ids.whitelist,ids.factory,ids.basket] };
+/** A basket proof uses exactly its registered trio, independently of union collection. */
+export function candidateProgramSet(manifest: Pick<CandidateManifest,"programIds">, namespaces: readonly ProgramNamespace[] = PROGRAM_NAMESPACES) {
+  const ids = manifest.programIds;
+  if (!validateNamespaceRegistry(namespaces).some(namespace => stable(namespace.programs) === stable(ids))) fail("Program roles must match one registered devnet namespace");
+  return { basket: new PublicKey(ids.basket), factory: new PublicKey(ids.factory), ids: [ids.whitelist,ids.factory,ids.basket].sort(ordinal) };
 }
+function programs(context: CandidateContext) { return candidateProgramSet(context.manifest); }
 function reviewedRun(row: Record<string, unknown> | undefined, context: CandidateContext): ReviewedRun {
   if (!row) fail("Reviewed staged run does not exist");
   boundedId(row.run_id); canonicalKey(row.basket);
@@ -256,10 +260,10 @@ async function inspect(db: PgLike, context: CandidateContext) {
     const existing = await client.query("SELECT name,to_regclass('public.' || name)::text AS table_name FROM unnest($1::text[]) AS name", [names]);
     const missingTables = existing.rows.filter(row => !row.table_name).map(row => row.name);
     if (missingTables.length) return { candidate: context.manifest, schemaReady: false, missingTables };
-    const history = (await client.query("SELECT program_id,history_complete,scan_before,scan_head,finalized_through_slot::text FROM public.indexer_program_state WHERE program_id=ANY($1::text[]) ORDER BY program_id COLLATE \"C\" LIMIT 3", [programs(context).ids])).rows;
-    const queue = (await client.query("SELECT status,COUNT(*)::text AS count FROM public.indexer_signature_queue WHERE program_id=ANY($1::text[]) GROUP BY status ORDER BY status", [programs(context).ids])).rows;
+    const history = (await client.query("SELECT program_id,history_complete,scan_before,scan_head,finalized_through_slot::text FROM public.indexer_program_state WHERE program_id=ANY($1::text[]) ORDER BY program_id COLLATE \"C\"", [registeredProgramIds()])).rows;
+    const queue = (await client.query("SELECT status,COUNT(*)::text AS count FROM public.indexer_signature_queue WHERE program_id=ANY($1::text[]) GROUP BY status ORDER BY status", [registeredProgramIds()])).rows;
     const runs = (await client.query("SELECT run_id,basket,chain_slot::text,chain_supply::text,event_count,history_hash,status,created_at,activated_at,activated_slot::text FROM public.position_rebuild_runs ORDER BY created_at DESC,run_id COLLATE \"C\" LIMIT 20")).rows;
-    return { candidate: context.manifest, schemaReady: true, history, queue, recentRuns: runs, activeProjectionChanged: false };
+    return { candidate: context.manifest, schemaReady: true, collectionPrograms:registeredProgramIds(), history, queue, recentRuns: runs, activeProjectionChanged: false };
   });
 }
 export function parseOperatorArgs(args: string[]): OperatorOptions {
@@ -331,7 +335,7 @@ export async function runRecoveryOperator(args: string[], env: NodeJS.ProcessEnv
     const rpc = (dependencies.rpc ?? candidateRpc)(env.RPC_URL,signal);
     if (current.status !== "activated" && await rpc.getGenesisHash() !== context.manifest.genesisHash) fail("RPC does not report the reviewed devnet genesis");
     const programSet = programs(context);
-    const indexer = new EventIndexer(rpc, { programIds:programSet.ids, basketProgramId:context.manifest.programIds.basket,
+    const indexer = new EventIndexer(rpc, { namespaces:PROGRAM_NAMESPACES, programIds:programSet.ids, basketProgramId:context.manifest.programIds.basket,
       factoryProgramId:context.manifest.programIds.factory, whitelistProgramId:context.manifest.programIds.whitelist,
       pollIntervalMs:15_000, signaturesPerPoll:50, maxSeenCache:10_000, historyPagesPerPoll:2, durableHistory:true, replayOnly:true },database);
     const budget = {remaining:options.maxPolls,polls:0};
@@ -344,7 +348,7 @@ export async function runRecoveryOperator(args: string[], env: NodeJS.ProcessEnv
       catchUpThroughSlot: async slot => {
         await assertCandidateIdentity(database,context);
         signal.throwIfAborted();
-        await (dependencies.replay ?? replayThroughFinalizedSlot)(indexer,database,programSet.ids,budget,slot,dependencies.report);
+        await (dependencies.replay ?? replayThroughFinalizedSlot)(indexer,database,registeredProgramIds(),budget,slot,dependencies.report);
       },
     });
     return { candidateId:context.manifest.candidateId, databaseName:context.manifest.databaseName, sourceSha:context.manifest.sourceSha,

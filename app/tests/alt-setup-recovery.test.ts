@@ -13,7 +13,8 @@ import {
 } from "../lib/transactions";
 import { PROGRAMS } from "../lib/solana";
 import type { CreateBasketArgs } from "../lib/create-basket";
-import { FACTORY_FIXTURE_ADDRESS, factoryFixture } from "./factory-fixture";
+import { factoryFixture } from "./factory-fixture";
+import { routedBasketFixture, TEST_NAMESPACE, TEST_ROUTING } from "./namespace-fixture";
 
 const GENESIS = "EtWTRABZaYq6iMfeYKouRu166VU2xqa1wcaWoxPkrZBG";
 const SIGNATURE = "2".repeat(87);
@@ -37,11 +38,12 @@ let fixtureCount = 0;
 function key(number: number) { const bytes = Buffer.alloc(32); bytes.writeUInt32LE(number, 0); return new PublicKey(bytes); }
 function fixture() {
   const id = ++fixtureCount * 100;
-  const keys: BasketCoreKeys = { user: key(id), creator: key(id + 1), treasury: key(id + 2), basket: key(id + 3),
-    factory: key(id + 4), shareMint: key(id + 5), constituents: [6, 7, 8, 9].map(i => key(id + i).toBase58()) };
+  const chain = routedBasketFixture({ user: key(id), creator: key(id + 1), treasury: key(id + 2), nonce: BigInt(id), constituents: [6, 7, 8, 9].map(i => key(id + i).toBase58()) });
+  const keys = chain.keys;
+  chain.accounts.set(TEST_NAMESPACE.factoryConfig, factoryFixture(undefined, TEST_NAMESPACE));
   const tables = new Map<string, AddressLookupTableAccount>();
   const f = {
-    keys, tables, genesis: GENESIS, slot: 123_000 + id, slotReads: 0, sends: 0, rejectSend: 0,
+    keys, chain, tables, genesis: GENESIS, slot: 123_000 + id, slotReads: 0, sends: 0, rejectSend: 0,
     confirmations: 0, rejectConfirm: 0, status: null as null | { err: unknown; confirmationStatus: "confirmed"; slot: number; confirmations: number },
     blockHeight: 10, owner: AddressLookupTableProgram.programId,
     landed: [] as string[][],
@@ -49,7 +51,8 @@ function fixture() {
   const rpc = {
     getGenesisHash: async () => f.genesis,
     getSlot: async () => { f.slotReads += 1; return f.slot; },
-    getAccountInfo: async (address: PublicKey) => address.equals(FACTORY_FIXTURE_ADDRESS) ? factoryFixture(f.keys.treasury)
+    getMultipleAccountsInfo: async (addresses: PublicKey[]) => addresses.map(address => chain.accounts.get(address.toBase58()) ?? null),
+    getAccountInfo: async (address: PublicKey) => chain.accounts.has(address.toBase58()) ? chain.accounts.get(address.toBase58())!
       : tables.has(address.toBase58()) ? { owner: f.owner, executable: false, lamports: 1, data: Buffer.alloc(56) } : null,
     getAddressLookupTable: async (address: PublicKey) => ({ context: { slot: f.slot }, value: tables.get(address.toBase58()) ?? null }),
     getLatestBlockhash: async () => ({ blockhash: key(1).toBase58(), lastValidBlockHeight: 1_000 }),
@@ -204,11 +207,11 @@ test("malformed browser records cannot supply a derivation slot", async () => {
 test("receipts cannot cross a chain genesis boundary", async () => {
   const values = browserStorage(), f = fixture(); seedPersisted(f, values); const oldSlot = f.slot;
   f.genesis = "5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp"; f.slot += 500;
-  const result = await ensure(f); assert.equal(result.recentSlot, f.slot); assert.notEqual(result.recentSlot, oldSlot); assert.equal(f.slotReads, 1);
+  await assert.rejects(ensure(f), /namespace|devnet/); assert.equal(f.slotReads, 0); assert.equal(f.sends, 0); assert.ok(oldSlot > 0);
 });
 
 test("receipts cannot cross the wallet or exact basket account set", async () => {
-  const values = browserStorage(), f = fixture(); seedPersisted(f, values); f.keys.user = key(991); f.keys.basket = key(992); f.slot += 500;
+  const values = browserStorage(), f = fixture(); seedPersisted(f, values); f.keys.user = key(991); f.slot += 500;
   const result = await ensure(f); assert.equal(result.recentSlot, f.slot); assert.equal(f.slotReads, 1); assert.equal(result.created, true);
 });
 
@@ -216,11 +219,11 @@ test("creator setup also resumes a persisted table after an interrupted extensio
   const values = browserStorage(), f = fixture();
   const args: CreateBasketArgs = { nonce: 37, constituents: f.keys.constituents, weightsBps: [2500, 2500, 2500, 2500],
     entryFeeBps: 0, exitFeeBps: 0, managementFeeBps: 200, metadataHash: new Uint8Array(32).fill(1), seedAmounts: [2_500_000_000n, 2_500_000_000n, 2_500_000_000n, 2_500_000_000n] };
-  const ensureCreator = () => ensureCreateBasketAlt({ connection: f.rpc, creator: f.keys.user.toBase58(), args, sendTransaction: f.send });
+  const ensureCreator = () => ensureCreateBasketAlt({ connection: f.rpc, creator: f.keys.user.toBase58(), args, sendTransaction: f.send, routing: TEST_ROUTING });
   f.rejectSend = 2; await assert.rejects(ensureCreator(), /rejected/);
   assert.equal(values.size, 1); const address = [...f.tables.keys()][0]; f.rejectSend = 0;
   const result = await ensureCreator(); assert.equal(result.lookupTableAddress.toBase58(), address); assert.equal(result.created, false);
-  const wanted = deriveCreateBasketAltAddresses(f.keys.user.toBase58(), args);
+  const wanted = deriveCreateBasketAltAddresses(f.keys.user.toBase58(), args, TEST_ROUTING);
   assert.equal(f.tables.get(address)?.state.addresses.length, wanted.length);
 });
 
@@ -262,7 +265,8 @@ test("a fresh process resumes the serialized receipt after create succeeds and t
   const payload = { storage: [...values], wallet: f.keys.user.toBase58(), creator: f.keys.creator.toBase58(),
     treasury: f.keys.treasury.toBase58(), factory: f.keys.factory.toBase58(), basket: f.keys.basket.toBase58(),
     shareMint: f.keys.shareMint.toBase58(), constituents: f.keys.constituents, address: original.key.toBase58(),
-    addresses: original.state.addresses.map(address => address.toBase58()), slot: f.slot };
+    addresses: original.state.addresses.map(address => address.toBase58()), slot: f.slot,
+    accounts: [...f.chain.accounts].map(([address, account]) => [address, { owner: account.owner.toBase58(), data: account.data.toString("base64") }]) };
   const script = `
     import assert from "node:assert/strict";
     import { AddressLookupTableAccount, AddressLookupTableInstruction, AddressLookupTableProgram, PublicKey, TransactionInstruction } from "@solana/web3.js";
@@ -276,8 +280,10 @@ test("a fresh process resumes the serialized receipt after create succeeds and t
       deactivationSlot: (1n << 64n) - 1n, lastExtendedSlot: payload.slot, lastExtendedSlotStartIndex: 0,
       addresses: payload.addresses.map(address => new PublicKey(address)) } });
     let sends = 0;
+    const accounts = new Map(payload.accounts.map(([address, account]) => [address, { owner: new PublicKey(account.owner), data: Buffer.from(account.data, "base64"), executable: false, lamports: 1 }]));
     const rpc = { getGenesisHash: async () => "${GENESIS}", getSlot: async () => { throw new Error("Unexpected fresh slot"); },
-      getAccountInfo: async () => ({ owner: AddressLookupTableProgram.programId, executable: false, data: Buffer.alloc(56), lamports: 1 }),
+      getMultipleAccountsInfo: async addresses => addresses.map(address => accounts.get(address.toBase58()) ?? null),
+      getAccountInfo: async address => accounts.get(address.toBase58()) ?? ({ owner: AddressLookupTableProgram.programId, executable: false, data: Buffer.alloc(56), lamports: 1 }),
       getAddressLookupTable: async () => ({ context: { slot: payload.slot }, value: table }),
       getLatestBlockhash: async () => ({ blockhash: PublicKey.default.toBase58(), lastValidBlockHeight: 1000 }),
       confirmTransaction: async () => ({ context: { slot: payload.slot }, value: { err: null } }) };

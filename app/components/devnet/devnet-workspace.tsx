@@ -16,7 +16,7 @@ import { createPipelineGuard, pipelinePresentation, type PipelineLease } from ".
 import { explorerTxUrl } from "@/lib/transactions";
 import { getDraftNonce, clearDraftNonce } from "./create-draft";
 import { checkCreateAvailability, withAvailableCreateFactory, CreateFactoryUnavailableError, CREATE_UNAVAILABLE_NOTICE, type CreateAvailability } from "./create-availability";
-import { PROGRAMS } from "@/lib/solana";
+import { APP_NAMESPACE_ROUTING } from "@/lib/program-namespaces";
 import { useTransactionFlow } from "@/components/basket/use-transaction-flow";
 import { SummaryRow, TxSummaryCard, feesLine, grouped } from "@/components/basket/summary-card";
 import { checkGrossShares, computeRedeemPreview, entryFeeOf, formatRawShares6 } from "@/components/basket/basket-math";
@@ -292,7 +292,7 @@ export default function DevnetWorkspace() {
         const metadata = JSON.stringify({ name: name.trim(), description: thesis.trim(), version: "basalt-devnet-v0", network: "devnet", constituents: DEVNET_MOCKS.map((mock, i) => ({ ticker: mock.symbol, mint: mock.mint, weightBps: parsedWeights[i] })), feesBps: { entry: 0, exit: 0, management: managementBps } });
         await assertDevnetConnection(connection);
         const genesis = await connection.getGenesisHash();
-        const draftFingerprint = await sha256Hex(JSON.stringify({ owner: publicKey.toBase58(), genesis, programs: Object.values(PROGRAMS).map(String), metadata, seedAmounts: seedAmounts.map(String) }));
+        const draftFingerprint = await sha256Hex(JSON.stringify({ owner: publicKey.toBase58(), genesis, namespace: APP_NAMESPACE_ROUTING.creation().id, programs: APP_NAMESPACE_ROUTING.creation().programs, metadata, seedAmounts: seedAmounts.map(String) }));
         const args: CreateBasketArgs = { nonce: getDraftNonce(draftFingerprint), constituents: DEVNET_MOCKS.map((mock) => mock.mint), weightsBps: parsedWeights as number[], entryFeeBps: 0, exitFeeBps: 0, managementFeeBps: managementBps, metadataHash: hexBytes(await sha256Hex(metadata)), seedAmounts };
         if (currentWalletRef.current !== publicKey.toBase58() || currentConnectionRef.current !== connection) throw new Error("Your wallet or network changed. Choose your basket details again.");
         const address = deriveCreateBasketPdas(publicKey.toBase58(), args).basket.toBase58();
@@ -368,7 +368,7 @@ export default function DevnetWorkspace() {
         assertReviewedWallet();
         await assertDevnetConnection(rpc);
         if (!signTransaction) throw new Error("This wallet cannot sign a transaction directly.");
-        return signAndSendLocal(transaction, signTransaction, { sendRawTransaction: (bytes, options) => rpc.sendRawTransaction(bytes, { ...options, skipPreflight: false }) }, undefined, assertReviewedWallet);
+        return signAndSendLocal(transaction, signTransaction, { sendRawTransaction: (bytes, options) => rpc.sendRawTransaction(bytes, { ...options, skipPreflight: false }) }, undefined, assertReviewedWallet, assertReviewedWallet);
       })();
       setupSends.set(transaction, sending);
       return sending;
@@ -383,7 +383,7 @@ export default function DevnetWorkspace() {
       const current = await readDevnetWallet(connection, owner);
       if (current.solBalance < 5_000_000) throw new Error("Add devnet SOL to cover transaction fees and token-account rent, then retry.");
       if (request.kind === "create") {
-        if (current.whitelistStatuses.some((status) => status !== "Active")) throw new Error("A test token is paused for new baskets.");
+        if (current.whitelistStatuses.some((status) => status !== "Active")) throw new Error("A test token is unavailable for new baskets.");
         DEVNET_MOCKS.forEach((mock, i) => {
           const balance = BigInt(current.walletBalances.find((item) => item.mint === mock.mint)?.rawAmount ?? "0");
           if (balance < BigInt(request.args.seedAmounts[i])) throw new Error(`Not enough ${mock.symbol} to seed this basket. Get test tokens or lower the starting amount.`);
@@ -438,6 +438,7 @@ export default function DevnetWorkspace() {
       return buildRedeemInKindTransaction({ connection, keys, sharesToBurn: request.amount, vaultBalances: vaults, lookupTableAddresses: lookupTable ? [lookupTable] : [] });
     }, prepare, {
       sendViaConnection: true,
+      assertCurrent: assertReviewedWallet,
       beforeSign: async () => {
         assertReviewedWallet();
         await checkWallet();
@@ -600,7 +601,7 @@ export default function DevnetWorkspace() {
             <div className="flex justify-end gap-2"><Button type="button" variant="ghost" className="min-h-10" disabled={busy || !connected} onClick={() => tradeMode === "mint" ? setMintBudget(formatTokenUnitsInput(tokenUnits(maximumBudget(vaultAmounts(selected), walletAmounts(selected)) / 2n, 8))) : setRedeemShares(formatTokenUnitsInput(formatRawShares6(BigInt(selected.shareBalance ?? "0") / 2n), 6))}>Half</Button><Button type="button" variant="ghost" className="min-h-10" disabled={busy || !connected} onClick={() => tradeMode === "mint" ? setMintBudget(formatTokenUnitsInput(tokenUnits(maximumBudget(vaultAmounts(selected), walletAmounts(selected)), 8))) : setRedeemShares(formatTokenUnitsInput(formatRawShares6(BigInt(selected.shareBalance ?? "0")), 6))}>Max</Button></div>
             {displayedTrade ? <div className="rounded-xl bg-muted/20 p-4"><p className="text-xs text-muted-foreground">{tradeMode === "mint" ? "You receive approximately" : "Shares exchanged for your tokens"}</p><p className="mt-1 font-display text-3xl font-semibold tabular-nums">{grouped(formatRawShares6(displayedTrade.shares))} <span className="font-sans text-sm font-normal text-muted-foreground">shares</span></p><p className="mt-2 text-xs text-muted-foreground">{feesLine(selected.detail.entry_fee_bps, selected.detail.exit_fee_bps, selected.detail.management_fee_bps)}</p><details className="mt-2 text-xs"><summary className="min-h-10 cursor-pointer content-center text-muted-foreground focus-visible:outline focus-visible:outline-2 focus-visible:outline-ring">{tradeMode === "mint" ? "What you add" : "What you receive"}</summary><TxSummaryCard>{selected.detail.constituents.map((mint, i) => <SummaryRow key={mint} label={DEVNET_MOCKS.find((mock) => mock.mint === mint)?.symbol ?? "Test token"} value={`${grouped(tokenUnits(displayedTrade.deposits[i], 8))} unscaled tokens`} />)}<SummaryRow label={tradeMode === "mint" ? "Entry fee" : "Exit fee"} value={`${grouped(formatRawShares6(displayedTrade.fee))} shares`} muted /><SummaryRow label="Network cost" value="Devnet SOL for fees and account setup" muted /><SummaryRow label="Basket" value={<a href={`https://explorer.solana.com/address/${selected.detail.pubkey}?cluster=devnet`} target="_blank" rel="noreferrer" className="min-h-10 content-center text-primary-text underline underline-offset-4">{truncateAddress(selected.detail.pubkey)}</a>} muted /><SummaryRow label="Annual fee" value="New shares dilute holders" muted /></TxSummaryCard></details></div> : <p className="text-xs text-muted-foreground">Enter a positive amount.</p>}
             {connected && tradePreview?.insufficient ? <p className="text-xs text-destructive">{tradeMode === "mint" ? "Get test tokens or choose a smaller amount." : "Choose an amount within your share balance."}</p> : null}
-            {tradeMode === "mint" && selected.whitelistStatuses.some((status) => status !== "Active") ? <p className="text-xs text-destructive">Deposits are paused. You can still withdraw.</p> : null}
+            {tradeMode === "mint" && selected.whitelistStatuses.some((status) => status !== "Active") ? <p className="text-xs text-destructive">Deposits are unavailable for one or more tokens. You can still withdraw.</p> : null}
             {formError ? <Alert>{formError}</Alert> : null}
             <Button type="submit" className="min-h-12 w-full" disabled={!canTransact || !tradePreview || tradePreview.insufficient || (tradeMode === "mint" && selected.whitelistStatuses.some((status) => status !== "Active"))} data-testid="devnet-trade-submit">{tradeActive && busy ? pipeline.label : tradeMode === "mint" ? "Add to basket" : "Withdraw to wallet"}</Button>
             <p className="text-center text-xs text-muted-foreground">Approve in your wallet. We handle the rest.</p>
@@ -620,7 +621,7 @@ function Alert({ children }: { children: ReactNode }) {
 }
 
 function validateMint(snapshot: RawDevnetSnapshot, amounts: bigint[], supply: bigint) {
-  if (snapshot.whitelistStatuses.some((status) => status !== "Active")) throw new Error("A constituent is paused for new mints. Redemption remains available.");
+  if (snapshot.whitelistStatuses.some((status) => status !== "Active")) throw new Error("A constituent is unavailable for new mints. Redemption remains available.");
   if (amounts.some((amount) => amount > U64_MAX)) throw new Error("The token amount exceeds the transaction limit.");
   const balances = walletAmounts(snapshot);
   if (amounts.some((amount, i) => amount > balances[i])) throw new Error("Your wallet does not hold enough test tokens. Get test tokens or choose a smaller amount.");

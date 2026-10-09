@@ -324,24 +324,15 @@ describe("whitelistSync — WhitelistedMint account decoding", () => {
 });
 
 describe("whitelistSync — program account sweep", () => {
-  it("upserts valid rows and skips unknown status bytes", async () => {
-    const db = fakeDb(1);
-    const accounts = [
-      { pubkey: pk(1), account: accountInfo(new PublicKey("FRavMcYQb2FVAHbbG6fGieQHdKk1UrQqgKsAAXTPRQeS"), buildWhitelistedMintAccount(pk(1), 6, 0, "mock:nvda")) },
-      { pubkey: pk(2), account: accountInfo(new PublicKey("FRavMcYQb2FVAHbbG6fGieQHdKk1UrQqgKsAAXTPRQeS"), buildWhitelistedMintAccount(pk(2), 6, 99, "bogus")) },
-    ];
-    const rpc: WhitelistRpc = {
-      async getProgramAccounts() {
-        return accounts;
-      },
-    };
-    const n = await syncWhitelistedMints(rpc, "FRavMcYQb2FVAHbbG6fGieQHdKk1UrQqgKsAAXTPRQeS", db as never);
-    expect(n).toBe(1);
-    const call = db.calls.find((c) => c.sql.includes("INSERT INTO whitelisted_mints"));
-    expect(call).toBeDefined();
-    expect(call?.values?.[0]).toBe(pk(1).toBase58());
-    expect(call?.values?.[1]).toBe(6);
-    expect(call?.values?.[2]).toBe("Active");
-    expect(call?.values?.[3]).toBe("mock:nvda");
+  it("publishes only the authenticated canonical whitelist PDA", async () => {
+    const db=fakeDb(1),program=new PublicKey("FRavMcYQb2FVAHbbG6fGieQHdKk1UrQqgKsAAXTPRQeS");
+    const [address,bump]=PublicKey.findProgramAddressSync([Buffer.from("mint"),pk(1).toBuffer()],program);
+    const bytes=buildWhitelistedMintAccount(pk(1),6,0,"mock:nvda");bytes[bytes.length-1]=bump;
+    const rpc:WhitelistRpc={async getProgramAccounts(){return[{pubkey:address,account:accountInfo(program,bytes)}];}};
+    const pool={query:db.query,connect:async()=>({query:db.query,release:()=>{}})};
+    expect(await syncWhitelistedMints(rpc,program.toBase58(),pool as never)).toBe(1);
+    const call=db.calls.find(c=>c.sql.includes("INSERT INTO whitelisted_mints"));
+    expect(call?.values?.slice(0,4)).toEqual([pk(1).toBase58(),6,"Active","mock:nvda"]);
+    expect(db.calls.find(c=>c.sql.includes("INSERT INTO namespace_whitelisted_mints"))).toBeDefined();
   });
 });
