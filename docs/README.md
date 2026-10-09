@@ -1,6 +1,8 @@
 # Basalt documentation map
 
-- [Devnet data repair, 2026-10-09](devnet-data-repair-2026-10-09.md): bounded canonical evidence collection, shared RPC limits/verified optional holder provider, explicit price/position quality, host Rust remediation and frozen Vercel install source. Previous contained application rollout completed; this new release and hosted proof remain pending.
+- [Live devnet release, 2026-10-09](devnet-live-release-2026-10-09.md): exact backend/Vercel identities, retained backup/candidate limitations, live evidence-collection progress, guarded financial projections and post-freeze SBF build proof.
+
+- [Devnet data repair, 2026-10-09](devnet-data-repair-2026-10-09.md): bounded canonical evidence collection, shared RPC limits/verified optional holder provider, explicit price/position quality, host Rust remediation and frozen Vercel install source. Source preparation checkpoint; the live release record above supersedes its pending rollout/hosted-proof status.
 
 - [Backend/devnet security remediation, 2026-10-09](backend-devnet-security-2026-10-09.md): all ten findings mapped to implemented controls, real database tests, devnet proof and approved recovery implementation; use the latest data-repair record above for current rollout status.
 
