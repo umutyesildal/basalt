@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { PublicKey } from "@solana/web3.js";
+import { AltPreparationScope } from "@/lib/alt-preparation-scope";
 import { useConnection, useWallet } from "@solana/wallet-adapter-react";
 
 import {
@@ -47,57 +48,56 @@ export function useAltPrewarm(keys: BasketCoreKeys | null) {
   const [setupProgress, setSetupProgress] = useState<SetupProgress | null>(null);
   const [awaitingWallet, setAwaitingWallet] = useState(false);
 
-  const tableRef = useRef<PublicKey | null>(null);
-  const inFlightRef = useRef<Promise<PublicKey> | null>(null);
+  const scopeRef = useRef(new AltPreparationScope<PublicKey>());
+  const identity = keys ? [publicKey, keys.factory, keys.basket, keys.shareMint, keys.creator, keys.treasury, ...keys.constituents].map(String).join(":") : "disconnected";
+  scopeRef.current.select(identity, connection);
   const startedForRef = useRef<string | null>(null);
 
   const needsAlt = mintRedeemNeedsAlt(keys?.constituents.length ?? 0);
 
   const prepare = useCallback((): Promise<PublicKey> => {
-    if (tableRef.current) return Promise.resolve(tableRef.current);
-    if (inFlightRef.current) return inFlightRef.current;
-    if (!publicKey || !keys) {
-      return Promise.reject(new Error("Connect a wallet first."));
-    }
-    const run = ensureMintRedeemAlt({
-      connection,
-      keys,
-      sendTransaction,
-      onAwaitingWallet: setAwaitingWallet,
-      onProgress: (step, total) => setSetupProgress({ step, total }),
-    })
-      .then((handle) => {
-        tableRef.current = handle.lookupTableAddress;
-        setStatus("ready");
+    if (!publicKey || !keys) return Promise.reject(new Error("Connect a wallet first."));
+    return scopeRef.current.run(identity, connection, async (isCurrent) => {
+      if (isCurrent()) setStatus("preparing");
+      try {
+        const handle = await ensureMintRedeemAlt({
+          connection, keys, sendTransaction: async (transaction, rpc) => {
+            if (!isCurrent()) throw new Error("Your basket, wallet or network changed. Prepare the current basket again.");
+            return sendTransaction(transaction, rpc);
+          },
+          onAwaitingWallet: value => { if (isCurrent()) setAwaitingWallet(value); },
+          onProgress: (step, total) => { if (isCurrent()) setSetupProgress({step, total}); },
+        });
+        if (isCurrent()) setStatus("ready");
         return handle.lookupTableAddress;
-      })
-      .catch((err) => {
-        inFlightRef.current = null;
-        setStatus("failed");
-        throw err;
-      });
-    inFlightRef.current = run;
-    setStatus("preparing");
-    return run;
-  }, [connection, keys, publicKey, sendTransaction]);
+      } catch (error) {
+        if (isCurrent()) setStatus("failed");
+        throw error;
+      }
+    });
+  }, [connection, identity, keys, publicKey, sendTransaction]);
+
+  useEffect(() => {
+    startedForRef.current = null;
+    setStatus("idle"); setSetupProgress(null); setAwaitingWallet(false);
+  }, [connection, identity]);
 
   // Pre-warm: fire once per (wallet, basket) as soon as the form is live.
   useEffect(() => {
     if (!needsAlt || !publicKey || !keys) return;
-    const identity = `${publicKey.toBase58()}:${keys.basket.toBase58()}`;
     if (startedForRef.current === identity) return;
     startedForRef.current = identity;
     void prepare().catch(() => {
       // Quiet by design — the trade-time prepare step surfaces failures with
       // typed copy and a Retry action. The chip flips to the fallback line.
     });
-  }, [needsAlt, publicKey, keys, prepare]);
+  }, [needsAlt, publicKey, keys, prepare, identity]);
 
   /** Trade-time accessor: awaits the shared preparation (or retries it once). */
   const ensureAlt = useCallback((): Promise<PublicKey> => {
-    if (tableRef.current) return Promise.resolve(tableRef.current);
     return prepare();
   }, [prepare]);
 
-  return { needsAlt, status, setupProgress, awaitingWallet, ensureAlt };
+  const assertCurrentContext = useCallback(() => { scopeRef.current.assertCurrent(identity, connection); }, [identity, connection]);
+  return { needsAlt, status, setupProgress, awaitingWallet, ensureAlt, assertCurrentContext };
 }

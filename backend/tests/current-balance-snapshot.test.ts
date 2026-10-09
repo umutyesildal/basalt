@@ -3,8 +3,10 @@ import { PublicKey } from "@solana/web3.js";
 import { TOKEN_2022_PROGRAM_ID } from "@solana/spl-token";
 import { DEVNET_RPC_GENESIS } from "../src/rpc/positionsProvider";
 import { discoverCurrentBalanceCandidates, persistCurrentBalanceSnapshot, readCurrentBalanceSnapshot, type CurrentBalanceRpc } from "../src/indexer/currentBalanceSnapshot";
+import { namespaceRecoveryPrograms, namespaceForRecoveryFixture } from "./fixtures/program-namespaces";
 import type { PgLike } from "../src/db/client";
-import { positionRecoveryFixture, recoveryKey } from "./fixtures/position-recovery";
+import { positionRecoveryFixture as rawPositionRecoveryFixture, recoveryKey } from "./fixtures/position-recovery";
+const positionRecoveryFixture=(options:Parameters<typeof rawPositionRecoveryFixture>[0]={})=>rawPositionRecoveryFixture({programs:namespaceRecoveryPrograms(0),...options});
 
 function fixture(count=1) {
   const f=positionRecoveryFixture({holders:Array.from({length:count},(_,i)=>({user:recoveryKey(20+i),amount:10n}))});
@@ -108,7 +110,7 @@ describe("independent authenticated finalized current balances",()=>{
   it("releases a late pool acquisition after publication deadline without ever starting a transaction",async()=>{
     const f=fixture(),s=await fetchSnapshot(f);vi.useFakeTimers();let acquire!:(client:unknown)=>void;
     const client={query:vi.fn(),release:vi.fn()},db={query:vi.fn(),connect:()=>new Promise(resolve=>{acquire=resolve;})} as unknown as PgLike;
-    const pending=persistCurrentBalanceSnapshot(db,s,f.programs,new Date(),Date.now()+20),rejected=expect(pending).rejects.toThrow("snapshot-deadline");
+    const pending=persistCurrentBalanceSnapshot(db,s,f.programs,new Date(),Date.now()+20,[namespaceForRecoveryFixture(f.programs)]),rejected=expect(pending).rejects.toThrow("snapshot-deadline");
     await vi.advanceTimersByTimeAsync(20);await rejected;acquire(client);await Promise.resolve();await Promise.resolve();
     expect(client.release).toHaveBeenCalledTimes(1);expect(client.query).not.toHaveBeenCalled();
   });

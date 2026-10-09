@@ -5,13 +5,16 @@ import { applySchema } from "../src/db/init";
 import type { PgLike } from "../src/db/client";
 import { decodeBasketState } from "../src/indexer/basketState";
 import { syncPositionsFromChain, type PositionsSyncRpc } from "../src/indexer/positionsSync";
-import { positionRecoveryFixture, recoveryKey, recoveryPrograms, type PositionRecoveryFixture } from "./fixtures/position-recovery";
+import { namespaceRecoveryPrograms, namespaceForRecoveryFixture } from "./fixtures/program-namespaces";
+import { positionRecoveryFixture as rawPositionRecoveryFixture, recoveryKey,  type PositionRecoveryFixture } from "./fixtures/position-recovery";
+const positionRecoveryFixture=(options:Parameters<typeof rawPositionRecoveryFixture>[0]={})=>rawPositionRecoveryFixture({programs:namespaceRecoveryPrograms(0),...options});
 
+const recoveryPrograms=namespaceRecoveryPrograms(0);
 const url = process.env.BASKET_RETURNS_TEST_DATABASE_URL;
 const schema = `position_sync_${process.pid}_${Date.now()}`;
 let admin: pg.Pool, pool: pg.Pool;
 const sync = (f: PositionRecoveryFixture, options: Parameters<typeof syncPositionsFromChain>[2] = {}) =>
-  syncPositionsFromChain(f.rpc, pool as unknown as PgLike, { programs: f.programs, spacingMs: 0, backoffSleep: async () => {}, ...options });
+  syncPositionsFromChain(f.rpc, pool as unknown as PgLike, { programs: f.programs, namespaces:[namespaceForRecoveryFixture(f.programs)], spacingMs: 0, backoffSleep: async () => {}, ...options });
 const user = (n: number) => recoveryKey(n).toBase58();
 
 describe.skipIf(!url)("position reconciliation against disposable PostgreSQL", () => {
@@ -145,7 +148,7 @@ describe.skipIf(!url)("position reconciliation against disposable PostgreSQL", (
       getAccountInfoAndContext:(address,cfg)=>(address.equals(bad.basket)||address.equals(bad.shareMint)?bad:good).rpc.getAccountInfoAndContext(address,cfg),
       getProgramAccounts:(pid,cfg)=>(cfg.filters[0].memcmp.bytes===bad.shareMint.toBase58()?bad:good).rpc.getProgramAccounts(pid,cfg),
     };
-    const stats=await syncPositionsFromChain(rpc,pool as unknown as PgLike,{programs:recoveryPrograms,spacingMs:0});
+    const stats=await syncPositionsFromChain(rpc,pool as unknown as PgLike,{programs:recoveryPrograms,namespaces:[namespaceForRecoveryFixture(recoveryPrograms)],spacingMs:0});
     expect(stats).toMatchObject({basketsScanned:1,basketsFailed:1,balanceSynced:1});
     const rows=(await evidence()).positions;
     expect(rows.find(row=>row.basket===bad.basket.toBase58())).toMatchObject({share_balance:"55",cost_basis:"12.5"});

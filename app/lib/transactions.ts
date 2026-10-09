@@ -62,6 +62,9 @@ import { assertSafeCreateBasketFactory } from "@/lib/create-basket-security";
 const utf8 = (text: string): Uint8Array => new TextEncoder().encode(text);
 
 import { PROGRAMS } from "@/lib/solana";
+import { APP_NAMESPACE_ROUTING, namespacePrograms, requireBasketNamespace, DEVNET_GENESIS_HASH, type NamespaceRouting, type ProgramNamespace } from "./program-namespaces";
+import { assertBasketCoreKeysOnChain } from "./basket-account-security";
+export { assertBasketCoreKeysOnChain } from "./basket-account-security";
 import {
   CREATOR_FEE_SPLIT_PERCENT,
   TREASURY_FEE_SPLIT_PERCENT,
@@ -147,10 +150,10 @@ function borshVecU64(values: readonly bigint[]): Uint8Array {
  * BASKET program id. Mirrors `vault_authority_pda` (basket_factory) and the
  * `seeds = [BASKET_SEED, basket.key()]` constraints in the basket program.
  */
-export function deriveVaultAuthority(basket: PublicKey): [PublicKey, number] {
+export function deriveVaultAuthority(basket: PublicKey, program = BASKET_PROGRAM_ID): [PublicKey, number] {
   return PublicKey.findProgramAddressSync(
     [utf8("basket"), basket.toBuffer()],
-    BASKET_PROGRAM_ID,
+    program,
   );
 }
 
@@ -160,10 +163,10 @@ export function deriveVaultAuthority(basket: PublicKey): [PublicKey, number] {
  * basket_factory, so Anchor derives under that program). Cross-check against
  * the indexed `share_mint` field; the indexed value stays authoritative.
  */
-export function deriveShareMint(basket: PublicKey): [PublicKey, number] {
+export function deriveShareMint(basket: PublicKey, program = FACTORY_PROGRAM_ID): [PublicKey, number] {
   return PublicKey.findProgramAddressSync(
     [utf8("share_mint"), basket.toBuffer()],
-    FACTORY_PROGRAM_ID,
+    program,
   );
 }
 
@@ -172,10 +175,10 @@ export function deriveShareMint(basket: PublicKey): [PublicKey, number] {
  * (programs/whitelist MINT_SEED). mint_in_kind validates these are genuine
  * (owner + discriminator + stored mint) and Active.
  */
-export function deriveWhitelistedMint(mint: PublicKey): [PublicKey, number] {
+export function deriveWhitelistedMint(mint: PublicKey, program = WHITELIST_PROGRAM_ID): [PublicKey, number] {
   return PublicKey.findProgramAddressSync(
     [utf8("mint"), mint.toBuffer()],
-    WHITELIST_PROGRAM_ID,
+    program,
   );
 }
 
@@ -206,10 +209,12 @@ export function deriveBasketPda(
   factory: PublicKey,
   creator: PublicKey,
   nonce: bigint,
+  routing: NamespaceRouting = APP_NAMESPACE_ROUTING,
 ): [PublicKey, number] {
+  const program = new PublicKey(routing.forFactory(factory.toBase58()).programs.factory);
   return PublicKey.findProgramAddressSync(
     [utf8("basket"), factory.toBuffer(), creator.toBuffer(), borshU64(nonce)],
-    FACTORY_PROGRAM_ID,
+    program,
   );
 }
 
@@ -243,8 +248,17 @@ export interface BasketCoreKeys {
   user: PublicKey;
 }
 
-function coreAccounts(keys: BasketCoreKeys): ExpectedAccount[] {
-  const [vaultAuthority] = deriveVaultAuthority(keys.basket);
+export function parseBasketCoreKeys(detail: { pubkey: string; factory: string; creator: string; treasury: string; share_mint: string; constituents: string[] }, user: PublicKey, routing: NamespaceRouting = APP_NAMESPACE_ROUTING): BasketCoreKeys | null {
+  try {
+    const keys = {basket:new PublicKey(detail.pubkey), factory:new PublicKey(detail.factory), creator:new PublicKey(detail.creator), treasury:new PublicKey(detail.treasury), shareMint:new PublicKey(detail.share_mint), constituents:detail.constituents, user};
+    requireBasketNamespace(keys, routing);
+    return keys;
+  } catch { return null; }
+}
+
+function coreAccounts(keys: BasketCoreKeys, routing: NamespaceRouting): ExpectedAccount[] {
+  const programs = namespacePrograms(requireBasketNamespace(keys, routing));
+  const [vaultAuthority] = deriveVaultAuthority(keys.basket, programs.basket);
   return [
     {
       label: "basket",
@@ -319,8 +333,10 @@ function coreAccounts(keys: BasketCoreKeys): ExpectedAccount[] {
 function constituentAccounts(
   keys: BasketCoreKeys,
   includeWhitelistGate: boolean,
+  routing: NamespaceRouting,
 ): ExpectedAccount[] {
-  const [vaultAuthority] = deriveVaultAuthority(keys.basket);
+  const programs = namespacePrograms(requireBasketNamespace(keys, routing));
+  const [vaultAuthority] = deriveVaultAuthority(keys.basket, programs.basket);
   const listed: ExpectedAccount[] = [];
   keys.constituents.forEach((mint, i) => {
     const mintKey = new PublicKey(mint);
@@ -352,7 +368,7 @@ function constituentAccounts(
   });
   if (includeWhitelistGate) {
     keys.constituents.forEach((mint, i) => {
-      const [pda] = deriveWhitelistedMint(new PublicKey(mint));
+      const [pda] = deriveWhitelistedMint(new PublicKey(mint), programs.whitelist);
       listed.push({
         label: `whitelisted_mint[${i}]`,
         pubkey: pda,
@@ -391,6 +407,7 @@ export interface MintInKindParams {
  */
 export function buildMintInKind(
   params: MintInKindParams,
+  routing: NamespaceRouting = APP_NAMESPACE_ROUTING,
 ): { instructions: TransactionInstruction[]; expectedAccounts: ExpectedAccount[] } {
   const { keys, amounts, vaultBalances } = params;
   if (amounts.length !== keys.constituents.length) {
@@ -406,12 +423,12 @@ export function buildMintInKind(
   }
 
   const accounts = [
-    ...coreAccounts(keys),
-    ...constituentAccounts(keys, true),
+    ...coreAccounts(keys, routing),
+    ...constituentAccounts(keys, true, routing),
   ];
 
   const instruction = new TransactionInstruction({
-    programId: BASKET_PROGRAM_ID,
+    programId: new PublicKey(requireBasketNamespace(keys, routing).programs.basket),
     keys: toMetas(accounts),
     data: Buffer.from(
       concatBytes(
@@ -443,6 +460,7 @@ export interface RedeemInKindParams {
  */
 export function buildRedeemInKind(
   params: RedeemInKindParams,
+  routing: NamespaceRouting = APP_NAMESPACE_ROUTING,
 ): { instructions: TransactionInstruction[]; expectedAccounts: ExpectedAccount[] } {
   const { keys, sharesToBurn, vaultBalances } = params;
   if (sharesToBurn <= 0n) {
@@ -455,12 +473,12 @@ export function buildRedeemInKind(
   }
 
   const accounts = [
-    ...coreAccounts(keys),
-    ...constituentAccounts(keys, false),
+    ...coreAccounts(keys, routing),
+    ...constituentAccounts(keys, false, routing),
   ];
 
   const instruction = new TransactionInstruction({
-    programId: BASKET_PROGRAM_ID,
+    programId: new PublicKey(requireBasketNamespace(keys, routing).programs.basket),
     keys: toMetas(accounts),
     data: Buffer.from(
       concatBytes(
@@ -480,11 +498,11 @@ export function buildRedeemInKind(
  * the payer only covers possible ATA rent. No remaining accounts. The AccrueFee
  * context has a `payer` signer instead of a `user`.
  */
-export function buildAccrueManagementFee(keys: Omit<BasketCoreKeys, "user"> & { user: PublicKey }): {
+export function buildAccrueManagementFee(keys: Omit<BasketCoreKeys, "user"> & { user: PublicKey }, routing: NamespaceRouting = APP_NAMESPACE_ROUTING): {
   instructions: TransactionInstruction[];
   expectedAccounts: ExpectedAccount[];
 } {
-  const accounts = coreAccounts(keys).map((a) =>
+  const accounts = coreAccounts(keys, routing).map((a) =>
     a.label === "user"
       ? {
           ...a,
@@ -494,7 +512,7 @@ export function buildAccrueManagementFee(keys: Omit<BasketCoreKeys, "user"> & { 
       : a,
   );
   const instruction = new TransactionInstruction({
-    programId: BASKET_PROGRAM_ID,
+    programId: new PublicKey(requireBasketNamespace(keys, routing).programs.basket),
     keys: toMetas(accounts),
     data: Buffer.from(concatBytes(ACCRUE_MANAGEMENT_FEE_DISCRIMINATOR)),
   });
@@ -589,15 +607,17 @@ export function createBasketNeedsAlt(numConstituents: number): boolean {
 export function deriveCreateBasketAltAddresses(
   creator: string,
   args: CreateBasketArgs,
+  routing: NamespaceRouting = APP_NAMESPACE_ROUTING,
 ): PublicKey[] {
-  const pda = deriveCreateBasketPdas(creator, args);
+  const programs = namespacePrograms(routing.creation());
+  const pda = deriveCreateBasketPdas(creator, args, routing);
   const creatorKey = new PublicKey(creator);
   const candidates: PublicKey[] = [
     // program ids first — the instruction's own program, the CPI target, both
     // token programs, system and the compute-budget program prepended to the tx
-    FACTORY_PROGRAM_ID,
-    WHITELIST_PROGRAM_ID,
-    BASKET_PROGRAM_ID,
+    programs.factory,
+    programs.whitelist,
+    programs.basket,
     TOKEN_2022_PROGRAM_ID,
     ASSOCIATED_TOKEN_PROGRAM_ID,
     SystemProgram.programId,
@@ -660,14 +680,16 @@ export interface BuiltCreateBasketTx {
  */
 export async function buildCreateBasketTransaction(params: {
   connection: Connection;
+  routing?: NamespaceRouting;
   creator: string;
   args: CreateBasketArgs;
   /** Required for n >= 4 — from ensureCreateBasketAlt(). Ignored for n <= 3. */
   lookupTableAddresses?: PublicKey[];
 }): Promise<BuiltCreateBasketTx> {
   const { connection, creator, args } = params;
-  await assertSafeCreateBasketFactory(connection);
-  const instruction = buildCreateBasketInstruction(creator, args);
+  const routing = params.routing ?? APP_NAMESPACE_ROUTING;
+  const namespace = await assertSafeCreateBasketFactory(connection, routing);
+  const instruction = buildCreateBasketInstruction(creator, args, routing);
   const needsAlt = createBasketNeedsAlt(args.constituents.length);
   const tables: AddressLookupTableAccount[] = [];
   if (needsAlt) {
@@ -678,7 +700,7 @@ export async function buildCreateBasketTransaction(params: {
       );
     }
     // Every non-signer key the instruction touches must sit in a table.
-    const wanted = deriveCreateBasketAltAddresses(creator, args).map((k) => k.toBase58());
+    const wanted = deriveCreateBasketAltAddresses(creator, args, routing).map((k) => k.toBase58());
     for (const address of provided) {
       let table: AddressLookupTableAccount | null = null;
       let missingCount = wanted.length;
@@ -808,9 +830,10 @@ function removeAltReceipt(cacheKey: string): void {
   catch { /* No browser storage is required to send a transaction. */ }
 }
 
-async function altCacheKey(connection: Connection, kind: "create" | "mint-redeem", authority: PublicKey, addresses: PublicKey[]): Promise<string> {
+async function altCacheKey(connection: Connection, kind: "create" | "mint-redeem", authority: PublicKey, addresses: PublicKey[], namespace: ProgramNamespace): Promise<string> {
   const genesis = await withRetry(() => connection.getGenesisHash(), { label: "lookup table: identify chain" });
-  const fingerprint = await sha256Hex([kind, genesis, PROGRAMS.whitelist, PROGRAMS.factory, PROGRAMS.basket,
+  if (genesis !== DEVNET_GENESIS_HASH) throw new Error("Switch the app RPC to Solana devnet before wallet setup.");
+  const fingerprint = await sha256Hex([kind, genesis, namespace.programs.whitelist, namespace.programs.factory, namespace.programs.basket,
     authority, ...addresses].map(String).join(":"));
   return `basalt:alt:v2:${fingerprint}`;
 }
@@ -852,6 +875,7 @@ function validateWalletAlt(table: AddressLookupTableAccount, address: PublicKey,
  */
 export async function ensureCreateBasketAlt(params: {
   connection: Connection;
+  routing?: NamespaceRouting;
   /** Connected wallet — becomes the table authority and pays its rent. */
   creator: string;
   args: CreateBasketArgs;
@@ -864,9 +888,10 @@ export async function ensureCreateBasketAlt(params: {
   recentSlot?: number;
 }): Promise<EnsureCreateBasketAltResult> {
   const { connection, creator, args, sendTransaction, onAwaitingWallet } = params;
-  await assertSafeCreateBasketFactory(connection);
-  const addresses = deriveCreateBasketAltAddresses(creator, args);
-  const cacheKey = await altCacheKey(connection, "create", new PublicKey(creator), addresses);
+  const routing = params.routing ?? APP_NAMESPACE_ROUTING;
+  const namespace = await assertSafeCreateBasketFactory(connection, routing);
+  const addresses = deriveCreateBasketAltAddresses(creator, args, routing);
+  const cacheKey = await altCacheKey(connection, "create", new PublicKey(creator), addresses, namespace);
   return ensureAltCovering({
     connection,
     authority: new PublicKey(creator),
@@ -1208,8 +1233,9 @@ export function mintRedeemNeedsAlt(numConstituents: number): boolean {
  * per (basket, wallet) serves both. Signers stay in the transaction's static
  * keys, so the user is excluded (also when user == creator/treasury).
  */
-export function deriveMintRedeemAltAddresses(keys: BasketCoreKeys): PublicKey[] {
-  const [vaultAuthority] = deriveVaultAuthority(keys.basket);
+export function deriveMintRedeemAltAddresses(keys: BasketCoreKeys, routing: NamespaceRouting = APP_NAMESPACE_ROUTING): PublicKey[] {
+  const programs = namespacePrograms(requireBasketNamespace(keys, routing));
+  const [vaultAuthority] = deriveVaultAuthority(keys.basket, programs.basket);
   const candidates: PublicKey[] = [
     keys.basket,
     keys.shareMint,
@@ -1219,7 +1245,7 @@ export function deriveMintRedeemAltAddresses(keys: BasketCoreKeys): PublicKey[] 
     deriveAta(keys.creator, keys.shareMint),
     keys.treasury,
     deriveAta(keys.treasury, keys.shareMint),
-    BASKET_PROGRAM_ID,
+    programs.basket,
     TOKEN_2022_PROGRAM_ID,
     ASSOCIATED_TOKEN_PROGRAM_ID,
     SystemProgram.programId,
@@ -1227,7 +1253,7 @@ export function deriveMintRedeemAltAddresses(keys: BasketCoreKeys): PublicKey[] 
   ];
   keys.constituents.forEach((mint) => {
     const mintKey = new PublicKey(mint);
-    const [whitelistedPda] = deriveWhitelistedMint(mintKey);
+    const [whitelistedPda] = deriveWhitelistedMint(mintKey, programs.whitelist);
     candidates.push(
       mintKey,
       deriveAta(keys.user, mintKey),
@@ -1259,6 +1285,7 @@ export function deriveMintRedeemAltAddresses(keys: BasketCoreKeys): PublicKey[] 
  */
 export async function ensureMintRedeemAlt(params: {
   connection: Connection;
+  routing?: NamespaceRouting;
   keys: BasketCoreKeys;
   sendTransaction: WalletSendTransaction;
   /** Optional hook so the UI can flip into a "preparing lookup table" phase. */
@@ -1269,11 +1296,14 @@ export async function ensureMintRedeemAlt(params: {
   recentSlot?: number;
 }): Promise<EnsureCreateBasketAltResult> {
   const { connection, keys, sendTransaction, onAwaitingWallet } = params;
-  const cacheKey = await altCacheKey(connection, "mint-redeem", keys.user, deriveMintRedeemAltAddresses(keys));
+  const routing = params.routing ?? APP_NAMESPACE_ROUTING;
+  await assertBasketCoreKeysOnChain(connection, keys, routing);
+  const namespace = requireBasketNamespace(keys, routing);
+  const cacheKey = await altCacheKey(connection, "mint-redeem", keys.user, deriveMintRedeemAltAddresses(keys, routing), namespace);
   const result = await ensureAltCovering({
     connection,
     authority: keys.user,
-    addresses: deriveMintRedeemAltAddresses(keys),
+    addresses: deriveMintRedeemAltAddresses(keys, routing),
     sendTransaction,
     onAwaitingWallet,
     onProgress: params.onProgress,
@@ -1358,6 +1388,7 @@ async function buildMintRedeemTransaction(params: {
 /** Build the full `mint_in_kind` transaction exactly as the buy page sends it. */
 export async function buildMintInKindTransaction(params: {
   connection: Connection;
+  routing?: NamespaceRouting;
   keys: BasketCoreKeys;
   amounts: bigint[];
   vaultBalances: bigint[];
@@ -1367,7 +1398,9 @@ export async function buildMintInKindTransaction(params: {
   lookupTableAddresses?: PublicKey[];
 }): Promise<BuiltMintRedeemTx> {
   const { keys, amounts, vaultBalances, preInstructions } = params;
-  const built = buildMintInKind({ keys, amounts, vaultBalances });
+  const routing = params.routing ?? APP_NAMESPACE_ROUTING;
+  await assertBasketCoreKeysOnChain(params.connection, keys, routing);
+  const built = buildMintInKind({ keys, amounts, vaultBalances }, routing);
   return buildMintRedeemTransaction({
     connection: params.connection,
     payer: keys.user,
@@ -1380,6 +1413,7 @@ export async function buildMintInKindTransaction(params: {
 /** Build the full `redeem_in_kind` transaction exactly as the redeem page sends it. */
 export async function buildRedeemInKindTransaction(params: {
   connection: Connection;
+  routing?: NamespaceRouting;
   keys: BasketCoreKeys;
   sharesToBurn: bigint;
   vaultBalances: bigint[];
@@ -1387,7 +1421,9 @@ export async function buildRedeemInKindTransaction(params: {
   lookupTableAddresses?: PublicKey[];
 }): Promise<BuiltMintRedeemTx> {
   const { keys, sharesToBurn, vaultBalances } = params;
-  const built = buildRedeemInKind({ keys, sharesToBurn, vaultBalances });
+  const routing = params.routing ?? APP_NAMESPACE_ROUTING;
+  await assertBasketCoreKeysOnChain(params.connection, keys, routing);
+  const built = buildRedeemInKind({ keys, sharesToBurn, vaultBalances }, routing);
   return buildMintRedeemTransaction({
     connection: params.connection,
     payer: keys.user,

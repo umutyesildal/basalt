@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { Connection, PublicKey } from "@solana/web3.js";
+import { PROGRAM_NAMESPACES } from "../src/config/programNamespaces";
 import { indexerConfigFromEnv } from "../src/indexer/listener";
 
 describe("public web3 finalized block ordering adapter", () => {
@@ -20,11 +21,12 @@ describe("public web3 finalized block ordering adapter", () => {
 describe("durable env role configuration", () => {
   it("requires three distinct canonical public program keys", () => {
     const key=(n:number)=>new PublicKey(Buffer.alloc(32,n)).toBase58();
-    const valid={RPC_URL:"http://127.0.0.1:8899",PROGRAM_WHITELIST:key(1),PROGRAM_FACTORY:key(2),PROGRAM_BASKET:key(3)};
+    const roles=PROGRAM_NAMESPACES[0].programs;
+    const valid={RPC_URL:"http://127.0.0.1:8899",PROGRAM_WHITELIST:roles.whitelist,PROGRAM_FACTORY:roles.factory,PROGRAM_BASKET:roles.basket};
     expect(indexerConfigFromEnv(valid)?.durableHistory).toBe(true);
     const warn=vi.spyOn(console,'warn').mockImplementation(()=>{});
     try {
-      for(const bad of [{...valid,PROGRAM_WHITELIST:undefined},{...valid,PROGRAM_FACTORY:valid.PROGRAM_BASKET},{...valid,PROGRAM_BASKET:'invalid-base58'},{...valid,PROGRAM_BASKET:' '+valid.PROGRAM_BASKET}]) expect(indexerConfigFromEnv(bad)).toBeNull();
+      for(const bad of [{...valid,PROGRAM_WHITELIST:key(1),PROGRAM_FACTORY:key(2),PROGRAM_BASKET:key(3)},{...valid,PROGRAM_WHITELIST:undefined},{...valid,PROGRAM_FACTORY:valid.PROGRAM_BASKET},{...valid,PROGRAM_BASKET:'invalid-base58'},{...valid,PROGRAM_BASKET:' '+valid.PROGRAM_BASKET}]) expect(indexerConfigFromEnv(bad)).toBeNull();
       expect(warn).toHaveBeenCalledWith(expect.stringMatching(/three distinct valid public keys/));
     } finally {warn.mockRestore();}
   });

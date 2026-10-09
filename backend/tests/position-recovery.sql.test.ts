@@ -3,13 +3,15 @@ import bs58 from "bs58";
 /** Reviewed recovery publication, exercised only against an explicit disposable PostgreSQL. */
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import pg from "pg";
+import { PublicKey } from "@solana/web3.js";
+import { PROGRAM_NAMESPACES, namespaceProgramIds } from "../src/config/programNamespaces";
 import { applySchema } from "../src/db/init";
 import type { PgLike } from "../src/db/client";
 import { decodeBasketState } from "../src/indexer/basketState";
 import { stagePositionRebuild, applyRedeemed, markPositionRebuildRequired, PositionProjectionGapError } from "../src/indexer/positions";
 import { activateStagedPositionRebuild } from "../src/indexer/positionRecovery";
 import { assertReviewedStaging, DEVNET_GENESIS, type RecoveryReview } from "../src/maintenance/recovery-operator";
-import type { PositionsSyncRpc } from "../src/indexer/positionsSync";
+import type { PositionsSyncRpc, RecoveryPrograms } from "../src/indexer/positionsSync";
 import { positionRecoveryFixture, recoveryKey, type PositionRecoveryFixture } from "./fixtures/position-recovery";
 
 const url = process.env.POSITION_EVENTS_TEST_DATABASE_URL ?? process.env.BASKET_RETURNS_TEST_DATABASE_URL;
@@ -17,6 +19,10 @@ const schema = `position_recovery_${process.pid}_${Date.now()}`;
 let admin: pg.Client, pool: pg.Pool, db: PgLike;
 let fixture: PositionRecoveryFixture, run: Awaited<ReturnType<typeof stagePositionRebuild>>;
 const user = recoveryKey(20).toBase58(), orphan = recoveryKey(21).toBase58();
+// RPC/account bytes remain entirely synthetic. Operator fixtures use the same
+// source-controlled public trust roots that its production gate authenticates.
+const namespace=PROGRAM_NAMESPACES[0];
+const fixturePrograms:RecoveryPrograms={basket:new PublicKey(namespace.programs.basket),factory:new PublicKey(namespace.programs.factory),ids:namespaceProgramIds(namespace)};
 
 // Each test recreates its isolated schema; immutable product backups are never disabled.
 describe.skipIf(!url)("reviewed position recovery against disposable PostgreSQL", () => {
@@ -33,7 +39,7 @@ describe.skipIf(!url)("reviewed position recovery against disposable PostgreSQL"
   beforeEach(async () => {
     await admin.query(`DROP SCHEMA "${schema}" CASCADE`); await admin.query(`CREATE SCHEMA "${schema}"`);
     expect(await applySchema(db)).toBe(true);
-    fixture = positionRecoveryFixture();
+    fixture = positionRecoveryFixture({programs:fixturePrograms});
     const state = decodeBasketState(fixture.basket.toBase58(), fixture.basketAccount, fixture.programs);
     await pool.query(`INSERT INTO baskets(pubkey,factory,creator,treasury,share_mint,nonce,created_at,metadata_hash,
       num_constituents,constituents,weights_bps,entry_fee_bps,exit_fee_bps,management_fee_bps,last_fee_accrual_ts)
@@ -132,7 +138,7 @@ describe.skipIf(!url)("reviewed position recovery against disposable PostgreSQL"
   it("rolls back when staged holders change after preflight and before the transactional operator review",async()=>{
     const review=await operatorReviewForCurrentRun();
     const before=await projectionState(),newUser=recoveryKey(22).toBase58();
-    const currentChain=positionRecoveryFixture({holders:[{user:recoveryKey(22),amount:1000000n}]});
+    const currentChain=positionRecoveryFixture({programs:fixturePrograms,holders:[{user:recoveryKey(22),amount:1000000n}]});
     let reached!:()=>void,resume!:()=>void;
     const locked=new Promise<void>(resolve=>{reached=resolve;});
     const continueActivation=new Promise<void>(resolve=>{resume=resolve;});
@@ -327,7 +333,7 @@ describe.skipIf(!url)("reviewed position recovery against disposable PostgreSQL"
 
   it("rejects moved finalized holder ownership even when supply stays equal", async () => {
     const before=await projectionState();
-    const changed=positionRecoveryFixture({holders:[{user:recoveryKey(21),amount:1_000_000n}]});
+    const changed=positionRecoveryFixture({programs:fixturePrograms,holders:[{user:recoveryKey(21),amount:1_000_000n}]});
     await expect(activate(db,changed.rpc)).rejects.toThrow("Finalized holders changed"); expect(await projectionState()).toEqual(before);
   });
   it.each(["creator","treasury","share_mint","metadata_hash","weights_bps","entry_fee_bps"])("rejects indexed immutable %s mismatch", async field => {

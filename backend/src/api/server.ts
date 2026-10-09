@@ -1,3 +1,4 @@
+import { PROGRAM_NAMESPACES, namespaceProgramIds, namespaceSqlValues, validateNamespaceRegistry, type ProgramNamespace } from "../config/programNamespaces.js";
 /**
  * Minimal API server — spec §8 + V0.1 price comparison. Wave B: every core
  * route reads the Postgres schema (db/client.ts connectFromEnv) instead of
@@ -656,10 +657,16 @@ export async function basketEvents(
 }
 
 /** GET /whitelist — whitelisted_mints. */
-export async function listWhitelist(db: PgLike): Promise<{ status: number; payload: unknown }> {
+export async function listWhitelist(db: PgLike, namespaceId=PROGRAM_NAMESPACES[0].id,namespaces:readonly ProgramNamespace[]=PROGRAM_NAMESPACES): Promise<{ status: number; payload: unknown }> {
+  const namespace=validateNamespaceRegistry(namespaces).find(entry=>entry.id===namespaceId);
+  if(!namespace) return {status:400,payload:{error:{code:"UNSUPPORTED_NAMESPACE",message:"Only reviewed devnet namespaces are supported"}}};
   const res = await db.query(
-    `SELECT mint, decimals, status, price_source, multiplier::text AS multiplier, updated_at
-     FROM whitelisted_mints ORDER BY mint`,
+    `SELECT wm.mint,admission.decimals,admission.status,admission.price_source,wm.multiplier::text AS multiplier,
+      admission.observed_at AS updated_at,admission.namespace_id,admission.whitelist_program,admission.account_pubkey
+     FROM whitelisted_mints wm JOIN namespace_whitelisted_mints admission ON admission.mint=wm.mint
+     WHERE admission.namespace_id=$1 AND admission.whitelist_program=$2 AND admission.authenticated IS TRUE
+       AND admission.reason IS NULL AND admission.observed_at BETWEEN NOW()-interval '5 minutes' AND NOW()
+     ORDER BY wm.mint`,[namespace.id,namespace.programs.whitelist],
   );
   const rows = res.rows as Array<Record<string, unknown>>;
   return {
@@ -667,6 +674,7 @@ export async function listWhitelist(db: PgLike): Promise<{ status: number; paylo
     payload: {
       data: rows.map((r) => ({ ...r, multiplier: Number(r.multiplier), source: "onchain-indexed", asOf: r.updated_at })),
       count: rows.length,
+      namespace:{id:namespace.id,factory:namespace.factoryConfig,programIds:namespaceProgramIds(namespace),whitelistProgram:namespace.programs.whitelist},
       source: "onchain-indexed",
     },
   };
@@ -878,8 +886,8 @@ export async function healthReport(
     const res = await db.query(
       `SELECT (SELECT COUNT(*) FROM baskets) AS basket_count,
               (SELECT MAX(slot) FROM events) AS last_slot,
-              (SELECT COUNT(*) FROM current_balance_snapshots WHERE status='verified' AND history_complete IS FALSE AND program_ids=ARRAY[${DEVNET_PROGRAMS.map(id=>`'${id}'`).join(',')}]::text[] AND observed_at BETWEEN NOW()-interval '5 minutes' AND NOW()) AS current_balance_baskets,
-              (SELECT MIN(observed_at) FROM current_balance_snapshots WHERE status='verified' AND history_complete IS FALSE AND program_ids=ARRAY[${DEVNET_PROGRAMS.map(id=>`'${id}'`).join(',')}]::text[] AND observed_at BETWEEN NOW()-interval '5 minutes' AND NOW()) AS current_balance_oldest_at,
+              (SELECT COUNT(*) FROM current_balance_snapshots WHERE status='verified' AND history_complete IS FALSE AND EXISTS(SELECT 1 FROM baskets cb JOIN (VALUES ${namespaceSqlValues()}) AS cbns(factory,program_ids) ON cbns.factory=cb.factory WHERE cb.pubkey=current_balance_snapshots.basket AND cbns.program_ids=current_balance_snapshots.program_ids) AND observed_at BETWEEN NOW()-interval '5 minutes' AND NOW()) AS current_balance_baskets,
+              (SELECT MIN(observed_at) FROM current_balance_snapshots WHERE status='verified' AND history_complete IS FALSE AND EXISTS(SELECT 1 FROM baskets cb JOIN (VALUES ${namespaceSqlValues()}) AS cbns(factory,program_ids) ON cbns.factory=cb.factory WHERE cb.pubkey=current_balance_snapshots.basket AND cbns.program_ids=current_balance_snapshots.program_ids) AND observed_at BETWEEN NOW()-interval '5 minutes' AND NOW()) AS current_balance_oldest_at,
               (SELECT MAX(ts) FROM events) AS last_event_ts,
               (SELECT COUNT(*) FROM vault_holdings) AS holdings_rows,
               (SELECT MAX(updated_at) FROM vault_holdings WHERE authenticated IS TRUE) AS holdings_updated_at,
@@ -1239,7 +1247,7 @@ export function createHandler(ctx: ApiContext = { db: null }) {
       const db = await resolveDb(ctx);
       if (!isPgLike(db)) { sendError(res, 503, "DB_UNAVAILABLE", "no Postgres configured — indexed whitelist data is unavailable (never fabricated)"); return; }
       try {
-        const out = await listWhitelist(db);
+        const out = await listWhitelist(db,url.searchParams.get("namespace") ?? PROGRAM_NAMESPACES[0].id);
         sendJson(res, out.status, out.payload);
       } catch (err) {
         sendError(res, 503, "DB_UNAVAILABLE", err instanceof Error ? err.message : "whitelist query failed");

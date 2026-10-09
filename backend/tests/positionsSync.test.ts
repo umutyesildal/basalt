@@ -23,7 +23,9 @@ import {
   type PositionsSyncRpc,
 } from "../src/indexer/positionsSync";
 import { createHandler, userPositionsByWallet } from "../src/api/server";
-import { positionRecoveryFixture, recoveryKey } from "./fixtures/position-recovery";
+import { namespaceRecoveryPrograms, namespaceForRecoveryFixture } from "./fixtures/program-namespaces";
+import { positionRecoveryFixture as rawPositionRecoveryFixture, recoveryKey } from "./fixtures/position-recovery";
+const positionRecoveryFixture=(options:Parameters<typeof rawPositionRecoveryFixture>[0]={})=>rawPositionRecoveryFixture({programs:namespaceRecoveryPrograms(0),...options});
 
 // --- fixtures ------------------------------------------------------------------
 
@@ -348,16 +350,16 @@ describe("positionsSync — authenticated finalized snapshots", () => {
     expect((await fetch(f)).balances).toEqual([{user:USER,shares:"10"}]);
   });
   it("bounds stalled catch-up and issues no projection transaction",async()=>{
-    vi.useFakeTimers();const f=positionRecoveryFixture();const db=syncDb([{pubkey:f.basket.toBase58(),share_mint:f.shareMint.toBase58()}]);
-    const pending=syncPositionsFromChain(f.rpc,db,{programs:f.programs,spacingMs:0,catchUpThroughSlot:()=>new Promise(()=>{})});
+    vi.useFakeTimers();const f=positionRecoveryFixture();const db=syncDb([{pubkey:f.basket.toBase58(),factory:f.factory.toBase58(),share_mint:f.shareMint.toBase58()}]);
+    const pending=syncPositionsFromChain(f.rpc,db,{programs:f.programs,namespaces:[namespaceForRecoveryFixture(f.programs)],spacingMs:0,catchUpThroughSlot:()=>new Promise(()=>{})});
     await vi.advanceTimersByTimeAsync(10_000);
     expect(await pending).toMatchObject({basketsScanned:0,basketsFailed:1});
     expect(db.calls.some(call=>/^(BEGIN|INSERT|UPDATE|DELETE)/.test(call.sql))).toBe(false);
   });
   it("a stalled snapshot never acquires a database transaction or mutates existing balances",async()=>{
-    vi.useFakeTimers();const f=positionRecoveryFixture();const db=syncDb([{pubkey:f.basket.toBase58(),share_mint:f.shareMint.toBase58()}]);
+    vi.useFakeTimers();const f=positionRecoveryFixture();const db=syncDb([{pubkey:f.basket.toBase58(),factory:f.factory.toBase58(),share_mint:f.shareMint.toBase58()}]);
     f.rpc.getAccountInfoAndContext=()=>new Promise(()=>{});
-    const pending=syncPositionsFromChain(f.rpc,db,{programs:f.programs,spacingMs:0});
+    const pending=syncPositionsFromChain(f.rpc,db,{programs:f.programs,namespaces:[namespaceForRecoveryFixture(f.programs)],spacingMs:0});
     await vi.advanceTimersByTimeAsync(10_000);
     expect(await pending).toMatchObject({basketsScanned:0,basketsFailed:1});
     expect(db.calls.some(call=>/^(BEGIN|INSERT|UPDATE|DELETE)/.test(call.sql))).toBe(false);expect(db.rows.size).toBe(0);
@@ -612,19 +614,21 @@ describe("positions API — userPositionsByWallet + route", () => {
 
   it("env wiring: POSITIONS_SYNC_MS overrides the default cadence", async () => {
     const { indexerConfigFromEnv } = await import("../src/indexer/listener");
+    const { PROGRAM_NAMESPACES } = await import("../src/config/programNamespaces");
+    const roles = PROGRAM_NAMESPACES[0].programs;
     const cfg = indexerConfigFromEnv({
       RPC_URL: "http://localhost:8899",
-      PROGRAM_BASKET: pk(99).toBase58(),
-      PROGRAM_FACTORY: pk(98).toBase58(),
-      PROGRAM_WHITELIST: pk(97).toBase58(),
+      PROGRAM_BASKET: roles.basket,
+      PROGRAM_FACTORY: roles.factory,
+      PROGRAM_WHITELIST: roles.whitelist,
       POSITIONS_SYNC_MS: "45000",
     });
     expect(cfg?.positionsSyncIntervalMs).toBe(45000);
     const cfgDefault = indexerConfigFromEnv({
       RPC_URL: "http://localhost:8899",
-      PROGRAM_BASKET: pk(99).toBase58(),
-      PROGRAM_FACTORY: pk(98).toBase58(),
-      PROGRAM_WHITELIST: pk(97).toBase58(),
+      PROGRAM_BASKET: roles.basket,
+      PROGRAM_FACTORY: roles.factory,
+      PROGRAM_WHITELIST: roles.whitelist,
     });
     expect(cfgDefault?.positionsSyncIntervalMs).toBe(120000);
   });

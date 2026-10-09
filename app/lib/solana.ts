@@ -1,4 +1,5 @@
 import { PublicKey } from "@solana/web3.js";
+/** Explicit legacy compatibility export. Basket operations resolve the trusted factory registry. */
 export const PROGRAMS = {
   whitelist: new PublicKey("FRavMcYQb2FVAHbbG6fGieQHdKk1UrQqgKsAAXTPRQeS"),
   factory: new PublicKey("3hzoPep9JKgTmzLT6CNW5x3EN7WNYDevM6KHVM7pLgMF"),

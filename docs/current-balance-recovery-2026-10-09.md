@@ -28,7 +28,7 @@ The portfolio screen displays exact six-decimal shares and the finalized slot. I
 
 The legacy factory treasury is immutable and still retired. The new unsigned [bootstrap plan](clean-devnet-bootstrap-plan.md) derives and checks public inputs without generating keys, inventing approvals or changing deployed IDs. Init-only source guards bind fresh whitelist/factory initialization to the authenticated loader upgrade authority, preventing a first-caller takeover. They add readonly init accounts and preserve existing config layouts and basket operations. These new program bytes are not deployed by a website/backend rollout.
 
-Actual new-namespace activation still needs owner-supplied public governance/treasury identities, legacy-aware client/indexer routing, the prescribed signer ceremony and runtime deployment evidence. No completed Squads or 48-hour rehearsal is claimed.
+Actual new-namespace activation still needs owner-supplied public governance/treasury identities, registration and runtime verification of the prepared legacy-aware client/indexer routing, the prescribed signer ceremony and deployed-byte evidence. No completed Squads or 48-hour rehearsal is claimed.
 
 ## Release evidence
 

@@ -2,10 +2,18 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { AddressLookupTableAccount, AddressLookupTableProgram, PublicKey, type AccountInfo, type Connection } from "@solana/web3.js";
 import retiredInventory from "../../scripts/security/retired-keys.json";
-import { assertSafeCreateBasketFactory } from "../lib/create-basket-security";
-import { buildCreateBasketTransaction, deriveCreateBasketAltAddresses, ensureCreateBasketAlt } from "../lib/transactions";
+import { assertSafeCreateBasketFactory as assertFactory } from "../lib/create-basket-security";
+import { buildCreateBasketTransaction as buildTransaction, deriveCreateBasketAltAddresses as deriveAlt, ensureCreateBasketAlt as ensureAlt } from "../lib/transactions";
 import type { CreateBasketArgs } from "../lib/create-basket";
-import { FACTORY_FIXTURE_ADDRESS, FACTORY_FIXTURE_BUMP, factoryFixture } from "./factory-fixture";
+import { factoryFixture as factory } from "./factory-fixture";
+import { TEST_NAMESPACE, TEST_ROUTING } from "./namespace-fixture";
+const FACTORY_FIXTURE_ADDRESS = new PublicKey(TEST_NAMESPACE.factoryConfig);
+const [, FACTORY_FIXTURE_BUMP] = PublicKey.findProgramAddressSync([Buffer.from("factory")], new PublicKey(TEST_NAMESPACE.programs.factory));
+const factoryFixture = (treasury?: PublicKey) => factory(treasury, TEST_NAMESPACE);
+const assertSafeCreateBasketFactory = (connection: Connection) => assertFactory(connection, TEST_ROUTING);
+const buildCreateBasketTransaction = (params: Parameters<typeof buildTransaction>[0]) => buildTransaction({...params, routing: TEST_ROUTING});
+const ensureCreateBasketAlt = (params: Parameters<typeof ensureAlt>[0]) => ensureAlt({...params, routing: TEST_ROUTING});
+const deriveCreateBasketAltAddresses = (creator: string, args: CreateBasketArgs) => deriveAlt(creator, args, TEST_ROUTING);
 
 const key = (byte: number) => new PublicKey(Buffer.alloc(32,byte));
 const creator = key(52).toBase58();
@@ -17,7 +25,7 @@ const error = /New basket creation is blocked/;
 for (const retired of retiredInventory.keys) {
   test(`retired factory treasury ${retired.publicKey} blocks build and ALT before wallet or setup reads`, async () => {
     let reads = 0, approvals = 0;
-    const connection = {getAccountInfo:async(address:PublicKey,commitment:string)=>{
+    const connection = {getGenesisHash:async()=>TEST_NAMESPACE.genesisHash,getAccountInfo:async(address:PublicKey,commitment:string)=>{
       reads++; assert.equal(address.toBase58(),FACTORY_FIXTURE_ADDRESS.toBase58()); assert.equal(commitment,"finalized");
       return factoryFixture(new PublicKey(retired.publicKey));
     }} as unknown as Connection;
@@ -36,14 +44,14 @@ for (const kind of ["missing","rpc-failure","wrong-owner","executable","wrong-di
     if (kind === "short-layout") account!.data=account!.data.subarray(0,88);
     if (kind === "wrong-bump") account!.data[88]=(FACTORY_FIXTURE_BUMP+1)%256;
     if (kind === "zero-treasury") PublicKey.default.toBuffer().copy(account!.data,40);
-    const connection = {getAccountInfo:async()=>{if(kind === "rpc-failure") throw new Error("RPC unavailable"); return account;}} as unknown as Connection;
+    const connection = {getGenesisHash:async()=>TEST_NAMESPACE.genesisHash,getAccountInfo:async()=>{if(kind === "rpc-failure") throw new Error("RPC unavailable"); return account;}} as unknown as Connection;
     await assert.rejects(buildCreateBasketTransaction({connection,creator,args:args()}),error);
     await assert.rejects(ensureCreateBasketAlt({connection,creator,args:args(4),sendTransaction:async()=>{throw new Error("wallet must not be called");}}),error);
   });
 }
 test("an authenticated clean treasury continues into the actual two-constituent transaction build", async () => {
   let factoryReads = 0, blockhashReads = 0;
-  const connection = {
+  const connection = {getGenesisHash:async()=>TEST_NAMESPACE.genesisHash,
     getAccountInfo:async(address:PublicKey)=>{assert.ok(address.equals(FACTORY_FIXTURE_ADDRESS)); factoryReads++; return factoryFixture();},
     getLatestBlockhash:async()=>{blockhashReads++; return {blockhash:key(99).toBase58(),lastValidBlockHeight:100};},
   } as unknown as Connection;
@@ -56,13 +64,12 @@ test("an authenticated clean treasury continues into ALT reuse without a new wal
   const tableKey=AddressLookupTableProgram.createLookupTable({authority:new PublicKey(creator),payer:new PublicKey(creator),recentSlot:100})[1];
   let factoryReads=0,tableReads=0,approvals=0;
   const table = new AddressLookupTableAccount({key:tableKey,state:{deactivationSlot:(1n<<64n)-1n,lastExtendedSlot:0,lastExtendedSlotStartIndex:0,authority:new PublicKey(creator),addresses:wanted}});
-  const connection = {
+  const connection = {getGenesisHash:async()=>TEST_NAMESPACE.genesisHash,
     getAccountInfo:async(address:PublicKey)=>{
       if(address.equals(FACTORY_FIXTURE_ADDRESS)){factoryReads++;return factoryFixture();}
       assert.ok(address.equals(tableKey));
       return {owner:AddressLookupTableProgram.programId,executable:false,lamports:1,data:Buffer.alloc(56)};
     },
-    getGenesisHash:async()=>"EtWTRABZaYq6iMfeYKouRu166VU2xqa1wcaWoxPkrZBG",
     getSlot:async()=>100,
     getAddressLookupTable:async()=>{tableReads++;return{context:{slot:100},value:table};},
   } as unknown as Connection;
@@ -72,7 +79,7 @@ test("an authenticated clean treasury continues into ALT reuse without a new wal
 });
 test("a second current factory read detects treasury retirement between setup and final build", async () => {
   let treasury=key(91),reads=0;
-  const connection={getAccountInfo:async()=>{reads++;return factoryFixture(treasury);}} as unknown as Connection;
+  const connection={getGenesisHash:async()=>TEST_NAMESPACE.genesisHash,getAccountInfo:async()=>{reads++;return factoryFixture(treasury);}} as unknown as Connection;
   await assertSafeCreateBasketFactory(connection);
   treasury=new PublicKey(retiredInventory.keys[0].publicKey);
   await assert.rejects(buildCreateBasketTransaction({connection,creator,args:args()}),error);

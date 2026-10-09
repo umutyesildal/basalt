@@ -9,7 +9,8 @@ import {
 } from "./token-2022";
 
 import type { BasketDetail } from "../components/basket/basket-api";
-import { PROGRAMS } from "./solana";
+import { APP_NAMESPACE_ROUTING, namespacePrograms, type NamespaceRouting, type ProgramNamespace } from "./program-namespaces";
+import { authenticateBasketAccount, authenticateBasketShareMint } from "./basket-account-security";
 import { MANAGEMENT_FEE_DENOMINATOR, managementFeeWithRemainder } from "../../backend/src/workers/feeMath";
 
 /** Public fixture identities; these are project-issued devnet mocks with no market value. */
@@ -29,7 +30,7 @@ const SNAPSHOT_TTL_MS = 5_000;
 const RPC_SPACING_MS = 400;
 type Info = AccountInfo<Buffer>;
 type Rpc = Pick<Connection, "getGenesisHash" | "getAccountInfo" | "getMultipleAccountsInfo" | "getProgramAccounts">;
-export type DevnetWhitelistStatus = "Active" | "PausedNewMints";
+export type DevnetWhitelistStatus = "Active" | "PausedNewMints" | "Unavailable";
 
 export interface DevnetWalletBalance { mint: string; rawAmount: string; exists: boolean }
 export interface DevnetMintFacts { mint: string; decimals: number; multiplier: number }
@@ -55,6 +56,7 @@ export interface RawDevnetSnapshot {
 }
 
 export interface DecodedDevnetBasket {
+  namespace: ProgramNamespace;
   detail: Omit<BasketDetail, "holdings" | "nav" | "drift">;
   nonce: bigint;
   lastFeeAccrual: bigint;
@@ -70,8 +72,8 @@ function checkedInfo(info: Info | null, owner: PublicKey, discriminator?: string
 }
 function key(data: Buffer, offset: number): PublicKey { return new PublicKey(data.subarray(offset, offset + 32)); }
 function u64(value: bigint): Buffer { const bytes = Buffer.alloc(8); bytes.writeBigUInt64LE(value); return bytes; }
-function factoryPda(): [PublicKey, number] { return PublicKey.findProgramAddressSync([Buffer.from("factory")], PROGRAMS.factory); }
-function whitelistPda(mint: PublicKey): [PublicKey, number] { return PublicKey.findProgramAddressSync([Buffer.from("mint"), mint.toBuffer()], PROGRAMS.whitelist); }
+function factoryPda(namespace: ProgramNamespace): [PublicKey, number] { const PROGRAMS = namespacePrograms(namespace); return PublicKey.findProgramAddressSync([Buffer.from("factory")], PROGRAMS.factory); }
+function whitelistPda(mint: PublicKey, namespace: ProgramNamespace): [PublicKey, number] { const PROGRAMS = namespacePrograms(namespace); return PublicKey.findProgramAddressSync([Buffer.from("mint"), mint.toBuffer()], PROGRAMS.whitelist); }
 function ata(owner: PublicKey, mint: PublicKey): PublicKey { return getAssociatedTokenAddressSync(mint, owner, true, TOKEN_2022_PROGRAM_ID); }
 function dateOf(seconds: bigint): string {
   const millis = Number(seconds) * 1_000;
@@ -80,8 +82,10 @@ function dateOf(seconds: bigint): string {
 }
 
 /** Decode the current immutable Basket layout, including its five-byte fee remainder. */
-export function decodeDevnetBasketAccount(address: string | PublicKey, account: Info): DecodedDevnetBasket {
+export function decodeDevnetBasketAccount(address: string | PublicKey, account: Info, routing: NamespaceRouting = APP_NAMESPACE_ROUTING): DecodedDevnetBasket {
   const pubkey = new PublicKey(address);
+  const { namespace } = authenticateBasketAccount(pubkey, account, routing);
+  const PROGRAMS = namespacePrograms(namespace);
   const b = checkedInfo(account, PROGRAMS.basket, BASKET_DISC, 886).data;
   const factory = key(b, 8), creator = key(b, 40), treasury = key(b, 72), shareMint = key(b, 104);
   const nonce = b.readBigUInt64LE(136), created = b.readBigInt64LE(144), lastFeeAccrual = b.readBigInt64LE(152);
@@ -91,7 +95,7 @@ export function decodeDevnetBasketAccount(address: string | PublicKey, account: 
   const weights = Array.from({ length: count }, (_, i) => b.readUInt16LE(833 + i * 2));
   if (new Set(constituents).size !== count || constituents.some((m) => !MOCK_MINTS.has(m))) fail("This basket does not use the devnet mock token pack.");
   if (weights.some((w) => w === 0) || weights.reduce((sum, w) => sum + w, 0) !== 10_000) fail("Invalid immutable basket weights.");
-  const [expectedFactory] = factoryPda();
+  const [expectedFactory] = factoryPda(namespace);
   const [expectedBasket, basketBump] = PublicKey.findProgramAddressSync([Buffer.from("basket"), factory.toBuffer(), creator.toBuffer(), u64(nonce)], PROGRAMS.factory);
   const [expectedShare] = PublicKey.findProgramAddressSync([Buffer.from("share_mint"), pubkey.toBuffer()], PROGRAMS.factory);
   const [vaultAuthority, vaultBump] = PublicKey.findProgramAddressSync([Buffer.from("basket"), pubkey.toBuffer()], PROGRAMS.basket);
@@ -102,7 +106,7 @@ export function decodeDevnetBasketAccount(address: string | PublicKey, account: 
   if (BigInt(remainder) >= MANAGEMENT_FEE_DENOMINATOR) fail("Invalid management fee remainder.");
   if (created < 0n || lastFeeAccrual < created || b.subarray(160, 192).every((v) => v === 0)) fail("Invalid immutable basket metadata or timestamps.");
   return {
-    nonce, lastFeeAccrual, managementFeeRemainder: BigInt(remainder), vaultAuthority,
+    namespace, nonce, lastFeeAccrual, managementFeeRemainder: BigInt(remainder), vaultAuthority,
     detail: {
       pubkey: pubkey.toBase58(), factory: factory.toBase58(), creator: creator.toBase58(), treasury: treasury.toBase58(),
       share_mint: shareMint.toBase58(), nonce: nonce.toString(), created_at: dateOf(created),
@@ -114,13 +118,19 @@ export function decodeDevnetBasketAccount(address: string | PublicKey, account: 
   };
 }
 
-function readWhitelist(info: Info | null, mint: PublicKey, decimals: number): DevnetWhitelistStatus {
+function readWhitelist(info: Info | null, mint: PublicKey, decimals: number, namespace: ProgramNamespace): DevnetWhitelistStatus {
+  const PROGRAMS = namespacePrograms(namespace);
   const b = checkedInfo(info, PROGRAMS.whitelist, WHITELIST_DISC, 55).data;
   const length = b.readUInt32LE(50), end = 54 + length;
-  const [, bump] = whitelistPda(mint);
+  const [, bump] = whitelistPda(mint, namespace);
   if (!key(b, 8).equals(mint) || b[40] !== decimals || length > 64 || end >= b.length || b[end] !== bump || (b[49] !== 0 && b[49] !== 1)) fail("Invalid devnet whitelist account.");
   // PausedNewMints is returned as data; it never prevents this read or redemption.
   return b[49] === 0 ? "Active" : "PausedNewMints";
+}
+
+function readAdmissionStatus(info: Info | null, mint: PublicKey, decimals: number, namespace: ProgramNamespace): DevnetWhitelistStatus {
+  try { return readWhitelist(info, mint, decimals, namespace); }
+  catch { return "Unavailable"; } // Missing admission never prevents permissionless redemption.
 }
 
 function readMintFacts(mint: PublicKey, info: Info | null): DevnetMintFacts {
@@ -220,30 +230,30 @@ async function batch(connection: Rpc, addresses: PublicKey[]): Promise<(Info | n
   return output;
 }
 
-async function materializeBasket(connection: Rpc, decoded: DecodedDevnetBasket, wallet: PublicKey | null): Promise<RawDevnetSnapshot> {
+async function materializeBasket(connection: Rpc, decoded: DecodedDevnetBasket, wallet: PublicKey | null, routing: NamespaceRouting): Promise<RawDevnetSnapshot> {
+  const namespace = decoded.namespace, PROGRAMS = namespacePrograms(namespace);
   const d = decoded.detail, share = new PublicKey(d.share_mint);
   const mints = d.constituents.map((m) => new PublicKey(m));
   const addresses = [new PublicKey(d.pubkey), new PublicKey(d.factory), share, ...(wallet ? [ata(wallet, share)] : []),
-    ...mints.flatMap((mint) => [mint, whitelistPda(mint)[0], ata(decoded.vaultAuthority, mint), ...(wallet ? [ata(wallet, mint)] : [])])];
+    ...mints.flatMap((mint) => [mint, whitelistPda(mint, namespace)[0], ata(decoded.vaultAuthority, mint), ...(wallet ? [ata(wallet, mint)] : [])])];
   const accounts = await batch(connection, addresses);
   let index = 0;
   // The discovery read gives immutable addresses; this batch gives the fee
   // checkpoint and all token balances together, even if a crank ran meanwhile.
-  const current = decodeDevnetBasketAccount(d.pubkey, checkedInfo(accounts[index++], PROGRAMS.basket, BASKET_DISC, 886));
+  const current = decodeDevnetBasketAccount(d.pubkey, checkedInfo(accounts[index++], PROGRAMS.basket, BASKET_DISC, 886), routing);
   for (const field of ["factory", "creator", "treasury", "share_mint", "nonce", "created_at", "metadata_hash", "entry_fee_bps", "exit_fee_bps", "management_fee_bps"] as const) {
     if (current.detail[field] !== d[field]) fail("Immutable basket data changed during the devnet read.");
   }
   if (current.detail.constituents.join(",") !== d.constituents.join(",") || current.detail.weights_bps.join(",") !== d.weights_bps.join(",")) fail("Immutable basket composition changed during the devnet read.");
   const f = checkedInfo(accounts[index++], PROGRAMS.factory, FACTORY_DISC, 89).data;
-  const [, factoryBump] = factoryPda();
+  const [, factoryBump] = factoryPda(namespace);
   if (!key(f, 40).equals(new PublicKey(d.treasury)) || f[88] !== factoryBump || f.readUInt16LE(72) !== 9_000 || d.entry_fee_bps > f.readUInt16LE(74) || d.exit_fee_bps > f.readUInt16LE(76) || d.management_fee_bps > f.readUInt16LE(78)) fail("Invalid devnet factory configuration.");
-  const shareMint = unpackMint(share, checkedInfo(accounts[index++], TOKEN_2022_PROGRAM_ID, undefined, 82), TOKEN_2022_PROGRAM_ID);
-  if (!shareMint.isInitialized || shareMint.decimals !== 6 || !shareMint.mintAuthority?.equals(decoded.vaultAuthority) || shareMint.freezeAuthority !== null) fail("Invalid devnet basket share mint.");
+  const shareMint = authenticateBasketShareMint(share, accounts[index++], decoded.vaultAuthority);
   const shareBalance = wallet ? readTokenBalance(ata(wallet, share), accounts[index++], wallet, share, true).rawAmount : null;
   const asOf = new Date().toISOString(), statuses: DevnetWhitelistStatus[] = [], balances: DevnetWalletBalance[] = [];
   const holdings = mints.map((mint) => {
     const facts = readMintFacts(mint, accounts[index++]);
-    statuses.push(readWhitelist(accounts[index++], mint, facts.decimals));
+    statuses.push(readAdmissionStatus(accounts[index++], mint, facts.decimals, namespace));
     const vault = readTokenBalance(ata(decoded.vaultAuthority, mint), accounts[index++], decoded.vaultAuthority, mint, false);
     if (wallet) balances.push(readTokenBalance(ata(wallet, mint), accounts[index++], wallet, mint, true));
     return { mint: facts.mint, raw_amount: vault.rawAmount, multiplier: facts.multiplier, decimals: facts.decimals,
@@ -255,48 +265,62 @@ async function materializeBasket(connection: Rpc, decoded: DecodedDevnetBasket, 
 }
 
 /** A read-only current chain snapshot; missing wallet ATAs mean zero balance. */
-export async function readDevnetBasket(connection: Rpc, address: string | PublicKey, ownerWallet?: string | PublicKey): Promise<RawDevnetSnapshot> {
+export async function readDevnetBasket(connection: Rpc, address: string | PublicKey, ownerWallet?: string | PublicKey, routing: NamespaceRouting = APP_NAMESPACE_ROUTING): Promise<RawDevnetSnapshot> {
   const pubkey = new PublicKey(address), wallet = ownerWallet ? new PublicKey(ownerWallet) : null;
-  const snapshot = await cachedRead(connection, `basket:${pubkey}:${wallet ?? ""}`, async () => {
+  const snapshot = await cachedRead(connection, `basket:${routing.registry.map(n => n.id + n.factoryConfig).join(":")}:${pubkey}:${wallet ?? ""}`, async () => {
     const info = await rpcRead(connection, () => connection.getAccountInfo(pubkey, "confirmed"));
     if (!info) fail("This devnet basket account does not exist.");
-    return materializeBasket(connection, decodeDevnetBasketAccount(pubkey, info), wallet);
+    return materializeBasket(connection, decodeDevnetBasketAccount(pubkey, info, routing), wallet, routing);
   });
   return attachMetadata(snapshot);
 }
 
 /** Discover only baskets backed by this fixed test-token pack, newest first. */
-export async function listDevnetBaskets(connection: Rpc, options: { wallet?: string | PublicKey; limit?: number } = {}): Promise<RawDevnetSnapshot[]> {
+export async function listDevnetBaskets(connection: Rpc, options: { wallet?: string | PublicKey; limit?: number; routing?: NamespaceRouting } = {}): Promise<RawDevnetSnapshot[]> {
+  const routing = options.routing ?? APP_NAMESPACE_ROUTING;
   const wallet = options.wallet ? new PublicKey(options.wallet) : null;
   const limit = options.limit ?? 20;
   if (!Number.isInteger(limit) || limit < 1 || limit > 50) fail("Choose between 1 and 50 devnet baskets per read.");
-  const snapshots = await cachedRead(connection, `list:${wallet ?? ""}:${limit}`, async () => {
-    const accounts = await rpcRead(connection, () => connection.getProgramAccounts(PROGRAMS.basket, { commitment: "confirmed", filters: [{ memcmp: { offset: 0, bytes: "dgasZH9DJF9" } }] }));
+  const snapshots = await cachedRead(connection, `list:${routing.registry.map(n => n.id + n.factoryConfig).join(":")}:${wallet ?? ""}:${limit}`, async () => {
     const decoded: DecodedDevnetBasket[] = [];
-    for (const { pubkey, account } of accounts) {
-      try { decoded.push(decodeDevnetBasketAccount(pubkey, account)); } catch { /* Other and malformed accounts are outside this demo pack. */ }
+    const seen = new Set<string>();
+    for (const namespace of routing.registry) {
+      const program = new PublicKey(namespace.programs.basket);
+      const accounts = await rpcRead(connection, () => connection.getProgramAccounts(program, { commitment: "confirmed", filters: [{ memcmp: { offset: 0, bytes: "dgasZH9DJF9" } }] }));
+      for (const { pubkey, account } of accounts) {
+        try {
+          if (!account.owner.equals(program) || seen.has(pubkey.toBase58())) continue;
+          const basket = decodeDevnetBasketAccount(pubkey, account, routing);
+          if (basket.namespace.id !== namespace.id) continue;
+          decoded.push(basket); seen.add(pubkey.toBase58());
+        } catch { /* Other and malformed accounts are outside this demo pack. */ }
+      }
     }
     decoded.sort((a, b) => b.detail.created_at.localeCompare(a.detail.created_at));
     const result: RawDevnetSnapshot[] = [];
-    for (const basket of decoded.slice(0, limit)) result.push(await materializeBasket(connection, basket, wallet));
+    for (const basket of decoded.slice(0, limit)) result.push(await materializeBasket(connection, basket, wallet, routing));
     return result;
   });
   return Promise.all(snapshots.map(attachMetadata));
 }
 
 /** Wallet prerequisites for claiming and atomically seeding a new basket. */
-export async function readDevnetWallet(connection: Rpc, ownerWallet: string | PublicKey): Promise<DevnetWalletSnapshot> {
+export async function readDevnetWallet(connection: Rpc, ownerWallet: string | PublicKey, routing: NamespaceRouting = APP_NAMESPACE_ROUTING): Promise<DevnetWalletSnapshot> {
+  // Wallet facts remain readable while creation is disabled. Admission status
+  // uses the selected creation namespace once activated, otherwise explicit legacy.
+  let namespace: ProgramNamespace;
+  try { namespace = routing.creation(); } catch { namespace = routing.registry[0]; }
   const wallet = new PublicKey(ownerWallet);
-  return cachedRead(connection, `wallet:${wallet}`, async () => {
+  return cachedRead(connection, `wallet:${namespace.id}:${namespace.factoryConfig}:${wallet}`, async () => {
     const mints = DEVNET_MOCKS.map((mock) => new PublicKey(mock.mint));
-    const accounts = await batch(connection, [wallet, ...mints.flatMap((mint) => [mint, whitelistPda(mint)[0], ata(wallet, mint)])]);
+    const accounts = await batch(connection, [wallet, ...mints.flatMap((mint) => [mint, whitelistPda(mint, namespace)[0], ata(wallet, mint)])]);
     const native = accounts[0];
     if (native && (!Number.isSafeInteger(native.lamports) || native.lamports < 0)) fail("Invalid wallet SOL balance.");
     let index = 1;
     const mintFacts: DevnetMintFacts[] = [], whitelistStatuses: DevnetWhitelistStatus[] = [], walletBalances: DevnetWalletBalance[] = [];
     for (const mint of mints) {
       const facts = readMintFacts(mint, accounts[index++]); mintFacts.push(facts);
-      whitelistStatuses.push(readWhitelist(accounts[index++], mint, facts.decimals));
+      whitelistStatuses.push(readAdmissionStatus(accounts[index++], mint, facts.decimals, namespace));
       walletBalances.push(readTokenBalance(ata(wallet, mint), accounts[index++], wallet, mint, true));
     }
     return { wallet: wallet.toBase58(), solBalance: native?.lamports ?? 0, mintFacts, whitelistStatuses, walletBalances };

@@ -4,6 +4,8 @@ import { createHash } from "node:crypto";
 import { PublicKey, type AccountInfo, type Connection } from "@solana/web3.js";
 import { TOKEN_2022_PROGRAM_ID, getAssociatedTokenAddressSync } from "../lib/token-2022";
 import { PROGRAMS } from "../lib/solana";
+import { APP_NAMESPACE_ROUTING, namespacePrograms, type ProgramNamespace } from "../lib/program-namespaces";
+import { TEST_NAMESPACE, TEST_ROUTING } from "./namespace-fixture";
 import {
   DEVNET_GENESIS_HASH, DEVNET_MOCKS, decodeDevnetBasketAccount,
   readDevnetBasket, listDevnetBaskets, readDevnetWallet, scaledDevnetAmount,
@@ -36,7 +38,8 @@ function token(owner: PublicKey, mintKey: PublicKey, amount: bigint): Info {
   return info(TOKEN_2022_PROGRAM_ID, data);
 }
 
-function fixture(nonce = 42n) {
+function fixture(nonce = 42n, namespace: ProgramNamespace = APP_NAMESPACE_ROUTING.registry[0]) {
+  const PROGRAMS = namespacePrograms(namespace);
   const [factory, factoryBump] = PublicKey.findProgramAddressSync([Buffer.from("factory")], PROGRAMS.factory);
   const nonceBytes = Buffer.alloc(8); nonceBytes.writeBigUInt64LE(nonce);
   const [basket, basketBump] = PublicKey.findProgramAddressSync([Buffer.from("basket"), factory.toBuffer(), creator.toBuffer(), nonceBytes], PROGRAMS.factory);
@@ -168,7 +171,8 @@ test("wrong whitelist mint identity and invalid mint multiplier fail closed", as
       const pda = PublicKey.findProgramAddressSync([Buffer.from("mint"), m.toBuffer()], PROGRAMS.whitelist)[0];
       wallet.toBuffer().copy(f.accounts.get(pda.toBase58())!.data, 8);
     } else f.accounts.get(m.toBase58())!.data.writeDoubleLE(NaN, 218);
-    await assert.rejects(readDevnetBasket(f.rpc, f.basket), /whitelist|multiplier/);
+    if (bad === "whitelist") assert.equal((await readDevnetBasket(f.rpc, f.basket)).whitelistStatuses[0], "Unavailable");
+    else await assert.rejects(readDevnetBasket(f.rpc, f.basket), /multiplier/);
   }
 });
 
@@ -236,4 +240,39 @@ test("verified metadata survives denied browser storage without blocking create"
     await assert.rejects(hashDevnetBasketMetadata(JSON.stringify({ name: "n".repeat(65) })), /name/);
     await assert.rejects(hashDevnetBasketMetadata(JSON.stringify({ description: "d".repeat(401) })), /description/);
   } finally { if (previous) Object.defineProperty(globalThis, "window", previous); else Reflect.deleteProperty(globalThis, "window"); }
+});
+
+
+test("registered namespace discovery separates identical mock tokens and their admission status", async () => {
+  const legacy = fixture(42n), clean = fixture(42n, TEST_NAMESPACE), accounts = new Map([...legacy.accounts, ...clean.accounts]);
+  const cleanWhitelist = PublicKey.findProgramAddressSync([Buffer.from("mint"), new PublicKey(DEVNET_MOCKS[0].mint).toBuffer()], namespacePrograms(TEST_NAMESPACE).whitelist)[0];
+  accounts.get(cleanWhitelist.toBase58())!.data[49] = 1;
+  const queries: string[] = [];
+  const rpc = { ...legacy.rpc,
+    getAccountInfo: async (address: PublicKey) => accounts.get(address.toBase58()) ?? null,
+    getMultipleAccountsInfo: async (addresses: PublicKey[]) => addresses.map(address => accounts.get(address.toBase58()) ?? null),
+    getProgramAccounts: async (program: PublicKey) => {
+      queries.push(program.toBase58());
+      // Include a cross-namespace RPC substitution; discovery must bind replies to the queried owner.
+      return [legacy, clean].map(f => ({pubkey:f.basket, account:accounts.get(f.basket.toBase58())!}));
+    },
+  } as unknown as typeof legacy.rpc;
+  const list = await listDevnetBaskets(rpc, {routing:TEST_ROUTING});
+  assert.deepEqual(queries, TEST_ROUTING.registry.map(n => n.programs.basket));
+  assert.equal(list.length, 2);
+  assert.equal(list.find(s => s.detail.pubkey === legacy.basket.toBase58())!.whitelistStatuses[0], "Active");
+  assert.equal(list.find(s => s.detail.pubkey === clean.basket.toBase58())!.whitelistStatuses[0], "PausedNewMints");
+  assert.notEqual(list[0].vaultAuthority, list[1].vaultAuthority);
+  assert.ok(list.every(s => s.detail.nav === null));
+  const legacyOnly = await listDevnetBaskets(rpc);
+  assert.equal(legacyOnly.length, 1); assert.equal(legacyOnly[0].detail.factory, legacy.factory.toBase58());
+  assert.equal(queries.length, 3); // Registry-specific list caches do not cross.
+});
+
+test("missing whitelist admission remains unavailable for mint while legacy raw withdrawal data stays readable", async () => {
+  const f = fixture(), mint = new PublicKey(DEVNET_MOCKS[0].mint);
+  f.accounts.delete(PublicKey.findProgramAddressSync([Buffer.from("mint"), mint.toBuffer()], PROGRAMS.whitelist)[0].toBase58());
+  const snapshot = await readDevnetBasket(f.rpc, f.basket, wallet);
+  assert.equal(snapshot.whitelistStatuses[0], "Unavailable");
+  assert.equal(snapshot.shareBalance, "9007199254740993"); assert.equal(snapshot.detail.holdings.length, 4);
 });

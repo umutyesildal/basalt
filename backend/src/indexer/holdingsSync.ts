@@ -32,6 +32,9 @@ import {
   unpackAccount,
   unpackMint,
 } from "@solana/spl-token";
+import { PROGRAM_NAMESPACES, validateNamespaceRegistry, namespaceForFactory, type ProgramNamespace } from "../config/programNamespaces.js";
+import { decodeBasketState } from "./basketState.js";
+import { assertBasketProjectionMatches } from "./positionSnapshotProjection.js";
 import { isPgLike } from "../db/client.js";
 import { recordValuationAttempt } from "../api/valuation-quality.js";
 import { withRpcBackoff, createPacer } from "../rpc/backoff.js";
@@ -42,7 +45,7 @@ export interface SolanaRpc {
     keys: PublicKey[],
     commitment?: unknown,
   ): Promise<Array<AccountInfo<Buffer> | null>>;
-  getAccountInfo(address: PublicKey): Promise<AccountInfo<Buffer> | null>;
+  getAccountInfo(address: PublicKey, commitment?: unknown): Promise<AccountInfo<Buffer> | null>;
 }
 
 export interface HoldingsRow {
@@ -91,7 +94,7 @@ export function parseMintDecimalsFromMintData(data: Buffer): number | null {
  */
 export async function fetchMintFacts(rpc: SolanaRpc, mint: PublicKey, now: () => Date = () => new Date()): Promise<MintFacts | null> {
   try {
-    const info = await withRpcBackoff(() => rpc.getAccountInfo(mint), {
+    const info = await withRpcBackoff(() => rpc.getAccountInfo(mint,"finalized"), {
       logKey: "holdings:getAccountInfo",
     });
     if (!info || info.executable || !info.owner.equals(TOKEN_2022_PROGRAM_ID)) return null;
@@ -217,7 +220,7 @@ export async function syncHoldings(
   basket: PublicKey,
   vaultAtas: PublicKey[],
   mints: PublicKey[],
-  opts: { db?: unknown; spacingMs?: number; now?: () => Date } = {},
+  opts: { db?: unknown; spacingMs?: number; now?: () => Date; basketProgramId?: PublicKey } = {},
 ): Promise<HoldingsRow[]> {
   const db = isPgLike(opts?.db) ? opts.db : null;
   if (mints.length !== vaultAtas.length || new Set(mints.map((mint) => mint.toBase58())).size !== mints.length) {
@@ -225,7 +228,7 @@ export async function syncHoldings(
   }
   const now = opts.now ?? (() => new Date());
   const observedAt = now().toISOString();
-  const authority = deriveVaultAuthority(basket);
+  const authority = deriveVaultAuthority(basket, opts.basketProgramId);
   // Optional pacing: minimum spacing between sequential RPC reads so a
   // holdings pass cannot burst 10+ reads at a public RPC (default 0 = the
   // unspaced legacy behavior; the devnet listener wires a small gap).
@@ -241,7 +244,7 @@ export async function syncHoldings(
   for (const batch of chunk(vaultAtas, 100)) {
     await pacer.wait();
     try {
-      const result = await withRpcBackoff(() => rpc.getMultipleAccountsInfo(batch), {
+      const result = await withRpcBackoff(() => rpc.getMultipleAccountsInfo(batch,"finalized"), {
         logKey: "holdings:getMultipleAccountsInfo",
       });
       infos.push(...batch.map((_key, index) => result[index] ?? null));
@@ -319,7 +322,7 @@ export async function syncHoldings(
 /**
  * Persist holdings rows. raw_amount is bound from the decimal string; the
  * whitelisted_mints FK row is ensured first. Status is only set on INSERT
- * (defaults to 'Active'); existing rows keep their status untouched.
+ * (conservative PausedNewMints placeholder); admission comes only from the namespace whitelist.
  */
 export async function upsertVaultHoldings(db: unknown, rows: HoldingsRow[]): Promise<boolean> {
   if (!isPgLike(db)) {
@@ -332,7 +335,7 @@ export async function upsertVaultHoldings(db: unknown, rows: HoldingsRow[]): Pro
     }
     await db.query(
       `INSERT INTO whitelisted_mints (mint, decimals, status, multiplier, updated_at)
-       VALUES ($1, $2, 'Active', $3, $4)
+       VALUES ($1, $2, 'PausedNewMints', $3, $4)
        ON CONFLICT (mint) DO UPDATE
          SET decimals = EXCLUDED.decimals,
              multiplier = EXCLUDED.multiplier,
@@ -382,10 +385,10 @@ export function u64LeBytes(value: string | bigint): Buffer {
  * + `create_account(..., &basket::ID)`). NOTE: the basket account's OWNER is
  * the basket program, but its PDA derives under the factory program.
  */
-export function deriveBasketPda(factory: PublicKey, creator: PublicKey, nonce: string | bigint): PublicKey {
+export function deriveBasketPda(factory: PublicKey, creator: PublicKey, nonce: string | bigint, factoryProgramId = new PublicKey(PROGRAM_NAMESPACES[0].programs.factory)): PublicKey {
   return PublicKey.findProgramAddressSync(
     [Buffer.from("basket"), factory.toBuffer(), creator.toBuffer(), u64LeBytes(nonce)],
-    new PublicKey("3hzoPep9JKgTmzLT6CNW5x3EN7WNYDevM6KHVM7pLgMF"), // basket_factory program
+    factoryProgramId,
   )[0];
 }
 
@@ -394,16 +397,16 @@ export function deriveBasketPda(factory: PublicKey, creator: PublicKey, nonce: s
  * seeds = ["basket", basket_key] under the BASKET program id
  * (programs/basket_factory/src/lib.rs vault_authority_pda).
  */
-export function deriveVaultAuthority(basketPda: PublicKey): PublicKey {
+export function deriveVaultAuthority(basketPda: PublicKey, basketProgramId = new PublicKey(PROGRAM_NAMESPACES[0].programs.basket)): PublicKey {
   return PublicKey.findProgramAddressSync(
     [Buffer.from("basket"), basketPda.toBuffer()],
-    new PublicKey("6Q43vFh4aqGxzvtU2vQwJX9PmX3skfYsGWZdA3fwJB9k"), // basket program
+    basketProgramId,
   )[0];
 }
 
 /** Vault ATAs: the vault authority owns one ATA per constituent (Token-2022). */
-export function getVaultAtas(basketPda: PublicKey, mints: PublicKey[]): PublicKey[] {
-  const vaultAuthority = deriveVaultAuthority(basketPda);
+export function getVaultAtas(basketPda: PublicKey, mints: PublicKey[], basketProgramId?: PublicKey): PublicKey[] {
+  const vaultAuthority = deriveVaultAuthority(basketPda,basketProgramId);
   return mints.map((mint) =>
     getAssociatedTokenAddressSync(mint, vaultAuthority, true, TOKEN_2022_PROGRAM_ID),
   );
@@ -420,14 +423,16 @@ export function getVaultAtas(basketPda: PublicKey, mints: PublicKey[]): PublicKe
 export async function syncIndexedBaskets(
   rpc: SolanaRpc,
   db: unknown,
-  opts: { spacingMs?: number } = {},
+  opts: { spacingMs?: number; namespaces?:readonly ProgramNamespace[] } = {},
 ): Promise<number> {
   if (!isPgLike(db)) {
     console.warn("[holdings] syncIndexedBaskets skipped (no DB)");
     return 0;
   }
+  const namespaces=validateNamespaceRegistry(opts.namespaces??PROGRAM_NAMESPACES);
   const res = await db.query(
-    `SELECT pubkey, factory, creator, nonce::text AS nonce, constituents FROM baskets`,
+    `SELECT pubkey, factory, creator, nonce::text AS nonce, constituents FROM baskets WHERE factory=ANY($1::text[]) ORDER BY pubkey`,
+    [namespaces.map(namespace=>namespace.factoryConfig)],
   );
   const baskets = res.rows as Array<{
     pubkey: string;
@@ -439,13 +444,20 @@ export async function syncIndexedBaskets(
   let refreshed = 0;
   for (const b of baskets) {
     try {
-      const basketPda = deriveBasketPda(new PublicKey(b.factory), new PublicKey(b.creator), b.nonce);
-      if (basketPda.toBase58() !== b.pubkey) throw new Error("Indexed basket address does not match its PDA seeds");
-      const mints = b.constituents.map((m) => new PublicKey(m));
-      const atas = getVaultAtas(basketPda, mints);
-      const rows = await syncHoldings(rpc, basketPda, atas, mints, { db, spacingMs: opts.spacingMs });
+      const namespace=namespaceForFactory(b.factory,namespaces);
+      if(!namespace) throw new Error("Unregistered basket factory");
+      const basketAddress=new PublicKey(b.pubkey),basketProgram=new PublicKey(namespace.programs.basket);
+      const raw=await withRpcBackoff(()=>rpc.getAccountInfo(basketAddress,"finalized"),{logKey:"holdings:basket-state"});
+      if(!raw)throw new Error("Basket state unavailable");
+      const state=decodeBasketState(b.pubkey,raw,{basket:basketProgram,factory:new PublicKey(namespace.programs.factory)});
+      await assertBasketProjectionMatches(db,state);
+      const mints=state.constituents.map(mint=>new PublicKey(mint));
+      const atas=getVaultAtas(basketAddress,mints,basketProgram);
+      const rows=await syncHoldings(rpc,basketAddress,atas,mints,{db,spacingMs:opts.spacingMs,basketProgramId:basketProgram});
       if (rows.length === mints.length) refreshed++;
     } catch (err) {
+      await db.query("UPDATE vault_holdings SET authenticated=false WHERE basket=$1",[b.pubkey]);
+      await recordValuationAttempt(db,b.pubkey,{complete:false,reason:"basket-namespace-or-holdings-unverified",attemptedAt:new Date().toISOString()});
       console.warn(`[holdings] refresh failed for basket ${b.pubkey}:`,
         err instanceof Error ? err.message : err);
     }

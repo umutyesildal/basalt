@@ -42,7 +42,8 @@ test('no owner input produces concrete source-bound preparation without inventin
   assert(plan.requiredInputs.length >= 6); assert.equal(plan.initializationGuard.implemented, true);
   assert.equal(plan.legacyNamespace.creationAllowed, false); assert.equal(plan.legacyNamespace.redemptionMustRemainAvailable, true);
   assert.equal(plan.legacyNamespace.inPlaceUpgradeRequired, false);
-  assert.equal(plan.sourceInputs.length, 13);
+  assert.equal(plan.sourceInputs.length, 16);
+  for(const path of ['backend/src/config/programNamespaces.ts','app/lib/program-namespaces.ts','app/lib/basket-account-security.ts']) assert(plan.sourceInputs.some(input=>input.path===path));
   for (const source of plan.sourceInputs) {
     const bytes = readFileSync(`${root}/${source.path}`);
     assert.equal(source.sha256, createHash('sha256').update(bytes).digest('hex'));
@@ -66,7 +67,7 @@ test('complete explicit public input derives independent new PDAs but never auth
   assert.equal(points.find(p => p.id === 'basket-trusted-whitelist').proposedPublicKey, r.programIds.whitelist);
   assert.equal(plan.observations.governanceOnChainVerified, false);
   assert.equal(plan.observations.treasuryFreshnessVerified, false);
-  assert(plan.blockers.some(blocker => blocker.includes('Separate creation namespace')));
+  assert(plan.blockers.some(blocker => blocker.includes('register only actual reviewed new identities')));
 });
 
 test('unapproved references cannot become approved; a vault may explicitly be bootstrap authority and treasury', () => {

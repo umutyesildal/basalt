@@ -136,7 +136,10 @@ export function inspectBootstrapSourceInputs({ root = ROOT, readFile = readFileS
       ['basket-trusted-factory', 'basket_factory', `pub const FACTORY_PROGRAM_ID: Pubkey = pubkey!("${PROGRAM_IDS.basket_factory}");`],
     ] },
     { path: 'Anchor.toml', bindings: [] },
-    // These remain legacy bindings until a namespace-aware registry is reviewed. Never globally replace them.
+    // Preserve legacy roots; clean registration requires a separately reviewed source change.
+    { path: 'backend/src/config/programNamespaces.ts', bindings: [] },
+    { path: 'app/lib/program-namespaces.ts', bindings: [] },
+    { path: 'app/lib/basket-account-security.ts', bindings: [] },
     { path: 'app/lib/solana.ts', bindings: [] },
     { path: 'app/lib/devnet-baskets.ts', bindings: [] },
     { path: 'app/lib/create-basket-security.ts', bindings: [] },
@@ -245,7 +248,7 @@ export function createCleanBootstrapPlan(record = null, { sourceCommit, sourceIn
     blockers: [
       'Init authority guard source and host fixtures are present; exact-release compilation/tests and a real local-validator initialization/front-run rehearsal remain required before fresh deployment',
       'Source/IDL/build output must consistently bind all new cross-program identities and pass frozen SBF/Rust/TS/security gates',
-      'Separate creation namespace from legacy basket owner/factory/share-mint/vault routing in frontend, backend and operational verifiers',
+      'Closed source registry and legacy-preserving routing are prepared; register only actual reviewed new identities, bind operator manifests, and verify new/legacy runtime flows before activation',
       'Fresh source-bound chain proof must verify empty new namespace, actual Squads membership/threshold/timelock, immutable treasury and deployed bytes',
       'Human owners must inspect and sign deployment, initialization and governance transactions; this plan contains no signed or serialized transactions',
       'Actual two-member/full-48h rehearsal and independent signer approvals remain required; placeholders are not completion evidence',

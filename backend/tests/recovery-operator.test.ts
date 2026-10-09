@@ -8,11 +8,13 @@ import bs58 from "bs58";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { PgLike } from "../src/db/client";
 import {
-  DEVNET_GENESIS, RELEASE_PROGRAM_IDS, assertCandidateIdentity, candidateRpc, loadCandidateContext, openCandidateDatabase,
+  DEVNET_GENESIS, RELEASE_PROGRAM_IDS, assertCandidateIdentity, candidateProgramSet, candidateRpc, loadCandidateContext, openCandidateDatabase,
   parseOperatorArgs, runRecoveryOperator, validateCandidateManifest,
   type CandidateContext, type CandidateDatabase, type CandidateManifest, type OperatorDependencies,
 } from "../src/maintenance/recovery-operator";
 import { parseReplayArgs } from "../src/maintenance/replay-indexer";
+import { namespaceFixtures } from "./fixtures/program-namespaces";
+import { registeredProgramIds } from "../src/config/programNamespaces";
 
 const key = (byte: number) => new PublicKey(Buffer.alloc(32,byte)).toBase58();
 const sha = (bytes: string | Buffer) => createHash("sha256").update(bytes).digest("hex");
@@ -88,6 +90,18 @@ function assertReadOnly(calls: {sql:string}[]) {
   expect(calls.some(({sql})=>/^\s*(INSERT|UPDATE|DELETE|CREATE|ALTER|DROP|TRUNCATE|GRANT|REVOKE)\b/i.test(sql))).toBe(false);
 }
 describe("candidate-only recovery operator",()=>{
+  it("binds a future registered complete trio without accepting arbitrary or cross-namespace roles",()=>{
+    const a=namespaceFixtures[0],b=namespaceFixtures[1];
+    expect(validateCandidateManifest({...manifest,programIds:{...b.programs}},namespaceFixtures).programIds).toEqual(b.programs);
+    const proof = candidateProgramSet({programIds:{...b.programs}},namespaceFixtures);
+    expect(proof.ids).toEqual(Object.values(b.programs).sort());expect(proof.ids).toHaveLength(3);
+    expect(proof.ids.some(id=>Object.values(a.programs).includes(id))).toBe(false);
+    expect(proof.basket.toBase58()).toBe(b.programs.basket);
+    expect(()=>candidateProgramSet({programIds:{...b.programs,factory:a.programs.factory}},namespaceFixtures)).toThrow(/registered devnet namespace/);
+    expect(()=>validateCandidateManifest({...manifest,programIds:{...b.programs,factory:a.programs.factory}},namespaceFixtures)).toThrow(/registered devnet namespace/);
+    expect(()=>validateCandidateManifest({...manifest,programIds:{...b.programs}})).toThrow(/registered devnet namespace/);
+  });
+
   it("defaults to bounded read-only inspect, does not use application DATABASE_URL or RPC",async()=>{
     const {db,calls,state}=fakeDatabase();const deps=dependencies(db);
     expect(await runRecoveryOperator(inspectArgs(),env,deps)).toMatchObject({schemaReady:true,activeProjectionChanged:false});
@@ -164,6 +178,8 @@ describe("candidate-only recovery operator",()=>{
     expect(result).toMatchObject({candidateId:manifest.candidateId,sourceSha:manifest.sourceSha,backupSha256:manifest.backupSha256,activeProjectionChanged:true});
     expect(deps.genesis).toHaveBeenCalledTimes(1);expect(deps.published).toHaveBeenCalledTimes(1);
     expect(deps.activate.mock.calls[0].slice(2,4)).toEqual(["reviewed-run","c".repeat(64)]);
+    expect(deps.activate.mock.calls[0][4].ids).toEqual(Object.values(manifest.programIds).sort());
+    expect(deps.replay.mock.calls[0][2]).toEqual(registeredProgramIds());
     expect(deps.replay.mock.calls[0][3]).toEqual({remaining:3,polls:0});
     expect(deps.replay.mock.calls[0][4]).toBe(100);
   });

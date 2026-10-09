@@ -15,7 +15,9 @@ export async function signAndSendLocal(
   connection: Pick<Connection, "sendRawTransaction">,
   onRetry?: (event: RetryEvent) => void,
   beforeBroadcast?: () => void | Promise<void>,
+  assertImmediatelyBeforeAction?: () => void,
 ): Promise<TransactionSignature> {
+  assertImmediatelyBeforeAction?.();
   const signed = await signTransaction(transaction);
   const signatureBytes = "signature" in signed ? signed.signature : signed.signatures[0];
   if (!(signatureBytes instanceof Uint8Array) || signatureBytes.length !== 64 || !signatureBytes.some((byte) => byte !== 0)) {
@@ -29,6 +31,7 @@ export async function signAndSendLocal(
       async () => {
         // Guard failures before a send do not imply the transaction was sent.
         await beforeBroadcast?.();
+        assertImmediatelyBeforeAction?.();
         try {
           return await connection.sendRawTransaction(bytes, { skipPreflight: true, preflightCommitment: "confirmed" });
         } catch (error) {

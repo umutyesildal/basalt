@@ -56,6 +56,34 @@ CREATE TABLE IF NOT EXISTS whitelisted_mints (
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
+-- Admission is namespace-scoped. Global rows above remain legacy/intrinsic
+-- compatibility facts; they never authenticate membership in another namespace.
+CREATE TABLE IF NOT EXISTS namespace_whitelist_state (
+  namespace_id TEXT PRIMARY KEY,
+  whitelist_program TEXT NOT NULL,
+  attempted_at TIMESTAMPTZ NOT NULL,
+  observed_at TIMESTAMPTZ,
+  status TEXT NOT NULL CHECK(status IN ('complete','incomplete')),
+  reason TEXT
+);
+CREATE TABLE IF NOT EXISTS namespace_whitelisted_mints (
+  namespace_id TEXT NOT NULL,
+  mint TEXT NOT NULL REFERENCES whitelisted_mints(mint),
+  whitelist_program TEXT NOT NULL,
+  account_pubkey TEXT NOT NULL,
+  decimals INTEGER NOT NULL CHECK(decimals BETWEEN 0 AND 12),
+  status TEXT NOT NULL CHECK(status IN ('Active','PausedNewMints')),
+  price_source TEXT NOT NULL,
+  authenticated BOOLEAN NOT NULL DEFAULT FALSE,
+  observed_at TIMESTAMPTZ,
+  attempted_at TIMESTAMPTZ NOT NULL,
+  reason TEXT,
+  PRIMARY KEY(namespace_id,mint),
+  CHECK(NOT authenticated OR (observed_at IS NOT NULL AND reason IS NULL))
+);
+CREATE INDEX IF NOT EXISTS namespace_whitelisted_mints_admission_idx
+  ON namespace_whitelisted_mints(namespace_id,status) WHERE authenticated;
+
 -- ---------------------------------------------------------------------------
 -- vault holdings snapshot per basket (updated every 30s or on event — spec §7)
 -- raw_amount is u64 and MUST be bound as a string (see header convention).
@@ -453,7 +481,12 @@ ALTER TABLE indexer_signature_queue ADD COLUMN IF NOT EXISTS tx_index INT CHECK(
 -- quarantine guards remain authoritative even after canonical facts are stored.
 ALTER TABLE indexer_signature_queue ADD COLUMN IF NOT EXISTS canonical_collected_at TIMESTAMPTZ;
 ALTER TABLE indexer_signature_queue ADD COLUMN IF NOT EXISTS canonical_event_count INT CHECK(canonical_event_count >= 0);
+-- A completion authenticates only the exact closed program union that decoded it.
+-- Older rows remain NULL and cannot authorize inheritance after registry expansion.
+ALTER TABLE indexer_signature_queue ADD COLUMN IF NOT EXISTS canonical_program_ids TEXT[];
 ALTER TABLE indexer_signature_queue ADD COLUMN IF NOT EXISTS projection_blocked_basket TEXT REFERENCES baskets(pubkey);
+CREATE INDEX IF NOT EXISTS indexer_signature_queue_signature_idx
+  ON indexer_signature_queue(sig);
 CREATE INDEX IF NOT EXISTS indexer_signature_queue_uncollected_idx
   ON indexer_signature_queue(slot,tx_index) WHERE status='pending' AND canonical_collected_at IS NULL;
 CREATE INDEX IF NOT EXISTS indexer_signature_queue_pending_global_idx

@@ -1,14 +1,17 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { assertBasketCoreKeysOnChain } from "@/lib/basket-account-security";
+
+import { useMemo, useRef, useState } from "react";
 import { PublicKey } from "@solana/web3.js";
-import { useWallet } from "@solana/wallet-adapter-react";
+import { useConnection, useWallet } from "@solana/wallet-adapter-react";
 
 import { Button } from "@/components/ui/button";
 import { TxReviewModal } from "@/components/basket/tx-review-modal";
 import { useTransactionFlow } from "@/components/basket/use-transaction-flow";
 import {
   buildAccrueManagementFee,
+  parseBasketCoreKeys,
   type ExpectedAccount,
 } from "@/lib/transactions";
 import { RPC_ENDPOINT } from "@/lib/wallet";
@@ -42,6 +45,9 @@ export function AccrueCrankButton({
   quiet?: boolean;
 }) {
   const { publicKey, connected } = useWallet();
+  const { connection } = useConnection();
+  const basketIntent = [basket, factory, creator, treasury, shareMint, ...constituents].join(":");
+  const currentBasketIntent = useRef(basketIntent); currentBasketIntent.current = basketIntent;
   const flow = useTransactionFlow();
   const [open, setOpen] = useState(false);
   const [expectedAccounts, setExpectedAccounts] = useState<ExpectedAccount[] | null>(
@@ -51,15 +57,7 @@ export function AccrueCrankButton({
   const keys = useMemo(() => {
     if (!publicKey) return null;
     try {
-      return {
-        basket: new PublicKey(basket),
-        factory: new PublicKey(factory),
-        creator: new PublicKey(creator),
-        treasury: new PublicKey(treasury),
-        shareMint: new PublicKey(shareMint),
-        constituents,
-        user: publicKey,
-      };
+      return parseBasketCoreKeys({pubkey:basket, factory, creator, treasury, share_mint:shareMint, constituents}, publicKey);
     } catch {
       return null;
     }
@@ -82,7 +80,12 @@ export function AccrueCrankButton({
   /** Start (or Retry) the crank — re-invocable after a transient failure. */
   const startCrank = () => {
     if (!keys) return;
-    void flow.run(() => buildAccrueManagementFee(keys).instructions, undefined, {
+    void flow.run(async () => {
+      await assertBasketCoreKeysOnChain(connection, keys);
+      return buildAccrueManagementFee(keys).instructions;
+    }, undefined, {
+      beforeSign: () => { if (currentBasketIntent.current !== basketIntent) throw new Error("Your basket changed. Review the current basket again."); },
+      assertCurrent: () => { if (currentBasketIntent.current !== basketIntent) throw new Error("Your basket changed. Review the current basket again."); },
       describe: {
         kind: "crank",
         label: "fee accrual",

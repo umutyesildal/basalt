@@ -1,3 +1,5 @@
+import {namespaceFixtures} from "./fixtures/program-namespaces";
+import {PROGRAM_NAMESPACES,registeredProgramIds} from "../src/config/programNamespaces";
 import { describe, expect, it } from "vitest";
 import { PublicKey, type AccountInfo } from "@solana/web3.js";
 import { ExtensionType, ScaledUiAmountConfigLayout, TOKEN_2022_PROGRAM_ID, TOKEN_PROGRAM_ID } from "@solana/spl-token";
@@ -136,6 +138,14 @@ describe("authenticated raw share supply", () => {
       .toEqual({ supply: "18446744073709551615", source: "rpc", authenticated: true });
     expect(commitments).toEqual(["finalized"]);
   });
+  it("authenticates supply against the selected namespace without falling back to legacy authority",async()=>{
+    const account=supplyInfo(),namespace=namespaceFixtures[1];
+    deriveVaultAuthority(basket,new PublicKey(namespace.programs.basket)).toBuffer().copy(account.data,4);
+    const rpc={getAccountInfo:async()=>account};
+    expect(await fetchSupplyRawFromRpc(rpc,shareMint.toBase58(),basket.toBase58(),namespace.factoryConfig,namespaceFixtures)).toMatchObject({authenticated:true,source:"rpc"});
+    expect(await fetchSupplyRawFromRpc(rpc,shareMint.toBase58(),basket.toBase58())).toBeNull();
+    expect(await fetchSupplyRawFromRpc(rpc,shareMint.toBase58(),basket.toBase58(),"unregistered",namespaceFixtures)).toBeNull();
+  });
   it.each(["wrong-owner", "wrong-authority", "wrong-decimals", "uninitialized", "missing"])("rejects %s share mint", async (kind) => {
     const account = supplyInfo();
     if (kind === "wrong-owner") account.owner = TOKEN_PROGRAM_ID;
@@ -146,7 +156,7 @@ describe("authenticated raw share supply", () => {
   });
 });
 
-const basketRow = { pubkey: "basket", share_mint: "share", constituents: ["mint-a", "mint-b"], weights_bps: [5000, 5000] };
+const basketRow = { factory:PROGRAM_NAMESPACES[0].factoryConfig,pubkey: "basket", share_mint: "share", constituents: ["mint-a", "mint-b"], weights_bps: [5000, 5000] };
 type Holding = { mint: string; scaled_amount: string; authenticated: boolean; updated_at: Date };
 const holdings = (): Holding[] => [{ mint: "mint-a", scaled_amount: "2", authenticated: true, updated_at: NOW }, { mint: "mint-b", scaled_amount: "3", authenticated: true, updated_at: NOW }];
 const quotes = (): PriceQuoteMap => Object.fromEntries(basketRow.constituents.map((mint, i) => [mint, { mint, price: i === 0 ? 20 : 30, source: "jupiter", unit: "scaled-ui", asOf: NOW.toISOString() }]));

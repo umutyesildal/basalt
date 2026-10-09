@@ -1,5 +1,7 @@
 "use client";
 
+import { assertBasketCoreKeysOnChain } from "@/lib/basket-account-security";
+
 import Link from "next/link";
 import { use, useCallback, useEffect, useMemo, useState } from "react";
 import { PublicKey } from "@solana/web3.js";
@@ -39,6 +41,7 @@ import {
   buildRedeemInKind,
   buildRedeemInKindTransaction,
   deriveAta,
+  parseBasketCoreKeys,
   type BasketCoreKeys,
   type ExpectedAccount,
 } from "@/lib/transactions";
@@ -239,15 +242,7 @@ export default function RedeemPage({ params }: { params: Promise<{ pubkey: strin
   const coreKeys: BasketCoreKeys | null = useMemo(
     () =>
       publicKey && detail
-        ? {
-            basket: new PublicKey(detail.pubkey),
-            factory: new PublicKey(detail.factory),
-            creator: new PublicKey(detail.creator),
-            treasury: new PublicKey(detail.treasury),
-            shareMint: new PublicKey(detail.share_mint),
-            constituents: detail.constituents,
-            user: publicKey,
-          }
+        ? parseBasketCoreKeys(detail, publicKey)
         : null,
     [detail, publicKey],
   );
@@ -283,6 +278,7 @@ export default function RedeemPage({ params }: { params: Promise<{ pubkey: strin
     const parsed = shares;
     void flow.run(
       async () => {
+        await assertBasketCoreKeysOnChain(connection, coreKeys);
         if (!needsAlt) {
           return buildRedeemInKind({
             keys: coreKeys,
@@ -301,6 +297,8 @@ export default function RedeemPage({ params }: { params: Promise<{ pubkey: strin
       },
       needsAlt ? () => prewarm.ensureAlt() : undefined,
       {
+        beforeSign: prewarm.assertCurrentContext,
+        assertCurrent: prewarm.assertCurrentContext,
         onComplete: () => {
           void refreshShareBalance();
           retry(); // refetch detail → holdings/NAV update without a manual refresh

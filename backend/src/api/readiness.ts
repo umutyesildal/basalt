@@ -1,9 +1,10 @@
+import { PROGRAM_NAMESPACES, registeredProgramIds, creationNamespace, DEVNET_GENESIS_HASH, validateNamespaceRegistry, type ProgramNamespace } from "../config/programNamespaces.js";
 /** Deployment readiness is independent of permissionless on-chain redemption. */
 import type { SubsystemStatus } from "./server.js";
 
-export const DEVNET_GENESIS = "EtWTRABZaYq6iMfeYKouRu166VU2xqa1wcaWoxPkrZBG";
-export const DEVNET_PROGRAMS = ["FRavMcYQb2FVAHbbG6fGieQHdKk1UrQqgKsAAXTPRQeS", "3hzoPep9JKgTmzLT6CNW5x3EN7WNYDevM6KHVM7pLgMF", "6Q43vFh4aqGxzvtU2vQwJX9PmX3skfYsGWZdA3fwJB9k"].sort();
-const samePrograms = (value: unknown) => Array.isArray(value) && JSON.stringify([...value].sort()) === JSON.stringify(DEVNET_PROGRAMS);
+export const DEVNET_GENESIS = DEVNET_GENESIS_HASH;
+export const DEVNET_PROGRAMS = registeredProgramIds();
+const samePrograms = (value: unknown,expected:readonly string[]=DEVNET_PROGRAMS) => Array.isArray(value) && JSON.stringify([...value].sort()) === JSON.stringify([...expected].sort());
 
 type Health = {
   ts: string;
@@ -30,11 +31,12 @@ type Health = {
 };
 
 /** Liveness remains /health. Disabled required workers cannot pass release checks. */
-export function readinessReport(input: unknown, buildSha = process.env.BASALT_BUILD_SHA): { status: number; payload: unknown } {
+export function readinessReport(input: unknown, buildSha = process.env.BASALT_BUILD_SHA, namespaces:readonly ProgramNamespace[]=PROGRAM_NAMESPACES): { status: number; payload: unknown } {
+  const expectedPrograms=registeredProgramIds(validateNamespaceRegistry(namespaces));
   const health = input as Health;
   const systems = health.subsystems;
   const discovery = systems.indexer.discovery;
-  const networkVerified = discovery?.genesisHash === DEVNET_GENESIS && samePrograms(discovery.programIds);
+  const networkVerified = discovery?.genesisHash === DEVNET_GENESIS && samePrograms(discovery.programIds,expectedPrograms);
   const checks = {
     network: networkVerified,
     database: health.db.connected === true && health.db.degraded !== true,
@@ -51,8 +53,8 @@ export function readinessReport(input: unknown, buildSha = process.env.BASALT_BU
   const coverage = history?.finalizedThroughSlot;
   const freshDiscovery = Number.isSafeInteger(slot) && slot! >= 0 && Number.isFinite(discoveryAge) && discoveryAge >= 0 && discoveryAge <= 5 * 60_000;
   const validCoverage = typeof coverage === "string" && /^(0|[1-9]\d*)$/.test(coverage) && freshDiscovery && BigInt(coverage) >= BigInt(slot!);
-  const projectionReady = ready && history !== undefined && history.indexedPrograms === 3 &&
-    samePrograms(history.programIds) && history.missingCoverage === 0 && validCoverage &&
+  const projectionReady = ready && history !== undefined && history.indexedPrograms === expectedPrograms.length &&
+    samePrograms(history.programIds,expectedPrograms) && history.missingCoverage === 0 && validCoverage &&
     history.pendingSignatures === 0 && history.quarantinedSignatures === 0 &&
     history.scansPending === 0 && history.rebuildRequiredBaskets === 0 &&
     history.automaticActivationEnabled === false;
@@ -67,6 +69,7 @@ export function readinessReport(input: unknown, buildSha = process.env.BASALT_BU
       // A running service may honestly serve incomplete indexed reference data.
       // Operators must inspect these fields; HTTP 200 never certifies a recovery.
       projectionReady,
+      namespaces:namespaces.map(entry=>({id:entry.id,factory:entry.factoryConfig,programIds:registeredProgramIds([entry]),creationEnabled:creationNamespace(namespaces)?.id===entry.id})),
       data: {
         basketCount: health.db.basketCount ?? null,
         currentValuations: health.db.currentValuations ?? null,

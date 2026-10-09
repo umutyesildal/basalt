@@ -1,3 +1,4 @@
+import { PROGRAM_NAMESPACES, namespaceForFactory, validateNamespaceRegistry, type ProgramNamespace } from "../config/programNamespaces.js";
 import { createReadOnlyRpcConnection } from "../rpc/requestBudget.js";
 /**
  * workers/feeCrank.ts — management-fee accrual crank (spec §7 queue
@@ -98,6 +99,7 @@ export interface FeeCrankRun {
 }
 
 export interface FeeCrankDeps {
+  namespaces?:readonly ProgramNamespace[];
   db: PgLike | null;
   /** RPC for fresh blockhashes — optional; null degrades to descriptor-only. */
   rpc?: BlockhashRpc | null;
@@ -154,6 +156,7 @@ export class FeeCrank {
 
     let rows: Array<{
       pubkey: string;
+      factory:string;
       share_mint: string;
       creator: string;
       treasury: string;
@@ -163,7 +166,7 @@ export class FeeCrank {
     }>;
     try {
       const res = await db.query(
-        `SELECT b.pubkey, b.share_mint, b.creator, b.treasury, b.management_fee_bps,
+        `SELECT b.pubkey, b.factory, b.share_mint, b.creator, b.treasury, b.management_fee_bps,
                 EXTRACT(EPOCH FROM (NOW() - b.last_fee_accrual_ts))::float8 AS elapsed_sec,
                 (SELECT supply::text FROM nav_snapshots s WHERE s.basket = b.pubkey
                  ORDER BY ts DESC LIMIT 1) AS supply
@@ -205,6 +208,7 @@ export class FeeCrank {
    */
   async buildFeeTx(row: {
     pubkey: string;
+    factory:string;
     share_mint: string;
     creator: string;
     treasury: string;
@@ -212,6 +216,10 @@ export class FeeCrank {
     elapsed_sec: number;
     supply: string | null;
   }): Promise<BuiltFeeTx> {
+    const registry=validateNamespaceRegistry(this.deps.namespaces ?? PROGRAM_NAMESPACES);
+    const namespace=namespaceForFactory(row.factory,registry);
+    if(!namespace) throw new Error("Unsupported basket namespace");
+    const basketProgramId=namespace.programs.basket;
     const basketPk = new PublicKey(row.pubkey);
     const shareMintPk = new PublicKey(row.share_mint);
     const creatorPk = new PublicKey(row.creator);
@@ -219,7 +227,7 @@ export class FeeCrank {
 
     const vaultAuthority = PublicKey.findProgramAddressSync(
       [Buffer.from("basket"), basketPk.toBuffer()],
-      new PublicKey(BASKET_PROGRAM_ID),
+      new PublicKey(basketProgramId),
     )[0];
     const creatorShareAta = getAssociatedTokenAddressSync(
       shareMintPk,
@@ -253,7 +261,7 @@ export class FeeCrank {
     ];
 
     const ix = new TransactionInstruction({
-      programId: new PublicKey(BASKET_PROGRAM_ID),
+      programId: new PublicKey(basketProgramId),
       keys: accounts.map((a) => ({
         pubkey: new PublicKey(a.pubkey),
         isSigner: a.signer,
@@ -263,7 +271,7 @@ export class FeeCrank {
     });
 
     const descriptor: FeeIxDescriptor = {
-      programId: BASKET_PROGRAM_ID,
+      programId: basketProgramId,
       name: "accrue_management_fee",
       discriminatorBase58: Buffer.from(ix.data).toString("hex"),
       accounts,

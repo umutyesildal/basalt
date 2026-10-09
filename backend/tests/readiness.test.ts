@@ -1,3 +1,5 @@
+import {namespaceFixtures} from "./fixtures/program-namespaces";
+import {registeredProgramIds} from "../src/config/programNamespaces";
 import { describe, it, expect } from "vitest";
 import { readinessReport, DEVNET_GENESIS, DEVNET_PROGRAMS } from "../src/api/readiness";
 
@@ -47,4 +49,14 @@ describe("release readiness", () => {
     const missing = { ...good(), db: { connected: true } };
     expect(payload(missing).projectionReady).toBe(false);
   });
+});
+
+it("requires the entire reviewed union while preserving global incompleteness",()=>{
+ const health=good(),ids=registeredProgramIds(namespaceFixtures);
+ health.subsystems.indexer.discovery.programIds=ids;health.db.history.programIds=ids;health.db.history.indexedPrograms=6;
+ expect((readinessReport(health,"a".repeat(40),namespaceFixtures).payload as any).projectionReady).toBe(true);
+ health.db.history.quarantinedSignatures=1;
+ expect((readinessReport(health,"a".repeat(40),namespaceFixtures).payload as any).projectionReady).toBe(false);
+ health.subsystems.indexer.discovery.programIds=ids.slice(0,3);
+ expect(readinessReport(health,"a".repeat(40),namespaceFixtures).status).toBe(503);
 });

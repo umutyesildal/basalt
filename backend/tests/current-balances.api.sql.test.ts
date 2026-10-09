@@ -1,3 +1,5 @@
+import {namespaceFixtures} from "./fixtures/program-namespaces";
+import {namespaceProgramIds} from "../src/config/programNamespaces";
 /** Current holdings may be proven without certifying historical financial claims. */
 import {afterAll,beforeAll,beforeEach,describe,it,expect} from 'vitest';
 import pg from 'pg';
@@ -6,6 +8,7 @@ import type {PgLike} from '../src/db/client';
 import {currentBalancesForWallet} from '../src/api/current-balances';
 import {userPortfolio,userPositionsByWallet} from '../src/api/server';
 import {DEVNET_PROGRAMS} from '../src/api/readiness';
+import {PROGRAM_NAMESPACES} from '../src/config/programNamespaces';
 const url=process.env.BASKET_RETURNS_TEST_DATABASE_URL;
 const schema=`current_balance_api_${process.pid}_${Date.now()}`;
 let client:pg.Client;let db:PgLike;let now:Date;
@@ -14,7 +17,7 @@ describe.skipIf(!url)('current balance API on actual PostgreSQL',()=>{
  afterAll(async()=>{if(client){await client.query(`DROP SCHEMA "${schema}" CASCADE`);await client.end();}});
  beforeEach(async()=>{await client.query(`DROP SCHEMA "${schema}" CASCADE`);await client.query(`CREATE SCHEMA "${schema}"`);await applySchema(db);now=new Date();
   await client.query(`INSERT INTO baskets(pubkey,factory,creator,treasury,share_mint,nonce,created_at,metadata_hash,num_constituents,constituents,weights_bps,entry_fee_bps,exit_fee_bps,management_fee_bps,last_fee_accrual_ts)
-   VALUES('basket','factory','creator','treasury','mint',1,NOW(),'hash',2,ARRAY['a','b'],ARRAY[5000,5000],0,0,0,NOW())`);
+   VALUES('basket','${PROGRAM_NAMESPACES[0].factoryConfig}','creator','treasury','mint',1,NOW(),'hash',2,ARRAY['a','b'],ARRAY[5000,5000],0,0,0,NOW())`);
   await client.query(`INSERT INTO user_positions("user",basket,share_balance,cost_basis) VALUES('wallet','basket',99,123)`);
   await client.query(`INSERT INTO position_rebuild_required(basket,reason) VALUES('basket','legacy-gap')`);
  });
@@ -38,5 +41,21 @@ describe.skipIf(!url)('current balance API on actual PostgreSQL',()=>{
  it('distinguishes a verified empty wallet from an uncovered basket',async()=>{await snapshot();expect((await userPortfolio(db,'other-wallet')).payload).toMatchObject({count:0,coverage:{complete:true}});});
  it.each([{user:'wallet'}, {user:'wallet',shares:'broken'}, {user:'wallet',shares:'0'}, {user:'wallet',shares:'18446744073709551616'}])('rejects malformed matched holder evidence %j',async holder=>{await snapshot();await client.query('UPDATE current_balance_snapshots SET balances=$1',[JSON.stringify([holder])]);await expect(currentBalancesForWallet(db,'wallet')).rejects.toThrow('Invalid stored finalized share amount');});
  it('rejects duplicate matched owners instead of reporting a verified zero or total',async()=>{await snapshot();await client.query('UPDATE current_balance_snapshots SET balances=$1',[JSON.stringify([{user:'wallet',shares:'1'},{user:'wallet',shares:'2'}])]);await expect(currentBalancesForWallet(db,'wallet')).rejects.toThrow('Duplicate stored finalized holder');});
+ it('rejects legacy-tagged snapshots attached to an unsupported factory',async()=>{
+  await snapshot();await client.query("UPDATE baskets SET factory='unregistered'");
+  expect((await currentBalancesForWallet(db,'wallet')).coverage).toEqual({indexedBaskets:1,verifiedBaskets:0,complete:false});
+ });
+ it('binds each of two supported factories to its own complete snapshot trio',async()=>{
+  await client.query("UPDATE baskets SET factory=$1",[namespaceFixtures[0].factoryConfig]);
+  await snapshot('7');await client.query("UPDATE current_balance_snapshots SET program_ids=$1",[namespaceProgramIds(namespaceFixtures[0])]);
+  await client.query(`INSERT INTO baskets(pubkey,factory,creator,treasury,share_mint,nonce,created_at,metadata_hash,metadata_json,num_constituents,constituents,weights_bps,entry_fee_bps,exit_fee_bps,management_fee_bps,last_fee_accrual_ts) SELECT 'second', $1,creator,treasury,'second-mint',nonce,created_at,metadata_hash,metadata_json,num_constituents,constituents,weights_bps,entry_fee_bps,exit_fee_bps,management_fee_bps,last_fee_accrual_ts FROM baskets WHERE pubkey='basket'`,[namespaceFixtures[1].factoryConfig]);
+  await client.query(`INSERT INTO current_balance_snapshots(basket,program_ids,slot,supply,balances,accounts_digest,account_count,observed_at,status)
+    VALUES('second',$1,501,11,$2,$3,1,$4,'verified')`,[namespaceProgramIds(namespaceFixtures[0]),JSON.stringify([{user:'wallet',shares:'11'}]),'b'.repeat(64),now]);
+  let result=await currentBalancesForWallet(db,'wallet',new Date(),namespaceFixtures);
+  expect(result.coverage).toEqual({indexedBaskets:2,verifiedBaskets:1,complete:false});expect(result.rows.map(row=>row.shares)).toEqual(['7']);
+  await client.query("UPDATE current_balance_snapshots SET program_ids=$1 WHERE basket='second'",[namespaceProgramIds(namespaceFixtures[1])]);
+  result=await currentBalancesForWallet(db,'wallet',new Date(),namespaceFixtures);
+  expect(result.coverage).toEqual({indexedBaskets:2,verifiedBaskets:2,complete:true});expect(result.rows.map(row=>row.shares)).toEqual(['7','11']);
+ });
  it('forbids claiming recovered historical completeness in the snapshot table',async()=>{await snapshot();await expect(client.query('UPDATE current_balance_snapshots SET history_complete=true')).rejects.toThrow();});
 });

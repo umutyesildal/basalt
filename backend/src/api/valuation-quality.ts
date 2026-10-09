@@ -1,3 +1,4 @@
+import { namespaceSqlValues, PROGRAM_NAMESPACES, type ProgramNamespace } from "../config/programNamespaces.js";
 import { unresolvedPositionRebuildCondition } from "../db/projectionGuard.js";
 
 /** Valuation quality applies only to indexed reference data, never redemption. */
@@ -65,9 +66,13 @@ export function currentNavEligibilitySql(basketExpression: string, navAlias: str
 }
 
 /** Indexed balances are pending while history or a legacy projection is unresolved. */
-export function positionProjectionReadySql(basketExpression: string): string {
+export function positionProjectionReadySql(basketExpression: string, namespaces:readonly ProgramNamespace[]=PROGRAM_NAMESPACES): string {
   if (!/^[a-z][a-z0-9_]*\.[a-z][a-z0-9_]*$/i.test(basketExpression)) throw new Error("Invalid projection SQL identifier");
   return `NOT EXISTS(SELECT 1 FROM position_rebuild_required pr WHERE pr.basket=${basketExpression} AND ${unresolvedPositionRebuildCondition("pr")})
-    AND NOT EXISTS(SELECT 1 FROM indexer_signature_queue iq WHERE iq.status <> 'processed')
-    AND NOT EXISTS(SELECT 1 FROM indexer_program_state ips WHERE ips.history_complete IS NOT TRUE OR ips.scan_before IS NOT NULL OR ips.scan_head IS NOT NULL)`;
+    AND EXISTS(SELECT 1 FROM baskets projection_basket JOIN (VALUES ${namespaceSqlValues(namespaces)}) AS projection_ns(factory,program_ids)
+      ON projection_ns.factory=projection_basket.factory WHERE projection_basket.pubkey=${basketExpression}
+      AND NOT EXISTS(SELECT 1 FROM indexer_signature_queue iq WHERE iq.program_id=ANY(projection_ns.program_ids) AND iq.status <> 'processed')
+      AND (SELECT COUNT(*) FROM indexer_program_state ips WHERE ips.program_id=ANY(projection_ns.program_ids))=3
+      AND NOT EXISTS(SELECT 1 FROM indexer_program_state ips WHERE ips.program_id=ANY(projection_ns.program_ids) AND
+        (ips.history_complete IS NOT TRUE OR ips.scan_before IS NOT NULL OR ips.scan_head IS NOT NULL OR ips.finalized_through_slot IS NULL)))`;
 }

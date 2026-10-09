@@ -1,3 +1,4 @@
+import { PROGRAM_NAMESPACES, namespaceForFactory, validateNamespaceRegistry, type ProgramNamespace } from "../config/programNamespaces.js";
 /**
  * workers/navEngine.ts — real NAV engine (spec §7, AGENTS.md §17).
  *
@@ -414,7 +415,7 @@ export interface SupplyFetch {
   authenticated?: boolean;
 }
 
-export type SupplyFetcher = (shareMint: string, basket: string) => Promise<SupplyFetch | null>;
+export type SupplyFetcher = (shareMint: string, basket: string, factory:string) => Promise<SupplyFetch | null>;
 
 /** Structural slice of @solana/web3.js Connection used for supply reads. */
 export interface SupplyRpc {
@@ -423,8 +424,10 @@ export interface SupplyRpc {
 
 /** Real on-chain supply via getTokenSupply (u64 → decimal string). 429s go
  *  through the shared RPC backoff before the events-derived fallback runs. */
-export async function fetchSupplyRawFromRpc(rpc: SupplyRpc, shareMint: string, basket: string): Promise<SupplyFetch | null> {
+export async function fetchSupplyRawFromRpc(rpc: SupplyRpc, shareMint: string, basket: string, factory=PROGRAM_NAMESPACES[0].factoryConfig, namespaces:readonly ProgramNamespace[]=PROGRAM_NAMESPACES): Promise<SupplyFetch | null> {
   try {
+    const namespace=namespaceForFactory(factory,validateNamespaceRegistry(namespaces));
+    if(!namespace)return null;
     const address = new PublicKey(shareMint);
     const info = await withRpcBackoff(() => rpc.getAccountInfo(address, "finalized"), {
       logKey: "navEngine:getShareMint",
@@ -432,7 +435,7 @@ export async function fetchSupplyRawFromRpc(rpc: SupplyRpc, shareMint: string, b
     if (!info || info.executable || !info.owner.equals(TOKEN_2022_PROGRAM_ID)) return null;
     const mint = unpackMint(address, info, TOKEN_2022_PROGRAM_ID);
     if (!mint.isInitialized || info.data[45] !== 1 || mint.decimals !== 6 ||
-        !mint.mintAuthority?.equals(deriveVaultAuthority(new PublicKey(basket)))) return null;
+        !mint.mintAuthority?.equals(deriveVaultAuthority(new PublicKey(basket),new PublicKey(namespace.programs.basket)))) return null;
     return { supply: mint.supply.toString(), source: "rpc", authenticated: true };
   } catch (err) {
     console.warn(`[navEngine] getTokenSupply failed for ${shareMint}:`,
@@ -471,6 +474,7 @@ export async function fetchSupplyFromEvents(db: PgLike, basket: string): Promise
 }
 
 export interface NavEngineDeps {
+  namespaces?:readonly ProgramNamespace[];
   db: PgLike | null;
   cache?: KeyValueCache | null;
   /** Price provider — defaults to fetchPriceQuotes (Jupiter v6, source-marked). */
@@ -533,6 +537,7 @@ const DEFAULT_RANKINGS_REFRESH_MS = 300_000;
 const NAV_SUPPLY_RPC_GAP_MS = 150;
 
 interface BasketCoreRow {
+  factory:string;
   pubkey: string;
   share_mint: string;
   constituents: string[];
@@ -608,7 +613,7 @@ export class NavEngine {
     let baskets: BasketCoreRow[];
     try {
       const res = await db.query(
-        "SELECT pubkey, share_mint, constituents, weights_bps FROM baskets ORDER BY created_at ASC",
+        "SELECT pubkey, share_mint, constituents, weights_bps, factory FROM baskets ORDER BY created_at ASC",
       );
       baskets = res.rows as BasketCoreRow[];
     } catch (err) {
@@ -710,6 +715,8 @@ export class NavEngine {
       },
     };
 
+    if(!namespaceForFactory(basket.factory,validateNamespaceRegistry(this.deps.namespaces ?? PROGRAM_NAMESPACES)))return {...base,skipReason:"unsupported-namespace"};
+
     let holdings: HoldingsRowLite[];
     try {
       const res = await db.query(
@@ -786,7 +793,7 @@ export class NavEngine {
 
     const fetchSupply = this.deps.fetchSupply ?? (async () => null);
     let supplyFetch: SupplyFetch | null;
-    try { supplyFetch = await fetchSupply(basket.share_mint, basket.pubkey); }
+    try { supplyFetch = await fetchSupply(basket.share_mint, basket.pubkey,basket.factory); }
     catch { supplyFetch = null; }
     if (!supplyFetch || supplyFetch.source !== "rpc" || supplyFetch.authenticated !== true ||
         !/^\d{1,20}$/.test(supplyFetch.supply) || BigInt(supplyFetch.supply) <= 0n || BigInt(supplyFetch.supply) > 18_446_744_073_709_551_615n) {
@@ -890,9 +897,9 @@ export function createNavEngineFromEnv(opts: {
     // pass spreads its RPC load instead of bursting it.
     const conn = createReadOnlyRpcConnection(rpcUrl);
     const supplyPacer = createPacer(NAV_SUPPLY_RPC_GAP_MS);
-    fetchSupply = async (shareMint: string, basket: string) => {
+    fetchSupply = async (shareMint: string, basket: string,factory:string) => {
       await supplyPacer.wait();
-      return (await fetchSupplyRawFromRpc(conn, shareMint, basket)) ?? fetchSupplyFromEvents(db, basket);
+      return (await fetchSupplyRawFromRpc(conn, shareMint, basket,factory)) ?? fetchSupplyFromEvents(db, basket);
     };
   } else {
     fetchSupply = (_shareMint: string, basket: string) => fetchSupplyFromEvents(db, basket);

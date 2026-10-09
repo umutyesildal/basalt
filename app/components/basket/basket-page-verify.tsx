@@ -3,7 +3,8 @@ import { PublicKey } from "@solana/web3.js";
 
 import { IconCopyButton as CopyButton } from "@/components/ui/copy-button";
 import { truncateAddress } from "@/lib/format";
-import { BASKET_SEED, PROGRAMS } from "@/lib/solana";
+import { BASKET_SEED } from "@/lib/solana";
+import { APP_NAMESPACE_ROUTING } from "@/lib/program-namespaces";
 import { CLUSTER, RPC_ENDPOINT, explorerClusterQuery } from "@/lib/wallet";
 
 /**
@@ -36,12 +37,12 @@ function explorerHref(path: string): string {
  * input (the page already gates on an indexed basket, so this is a guard,
  * not a data path — a null never fabricates a placeholder address).
  */
-function deriveVaultAuthority(basket: string): string | null {
+function deriveVaultAuthority(basket: string, factory: string): string | null {
   try {
     const seed = new TextEncoder().encode(BASKET_SEED);
     return PublicKey.findProgramAddressSync(
       [seed, new PublicKey(basket).toBytes()],
-      PROGRAMS.basket,
+      new PublicKey(APP_NAMESPACE_ROUTING.forFactory(factory).programs.basket),
     )[0].toBase58();
   } catch {
     return null;
@@ -99,15 +100,18 @@ interface VerifyStep {
 
 export function BasketPageVerify({
   basket,
+  factory,
   shareMint,
 }: {
   /** The indexed basket address (the route param, resolved on the server). */
   basket: string;
+  factory: string;
   /** The basket's Token-2022 share mint, from the indexed basket row. */
   shareMint: string;
 }) {
-  const vaultAuthority = deriveVaultAuthority(basket);
-  const programId = PROGRAMS.basket.toBase58();
+  const vaultAuthority = deriveVaultAuthority(basket, factory);
+  let programId: string | null = null;
+  try { programId = APP_NAMESPACE_ROUTING.forFactory(factory).programs.basket; } catch { /* Unknown factories never supply program links. */ }
 
   const steps: VerifyStep[] = [
     {
@@ -164,14 +168,14 @@ export function BasketPageVerify({
     {
       title: "Read the program",
       body: "Mint, redeem and the fee-accrual crank are permissionless instructions on one program. Any transaction this interface builds can be opened in the explorer and read instruction by instruction.",
-      refs: (
+      refs: programId ? (
         <AddressRef
           address={programId}
           copyLabel="Copy basket program id"
           linkLabel="program on Explorer"
           href={explorerHref(`/address/${programId}`)}
         />
-      ),
+      ) : <p className="mt-2 text-xs text-muted-foreground">This basket factory has not been verified by this interface.</p>,
     },
   ];
 
