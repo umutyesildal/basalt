@@ -12,12 +12,19 @@ timelock currently controls the deployed programs.
 
 ## Current verified boundary
 
-A finalized, read-only devnet RPC audit on 2026-09-19 confirmed that all three
-programs are executable under the Upgradeable Loader and share the single-key
-upgrade authority `y72KA263br7MtZw7BqC2dx5QYCBUciJGzShE8BRSwRE`. The separate
-`WhitelistConfig.authority` is the same key and has no pending successor. The
-full addresses, ProgramData accounts, slots, commands, and limitations are in
-`docs/devnet-governance-audit-2026-09-19.md`.
+The [2026-10-09 13:04:26 UTC public devnet inventory](assets/devnet-release-readiness-2026-10-09/current-devnet-state.json),
+finalized at slot 509187727, confirms all three programs are executable under the
+Upgradeable Loader and share the single-key upgrade authority
+`y72KA263br7MtZw7BqC2dx5QYCBUciJGzShE8BRSwRE`. The separate
+`WhitelistConfig.authority` is the same key and has no pending successor. This
+refreshes the historical [2026-09-19 audit](devnet-governance-audit-2026-09-19.md)
+and does not attest deployed program bytes against the current source.
+
+The current devnet website/backend update performs no program upgrade or authority
+migration. Its factory treasury remains retired, so new basket creation must remain
+unavailable and legacy redemption remains permissionless. The missing ceremony
+public identities and approvals are prerequisites for a separate governance release;
+they are not required to refresh the contained devnet website/backend.
 
 No multisig address, vault address, threshold, signer public keys, timelock
 configuration, or successful authority transfer has been independently
@@ -121,9 +128,15 @@ The production sequence is:
    signer rotation, and rollback on localnet or an isolated test deployment.
 4. Re-query every current devnet Program and ProgramData account immediately
    before migration.
-5. Queue the three upgrade-authority transfers to the vault and transfer the
-   whitelist authority through its two-step instruction.
-6. Execute only after required approvals and delay; never use `--final`.
+5. After exact human ceremony approval, the current authority directly signs
+   the three bootstrap Upgradeable Loader authority transfers to the reviewed
+   vault, confirming each separately. The vault time lock governs transactions
+   after it owns an authority; it cannot delay a transfer signed by the current EOA.
+6. The current whitelist authority proposes the vault through `transfer_authority`.
+   Submit `claim_authority` as a Squads vault transaction, obtain two distinct
+   approvals and wait the full 48-hour on-chain delay before execution. Subsequent
+   vault-controlled upgrades/configuration changes follow the same approved delay.
+   Never use `--final`.
 7. Verify the loader owner, executable flag, ProgramData address, upgrade
    authority, deployed slot, program bytes, and whitelist authority from RPC.
 8. Publish the transaction signatures, configuration evidence, announcement,

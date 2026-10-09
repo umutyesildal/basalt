@@ -1,11 +1,12 @@
 # Dependency security remediation — 2026-10-09
 
 BAS-AUD-10 production npm remediation is implemented in the root, app and backend
-lockfiles. All three current `npm audit --omit=dev` reports contain zero advisories;
-raw metadata and lock hashes are in [security evidence](security-evidence-2026-10-09/evidence-summary.json).
-This statement covers production dependencies only. Existing development tooling
-advisories in Vitest/shadcn remain separately tracked; no broad tooling major upgrade
-is included in this backend/devnet patch.
+lockfiles. Recorded `npm audit --omit=dev` reports for those committed locks contain
+zero advisories; raw metadata and lock hashes are in
+[security evidence](security-evidence-2026-10-09/evidence-summary.json). These are
+production audit results, not proof that every standalone installation is a supported
+release build. The canonical frontend release uses the root workspace lock.
+Development tooling advisories in Vitest/shadcn remain separately tracked.
 
 ## Exact dependency changes
 
@@ -33,21 +34,42 @@ tests actual installed Solana u64/u128/u192/u256 and Token-2022 layouts plus web
 RPC compatibility. Source and deterministic tarball live under `vendor/`. Do not
 replace it with an advisory suppression or downgrade spl-token to 0.1.8.
 
-## Reproduce all three locks
+## Supported installation and audit paths
 
-Run from the repository root using Node20 or newer. The standalone installs must
-explicitly disable npm workspace selection:
+The canonical frontend release build starts at the repository root with Node20
+and default peer dependency resolution. Preserve the root lock and build the app
+through its workspace:
 
 ```sh
-npm ci --ignore-scripts
-npm --prefix backend ci --ignore-scripts --workspaces=false
-npm --prefix app ci --ignore-scripts --workspaces=false
+npm ci --ignore-scripts --legacy-peer-deps=false
 npm run test:security
 node scripts/security/dependency-smoke.mjs
+npm --prefix backend run build
+npm --prefix app run typecheck
+npm --prefix app run build
 npm audit --omit=dev --audit-level=high
 npm --prefix backend audit --omit=dev --audit-level=high --workspaces=false
 npm --prefix app audit --omit=dev --audit-level=high --workspaces=false
 ```
+
+The standalone backend is separately supported and verified with Node20 and
+npm11.6.2, empty user/global npm configurations, and explicit default peers.
+Both builder and production installs passed; the production install uses
+`--omit=dev`. The backend container uses the same install policy and copies only
+the backend build plus its production Node dependencies. Preserve the local
+`../vendor/` tarball path when reproducing the standalone layout:
+
+```sh
+npm --prefix backend ci --ignore-scripts --workspaces=false --legacy-peer-deps=false
+npm --prefix backend run build
+```
+
+An app-only npm11/default-peer lock candidate introduced **13 high-severity
+advisories**. It was not applied and is not a supported frontend release path.
+The app lock audit above records its committed production dependency metadata;
+it does not establish that an app-only `npm ci` can replace the canonical root
+workspace install. Do not regenerate the app lock or use legacy-peer bypasses
+to make a different release graph appear equivalent.
 
 CI blocks high/critical production advisories for all three lockfiles, in addition
 to the backend build/tests and app typecheck/build. These gates do not hide or
@@ -61,8 +83,13 @@ uses the application's `DATABASE_URL` for those tests.
 `cargo-audit 0.22.0` with RustSec database commit
 `7eebec69c352c7191b1f13eb95dd510eeca5d1de` reports two vulnerabilities and fourteen
 unmaintained/unsound notices for the locked Anchor0.30.1/Solana1.18.26 workspace.
-They are **not fixed** by this branch. A major Solana/Anchor migration changes the
-program build/ABI and requires its own deployed-ELF and regression review.
+They are **not fixed** by this branch. The current release target is the existing
+devnet web/backend. These Rust crates are absent from the deployed Node dependency
+artifact; most flagged crypto, logging, collection and mmap paths are host-gated.
+Bincode/Borsh compatibility dependencies must still be assessed for program builds.
+This release does not upgrade the deployed SBF programs or claim that their Rust
+graph is clean. A Solana/Anchor migration requires separate account/instruction
+compatibility, SBF toolchain, ELF and regression review.
 
 [Machine policy](../scripts/security/rust-audit-exceptions.json) records every exact
 advisory, package, version, checksum, owner and reachability rationale. Exceptions
@@ -99,3 +126,67 @@ A protocol maintainer must re-evaluate these scoped exceptions before their expi
 when Cargo.lock changes, before adding any host signer/secret-scalar service, and
 before a mainnet decision. The automated gate currently passes this exact devnet
 source scope; it is not a declaration that the Rust dependency graph is clean.
+
+## Verified Rust migration options and acceptance criteria
+
+Read-only graph review found no lockfile-only compatible update that removes any
+of these 16 findings under the current parent requirements. The
+[Anchor 0.30.1 manifest](https://raw.githubusercontent.com/coral-xyz/anchor/v0.30.1/lang/Cargo.toml)
+requires Solana 1.x and bincode 1. The
+[Solana 1.18.26 program manifest](https://raw.githubusercontent.com/solana-labs/solana/v1.18.26/sdk/program/Cargo.toml)
+retains a mandatory Borsh 0.9 compatibility dependency and host crypto/Ark dependencies.
+Token2022 3.0.5 and spl-pod 0.2.5 require the zk SDK; its host
+[SDK dependency](https://raw.githubusercontent.com/solana-labs/solana/v1.18.26/sdk/Cargo.toml)
+enables the old signing, logger and mmap dependencies. Disabling the Token2022
+`zk-ops` feature does not remove those mandatory parent edges.
+
+Potential bounded reductions require maintained patches of upstream parent crates,
+not an advisory rename or broad suppression:
+
+| Candidate | Potential reduction | Required validation |
+|---|---|---|
+| solana-logger 1.18.26 using env_logger 0.10.2 | Both atty findings | Upstream [env_logger changelog](https://raw.githubusercontent.com/rust-cli/env_logger/main/CHANGELOG.md) confirms 0.10 replaces atty with is-terminal. Verify logger construction, filters and file logging, preserve parent source/license provenance, and run Rust gates. This changes host logging dependencies, not program financial logic. |
+| SDK 1.18.26 and frozen-ABI 1.18.26 using memmap2 >=0.9.11 | One mmap finding | The [patched minimum](https://rustsec.org/advisories/RUSTSEC-2026-0186.html) is outside their 0.5 requirement. Review both parents' host map/map_anon calls, compile/test the replacement and preserve SBF cfg separation. |
+| frozen-ABI replacing im and its collection family | Up to five collection findings | Review public trait bounds, serde and ABI examples. The maintained [imbl 7.0.2 manifest](https://raw.githubusercontent.com/jneem/imbl/main/Cargo.toml) uses imbl-sized-chunks 0.2.0 and MSRV 1.85. Earlier fork versions can introduce [RUSTSEC-2026-0292](https://rustsec.org/advisories/RUSTSEC-2026-0292.html); the fixed minimum is 0.2.0. |
+| Ark parent patches or a coordinated Ark family upgrade | derivative/paste maintenance notices | Modern [ark-ff](https://raw.githubusercontent.com/arkworks-rs/algebra/master/ff/Cargo.toml) and [ark-ec](https://raw.githubusercontent.com/arkworks-rs/algebra/master/ec/Cargo.toml) use educe. Review generated traits and BN254/Poseidon behavior; a global 0.4-to-new-major override is not compatible. |
+
+None of these candidate patches was applied. The existing exact exception policy
+and **2026-10-23 00:00 UTC expiry remain unchanged**. Taking ownership of upstream
+Solana forks solely to reduce a host dependency count is a separate maintenance
+decision from releasing the existing devnet Node application.
+
+The remaining crypto and serialization paths need coordinated parent migrations.
+[Curve25519 requires >=4.1.3](https://rustsec.org/advisories/RUSTSEC-2024-0344.html),
+[Ed25519 requires 2.x](https://rustsec.org/advisories/RUSTSEC-2022-0093.html), and
+[Rand 0.7 has no patched release](https://rustsec.org/advisories/RUSTSEC-2026-0097.html).
+Solana's affected Borsh 0.9 helpers cannot become 0.10/1.x by changing a root dependency
+alone. A blind latest-Anchor upgrade is not a zero-exception plan: official
+[0.30.2 notes](https://www.anchor-lang.com/docs/updates/release-notes/0-30-2)
+describe a TypeScript-only patch, while the verified
+[Anchor 1.2.1 manifest](https://raw.githubusercontent.com/otter-sec/anchor/v1.2.1/lang/Cargo.toml)
+still requires bincode 1. The [official changelog](https://www.anchor-lang.com/docs/updates/changelog)
+lists this release and links the current OtterSec-hosted repository; the former
+[coral-xyz repository](https://github.com/coral-xyz/anchor) redirects there. This is
+verified upstream provenance, not an assumed independent fork. For bincode,
+[RustSec lists no patched version](https://rustsec.org/advisories/RUSTSEC-2025-0141.html).
+
+A future Rust migration is accepted only after all of the following are demonstrated:
+
+- Select a maintained, mutually compatible Anchor/Solana/SPL and SBF toolchain set.
+  Follow the official [Anchor migration guidance](https://github.com/solana-foundation/solana-dev-skill/blob/main/skills/solana-dev/references/anchor/migrating-v0.32-to-v1.md);
+  account for CPI/context, mutable-account and IDL changes before proposing deployment.
+- Preserve program IDs, PDA seeds, instruction/account discriminators and serialized
+  layouts. Prove loader/sysvar/system bytes remain compatible if replacing bincode;
+  changing the serializer name alone is not sufficient.
+- Preserve immutable basket fields, Token2022 owner/extension checks, raw transfer
+  amounts, integer rounding, fee limits and permissionless oracle-free redemption.
+  No redemption gate, custody authority or administrative withdrawal is introduced.
+- Run formatting, workspace checks/tests and Clippy, all relevant TypeScript layout
+  and transaction tests, a successful SBF build, and a deterministic local-validator
+  create/mint/redeem/fee flow. Review ELF provenance and compute/size changes.
+- Re-audit the exact resulting lock against a current RustSec database. Remove only
+  findings actually eliminated; preserve source/license provenance for any maintained
+  parent patches. Do not extend current exceptions or claim zero findings while
+  bincode or another flagged package remains.
+- Review a concrete program/IDL deployment plan separately. No chain upgrade,
+  authority transfer or mainnet approval is implied by the Node devnet release.

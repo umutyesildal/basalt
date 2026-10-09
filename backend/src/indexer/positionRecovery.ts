@@ -19,6 +19,8 @@ type HistoryRow = { sig: string; log_index: number; type: string; data: Record<s
 type Claim = { sig: string; log_index: number; kind: string; basket: string };
 type Holder = { user: string; shares: string };
 export interface PositionRecoveryOptions {
+  /** Optional operator attestation, rechecked under the locked immutable run before publication. */
+  validateReviewedEvidence?: (client: PgLike) => Promise<void>;
   /** Explicit caller discovers/drains through the already authenticated snapshot. */
   catchUpThroughSlot?: (slot: number) => Promise<void>;
 }
@@ -132,6 +134,7 @@ export async function activateStagedPositionRebuild(
     const run = (await client.query("SELECT * FROM position_rebuild_runs WHERE run_id=$1 FOR UPDATE", [runId])).rows[0] as RecoveryRun | undefined;
     validateRun(run, runId, expectedHistoryHash, programs);
     if (evidence(found) !== evidence(run)) throw new Error("Reviewed run metadata changed while acquiring locks");
+    if (options.validateReviewedEvidence) await options.validateReviewedEvidence(client);
     if (run.status === "activated") return activatedReceipt(client, run);
     if (run.status !== "staged-pending-review") throw new Error("Run was superseded");
     const pending = await client.query(`SELECT basket FROM position_rebuild_required r WHERE basket=$1 AND ${unresolvedPositionRebuildCondition("r")} FOR UPDATE`, [run.basket]);

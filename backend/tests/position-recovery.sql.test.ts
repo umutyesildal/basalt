@@ -1,3 +1,5 @@
+import { createHash } from "node:crypto";
+import bs58 from "bs58";
 /** Reviewed recovery publication, exercised only against an explicit disposable PostgreSQL. */
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import pg from "pg";
@@ -6,6 +8,7 @@ import type { PgLike } from "../src/db/client";
 import { decodeBasketState } from "../src/indexer/basketState";
 import { stagePositionRebuild, applyRedeemed, markPositionRebuildRequired, PositionProjectionGapError } from "../src/indexer/positions";
 import { activateStagedPositionRebuild } from "../src/indexer/positionRecovery";
+import { assertReviewedStaging, DEVNET_GENESIS, type RecoveryReview } from "../src/maintenance/recovery-operator";
 import type { PositionsSyncRpc } from "../src/indexer/positionsSync";
 import { positionRecoveryFixture, recoveryKey, type PositionRecoveryFixture } from "./fixtures/position-recovery";
 
@@ -82,6 +85,83 @@ describe.skipIf(!url)("reviewed position recovery against disposable PostgreSQL"
     expect((await pool.query("SELECT snapshot_slot::text FROM position_reconciliation_state")).rows[0].snapshot_slot).toBe("100");
     expect((await pool.query("SELECT status,activated_slot::text FROM position_rebuild_runs")).rows[0]).toEqual({status:"activated",activated_slot:"100"});
   }
+
+
+  async function operatorReviewForCurrentRun(): Promise<RecoveryReview> {
+    // Runtime signatures are canonical base58; the older SQL fixture uses readable labels.
+    const labels=["creation","Z-mint","a-fee","0-redeem"];
+    for (let index=0;index<labels.length;index++) {
+      const signature=bs58.encode(Buffer.alloc(64,index+1));
+      await pool.query("UPDATE events SET sig=$2 WHERE sig=$1",[labels[index],signature]);
+      await pool.query("UPDATE position_events SET sig=$2 WHERE sig=$1",[labels[index],signature]);
+    }
+    run=await stagePositionRebuild(db,fixture.basket.toBase58(),fixture.programs.ids,{
+      slot:fixture.slot,supply:fixture.supply.toString(),balances:[{user,shares:"1000000"}],
+    });
+    const row=(await pool.query("SELECT * FROM position_rebuild_runs WHERE run_id=$1",[run.runId])).rows[0];
+    const holderTuples=(await pool.query('SELECT "user",share_balance::text FROM position_rebuild_staging WHERE run_id=$1 ORDER BY "user" COLLATE "C"',[run.runId]))
+      .rows.map(holder=>[holder.user,holder.share_balance]);
+    const claimTuples=(await pool.query("SELECT sig,log_index,kind,basket FROM position_rebuild_claims WHERE run_id=$1",[run.runId]))
+      .rows.map(claim=>[claim.sig,claim.log_index,claim.kind,claim.basket])
+      .sort((a,b)=>JSON.stringify(a)<JSON.stringify(b)?-1:JSON.stringify(a)>JSON.stringify(b)?1:0);
+    const hash=(value:unknown)=>createHash("sha256").update(JSON.stringify(value)).digest("hex");
+    return {
+      schemaVersion:1,kind:"basalt-candidate-position-recovery",createdAt:new Date().toISOString(),
+      manifest:{schemaVersion:1,candidateId:"sql_fixture",databaseName:"basalt_candidate_sql_fixture",
+        sourceDatabase:"foliox",sourceSha:"a".repeat(40),backupSha256:"b".repeat(64),genesisHash:DEVNET_GENESIS,
+        programIds:{basket:fixture.programs.basket.toBase58(),factory:fixture.programs.factory.toBase58(),
+          whitelist:fixture.programs.ids.find(id=>id!==fixture.programs.basket.toBase58()&&id!==fixture.programs.factory.toBase58())!}},
+      manifestSha256:"c".repeat(64),
+      run:{runId:row.run_id,basket:row.basket,historyHash:row.history_hash,programIds:[...row.program_ids].sort(),
+        chainSlot:String(row.chain_slot),chainSupply:String(row.chain_supply),eventCount:row.event_count,createdAt:row.created_at.toISOString()},
+      staging:{positionCount:holderTuples.length,positionsSha256:hash(holderTuples),claimCount:claimTuples.length,claimsSha256:hash(claimTuples)},
+    };
+  }
+
+  it("checks operator review inside the locked real transaction before any effects, including exact receipt retry",async()=>{
+    const review=await operatorReviewForCurrentRun();
+    let validations=0;
+    const options={validateReviewedEvidence:async(client:PgLike)=>{validations++;await assertReviewedStaging(client,review);}};
+    const receipt=await activateStagedPositionRebuild(db,fixture.rpc,run.runId,run.historyHash,fixture.programs,options);
+    const published=await projectionState();
+    expect(await activateStagedPositionRebuild(db,fixture.rpc,run.runId,run.historyHash,fixture.programs,options)).toEqual(receipt);
+    expect(validations).toBe(2);expect(await projectionState()).toEqual(published);
+    expect((await pool.query('SELECT share_balance::text FROM user_positions WHERE "user"=$1',[user])).rows[0].share_balance).toBe("1000000");
+  });
+
+  it("rolls back when staged holders change after preflight and before the transactional operator review",async()=>{
+    const review=await operatorReviewForCurrentRun();
+    const before=await projectionState(),newUser=recoveryKey(22).toBase58();
+    const currentChain=positionRecoveryFixture({holders:[{user:recoveryKey(22),amount:1000000n}]});
+    let reached!:()=>void,resume!:()=>void;
+    const locked=new Promise<void>(resolve=>{reached=resolve;});
+    const continueActivation=new Promise<void>(resolve=>{resume=resolve;});
+    const database:PgLike={query:(sql,args)=>db.query(sql,args),connect:async()=>{
+      const client=await pool.connect();
+      return {release:()=>client.release(),query:async(sql,args)=>{
+        const result=await client.query(sql,args);
+        if(sql==="SELECT * FROM position_rebuild_runs WHERE run_id=$1 FOR UPDATE"){
+          reached();await continueActivation;
+        }
+        return result;
+      }};
+    }};
+    const publishing=activateStagedPositionRebuild(database,currentChain.rpc,run.runId,run.historyHash,fixture.programs,{
+      validateReviewedEvidence:client=>assertReviewedStaging(client,review),
+    });
+    // Attach a rejection handler before releasing the paused transaction.
+    const rejected=expect(publishing).rejects.toThrow("evidence changed");
+    await locked;
+    try { await pool.query('UPDATE position_rebuild_staging SET "user"=$2 WHERE run_id=$1',[run.runId,newUser]); }
+    finally { resume(); }
+    await rejected;
+    expect(await projectionState()).toEqual(before);
+    expect((await pool.query("SELECT COUNT(*)::int AS count FROM position_rebuild_positions_backup WHERE run_id=$1",[run.runId])).rows[0].count).toBe(0);
+    // The changed stage matches fresh chain facts and passes the underlying API;
+    // rejection above specifically proves the old operator review cannot authorize it.
+    await activateStagedPositionRebuild(db,currentChain.rpc,run.runId,run.historyHash,fixture.programs);
+    expect((await pool.query('SELECT share_balance::text FROM user_positions WHERE "user"=$1',[newUser])).rows[0].share_balance).toBe("1000000");
+  });
 
   it("quarantines pre-slot atomic claims in place and activation repairs slots with immutable old evidence", async () => {
     await pool.query("DELETE FROM position_events WHERE log_index<0");

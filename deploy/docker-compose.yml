@@ -31,6 +31,8 @@ services:
     build:
       context: ..
       dockerfile: backend/Dockerfile
+      args:
+        BASALT_BUILD_SHA: ${BASALT_BUILD_SHA:-unknown}
     restart: unless-stopped
     env_file:
       - ../backend/.env.production

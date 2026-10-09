@@ -2,6 +2,31 @@
 
 > This is a dependency order, not a calendar promise. A phase is not complete until its exit gate passes.
 
+## Current release: existing devnet website/backend only
+
+The 2026-10-09 release updates the existing website/backend on devnet. It does not
+select mainnet, deploy or upgrade programs, transfer authority, create governance,
+or replace the factory namespace. R4–R6 remain separate gates; this rollout must
+not claim mainnet readiness.
+
+[Current finalized public state](assets/devnet-release-readiness-2026-10-09/current-devnet-state.json)
+confirms single-key authorities and a retired immutable factory treasury. New
+creation through supported clients remains unavailable with an early user-visible
+notice; existing basket redemption remains permissionless. No on-chain creation
+pause or program change is claimed. A later clean-namespace release needs
+real owner-approved treasury/program identifiers, and governance needs the exact
+three independent hardware signer public keys, multisig/vault addresses, approvals
+and delayed rehearsal evidence in the [ceremony runbook](governance-ceremony-runbook.md).
+No website/backend update can substitute for these operations.
+
+Use the reviewed root npm workspace install/build for the frontend and the verified
+standalone backend Docker install. Do not assume standalone frontend default-peer
+installation is supported by the retained app lockfile. Current install policy and
+audit boundaries are in [dependency security](dependency-security-2026-10-09.md).
+The backend update must separately verify its candidate schema/replay, auth startup,
+backups, controlled error responses and valuation-quality states before traffic is
+switched; follow the [devnet deployment runbook](../deploy/DEPLOY.md).
+
 ## R0 — One source of truth and reproducible builds
 
 **Goal:** Every contributor works from the same source, dependencies, and status model.
