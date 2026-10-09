@@ -4,7 +4,11 @@ use anchor_spl::token_2022::spl_token_2022::{
 };
 use anchor_spl::token_2022::ID as TOKEN_2022_PROGRAM_ID;
 
+// The default artifact retains the deployed legacy identity. Clean devnet uses an explicit build feature.
+#[cfg(not(feature = "owner-devnet"))]
 declare_id!("FRavMcYQb2FVAHbbG6fGieQHdKk1UrQqgKsAAXTPRQeS");
+#[cfg(feature = "owner-devnet")]
+declare_id!("37UVmx2uysqkKibBcSP5EZMycUeKnWRmnXVpr967juKF");
 
 pub const CONFIG_SEED: &[u8] = b"config";
 pub const MINT_SEED: &[u8] = b"mint";

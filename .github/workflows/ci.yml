@@ -28,6 +28,8 @@ jobs:
         run: cargo check --workspace --all-targets
       - name: Run tests
         run: cargo test --workspace
+      - name: Test isolated owner devnet identities
+        run: cargo test --workspace --features owner-devnet --locked
       - name: Run Clippy
         run: cargo clippy --workspace --all-targets
 

@@ -1,3 +1,5 @@
+> **Owner devnet preparation, 2026-10-09:** Fresh software bootstrap/program identities and the proposed owner are recorded publicly in `backend/src/config/devnetOwnerPolicy.json`; private material stays outside the repository. `owner-devnet` selects the separate trio, while default legacy identities and active registry are unchanged. `/devnet/setup` supports only the genuine owner wallet claiming an authenticated pending whitelist transfer. Owner/treasury acceptance and funding remain pending; no deployment, authority handoff, creation activation or mainnet approval is claimed. See [devnet owner preparation](docs/devnet-owner-preparation-2026-10-09.md).
+
 > 2026-10-09: Closed devnet namespace routing is prepared in `docs/devnet-namespace-routing.md`. Production registers only the deployed legacy trio; creation remains disabled. Preserve exact per-basket namespace proofs and legacy redemption.
 
 # AGENTS.md — Basalt Project Context for AI Agents

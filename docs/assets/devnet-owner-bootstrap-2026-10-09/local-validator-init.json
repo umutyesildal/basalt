@@ -1,0 +1,265 @@
+{
+  "version": 1,
+  "mode": "isolated-local-validator-owner-init-guard-rehearsal",
+  "cluster": "private-localnet",
+  "rpcOrigin": "http://127.0.0.1:65455",
+  "validatorVersion": "1.18.26",
+  "feature": "owner-devnet",
+  "genesisProgramLoading": "canonical-public-loader-account-fixtures; exact ELF bytes; ProgramData executable=false; not a loader-deployment rehearsal",
+  "sourceDirty": true,
+  "sourceIdentityScope": "working-tree feature build; base commit plus file hashes, not committed-release attestation",
+  "sourceCommit": "599648a2744acb79957c58eebaa911943097c954",
+  "programs": {
+    "whitelist": {
+      "programId": "37UVmx2uysqkKibBcSP5EZMycUeKnWRmnXVpr967juKF",
+      "elfSha256": "381398e9a6f51f0555990b696d8a81f7a225f44f0ef3897a44a575a07ca16d01",
+      "elfBytes": 343456,
+      "programData": "BVU9c7KKhPbxEBt2CQpdttAXJPVQnb2LXCKYhJTUbBWj"
+    },
+    "basket_factory": {
+      "programId": "2xvJKG8DTmSZFu1zXpNVP3wvaCCCgGC2ufGGhYjzr4DH",
+      "elfSha256": "6edb669bd32afd6016f5eed3b9652144ee153ea874a871f1881fc1238779057c",
+      "elfBytes": 443576,
+      "programData": "rdV4eezquLj3DK893VHqTppXdqmTwc5Uxts9vEdJct7"
+    },
+    "basket": {
+      "programId": "8XPKfAYPaDSvUH95CeyjkgujTXAE5nFBJyFSqZvFvX7T",
+      "elfSha256": "2d77954816021814fc8eaa5a7173bd535d9dbf6dce619de3800e6f56c0c5e71a",
+      "elfBytes": 434936,
+      "programData": "Dh1MT7pftdbrPj8KpiNHUsp43m9Rzm7tpDBQwWt8NsjS"
+    }
+  },
+  "localAuthority": "9Jzv1xfpVQ9Q6szKopcabcJs81zobCV2ou2uPKemCwTr",
+  "realBootstrapKeysRead": false,
+  "devnetTransactionsSent": false,
+  "mainnetApproved": false,
+  "multisigProof": false,
+  "ownerControlVerified": false,
+  "cases": [
+    {
+      "label": "whitelist:funded-wrong-current-authority",
+      "signature": "5qBdYmfRvf3LewEihvZtYBPTXYazopCFz5ZeVrZKqtE9Rwz59nf2uJjTPLjC55xt8LdaqVLqhU7DTYMhGC93bPFP",
+      "slot": 2,
+      "runtimeError": {
+        "InstructionError": [
+          0,
+          {
+            "Custom": 6013
+          }
+        ]
+      },
+      "programLogs": [
+        "Program log: AnchorError caused by account: program_data. Error Code: UnauthorizedInitialization. Error Number: 6013. Error Message: Only this program's current loader upgrade authority may initialize its singleton.",
+        "Program 37UVmx2uysqkKibBcSP5EZMycUeKnWRmnXVpr967juKF failed: custom program error: 0x177d"
+      ],
+      "configAbsentAfterFailure": true
+    },
+    {
+      "label": "whitelist:nonsigner-current-authority",
+      "signature": "rT2w4E5XK8J19GrWkLzt7woskGhMhW7EpacWP6Vwo8F1LqwmDxrHupNB2G4Li7WLQzSHgRPLjYJsB3VkimReuUS",
+      "slot": 3,
+      "runtimeError": {
+        "InstructionError": [
+          0,
+          {
+            "Custom": 3010
+          }
+        ]
+      },
+      "programLogs": [
+        "Program log: AnchorError caused by account: authority. Error Code: AccountNotSigner. Error Number: 3010. Error Message: The given account did not sign.",
+        "Program 37UVmx2uysqkKibBcSP5EZMycUeKnWRmnXVpr967juKF failed: custom program error: 0xbc2"
+      ],
+      "configAbsentAfterFailure": true
+    },
+    {
+      "label": "whitelist:wrong-self-program",
+      "signature": "5bdKB7zADJwkUHuAGwnqGGyvKaq3c1eHiseHoFcSjwtuE4js7tUBWj9Yiqg9PSvTZR8WczVmhQd4Un9CxmGRBAHs",
+      "slot": 4,
+      "runtimeError": {
+        "InstructionError": [
+          0,
+          {
+            "Custom": 3008
+          }
+        ]
+      },
+      "programLogs": [
+        "Program log: AnchorError caused by account: program. Error Code: InvalidProgramId. Error Number: 3008. Error Message: Program ID was not as expected.",
+        "Program 37UVmx2uysqkKibBcSP5EZMycUeKnWRmnXVpr967juKF failed: custom program error: 0xbc0"
+      ],
+      "configAbsentAfterFailure": true
+    },
+    {
+      "label": "whitelist:wrong-canonical-programdata",
+      "signature": "42xYaYs53Nurde4bRq6ZuFApjPrUQaRbmbfmRoSXZXjnhqWXCjPcSxxrud2KZPJKcu1G9c3ttDwcxjekuKtLAjKU",
+      "slot": 5,
+      "runtimeError": {
+        "InstructionError": [
+          0,
+          {
+            "Custom": 6013
+          }
+        ]
+      },
+      "programLogs": [
+        "Program log: AnchorError caused by account: program. Error Code: UnauthorizedInitialization. Error Number: 6013. Error Message: Only this program's current loader upgrade authority may initialize its singleton.",
+        "Program 37UVmx2uysqkKibBcSP5EZMycUeKnWRmnXVpr967juKF failed: custom program error: 0x177d"
+      ],
+      "configAbsentAfterFailure": true
+    },
+    {
+      "label": "whitelist:valid-current-authority",
+      "signature": "3ra4K7L7JPQGrDbGWiRyLMZUKupFgW8ezhkFm5cvfBqwGtzLFNvyN6UaUZ7HpnvAQY9LCDFViB4fzs3wPVpyNczD",
+      "slot": 6,
+      "runtimeError": null,
+      "programLogs": [],
+      "configVerified": true
+    },
+    {
+      "label": "whitelist:second-init-rejected",
+      "signature": "67jezKmxXhCs5qRrBzCTCGRJMQ5f6erqyaMNJUf2jfMRJ3p6YLj4qzugeFL9zvagwQzanP54Vk14ZEqNhJuvfXXB",
+      "slot": 7,
+      "runtimeError": {
+        "InstructionError": [
+          0,
+          {
+            "Custom": 0
+          }
+        ]
+      },
+      "programLogs": [
+        "Program 11111111111111111111111111111111 failed: custom program error: 0x0",
+        "Program 37UVmx2uysqkKibBcSP5EZMycUeKnWRmnXVpr967juKF failed: custom program error: 0x0"
+      ],
+      "configUnchanged": true
+    },
+    {
+      "label": "basket_factory:funded-wrong-current-authority",
+      "signature": "2RBGHBsZRJou5iVFyxic8p2R8yB8RKMi1QukJKK6bVGHiBEUq9xTQty4m6v6rvV4kzvbMeYtuPzW5WfyPYu3s89F",
+      "slot": 8,
+      "runtimeError": {
+        "InstructionError": [
+          0,
+          {
+            "Custom": 6027
+          }
+        ]
+      },
+      "programLogs": [
+        "Program log: AnchorError caused by account: program_data. Error Code: UnauthorizedInitialization. Error Number: 6027. Error Message: Only this program's current loader upgrade authority may initialize its singleton.",
+        "Program 2xvJKG8DTmSZFu1zXpNVP3wvaCCCgGC2ufGGhYjzr4DH failed: custom program error: 0x178b"
+      ],
+      "configAbsentAfterFailure": true
+    },
+    {
+      "label": "basket_factory:nonsigner-current-authority",
+      "signature": "3wsuuRDE3msdyQUb9uxokEGWx1Rh2h2fu32Qc33YY9BokqwjoAB3iv15CyBr8ANCNtASG8zCoTVTsu1LjoHfFKsT",
+      "slot": 9,
+      "runtimeError": {
+        "InstructionError": [
+          0,
+          {
+            "Custom": 3010
+          }
+        ]
+      },
+      "programLogs": [
+        "Program log: AnchorError caused by account: authority. Error Code: AccountNotSigner. Error Number: 3010. Error Message: The given account did not sign.",
+        "Program 2xvJKG8DTmSZFu1zXpNVP3wvaCCCgGC2ufGGhYjzr4DH failed: custom program error: 0xbc2"
+      ],
+      "configAbsentAfterFailure": true
+    },
+    {
+      "label": "basket_factory:wrong-self-program",
+      "signature": "3id4QQ69V4RzRi4YwULVq8FRpSg81nyj7dbq2eHu9vhuicHpukWvL6B2Wrh8BQUJ3vovRhLpcZ2epBMUosLsBZVf",
+      "slot": 10,
+      "runtimeError": {
+        "InstructionError": [
+          0,
+          {
+            "Custom": 3008
+          }
+        ]
+      },
+      "programLogs": [
+        "Program log: AnchorError caused by account: program. Error Code: InvalidProgramId. Error Number: 3008. Error Message: Program ID was not as expected.",
+        "Program 2xvJKG8DTmSZFu1zXpNVP3wvaCCCgGC2ufGGhYjzr4DH failed: custom program error: 0xbc0"
+      ],
+      "configAbsentAfterFailure": true
+    },
+    {
+      "label": "basket_factory:wrong-canonical-programdata",
+      "signature": "2QMno1cML7SmeBAC5daStYYc6rNs6pRPQ65hiHAFVr8Rjr7gMqdszZ4YzXppBeWBiG4zWEarZMAMnfqjoaWKwqrw",
+      "slot": 11,
+      "runtimeError": {
+        "InstructionError": [
+          0,
+          {
+            "Custom": 6027
+          }
+        ]
+      },
+      "programLogs": [
+        "Program log: AnchorError caused by account: program. Error Code: UnauthorizedInitialization. Error Number: 6027. Error Message: Only this program's current loader upgrade authority may initialize its singleton.",
+        "Program 2xvJKG8DTmSZFu1zXpNVP3wvaCCCgGC2ufGGhYjzr4DH failed: custom program error: 0x178b"
+      ],
+      "configAbsentAfterFailure": true
+    },
+    {
+      "label": "basket_factory:valid-current-authority",
+      "signature": "5dqPBkthn8TV9U8BPkjMcVDrtL52DL9D34TzZ3734UoDrNVSWbNVtFuQCPrXakXCS1SyVhNh9ywTmSNvx3sQZguU",
+      "slot": 12,
+      "runtimeError": null,
+      "programLogs": [],
+      "configVerified": true
+    },
+    {
+      "label": "basket_factory:second-init-rejected",
+      "signature": "5RYi7fCN2BzzKm4QqYV17zy8LRym6ntTAoKvXwwbCT97rYcYnTRCrYHNbTjE2iKY59ohLKEgsvUCgft5HiPXaoCC",
+      "slot": 13,
+      "runtimeError": {
+        "InstructionError": [
+          0,
+          {
+            "Custom": 0
+          }
+        ]
+      },
+      "programLogs": [
+        "Program 11111111111111111111111111111111 failed: custom program error: 0x0",
+        "Program 2xvJKG8DTmSZFu1zXpNVP3wvaCCCgGC2ufGGhYjzr4DH failed: custom program error: 0x0"
+      ],
+      "configUnchanged": true
+    }
+  ],
+  "genesisHash": "3CYWx9BNhrzCvrLC5MUAd9JxvaSLzhKBBpMARQycE9pU",
+  "completedAt": "2026-10-09T17:04:56.954Z",
+  "passed": true,
+  "sourceFileHashes": {
+    "compiledCopy": {
+      "programs/whitelist/src/lib.rs": "73c4ad0f1c03918045562df603537b793a4827d4b5b16bb092f0b08a7c4dc1ba",
+      "programs/basket_factory/src/lib.rs": "a6a598aea1c2acc3cabf00c2d1c65812f1bf691ec3c5e35772065c17a9f662c7",
+      "programs/basket/src/lib.rs": "59df7f50a04237b47daad317dfb7c599a438ad0803c94d96b21626ac42a13095",
+      "programs/whitelist/Cargo.toml": "9dfae662e9dbc6890fa2beda1fcf29f6600f4dc46be824f809a397194033c618",
+      "programs/basket_factory/Cargo.toml": "d9003c3b5ff12d5697073341c5569f7eed6c3d994a818d2e2d3bae82bd1285db",
+      "programs/basket/Cargo.toml": "6fb5ccffa14b359671b26e9608881779756caa906b4d966ebcba26ce4964ba1d",
+      "Cargo.toml": "086a7cb2ae85d52f2a82257df861150cdcbd7b81cb3ae9a9085ebe19361e9da3",
+      "Cargo.lock": "adeaf571ee61df13b5681d0db4e278a984e233c5fecb14a36b3bf7d5bc4bd164"
+    },
+    "reviewedWorkingTree": {
+      "programs/whitelist/src/lib.rs": "73c4ad0f1c03918045562df603537b793a4827d4b5b16bb092f0b08a7c4dc1ba",
+      "programs/basket_factory/src/lib.rs": "a6a598aea1c2acc3cabf00c2d1c65812f1bf691ec3c5e35772065c17a9f662c7",
+      "programs/basket/src/lib.rs": "59df7f50a04237b47daad317dfb7c599a438ad0803c94d96b21626ac42a13095",
+      "programs/whitelist/Cargo.toml": "9dfae662e9dbc6890fa2beda1fcf29f6600f4dc46be824f809a397194033c618",
+      "programs/basket_factory/Cargo.toml": "d9003c3b5ff12d5697073341c5569f7eed6c3d994a818d2e2d3bae82bd1285db",
+      "programs/basket/Cargo.toml": "6fb5ccffa14b359671b26e9608881779756caa906b4d966ebcba26ce4964ba1d",
+      "Cargo.toml": "086a7cb2ae85d52f2a82257df861150cdcbd7b81cb3ae9a9085ebe19361e9da3",
+      "Cargo.lock": "4641c3d8ec3f9a18cd281318d46c69084ce0649097c5c838258505cb4e5b2f21",
+      "Anchor.toml": "ef0f762342f381443c3b6dee76bace6d4f4beb42bcde6e21122c62aefe5fbfea",
+      "Anchor.owner-devnet.toml": "0a0f2ee1ecd1db87149d616eda5557172cb7467a049c595a8f26123e67ad74d2"
+    }
+  },
+  "rehearsalScriptSha256": "c88d30d03c6cc33f0e793431028a5b24543cdbb41b42e5ec2362d7a4b333453f",
+  "validatorStopped": true
+}

@@ -8,7 +8,11 @@ use anchor_spl::token_interface::{
     TransferChecked,
 };
 
+// The default artifact retains the deployed legacy identity. Clean devnet uses an explicit build feature.
+#[cfg(not(feature = "owner-devnet"))]
 declare_id!("6Q43vFh4aqGxzvtU2vQwJX9PmX3skfYsGWZdA3fwJB9k");
+#[cfg(feature = "owner-devnet")]
+declare_id!("8XPKfAYPaDSvUH95CeyjkgujTXAE5nFBJyFSqZvFvX7T");
 
 /// Seed for both the `Basket` account PDA (with factory/creator/nonce) and the
 /// vault/share-mint authority PDA (with the basket key).
@@ -32,7 +36,10 @@ pub const CREATOR_FEE_SPLIT_BPS: u16 = 9000;
 /// PDA. Env-free constant on purpose (no dev override may weaken the gate) and
 /// cross-checked against `declare_id!` in programs/whitelist/src/lib.rs:5 and
 /// Anchor.toml's `whitelist` entry.
+#[cfg(not(feature = "owner-devnet"))]
 pub const WHITELIST_PROGRAM_ID: Pubkey = pubkey!("FRavMcYQb2FVAHbbG6fGieQHdKk1UrQqgKsAAXTPRQeS");
+#[cfg(feature = "owner-devnet")]
+pub const WHITELIST_PROGRAM_ID: Pubkey = pubkey!("37UVmx2uysqkKibBcSP5EZMycUeKnWRmnXVpr967juKF");
 
 /// The basket factory program (programs/basket_factory). Env-free constant on
 /// purpose, cross-checked against `declare_id!` in
@@ -41,7 +48,10 @@ pub const WHITELIST_PROGRAM_ID: Pubkey = pubkey!("FRavMcYQb2FVAHbbG6fGieQHdKk1Ur
 /// Basket data account is a PDA derived under the FACTORY program id whose
 /// data is owned by the BASKET program (only an account's owner program may
 /// write its data at runtime, so the factory cannot initialize it itself).
+#[cfg(not(feature = "owner-devnet"))]
 pub const FACTORY_PROGRAM_ID: Pubkey = pubkey!("3hzoPep9JKgTmzLT6CNW5x3EN7WNYDevM6KHVM7pLgMF");
+#[cfg(feature = "owner-devnet")]
+pub const FACTORY_PROGRAM_ID: Pubkey = pubkey!("2xvJKG8DTmSZFu1zXpNVP3wvaCCCgGC2ufGGhYjzr4DH");
 
 /// The factory program's single global config PDA seed (`b"factory"` —
 /// mirrors `basket_factory::FACTORY_SEED`).
@@ -2728,9 +2738,15 @@ mod paused_gate_tests {
     fn test_whitelist_program_id_matches_declared_id() {
         // Cross-checked against declare_id! in programs/whitelist/src/lib.rs:5
         // and Anchor.toml's `whitelist` entry.
+        #[cfg(not(feature = "owner-devnet"))]
         assert_eq!(
             WHITELIST_PROGRAM_ID.to_string(),
             "FRavMcYQb2FVAHbbG6fGieQHdKk1UrQqgKsAAXTPRQeS"
+        );
+        #[cfg(feature = "owner-devnet")]
+        assert_eq!(
+            WHITELIST_PROGRAM_ID.to_string(),
+            "37UVmx2uysqkKibBcSP5EZMycUeKnWRmnXVpr967juKF"
         );
     }
 

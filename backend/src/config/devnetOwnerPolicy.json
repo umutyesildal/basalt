@@ -1,0 +1,21 @@
+{
+  "version": 1,
+  "mode": "devnet-owner-bootstrap-preparation",
+  "cluster": "devnet",
+  "genesisHash": "EtWTRABZaYq6iMfeYKouRu166VU2xqa1wcaWoxPkrZBG",
+  "owner": "TcAgGWYnr5uVQGRiU67C1ynpH5JDKCmwWaCA6V2ANea",
+  "treasury": null,
+  "bootstrapAuthority": "8B2wktjNVETgnkoe92r2hTL9THw7umh4zF7iuidMt5H4",
+  "programIds": {
+    "whitelist": "37UVmx2uysqkKibBcSP5EZMycUeKnWRmnXVpr967juKF",
+    "basket_factory": "2xvJKG8DTmSZFu1zXpNVP3wvaCCCgGC2ufGGhYjzr4DH",
+    "basket": "8XPKfAYPaDSvUH95CeyjkgujTXAE5nFBJyFSqZvFvX7T"
+  },
+  "ownerRoleAcceptance": "pending",
+  "governance": {
+    "kind": "single-owner-devnet-only",
+    "multisig": false,
+    "productionApproval": false
+  },
+  "deploymentExecuted": false
+}
