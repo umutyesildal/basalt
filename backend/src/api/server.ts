@@ -28,6 +28,7 @@ import {
   snapshotIsFresh,
   snapshotTime,
 } from "./basket-returns.js";
+import { unresolvedPositionRebuildCondition } from "../db/projectionGuard.js";
 import { navEligibilitySql, valuationQuality, currentNavEligibilitySql, positionProjectionReadySql } from "./valuation-quality.js";
 import { DEVNET_FLAGSHIP_BASKET, MOCK_XSTOCKS } from "../catalog/mockStocks.js";
 import { handleZapIn, handleZapOut, type QuoteContext } from "./quotes.js";
@@ -229,7 +230,7 @@ const BASKETS_LIST_SQL = `
       AND ts >= cur.ts - interval '30 days' - interval '1 hour' ORDER BY ts DESC LIMIT 1
   ) h720 ON true
   LEFT JOIN (
-    SELECT basket, COUNT(*)::int AS holders FROM user_positions GROUP BY basket
+    SELECT basket, COUNT(*)::int AS holders FROM user_positions WHERE share_balance > 0 GROUP BY basket
   ) h ON h.basket = r.pubkey
 `;
 
@@ -705,8 +706,8 @@ export async function creatorDetail(db: PgLike, creator: string): Promise<{ stat
 /** GET /users/:pubkey/portfolio — user_positions + latest nav per basket. */
 export async function userPortfolio(db: PgLike, user: string): Promise<{ status: number; payload: unknown }> {
   const res = await db.query(
-    `SELECT up.basket, up.share_balance::text AS share_balance, up.cost_basis::text AS cost_basis, up.updated_at, EXISTS(SELECT 1 FROM position_rebuild_required pr WHERE pr.basket=up.basket) AS legacy_projection_pending, NOT (${positionProjectionReadySql("up.basket")}) AS projection_pending
-     FROM user_positions up WHERE up."user" = $1 ORDER BY up.basket`,
+    `SELECT up.basket, up.share_balance::text AS share_balance, up.cost_basis::text AS cost_basis, up.updated_at, EXISTS(SELECT 1 FROM position_rebuild_required pr WHERE pr.basket=up.basket AND ${unresolvedPositionRebuildCondition("pr")}) AS legacy_projection_pending, NOT (${positionProjectionReadySql("up.basket")}) AS projection_pending
+     FROM user_positions up WHERE up."user" = $1 AND up.share_balance > 0 ORDER BY up.basket`,
     [user],
   );
   const positions = res.rows as Array<Record<string, unknown>>;
@@ -753,7 +754,7 @@ const POSITIONS_BY_WALLET_SQL = `
          up.share_balance::text AS share_balance,
          up.cost_basis::text AS cost_basis,
          up.cost_basis_source AS cost_basis_source,
-         EXISTS(SELECT 1 FROM position_rebuild_required pr WHERE pr.basket=up.basket) AS legacy_projection_pending, NOT (${positionProjectionReadySql("up.basket")}) AS projection_pending,
+         EXISTS(SELECT 1 FROM position_rebuild_required pr WHERE pr.basket=up.basket AND ${unresolvedPositionRebuildCondition("pr")}) AS legacy_projection_pending, NOT (${positionProjectionReadySql("up.basket")}) AS projection_pending,
          sp.share_price::text AS share_price,
          sp.ts AS share_price_as_of, sp.valuation_eligible, sp.valuation_status, sp.current_status, sp.current_reason, sp.current_eligible,
          (up.share_balance * sp.share_price)::text AS value_usd,
@@ -763,7 +764,7 @@ const POSITIONS_BY_WALLET_SQL = `
   LEFT JOIN LATERAL (
     SELECT share_price, ts, valuation_eligible, valuation_status, (SELECT status FROM basket_valuation_state WHERE basket=up.basket) AS current_status, ${currentNavEligibilitySql("up.basket", "ns")} AS current_eligible, (SELECT reason FROM basket_valuation_state WHERE basket=up.basket) AS current_reason FROM nav_snapshots ns WHERE ${navEligibilitySql()} AND basket = up.basket ORDER BY ts DESC LIMIT 1
   ) sp ON true
-  WHERE up."user" = $1
+  WHERE up."user" = $1 AND up.share_balance > 0
   ORDER BY up.basket`;
 
 export interface WalletPositionItem {
@@ -853,7 +854,8 @@ export async function healthReport(
               (SELECT MIN(block_time) FROM indexer_signature_queue WHERE status='pending') AS oldest_pending_chain_at,
               (SELECT COUNT(*) FROM indexer_signature_queue WHERE status='quarantined') AS quarantined_signatures,
               (SELECT COUNT(*) FROM indexer_program_state WHERE history_complete IS NOT TRUE OR scan_before IS NOT NULL OR scan_head IS NOT NULL) AS history_scans_pending,
-              (SELECT COUNT(*) FROM position_rebuild_required) AS rebuild_required_baskets`,
+              (SELECT COUNT(*) FROM position_rebuild_required pr WHERE ${unresolvedPositionRebuildCondition("pr")}) AS rebuild_required_baskets,
+              (SELECT COUNT(*) FROM position_rebuild_runs WHERE status='activated') AS activated_recovery_runs`,
     );
     const row = res.rows[0] as Record<string, unknown>;
     const lastEventTs = row.last_event_ts ? new Date(row.last_event_ts as string) : null;
@@ -876,7 +878,10 @@ export async function healthReport(
             quarantinedSignatures: Number(row.quarantined_signatures ?? 0),
             scansPending: Number(row.history_scans_pending ?? 0),
             rebuildRequiredBaskets: Number(row.rebuild_required_baskets ?? 0),
-            reconciliationWritesEnabled: false,
+            reconciliationWritesEnabled: true,
+            reconciliationGuarded: true,
+            automaticActivationEnabled: false,
+            activatedRecoveryRuns: Number(row.activated_recovery_runs ?? 0),
           },
           holdings: {
             rows: Number(row.holdings_rows),

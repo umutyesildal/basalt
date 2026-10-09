@@ -25,7 +25,12 @@ describe.skipIf(!url)("durable finalized indexer history", () => {
     expect(await applySchema(db)).toBe(true);
   });
   afterAll(async () => { await pool?.end(); if (admin) { await admin.query(`DROP SCHEMA "${schema}" CASCADE`); await admin.end(); } });
-  beforeEach(async () => { await pool.query("TRUNCATE indexer_program_state,indexer_signature_queue,baskets,profiles CASCADE"); });
+  beforeEach(async () => {
+    // A fresh disposable schema preserves production backup immutability.
+    await admin.query(`DROP SCHEMA "${schema}" CASCADE`);
+    await admin.query(`CREATE SCHEMA "${schema}"`);
+    expect(await applySchema(db)).toBe(true);
+  });
   function rpc(slots: number[], reads: string[], fail?: Set<string>): SolanaRpc {
     return {
       async getSignaturesForAddress(_address, options, commitment) {
@@ -99,6 +104,32 @@ describe.skipIf(!url)("durable finalized indexer history", () => {
     expect((await pool.query('SELECT sig,tx_index,status FROM indexer_signature_queue ORDER BY tx_index')).rows).toEqual([{sig:'z-mint',tx_index:0,status:'processed'},{sig:'a-redeem',tx_index:1,status:'processed'}]);
     await new EventIndexer(source,{...config,signaturesPerPoll:4},db).pollOnce();
     expect(reads).toHaveLength(2);
+  });
+  it("persists a projection-gap guard after rollback, then permits history-only replay without financial effects",async()=>{
+    const key=(n:number)=>new PublicKey(Buffer.alloc(32,n)),basket=key(40),user=key(41),owner=key(42),share=key(43),ts=new Date();
+    await pool.query(`INSERT INTO baskets(pubkey,factory,creator,treasury,share_mint,nonce,created_at,metadata_hash,num_constituents,constituents,weights_bps,entry_fee_bps,exit_fee_bps,management_fee_bps,last_fee_accrual_ts)
+      VALUES($1,$2,$2,$2,$3,1,$4,'test',2,$5,ARRAY[5000,5000],0,0,0,$4)`,[basket.toBase58(),owner.toBase58(),share.toBase58(),ts,[key(44).toBase58(),key(45).toBase58()]]);
+    await pool.query(`INSERT INTO position_rebuild_runs(run_id,basket,chain_slot,chain_supply,event_count,history_hash,program_ids,status,activated_at,activated_slot)
+      VALUES('prior-recovery',$1,6,100,0,$2,$3,'activated',NOW(),6)`,[basket.toBase58(),'a'.repeat(64),[program]]);
+    await pool.query(`INSERT INTO position_rebuild_required(basket,reason,activated_run_id) VALUES($1,'prior-gap','prior-recovery')`,[basket.toBase58()]);
+    const u64=(amount:bigint)=>{const bytes=Buffer.alloc(8);bytes.writeBigUInt64LE(amount);return bytes;};
+    const payload=Buffer.concat([ANCHOR_EVENT_DISCRIMINATORS.Redeemed,basket.toBuffer(),user.toBuffer(),u64(40n),u64(0n)]);
+    const eventTx={...tx,meta:{...tx.meta!,logMessages:[`Program ${program} invoke [1]`,`Program data: ${payload.toString('base64')}`,`Program ${program} success`]}};
+    const reads:string[]=[],source=orderedRpc({[program]:[{signature:'later-after-gap',slot:8},{signature:'gap-redeem',slot:7}]},{7:['gap-redeem'],8:['later-after-gap']},reads,{'gap-redeem':eventTx});
+    const cfg={...config,signaturesPerPoll:4};
+    await new EventIndexer(source,cfg,db).pollOnce();
+    expect(reads).toEqual(['gap-redeem']);
+    expect((await pool.query('SELECT reason,activated_run_id FROM position_rebuild_required WHERE basket=$1',[basket.toBase58()])).rows[0]).toEqual({reason:'position-projection-gap',activated_run_id:null});
+    expect((await pool.query("SELECT status,last_error FROM indexer_signature_queue WHERE sig='gap-redeem'")).rows[0]).toMatchObject({status:'pending',last_error:expect.stringMatching(/position-projection-gap:missing-position/)});
+    expect((await pool.query('SELECT COUNT(*)::int AS n FROM position_events')).rows[0].n).toBe(0);
+    expect((await pool.query('SELECT COUNT(*)::int AS n FROM user_positions')).rows[0].n).toBe(0);
+    await new EventIndexer(source,{...cfg,replayOnly:true},db).pollOnce();
+    expect(reads).toEqual(['gap-redeem','gap-redeem','later-after-gap']);
+    expect((await pool.query("SELECT COUNT(*)::int AS n FROM indexer_signature_queue WHERE status<>'processed'")).rows[0].n).toBe(0);
+    expect((await pool.query('SELECT COUNT(*)::int AS n FROM events')).rows[0].n).toBe(1);
+    expect((await pool.query('SELECT COUNT(*)::int AS n FROM position_events')).rows[0].n).toBe(0);
+    expect((await pool.query('SELECT COUNT(*)::int AS n FROM user_positions')).rows[0].n).toBe(0);
+    expect((await pool.query('SELECT activated_run_id FROM position_rebuild_required WHERE basket=$1',[basket.toBase58()])).rows[0].activated_run_id).toBeNull();
   });
   it("blocks all programs behind a failed shared signature and deduplicates it across restart", async () => {
     const other=new PublicKey(Buffer.alloc(32,91)).toBase58(), reads:string[]=[], failed=new Set(['old-shared']);
@@ -222,6 +253,19 @@ describe.skipIf(!url)("durable finalized indexer history", () => {
       expect((await new DurableHistory(db).state(program)).finalized_through_slot).toBe('10');
     } finally {await blocker.query('ROLLBACK');blocker.release();}
   });
+
+  it("never publishes an older attempt's transient proof after a newer same-instance busy poll",async()=>{
+    const reads:string[]=[], source=orderedRpc({[program]:[]},{},reads);
+    let entered!:()=>void,release!:()=>void;
+    const started=new Promise<void>(resolve=>{entered=resolve;}),gate=new Promise<void>(resolve=>{release=resolve;});
+    source.getSlot=async()=>{entered();await gate;return 10;};
+    const indexer=new EventIndexer(source,config,db),older=indexer.pollOnce();
+    await started;await indexer.pollOnce();expect(indexer.lastCompletedDiscoverySlot).toBeNull();
+    release();await older;
+    expect((await new DurableHistory(db).state(program)).finalized_through_slot).toBe('10');
+    expect(indexer.lastCompletedDiscoverySlot).toBeNull();
+  });
+
   it("refuses watermark attestation for an incomplete scan", async () => {
     const history=new DurableHistory(db), state=await history.state(program);
     await expect(history.markVerifiedThrough(program,1)).rejects.toThrow(/Incomplete scan/);

@@ -3,12 +3,10 @@
  * (indexer/positionsSync.ts), the listener ERR GUARD (failed transactions
  * never contribute events), and the GET /api/v1/positions?wallet= route.
  *
- * No RPC, no real Postgres: token accounts are hand-built 165-byte buffers,
- * the RPC is a fake getProgramAccounts (with a 429 failure mode), and the DB
- * is a stateful fake PgLike that actually mutates a user_positions map so
- * upsert/zero-out semantics are asserted across calls.
+ * RPC is entirely fake. Snapshot tests use canonical raw account bytes; atomic
+ * reconciliation is exercised separately in positions-reconciliation.sql.test.ts.
  */
-import { describe, it, expect } from "vitest";
+import { afterEach, describe, it, expect, vi } from "vitest";
 import http from "http";
 import { PublicKey, type AccountInfo, type ParsedTransactionWithMeta } from "@solana/web3.js";
 import { TOKEN_2022_PROGRAM_ID } from "@solana/spl-token";
@@ -17,6 +15,7 @@ import type { PgLike } from "../src/db/client";
 import { ANCHOR_EVENT_DISCRIMINATORS, type MintedEvent } from "../src/indexer/events";
 import { EventIndexer, type SolanaRpc } from "../src/indexer/listener";
 import {
+  fetchFinalizedPositionSnapshot,
   fetchShareHolders,
   parseShareHolders,
   parseTokenAccountOwnerAmount,
@@ -24,6 +23,7 @@ import {
   type PositionsSyncRpc,
 } from "../src/indexer/positionsSync";
 import { createHandler, userPositionsByWallet } from "../src/api/server";
+import { positionRecoveryFixture, recoveryKey } from "./fixtures/position-recovery";
 
 // --- fixtures ------------------------------------------------------------------
 
@@ -59,11 +59,12 @@ function gpaRpcByMint(
 ): PositionsSyncRpc & { calls: number } {
   const rpc = {
     calls: 0,
+    async getAccountInfoAndContext() { throw new Error("Unexpected account read"); },
     async getProgramAccounts(_pid: PublicKey, cfg?: { filters?: Array<{ memcmp?: { bytes: string } }> }) {
       rpc.calls++;
       const mint = cfg?.filters?.[0]?.memcmp?.bytes ?? "?";
       if (opts.failMints?.has(mint)) throw new Error("429 Too Many Requests");
-      return perMint[mint] ?? [];
+      return { context: { slot: 100 }, value: perMint[mint] ?? [] };
     },
   };
   return rpc;
@@ -172,7 +173,7 @@ describe("positionsSync — token account parsing", () => {
     const accounts = [
       tokenAccount(USER, SHARE_MINT, 1000n),
       tokenAccount(USER2, SHARE_MINT, 7n),
-      tokenAccount(USER, SHARE_MINT, 500n), // second account, same owner
+      { ...tokenAccount(USER, SHARE_MINT, 500n), pubkey: pk(199) }, // distinct account, same owner
       tokenAccount(USER3, SHARE_MINT, 0n), // drained → not a holder
     ];
     const holders = parseShareHolders(accounts, SHARE_MINT);
@@ -186,6 +187,7 @@ describe("positionsSync — token account parsing", () => {
     const rpc = gpaRpcByMint({ [SHARE_MINT]: [tokenAccount(USER, SHARE_MINT, 42n)] });
     let seenCfg: unknown;
     const spy: PositionsSyncRpc = {
+      getAccountInfoAndContext: rpc.getAccountInfoAndContext,
       getProgramAccounts: async (_pid, cfg) => {
         seenCfg = cfg;
         return rpc.getProgramAccounts(_pid, cfg);
@@ -197,39 +199,18 @@ describe("positionsSync — token account parsing", () => {
     expect(cfg.filters[0].memcmp).toEqual({ offset: 0, bytes: SHARE_MINT });
   });
 
-  it("provider fallback: gPA secondary-index exclusion → enhanced getTokenAccounts enumeration", async () => {
-    const blockedRpc: PositionsSyncRpc = {
-      getProgramAccounts: async () => {
-        throw new Error(
-          "failed to get accounts owned by program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb: " +
-            "excluded from account secondary indexes; this RPC method unavailable for key",
-        );
-      },
-    };
-    const invoked: Array<{ method: string; params: unknown[] }> = [];
-    const invoke = async (method: string, params: unknown[]) => {
-      invoked.push({ method, params });
-      return {
-        total: 2,
-        limit: 1000,
-        token_accounts: [
-          { address: "A1", mint: SHARE_MINT, amount: 3860, owner: USER },
-          { address: "A2", mint: SHARE_MINT, amount: 140, owner: USER }, // same owner, summed
-          { address: "A3", mint: SHARE_MINT, amount: 0, owner: USER3 }, // zero → dropped
-        ],
-      };
-    };
-    const holders = await fetchShareHolders(blockedRpc, SHARE_MINT, { jsonRpcInvoke: invoke, backoffSleep: async () => {} });
-    expect(invoked.length).toBe(1);
-    expect(invoked[0].method).toBe("getTokenAccounts");
-    expect(invoked[0].params[0]).toBeNull(); // no owner filter
-    expect(invoked[0].params[1]).toBe(SHARE_MINT); // mint filter
-    expect(holders).toEqual([{ user: USER, mint: SHARE_MINT, amount: "4000" }]);
+  it("never falls back to unauthenticated enhanced-provider balances", async () => {
+    const invoke = vi.fn(async () => ({ token_accounts: [{ mint: SHARE_MINT, amount: 4000, owner: USER }] }));
+    const blockedRpc = gpaRpcByMint({});
+    blockedRpc.getProgramAccounts = async () => { throw new Error("excluded from account secondary indexes"); };
+    await expect(fetchShareHolders(blockedRpc, SHARE_MINT, { jsonRpcInvoke: invoke })).rejects.toThrow("excluded");
+    expect(invoke).not.toHaveBeenCalled();
   });
 
   it("no fallback on 429s: a rate-limited gPA propagates after backoff (contained per basket)", async () => {
     let gpaCalls = 0;
     const limitedRpc: PositionsSyncRpc = {
+      async getAccountInfoAndContext() { throw new Error("Unexpected account read"); },
       getProgramAccounts: async () => {
         gpaCalls++;
         throw new Error("429 Too Many Requests");
@@ -249,64 +230,145 @@ describe("positionsSync — token account parsing", () => {
 });
 
 // ============================================================================
-// 2. syncPositionsFromChain — upsert / keep-event / zero-out / partial failure
+// Strict finalized snapshots; projection writes are verified against real SQL below.
 // ============================================================================
 
-describe("positionsSync — reconciliation security hold", () => {
-  it("does not create projection rows or issue RPC/SQL while recovery is awaiting review", async () => {
-    const db = syncDb([{ pubkey: BASKET, share_mint: SHARE_MINT }]);
-    const rpc = gpaRpcByMint({ [SHARE_MINT]: [tokenAccount(USER, SHARE_MINT, 3860n)] });
-    const stats = await syncPositionsFromChain(rpc, db, { spacingMs: 0 });
-    expect(stats).toEqual({ basketsScanned: 0, basketsFailed: 0, holders: 0, balanceSynced: 0, eventKept: 0, zeroed: 0 });
-    expect(db.rows.size).toBe(0);
-    expect(db.calls).toEqual([]);
-    expect(rpc.calls).toBe(0);
+describe("positionsSync — authenticated finalized snapshots", () => {
+  afterEach(() => vi.useRealTimers());
+  const fetch = (f: ReturnType<typeof positionRecoveryFixture>, rpc = f.rpc) =>
+    fetchFinalizedPositionSnapshot(rpc, f.basket.toBase58(), f.programs, async () => {});
+
+  it("authenticates canonical basket, share authority, exact raw supply and all finalized contexts", async () => {
+    const f = positionRecoveryFixture({ holders: [{user:recoveryKey(20),amount:9_007_199_254_740_993n}, {user:recoveryKey(21),amount:7n}] });
+    const snapshot = await fetch(f);
+    expect(snapshot).toMatchObject({slot:100,supply:"9007199254741000",balances:[{user:USER,shares:"9007199254740993"},{user:USER2,shares:"7"}]});
+    expect(f.calls.map(call => call.config)).toEqual([
+      {commitment:"finalized",minContextSlot:0},
+      {commitment:"finalized",encoding:"base64",withContext:true,minContextSlot:100,filters:[{memcmp:{offset:0,bytes:f.shareMint.toBase58()}}]},
+      {commitment:"finalized",minContextSlot:100},
+    ]);
   });
 
-  it("preserves an existing event-derived balance and its cost basis", async () => {
-    const db = syncDb([{ pubkey: BASKET, share_mint: SHARE_MINT }]);
-    const before = { user: USER, basket: BASKET, share_balance: "999999", cost_basis: "1403.69898413704", cost_basis_source: "reference" };
-    db.rows.set(`${USER}|${BASKET}`, { ...before });
-    db.eventUsers.set(BASKET, new Set([USER]));
-    const rpc = gpaRpcByMint({ [SHARE_MINT]: [tokenAccount(USER, SHARE_MINT, 3860n)] });
-    await syncPositionsFromChain(rpc, db, { spacingMs: 0 });
-    expect(db.rows.get(`${USER}|${BASKET}`)).toEqual(before);
-    expect(db.calls).toEqual([]);
-    expect(rpc.calls).toBe(0);
+  it.each([0n, 1000n])("requires complete enumeration even for supply %s", async supply => {
+    const f = positionRecoveryFixture({holders:[],supply});
+    if (supply === 0n) expect(await fetch(f)).toMatchObject({slot:100,supply:"0",balances:[]});
+    else await expect(fetch(f)).rejects.toThrow("reconcile");
   });
 
-  it("never zeroes existing positions from an empty holder response during the hold", async () => {
-    const db = syncDb([{ pubkey: BASKET, share_mint: SHARE_MINT }]);
-    db.rows.set(`${USER}|${BASKET}`, { user: USER, basket: BASKET, share_balance: "1000", cost_basis: "100", cost_basis_source: "balance-sync" });
-    const rpc = gpaRpcByMint({});
-    const stats = await syncPositionsFromChain(rpc, db, { spacingMs: 0 });
-    expect(stats.zeroed).toBe(0);
-    expect(db.rows.get(`${USER}|${BASKET}`)?.share_balance).toBe("1000");
-    expect(db.calls).toEqual([]);
-    expect(rpc.calls).toBe(0);
+  it.each([
+    ["owner", (f: ReturnType<typeof positionRecoveryFixture>) => {f.accounts[0].account.owner=recoveryKey(1);}],
+    ["mint", (f: ReturnType<typeof positionRecoveryFixture>) => {recoveryKey(1).toBuffer().copy(f.accounts[0].account.data,0);}],
+    ["uninitialized", (f: ReturnType<typeof positionRecoveryFixture>) => {f.accounts[0].account.data[108]=0;}],
+    ["invalid state", (f: ReturnType<typeof positionRecoveryFixture>) => {f.accounts[0].account.data[108]=3;}],
+    ["executable", (f: ReturnType<typeof positionRecoveryFixture>) => {f.accounts[0].account.executable=true;}],
+    ["truncated", (f: ReturnType<typeof positionRecoveryFixture>) => {f.accounts[0].account.data=Buffer.alloc(164);}],
+    ["invalid option", (f: ReturnType<typeof positionRecoveryFixture>) => {f.accounts[0].account.data.writeUInt32LE(2,72);}],
+    ["native share account", (f: ReturnType<typeof positionRecoveryFixture>) => {f.accounts[0].account.data.writeUInt32LE(1,109);}],
+    ["duplicate", (f: ReturnType<typeof positionRecoveryFixture>) => {f.accounts.push(f.accounts[0]);}],
+    ["malformed extension", (f: ReturnType<typeof positionRecoveryFixture>) => {const data=Buffer.alloc(170);f.accounts[0].account.data.copy(data);data[165]=2;data.writeUInt16LE(7,166);data.writeUInt16LE(100,168);f.accounts[0].account.data=data;}],
+  ] as const)("rejects %s holder evidence", async (_name, mutate) => {
+    const f=positionRecoveryFixture(); mutate(f); await expect(fetch(f)).rejects.toThrow();
   });
 
-  it("keeps every basket untouched, including baskets configured to fail RPC", async () => {
-    const B2 = pk(12).toBase58();
-    const SM2 = pk(13).toBase58();
-    const db = syncDb([{ pubkey: BASKET, share_mint: SHARE_MINT }, { pubkey: B2, share_mint: SM2 }]);
-    db.rows.set(`${USER3}|${BASKET}`, { user: USER3, basket: BASKET, share_balance: "555", cost_basis: null, cost_basis_source: null });
-    const rpc = gpaRpcByMint({ [SHARE_MINT]: [tokenAccount(USER, SHARE_MINT, 1n)], [SM2]: [tokenAccount(USER2, SM2, 2n)] }, { failMints: new Set([SHARE_MINT]) });
-    const stats = await syncPositionsFromChain(rpc, db, { spacingMs: 0, backoffSleep: async () => {} });
-    expect(stats.basketsFailed).toBe(0);
-    expect(stats.basketsScanned).toBe(0);
-    expect(stats.balanceSynced).toBe(0);
-    expect(db.rows.get(`${USER3}|${BASKET}`)?.share_balance).toBe("555");
-    expect(db.rows.has(`${USER2}|${B2}`)).toBe(false);
-    expect(db.calls).toEqual([]);
-    expect(rpc.calls).toBe(0);
+  it.each([
+    ["basket owner", (f: ReturnType<typeof positionRecoveryFixture>)=>{f.basketAccount.owner=recoveryKey(1);}],
+    ["basket executable", (f: ReturnType<typeof positionRecoveryFixture>)=>{f.basketAccount.executable=true;}],
+    ["basket discriminator", (f: ReturnType<typeof positionRecoveryFixture>)=>{f.basketAccount.data[0]^=1;}],
+    ["factory PDA", (f: ReturnType<typeof positionRecoveryFixture>)=>{recoveryKey(1).toBuffer().copy(f.basketAccount.data,8);}],
+    ["share PDA", (f: ReturnType<typeof positionRecoveryFixture>)=>{recoveryKey(1).toBuffer().copy(f.basketAccount.data,104);}],
+    ["vault bump", (f: ReturnType<typeof positionRecoveryFixture>)=>{f.basketAccount.data[880]^=1;}],
+    ["mint owner", (f: ReturnType<typeof positionRecoveryFixture>)=>{f.mintAccount.owner=recoveryKey(1);}],
+    ["mint executable", (f: ReturnType<typeof positionRecoveryFixture>)=>{f.mintAccount.executable=true;}],
+    ["mint uninitialized", (f: ReturnType<typeof positionRecoveryFixture>)=>{f.mintAccount.data[45]=0;}],
+    ["mint malformed bool", (f: ReturnType<typeof positionRecoveryFixture>)=>{f.mintAccount.data[45]=2;}],
+    ["mint decimals", (f: ReturnType<typeof positionRecoveryFixture>)=>{f.mintAccount.data[44]=9;}],
+    ["mint authority", (f: ReturnType<typeof positionRecoveryFixture>)=>{recoveryKey(1).toBuffer().copy(f.mintAccount.data,4);}],
+    ["mint authority option", (f: ReturnType<typeof positionRecoveryFixture>)=>{f.mintAccount.data.writeUInt32LE(2,0);}],
+    ["mint freeze authority", (f: ReturnType<typeof positionRecoveryFixture>)=>{f.mintAccount.data.writeUInt32LE(1,46);}],
+    ["mint extension", (f: ReturnType<typeof positionRecoveryFixture>)=>{f.mintAccount.data=Buffer.concat([f.mintAccount.data,Buffer.alloc(84)]);}],
+  ] as const)("rejects malformed or substituted %s", async (_name, mutate)=>{
+    const f=positionRecoveryFixture();mutate(f);await expect(fetch(f)).rejects.toThrow();
   });
 
-  it("null DB degrades honestly with no RPC", async () => {
-    const rpc = gpaRpcByMint({ [SHARE_MINT]: [tokenAccount(USER, SHARE_MINT, 1n)] });
-    const stats = await syncPositionsFromChain(rpc, null);
-    expect(stats).toMatchObject({ basketsScanned: 0, holders: 0 });
-    expect(rpc.calls).toBe(0);
+  it("allows earlier immutable basket state, with exactly matching holder and mint slots",async()=>{
+    const f=positionRecoveryFixture(); const original=f.rpc.getAccountInfoAndContext;
+    f.rpc.getAccountInfoAndContext=async(address,cfg)=>{const row=await original(address,cfg);return {...row,context:{slot:address.equals(f.basket)?99:100}};};
+    expect((await fetch(f)).slot).toBe(100);
+  });
+  it.each([NaN,-1,1.5,Number.MAX_SAFE_INTEGER+1])("rejects invalid context %s",async slot=>{
+    const f=positionRecoveryFixture();f.rpc.getAccountInfoAndContext=async()=>({context:{slot},value:f.basketAccount});
+    await expect(fetch(f)).rejects.toThrow("context");expect(f.calls).toHaveLength(0);
+  });
+  it("rejects a provider returning a holder slot earlier than its basket",async()=>{
+    const f=positionRecoveryFixture();f.rpc.getProgramAccounts=async()=>({context:{slot:99},value:f.accounts});
+    await expect(fetch(f)).rejects.toThrow("regressing");
+  });
+  it("retries at most three drifted contexts while increasing every minimum slot",async()=>{
+    const f=positionRecoveryFixture();let round=0;const minima:number[]=[];
+    f.rpc.getAccountInfoAndContext=async(address,cfg)=>{minima.push(cfg.minContextSlot!);if(address.equals(f.basket)){round++;return{context:{slot:100+round},value:f.basketAccount};}return{context:{slot:101+round},value:f.mintAccount};};
+    f.rpc.getProgramAccounts=async(_pid,cfg)=>{minima.push(cfg.minContextSlot!);return{context:{slot:100+round},value:f.accounts};};
+    await expect(fetch(f)).rejects.toThrow("contexts differ");expect(round).toBe(3);expect(minima).toEqual([0,101,101,102,102,102,103,103,103]);
+  });
+  it("accepts a second coherent context without ever regressing the previous minimum",async()=>{
+    const f=positionRecoveryFixture();let round=0;
+    f.rpc.getAccountInfoAndContext=async(address,cfg)=>{if(address.equals(f.basket)){round++;expect(cfg.minContextSlot).toBe(round===1?0:101);return{context:{slot:round===1?100:101},value:f.basketAccount};}return{context:{slot:101},value:f.mintAccount};};
+    f.rpc.getProgramAccounts=async()=>({context:{slot:round===1?100:101},value:f.accounts});
+    expect((await fetch(f)).slot).toBe(101);expect(round).toBe(2);
+  });
+  it("enforces one ten-second deadline across a stalled read and ignores its late result",async()=>{
+    vi.useFakeTimers();const f=positionRecoveryFixture();let resolve!: (value:any)=>void;
+    f.rpc.getAccountInfoAndContext=()=>new Promise(done=>{resolve=done;});
+    const pending=fetch(f);const rejected=expect(pending).rejects.toThrow("deadline");
+    await vi.advanceTimersByTimeAsync(10_000);await rejected;
+    resolve({context:{slot:100},value:f.basketAccount});await Promise.resolve();
+    expect(f.calls).toHaveLength(0);
+  });
+  it("enforces the same deadline during a stalled rate-limit backoff",async()=>{
+    vi.useFakeTimers();const f=positionRecoveryFixture();f.rpc.getAccountInfoAndContext=async()=>{throw new Error("429 Too Many Requests");};
+    const pending=fetchFinalizedPositionSnapshot(f.rpc,f.basket.toBase58(),f.programs,()=>new Promise(()=>{}));
+    const rejected=expect(pending).rejects.toThrow("deadline");await vi.advanceTimersByTimeAsync(10_000);await rejected;
+  });
+  it("rejects a regressing context on a retry instead of accepting an older coherent view",async()=>{
+    const f=positionRecoveryFixture();let round=0;
+    f.rpc.getAccountInfoAndContext=async(address)=>{if(address.equals(f.basket)){round++;return{context:{slot:100},value:f.basketAccount};}return{context:{slot:101},value:f.mintAccount};};
+    f.rpc.getProgramAccounts=async()=>({context:{slot:100},value:f.accounts});
+    await expect(fetch(f)).rejects.toThrow("regressing");expect(round).toBe(2);
+  });
+  it("does not retry a missing mint as though it were harmless context drift",async()=>{
+    const f=positionRecoveryFixture();const original=f.rpc.getAccountInfoAndContext;let reads=0;
+    f.rpc.getAccountInfoAndContext=async(address,cfg)=>{reads++;return address.equals(f.shareMint)?{context:{slot:100},value:null}:original(address,cfg);};
+    await expect(fetch(f)).rejects.toThrow("mint unavailable");expect(reads).toBe(2);
+  });
+  it("accepts authenticated frozen share accounts and sums distinct accounts for one holder",async()=>{
+    const f=positionRecoveryFixture({holders:[{user:recoveryKey(20),amount:3n},{user:recoveryKey(20),amount:7n}]});
+    f.accounts[0].account.data[108]=2;
+    expect((await fetch(f)).balances).toEqual([{user:USER,shares:"10"}]);
+  });
+  it("bounds stalled catch-up and issues no projection transaction",async()=>{
+    vi.useFakeTimers();const f=positionRecoveryFixture();const db=syncDb([{pubkey:f.basket.toBase58(),share_mint:f.shareMint.toBase58()}]);
+    const pending=syncPositionsFromChain(f.rpc,db,{programs:f.programs,spacingMs:0,catchUpThroughSlot:()=>new Promise(()=>{})});
+    await vi.advanceTimersByTimeAsync(10_000);
+    expect(await pending).toMatchObject({basketsScanned:0,basketsFailed:1});
+    expect(db.calls.map(call=>call.sql)).toEqual(["SELECT pubkey FROM baskets ORDER BY pubkey"]);
+  });
+  it("a stalled snapshot never acquires a database transaction or mutates existing balances",async()=>{
+    vi.useFakeTimers();const f=positionRecoveryFixture();const db=syncDb([{pubkey:f.basket.toBase58(),share_mint:f.shareMint.toBase58()}]);
+    f.rpc.getAccountInfoAndContext=()=>new Promise(()=>{});
+    const pending=syncPositionsFromChain(f.rpc,db,{programs:f.programs,spacingMs:0});
+    await vi.advanceTimersByTimeAsync(10_000);
+    expect(await pending).toMatchObject({basketsScanned:0,basketsFailed:1});
+    expect(db.calls.map(call=>call.sql)).toEqual(["SELECT pubkey FROM baskets ORDER BY pubkey"]);expect(db.rows.size).toBe(0);
+  });
+  it("requires explicit distinct canonical program roles",async()=>{
+    const f=positionRecoveryFixture();await expect(fetchFinalizedPositionSnapshot(f.rpc,f.basket.toBase58(),{...f.programs,ids:[f.programs.basket.toBase58()]})).rejects.toThrow("program IDs");
+    expect(f.calls).toHaveLength(0);
+  });
+  it("refuses configured persistence without authenticated program roles before any SQL/RPC",async()=>{
+    const db=syncDb([{pubkey:BASKET,share_mint:SHARE_MINT}]);const f=positionRecoveryFixture();
+    await expect(syncPositionsFromChain(f.rpc,db)).rejects.toThrow("programs");expect(db.calls).toEqual([]);expect(f.calls).toEqual([]);
+  });
+  it("null DB returns honest empty statistics without RPC",async()=>{
+    const f=positionRecoveryFixture();expect(await syncPositionsFromChain(f.rpc,null)).toEqual({basketsScanned:0,basketsFailed:0,holders:0,balanceSynced:0,eventKept:0,zeroed:0});expect(f.calls).toEqual([]);
   });
 });
 

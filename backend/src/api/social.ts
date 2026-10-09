@@ -707,7 +707,7 @@ const BASKET_LEADERBOARD_7D_SQL = `
       AND ts >= cur.ts - interval '7 days' - interval '1 hour' ORDER BY ts DESC LIMIT 1
   ) base ON true
   LEFT JOIN (
-    SELECT basket, COUNT(*)::int AS holders FROM user_positions GROUP BY basket
+    SELECT basket, COUNT(*)::int AS holders FROM user_positions WHERE share_balance > 0 GROUP BY basket
   ) h ON h.basket = r.pubkey
   WHERE ${BASKET_RETURN_CURRENT_SQL}
     AND ${navEligibilitySql('base')} AND base.supply > 0 AND base.share_price > 0 AND base.ts < cur.ts
@@ -736,7 +736,7 @@ const BASKET_LEADERBOARD_30D_SQL = `
       AND ts >= cur.ts - interval '30 days' - interval '1 hour' ORDER BY ts DESC LIMIT 1
   ) base ON true
   LEFT JOIN (
-    SELECT basket, COUNT(*)::int AS holders FROM user_positions GROUP BY basket
+    SELECT basket, COUNT(*)::int AS holders FROM user_positions WHERE share_balance > 0 GROUP BY basket
   ) h ON h.basket = r.pubkey
   WHERE ${BASKET_RETURN_CURRENT_SQL}
     AND ${navEligibilitySql('base')} AND base.supply > 0 AND base.share_price > 0 AND base.ts < cur.ts
@@ -767,7 +767,7 @@ const BASKET_LEADERBOARD_ALL_SQL = `
     ORDER BY ts ASC LIMIT 1
   ) base ON true
   LEFT JOIN (
-    SELECT basket, COUNT(*)::int AS holders FROM user_positions GROUP BY basket
+    SELECT basket, COUNT(*)::int AS holders FROM user_positions WHERE share_balance > 0 GROUP BY basket
   ) h ON h.basket = r.pubkey
   WHERE ${BASKET_RETURN_CURRENT_SQL}
     AND ${navEligibilitySql('base')} AND base.supply > 0 AND base.share_price > 0 AND base.ts < cur.ts

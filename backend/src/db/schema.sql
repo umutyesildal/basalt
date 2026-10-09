@@ -169,6 +169,7 @@ CREATE TABLE IF NOT EXISTS position_events (
   PRIMARY KEY (sig, log_index)
 );
 ALTER TABLE position_events ADD COLUMN IF NOT EXISTS log_index INT NOT NULL DEFAULT -1;
+ALTER TABLE position_events ADD COLUMN IF NOT EXISTS slot BIGINT CHECK(slot >= 0);
 -- Old (sig,kind) can have several rows. Distinct negative offsets preserve all markers;
 -- none is a canonical runtime event or safe evidence that its effects committed.
 WITH legacy AS (
@@ -186,6 +187,10 @@ CREATE TABLE IF NOT EXISTS position_rebuild_required (
 INSERT INTO position_rebuild_required(basket, reason)
 SELECT DISTINCT basket, 'legacy-nonatomic-position-ledger' FROM position_events
 WHERE log_index < 0 AND basket IS NOT NULL ON CONFLICT (basket) DO NOTHING;
+-- Pre-slot atomic ledgers cannot establish which finalized snapshot covers their effects.
+INSERT INTO position_rebuild_required(basket, reason)
+SELECT DISTINCT basket, 'missing-finalized-position-slot' FROM position_events
+WHERE log_index >= 0 AND slot IS NULL AND basket IS NOT NULL ON CONFLICT (basket) DO NOTHING;
 
 -- ---------------------------------------------------------------------------
 -- basket_rankings — materialized view per spec §7, refreshed by the NAV
@@ -426,4 +431,62 @@ CREATE INDEX IF NOT EXISTS indexer_signature_queue_pending_global_idx
   ON indexer_signature_queue(slot, tx_index) WHERE status = 'pending';
 CREATE INDEX IF NOT EXISTS indexer_signature_queue_pending_idx
   ON indexer_signature_queue(program_id, slot, discovered_at) WHERE status = 'pending';
+-- Per-basket finalized projection barrier and immutable activation evidence.
+CREATE TABLE IF NOT EXISTS position_reconciliation_state (
+  basket TEXT PRIMARY KEY REFERENCES baskets(pubkey), snapshot_slot BIGINT NOT NULL CHECK(snapshot_slot>=0),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+ALTER TABLE position_rebuild_runs ADD COLUMN IF NOT EXISTS program_ids TEXT[] NOT NULL DEFAULT '{}';
+ALTER TABLE position_rebuild_runs ADD COLUMN IF NOT EXISTS activated_at TIMESTAMPTZ;
+ALTER TABLE position_rebuild_runs ADD COLUMN IF NOT EXISTS activated_slot BIGINT CHECK(activated_slot >= 0);
+ALTER TABLE position_rebuild_required ADD COLUMN IF NOT EXISTS activated_run_id TEXT REFERENCES position_rebuild_runs(run_id);
+CREATE TABLE IF NOT EXISTS position_rebuild_positions_backup (
+  run_id TEXT NOT NULL REFERENCES position_rebuild_runs(run_id), "user" TEXT NOT NULL, basket TEXT NOT NULL,
+  share_balance NUMERIC NOT NULL, cost_basis NUMERIC, cost_basis_source TEXT, position_updated_at TIMESTAMPTZ NOT NULL,
+  PRIMARY KEY(run_id,"user",basket)
+);
+CREATE TABLE IF NOT EXISTS position_rebuild_claims_backup (
+  run_id TEXT NOT NULL REFERENCES position_rebuild_runs(run_id), sig TEXT NOT NULL, log_index INT NOT NULL,
+  kind TEXT NOT NULL, basket TEXT, claimed_at TIMESTAMPTZ NOT NULL, PRIMARY KEY(run_id,sig,log_index)
+);
+ALTER TABLE position_rebuild_claims_backup ADD COLUMN IF NOT EXISTS slot BIGINT CHECK(slot >= 0);
+CREATE OR REPLACE FUNCTION guard_position_backup_insert() RETURNS trigger LANGUAGE plpgsql AS $$
+BEGIN
+  PERFORM 1 FROM position_rebuild_runs WHERE run_id=NEW.run_id AND status='staged-pending-review' FOR SHARE;
+  IF NOT FOUND THEN
+    RAISE EXCEPTION 'Activated position recovery backup cannot grow';
+  END IF;
+  RETURN NEW;
+END $$;
+DROP TRIGGER IF EXISTS closed_position_backup_insert ON position_rebuild_positions_backup;
+CREATE TRIGGER closed_position_backup_insert BEFORE INSERT ON position_rebuild_positions_backup
+  FOR EACH ROW EXECUTE FUNCTION guard_position_backup_insert();
+DROP TRIGGER IF EXISTS closed_claim_backup_insert ON position_rebuild_claims_backup;
+CREATE TRIGGER closed_claim_backup_insert BEFORE INSERT ON position_rebuild_claims_backup
+  FOR EACH ROW EXECUTE FUNCTION guard_position_backup_insert();
+-- Evidence cannot change after staging; only one publication status transition is allowed.
+CREATE OR REPLACE FUNCTION guard_position_rebuild_run_update() RETURNS trigger LANGUAGE plpgsql AS $$
+BEGIN
+  IF ROW(NEW.run_id,NEW.basket,NEW.chain_slot,NEW.chain_supply,NEW.event_count,NEW.history_hash,NEW.program_ids,NEW.created_at)
+     IS DISTINCT FROM ROW(OLD.run_id,OLD.basket,OLD.chain_slot,OLD.chain_supply,OLD.event_count,OLD.history_hash,OLD.program_ids,OLD.created_at) THEN
+    RAISE EXCEPTION 'Position recovery evidence is immutable';
+  END IF;
+  IF OLD.status <> 'staged-pending-review' OR NEW.status <> 'activated' OR
+     OLD.activated_at IS NOT NULL OR OLD.activated_slot IS NOT NULL OR
+     NEW.activated_at IS NULL OR NEW.activated_slot IS NULL OR NEW.activated_slot < NEW.chain_slot THEN
+    RAISE EXCEPTION 'Invalid position recovery activation transition';
+  END IF;
+  RETURN NEW;
+END $$;
+DROP TRIGGER IF EXISTS immutable_recovery_run_evidence ON position_rebuild_runs;
+CREATE TRIGGER immutable_recovery_run_evidence BEFORE UPDATE ON position_rebuild_runs
+  FOR EACH ROW EXECUTE FUNCTION guard_position_rebuild_run_update();
+CREATE OR REPLACE FUNCTION reject_position_backup_mutation() RETURNS trigger LANGUAGE plpgsql AS $$
+BEGIN RAISE EXCEPTION 'Position recovery backups are immutable'; END $$;
+DROP TRIGGER IF EXISTS immutable_position_backup ON position_rebuild_positions_backup;
+CREATE TRIGGER immutable_position_backup BEFORE UPDATE OR DELETE OR TRUNCATE ON position_rebuild_positions_backup
+  FOR EACH STATEMENT EXECUTE FUNCTION reject_position_backup_mutation();
+DROP TRIGGER IF EXISTS immutable_claim_backup ON position_rebuild_claims_backup;
+CREATE TRIGGER immutable_claim_backup BEFORE UPDATE OR DELETE OR TRUNCATE ON position_rebuild_claims_backup
+  FOR EACH STATEMENT EXECUTE FUNCTION reject_position_backup_mutation();
 COMMIT;

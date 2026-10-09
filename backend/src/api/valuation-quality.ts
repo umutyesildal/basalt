@@ -1,3 +1,5 @@
+import { unresolvedPositionRebuildCondition } from "../db/projectionGuard.js";
+
 /** Valuation quality applies only to indexed reference data, never redemption. */
 export const NAV_INPUT_MAX_AGE_MS = 5 * 60_000;
 export const NAV_SNAPSHOT_MAX_AGE_MS = 15 * 60_000;
@@ -65,7 +67,7 @@ export function currentNavEligibilitySql(basketExpression: string, navAlias: str
 /** Indexed balances are pending while history or a legacy projection is unresolved. */
 export function positionProjectionReadySql(basketExpression: string): string {
   if (!/^[a-z][a-z0-9_]*\.[a-z][a-z0-9_]*$/i.test(basketExpression)) throw new Error("Invalid projection SQL identifier");
-  return `NOT EXISTS(SELECT 1 FROM position_rebuild_required pr WHERE pr.basket=${basketExpression})
+  return `NOT EXISTS(SELECT 1 FROM position_rebuild_required pr WHERE pr.basket=${basketExpression} AND ${unresolvedPositionRebuildCondition("pr")})
     AND NOT EXISTS(SELECT 1 FROM indexer_signature_queue iq WHERE iq.status <> 'processed')
     AND NOT EXISTS(SELECT 1 FROM indexer_program_state ips WHERE ips.history_complete IS NOT TRUE OR ips.scan_before IS NOT NULL OR ips.scan_head IS NOT NULL)`;
 }

@@ -30,7 +30,7 @@ import {
   type DecodedFolioxEvent,
   type FolioxEventType,
 } from "./events.js";
-import { applyPositionEvent } from "./positions.js";
+import { applyPositionEvent, markPositionRebuildRequired, PositionProjectionGapError } from "./positions.js";
 import { syncPositionsFromChain, type JsonRpcInvoker, type PositionsSyncRpc } from "./positionsSync.js";
 import { syncWhitelistedMints, type WhitelistRpc } from "./whitelistSync.js";
 import { createPacer, rateLimitedWarn, withRpcBackoff, type Pacer } from "../rpc/backoff.js";
@@ -308,6 +308,7 @@ export class EventIndexer {
   private readonly history: DurableHistory | null;
   private readonly finalizedBlocks = new Map<number, string[]>();
   private completedDiscoverySlot: number | null = null;
+  private discoveryGeneration = 0;
 
   /** Fresh successful discovery in the latest durable poll only; busy/failure resets it. */
   get lastCompletedDiscoverySlot(): number | null { return this.completedDiscoverySlot; }
@@ -427,7 +428,13 @@ export class EventIndexer {
         const stats = await syncPositionsFromChain(
           full as unknown as PositionsSyncRpc,
           this.db,
-          { spacingMs: spacing, backoffSleep: this.cfg.backoffSleep, jsonRpcInvoke: this.cfg.jsonRpcInvoke },
+          { spacingMs: spacing, backoffSleep: this.cfg.backoffSleep, jsonRpcInvoke: this.cfg.jsonRpcInvoke,
+            catchUpThroughSlot: async (requiredSlot: number) => {
+              if (!this.history) throw new Error("Finalized reconciliation requires durable canonical discovery");
+              await this.pollDurableHistory();
+              if (this.lastCompletedDiscoverySlot === null || this.lastCompletedDiscoverySlot < requiredSlot) throw new Error("Canonical discovery could not reach finalized snapshot slot within this poll budget");
+            },
+            programs: this.cfg.basketProgramId && this.cfg.factoryProgramId ? { basket:new PublicKey(this.cfg.basketProgramId),factory:new PublicKey(this.cfg.factoryProgramId),ids:this.cfg.programIds } : undefined },
         );
         if (stats.basketsScanned > 0) {
           console.log(
@@ -465,10 +472,11 @@ export class EventIndexer {
 
   private async pollDurableHistory(): Promise<PollResult[]> {
     this.completedDiscoverySlot = null;
-    return this.history!.withPollLock(() => this.drainDurableHistory(),this.cfg.programIds.map(programId => ({programId,signaturesSeen:0,events:[]})));
+    const generation = ++this.discoveryGeneration;
+    return this.history!.withPollLock(() => this.drainDurableHistory(generation),this.cfg.programIds.map(programId => ({programId,signaturesSeen:0,events:[]})));
   }
 
-  private async drainDurableHistory(): Promise<PollResult[]> {
+  private async drainDurableHistory(generation: number): Promise<PollResult[]> {
     const results = new Map(this.cfg.programIds.map(programId => [programId,{programId,signaturesSeen:0,events:[] as DecodedFolioxEvent[]}]));
     if (!this.rpc.getSlot) throw new Error("Durable history requires a finalized slot watermark");
     const watermark = await withRpcBackoff(() => this.pacedRead(() => this.rpc.getSlot!("finalized")),{logKey:"indexer:getSlot",sleep:this.cfg.backoffSleep});
@@ -479,7 +487,7 @@ export class EventIndexer {
       else ready = false;
     }
     if (!ready || await this.history!.hasQuarantined(this.cfg.programIds)) return [...results.values()];
-    this.completedDiscoverySlot = watermark;
+    if (generation === this.discoveryGeneration) this.completedDiscoverySlot = watermark;
     const budget = Math.max(1,Math.min(1000,this.cfg.signaturesPerPoll));
     for (let i=0;i<budget;i++) {
       let info = await this.history!.nextPendingGlobal(this.cfg.programIds);
@@ -665,9 +673,15 @@ export class EventIndexer {
         if (!this.cfg.replayOnly) for (const { event, logIndex } of txEvents) {
           // Failure retains the signature in the durable queue; successful earlier
           // effects are independently idempotent and safe to retry after a crash.
-          await applyPositionEvent(this.db, sigInfo.signature, event, logIndex);
+          await applyPositionEvent(this.db, sigInfo.signature, event, logIndex, sigInfo.slot);
         }
       } catch (err) {
+        if (err instanceof PositionProjectionGapError && isPgLike(this.db)) {
+          // The balance/claim transaction has rolled back. Persist only an
+          // operational guard so reviewed replay and explicit recovery can
+          // resolve legitimate genesis/transfer projection gaps.
+          await markPositionRebuildRequired(this.db, err.basket, "position-projection-gap");
+        }
         if (err instanceof BasketStateDecodeError) {
           // A malformed/wrong-program account is explicit quarantine, never
           // an invented FK parent. Transport and DB errors take the retry path.

@@ -7,7 +7,7 @@ import pg from "pg";
 import { PublicKey } from "@solana/web3.js";
 import { applySchema } from "../src/db/init";
 import type { PgLike } from "../src/db/client";
-import { basketPerformance, listBaskets, navHistory, userPortfolio, creatorDetail } from "../src/api/server";
+import { basketPerformance, listBaskets, navHistory, userPortfolio, userPositionsByWallet, creatorDetail } from "../src/api/server";
 import { getBasketLeaderboard, getFeed, getUserHistory, getLeaderboard } from "../src/api/social";
 import { USER_SNAPSHOT_SQL } from "../src/workers/userSnapshot";
 import { recordValuationAttempt } from "../src/api/valuation-quality";
@@ -41,9 +41,10 @@ describe.skipIf(!url)("basket returns against disposable PostgreSQL", () => {
     }
   });
   beforeEach(async () => {
-    await client.query("TRUNCATE baskets CASCADE");
-    await client.query("TRUNCATE user_value_snapshots, position_rebuild_required, creator_stats");
-    await client.query("REFRESH MATERIALIZED VIEW basket_rankings");
+    // Recreate only this test-owned schema; immutable recovery backups stay guarded.
+    await client.query(`DROP SCHEMA "${schema}" CASCADE`);
+    await client.query(`CREATE SCHEMA "${schema}"`);
+    expect(await applySchema(db)).toBe(true);
   });
 
   async function basket(id: number) {
@@ -94,6 +95,28 @@ describe.skipIf(!url)("basket returns against disposable PostgreSQL", () => {
   const listed = async (sort = "return_7d") => (await listBaskets(db, {sort})).payload as any;
   const performance = async (pubkey: string) => (await basketPerformance(db, pubkey)).payload as any;
 
+  it("counts only positive holdings and sorts baskets correctly when recovery retains zero rows",async()=>{
+    const one=await pair(1),two=await pair(2),none=await pair(3);
+    for(const pubkey of [one,two,none]) await snapshot(pubkey,new Date(latestTs.getTime()-30*24*60*60_000),"100","1000000","0.0001");
+    await client.query(`INSERT INTO user_positions("user",basket,share_balance) VALUES
+      ($1,$4,10),($2,$4,0),($3,$4,0),($1,$5,10),($2,$5,20),($1,$6,0)`,[key(210),key(211),key(212),one,two,none]);
+    const rows=(await listed("holders")).data;
+    expect(rows.map((row:any)=>({basket:row.pubkey,holders:row.holders}))).toEqual([{basket:two,holders:2},{basket:one,holders:1},{basket:none,holders:0}]);
+    for(const window of ["7d","30d","all"]) {
+      const holders=new Map((await ranked(window)).items.map((row:any)=>[row.basket,row.holders]));
+      expect(holders).toEqual(new Map([[one,1],[two,2],[none,0]]));
+    }
+    expect((await client.query("SELECT COUNT(*)::int AS n FROM user_positions WHERE share_balance=0")).rows[0].n).toBe(3);
+  });
+  it("returns live wallet positions while preserving zeroed recovery evidence in storage",async()=>{
+    const closed=await pair(1),live=await pair(2),wallet=key(210),emptyWallet=key(211);
+    await client.query(`INSERT INTO user_positions("user",basket,share_balance) VALUES($1,$3,0),($1,$4,100),($2,$3,0)`,[wallet,emptyWallet,closed,live]);
+    expect((await userPortfolio(db,wallet)).payload).toMatchObject({count:1,data:[{basket:live,share_balance:"100"}]});
+    expect((await userPositionsByWallet(db,wallet)).payload).toMatchObject({count:1,data:[{basket:live,shareBalance:"100"}]});
+    expect((await userPortfolio(db,emptyWallet)).payload).toMatchObject({count:0,data:[]});
+    expect((await userPositionsByWallet(db,emptyWallet)).payload).toMatchObject({count:0,data:[]});
+    expect((await client.query("SELECT COUNT(*)::int AS n FROM user_positions WHERE share_balance=0")).rows[0].n).toBe(2);
+  });
   it("deposit doubles NAV/supply while all API 7d returns stay zero", async () => {
     const pubkey = await pair(1, "200", "2000000");
     expect(Number((await listed()).data[0].return_7d)).toBe(0);

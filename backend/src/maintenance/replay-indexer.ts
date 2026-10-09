@@ -5,12 +5,11 @@
  * Add --stage-basket=<address> after complete history to prepare a reviewed run.
  */
 import { Connection, PublicKey } from "@solana/web3.js";
-import { unpackMint, unpackAccount, TOKEN_2022_PROGRAM_ID } from "@solana/spl-token";
 import { connectFromEnv, disconnectFromEnv } from "../db/client.js";
 import { applySchema } from "../db/init.js";
 import { EventIndexer, indexerConfigFromEnv } from "../indexer/listener.js";
 import { stagePositionRebuild } from "../indexer/positions.js";
-import { decodeBasketState } from "../indexer/basketState.js";
+import { fetchFinalizedPositionSnapshot } from "../indexer/positionsSync.js";
 import { replayThroughFinalizedSlot } from "./historyReadiness.js";
 
 async function main(): Promise<void> {
@@ -30,28 +29,15 @@ async function main(): Promise<void> {
   const basketArg = args.find((arg) => arg.startsWith("--stage-basket="))?.split("=")[1];
   if (!basketArg) return;
   const address = new PublicKey(basketArg);
-  const account = await rpc.getAccountInfo(address,"finalized");
-  if (!account) throw new Error("Basket account unavailable");
-  const basket = decodeBasketState(address.toBase58(),account,{ basket:new PublicKey(cfg.basketProgramId),factory:new PublicKey(cfg.factoryProgramId) });
-  // Two matching finalized supply reads bracket the authenticated full holder scan.
-  const before = await rpc.getAccountInfoAndContext(new PublicKey(basket.shareMint),"finalized");
-  if (!before.value) throw new Error("Share mint unavailable");
-  const mint = unpackMint(new PublicKey(basket.shareMint),before.value,TOKEN_2022_PROGRAM_ID);
-  if (!mint.isInitialized || mint.decimals !== 6 || !mint.mintAuthority?.equals(new PublicKey(basket.vaultAuthority))) throw new Error("Share mint authentication failed");
-  const holders = await rpc.getProgramAccounts(TOKEN_2022_PROGRAM_ID,{ commitment:"finalized",withContext:true,minContextSlot:before.context.slot,filters:[{memcmp:{offset:0,bytes:basket.shareMint}}] });
-  const totals = new Map<string,bigint>();
-  for (const row of holders.value) {
-    const token = unpackAccount(row.pubkey,row.account,TOKEN_2022_PROGRAM_ID);
-    if (!token.isInitialized || !token.mint.equals(new PublicKey(basket.shareMint))) throw new Error("Holder authentication failed");
-    const owner = token.owner.toBase58(); totals.set(owner,(totals.get(owner) ?? 0n) + token.amount);
-  }
-  const after = await rpc.getAccountInfoAndContext(new PublicKey(basket.shareMint),{commitment:"finalized",minContextSlot:holders.context.slot});
-  if (!after.value || unpackMint(new PublicKey(basket.shareMint),after.value,TOKEN_2022_PROGRAM_ID).supply !== mint.supply) throw new Error("Supply changed during snapshot; retry staging");
-  // Snapshot may include newer zero-net mint/redeem histories. Prove all three
-  // program scans cover its exact slot after reading it; supply equality alone
-  // is insufficient. A busy/failed poll cannot reuse old completion evidence.
-  await replayThroughFinalizedSlot(indexer,db,cfg.programIds,budget,holders.context.slot,report);
-  const staged = await stagePositionRebuild(db,address.toBase58(),cfg.programIds,{slot:holders.context.slot,supply:mint.supply.toString(),balances:[...totals].map(([user,shares]) => ({user,shares:shares.toString()}))});
+  const snapshot = await fetchFinalizedPositionSnapshot(rpc, address.toBase58(), {
+    basket: new PublicKey(cfg.basketProgramId),
+    factory: new PublicKey(cfg.factoryProgramId),
+    ids: cfg.programIds,
+  });
+  // Prove discovery through the authenticated holder snapshot after reading it.
+  // Supply equality alone cannot detect omitted zero-net mint/redeem history.
+  await replayThroughFinalizedSlot(indexer, db, cfg.programIds, budget, snapshot.slot, report);
+  const staged = await stagePositionRebuild(db, address.toBase58(), cfg.programIds, snapshot);
   console.log(JSON.stringify({ ...staged, basket:basketArg, activeProjectionChanged:false }));
 }
 main().catch((error) => { console.error(error instanceof Error ? error.message : error); process.exitCode=1; }).finally(() => disconnectFromEnv());

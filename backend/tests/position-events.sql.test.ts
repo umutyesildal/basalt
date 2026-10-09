@@ -1,6 +1,7 @@
 /** Actual PostgreSQL crash/replay/parallel regressions. Explicit disposable DB only. */
 import { beforeAll, afterAll, beforeEach, describe, it, expect } from "vitest";
 import pg from "pg";
+import { PublicKey } from "@solana/web3.js";
 import { applySchema } from "../src/db/init";
 import type { PgLike } from "../src/db/client";
 import { applyMinted, applyRedeemed, applyFeeAccrued, stagePositionRebuild, PositionRebuildRequiredError, PositionProjectionGapError } from "../src/indexer/positions";
@@ -13,10 +14,9 @@ const schema = `position_events_${process.pid}_${Date.now()}`;
 let admin: pg.Client;
 let pool: pg.Pool;
 let db: PgLike;
-const basket = "basket-1";
-const creator = "creator";
-const treasury = "treasury";
-const user = "user";
+const key=(n:number)=>new PublicKey(Buffer.alloc(32,n)).toBase58();
+const basket=key(1),creator=key(2),treasury=key(3),user=key(4),basketTwo=key(7),shareMint=key(8);
+const programs=[key(240),key(241),key(242)];
 const mint: MintedEvent = { type: "Minted", basket, user, netShares: "1000", grossShares: "1100", entryFeeShares: "100" };
 
 describe.skipIf(!url)("atomic position effects against disposable PostgreSQL", () => {
@@ -33,8 +33,10 @@ describe.skipIf(!url)("atomic position effects against disposable PostgreSQL", (
     if (admin) { await admin.query(`DROP SCHEMA IF EXISTS "${schema}" CASCADE`); await admin.end(); }
   });
   beforeEach(async () => {
-    await pool.query("TRUNCATE baskets CASCADE");
-    await pool.query("TRUNCATE position_events,position_rebuild_required,indexer_program_state,indexer_signature_queue");
+    // Never disable product backup guards for fixture cleanup.
+    await admin.query(`DROP SCHEMA "${schema}" CASCADE`);
+    await admin.query(`CREATE SCHEMA "${schema}"`);
+    expect(await applySchema(db)).toBe(true);
     await createBasket(basket);
     await pool.query(`INSERT INTO nav_snapshots(basket,nav,supply,share_price,price_source,valuation_eligible,valuation_status)
       VALUES($1,100,1000000,0.1,'{}',true,'complete')`, [basket]);
@@ -121,11 +123,11 @@ describe.skipIf(!url)("atomic position effects against disposable PostgreSQL", (
   });
 
   it("supports same-kind events for two baskets in one signature", async () => {
-    await createBasket("basket-2");
+    await createBasket(basketTwo);
     await applyMinted(db,"two-baskets",mint,5);
-    await applyMinted(db,"two-baskets",{...mint,basket:"basket-2"},12);
+    await applyMinted(db,"two-baskets",{...mint,basket:basketTwo},12);
     expect((await pool.query('SELECT basket,share_balance::text AS balance FROM user_positions WHERE "user"=$1 ORDER BY basket',[user])).rows)
-      .toEqual([{basket,balance:"1000"},{basket:"basket-2",balance:"1000"}]);
+      .toEqual([{basket,balance:"1000"},{basket:basketTwo,balance:"1000"}]);
   });
 
   it("refuses identity-less or query-only position persistence", async () => {
@@ -158,39 +160,66 @@ describe.skipIf(!url)("atomic position effects against disposable PostgreSQL", (
     expect((await pool.query("SELECT COUNT(*)::int AS count FROM position_events")).rows[0].count).toBe(2);
   });
   async function replayReady() {
-    await pool.query("INSERT INTO indexer_program_state(program_id,history_complete,finalized_through_slot) VALUES('program',true,3)");
+    for(const program of programs) await pool.query("INSERT INTO indexer_program_state(program_id,history_complete,finalized_through_slot) VALUES($1,true,3)",[program]);
     await pool.query("INSERT INTO events(sig,log_index,slot,basket,type,data) VALUES('creation',1,1,$1,'BasketCreated',$2),('trade',3,2,$1,'Minted',$3)",
-      [basket,{type:"BasketCreated",basket,creator},mint]);
+      [basket,{type:"BasketCreated",basket,creator,shareMint,numConstituents:2,ts:1725148800,programId:programs[1]},{...mint,programId:programs[2]}]);
     await pool.query("INSERT INTO position_rebuild_required(basket,reason) VALUES($1,'legacy')",[basket]);
     await pool.query('INSERT INTO user_positions("user",basket,share_balance) VALUES($1,$2,999)',[user,basket]);
   }
   const snapshot = {slot:3,supply:"1001100",balances:[{user,shares:"1000"},{user:creator,shares:"1000090"},{user:treasury,shares:"10"}]};
-  it("requires complete durable history and exact finalized supply reconciliation before staging", async () => {
-    await expect(stagePositionRebuild(db,basket,["program"],snapshot)).rejects.toThrow(/backfill is incomplete/);
+
+  it("rejects noncanonical public inputs and out-of-range raw amounts without creating a staged run",async()=>{
     await replayReady();
-    await expect(stagePositionRebuild(db,basket,["program"],{...snapshot,supply:"1001101"})).rejects.toThrow(/holder balances/);
-    await expect(stagePositionRebuild(db,basket,["program"],{...snapshot,supply:"1001101",balances:[{user,shares:"1001101"}]})).rejects.toThrow(/events do not reconcile/);
-    await pool.query("INSERT INTO indexer_signature_queue(program_id,sig,slot,status) VALUES('program','pending',3,'quarantined')");
-    await expect(stagePositionRebuild(db,basket,["program"],snapshot)).rejects.toThrow(/pending or quarantined/);
+    const cases:Array<{ids?:string[];basket?:string;snapshot?:typeof snapshot}>=[
+      {ids:programs.slice(0,2)},{ids:[programs[0],programs[0],programs[2]]},{ids:[programs[0],programs[1],'invalid']},
+      {basket:'invalid-basket'},{snapshot:{...snapshot,balances:[{user:'invalid-user',shares:snapshot.supply}]}},
+      {snapshot:{...snapshot,supply:'18446744073709551616'}},
+      {snapshot:{...snapshot,balances:[{user,shares:'18446744073709551616'}]}},
+      {snapshot:{...snapshot,supply:'01001100'}},
+    ];
+    for(const entry of cases) await expect(stagePositionRebuild(db,entry.basket??basket,entry.ids??programs,entry.snapshot??snapshot)).rejects.toThrow();
+    expect((await pool.query('SELECT COUNT(*)::int AS n FROM position_rebuild_runs')).rows[0].n).toBe(0);
+    expect(await balances()).toEqual([{user,balance:'999'}]);
+  });
+  it.each(['emitter','creation-count','mint-conservation','u64','type','duplicate-creation'])('rejects malformed canonical %s evidence before staging',async fault=>{
+    await replayReady();
+    if(fault==='duplicate-creation') await pool.query("INSERT INTO events(sig,log_index,slot,basket,type,data) SELECT 'second-creation',log_index,slot,basket,type,data FROM events WHERE sig='creation'");
+    else if(fault==='type') await pool.query("UPDATE events SET data=data-'type' WHERE sig='trade'");
+    else {
+      const [sig,path,value]=fault==='emitter'?['trade','programId',key(100)]:fault==='creation-count'?['creation','numConstituents',21]:fault==='mint-conservation'?['trade','netShares','1001']:['trade','grossShares','18446744073709551616'];
+      await pool.query('UPDATE events SET data=jsonb_set(data,$2::text[],$3::jsonb) WHERE sig=$1',[sig,[path],JSON.stringify(value)]);
+    }
+    await expect(stagePositionRebuild(db,basket,programs,snapshot)).rejects.toThrow(/Canonical|Exactly one|Invalid raw u64/);
+    expect((await pool.query('SELECT COUNT(*)::int AS n FROM position_rebuild_runs')).rows[0].n).toBe(0);
+    expect(await balances()).toEqual([{user,balance:'999'}]);
+  });
+
+  it("requires complete durable history and exact finalized supply reconciliation before staging", async () => {
+    await expect(stagePositionRebuild(db,basket,programs,snapshot)).rejects.toThrow(/backfill is incomplete/);
+    await replayReady();
+    await expect(stagePositionRebuild(db,basket,programs,{...snapshot,supply:"1001101"})).rejects.toThrow(/holder balances/);
+    await expect(stagePositionRebuild(db,basket,programs,{...snapshot,supply:"1001101",balances:[{user,shares:"1001101"}]})).rejects.toThrow(/events do not reconcile/);
+    await pool.query("INSERT INTO indexer_signature_queue(program_id,sig,slot,status) VALUES('HDXwMGmSvaHNUj2oghHWq6E5b7VJeFmo6vxUzDknJxQf','pending',3,'quarantined')");
+    await expect(stagePositionRebuild(db,basket,programs,snapshot)).rejects.toThrow(/pending or quarantined/);
   });
   it.each(["scan_before", "scan_head"])("rejects an in-progress %s even after the initial history completed", async (field) => {
     await replayReady();
-    await pool.query(`UPDATE indexer_program_state SET ${field}='scanning' WHERE program_id='program'`);
-    await expect(stagePositionRebuild(db,basket,["program"],snapshot)).rejects.toThrow(/backfill is incomplete/);
+    await pool.query(`UPDATE indexer_program_state SET ${field}='scanning' WHERE program_id='HDXwMGmSvaHNUj2oghHWq6E5b7VJeFmo6vxUzDknJxQf'`);
+    await expect(stagePositionRebuild(db,basket,programs,snapshot)).rejects.toThrow(/backfill is incomplete/);
     expect((await pool.query("SELECT * FROM position_rebuild_runs")).rows).toEqual([]);
     expect(await balances()).toEqual([{user,balance:"999"}]);
   });
 
   it("rejects stale complete history even when undiscovered mint/redeem events net to zero supply", async () => {
     await replayReady();
-    await pool.query("UPDATE indexer_program_state SET finalized_through_slot=2 WHERE program_id='program'");
-    await expect(stagePositionRebuild(db,basket,["program"],snapshot)).rejects.toThrow(/through the finalized snapshot slot/);
+    await pool.query("UPDATE indexer_program_state SET finalized_through_slot=2 WHERE program_id='HDXwMGmSvaHNUj2oghHWq6E5b7VJeFmo6vxUzDknJxQf'");
+    await expect(stagePositionRebuild(db,basket,programs,snapshot)).rejects.toThrow(/through the finalized snapshot slot/);
     expect((await pool.query("SELECT * FROM position_rebuild_runs")).rows).toEqual([]);
     expect(await balances()).toEqual([{user,balance:"999"}]);
     await pool.query("INSERT INTO events(sig,log_index,slot,basket,type,data) VALUES('zero-net',4,3,$1,'Minted',$2),('zero-net',8,3,$1,'Redeemed',$3)",
-      [basket,{type:"Minted",basket,user,grossShares:"100",netShares:"100",entryFeeShares:"0"},{type:"Redeemed",basket,user,sharesBurned:"100",exitFeeShares:"0"}]);
-    await pool.query("UPDATE indexer_program_state SET finalized_through_slot=3 WHERE program_id='program'");
-    const staged=await stagePositionRebuild(db,basket,["program"],snapshot);
+      [basket,{type:"Minted",basket,user,grossShares:"100",netShares:"100",entryFeeShares:"0",programId:programs[2]},{type:"Redeemed",basket,user,sharesBurned:"100",exitFeeShares:"0",programId:programs[2]}]);
+    await pool.query("UPDATE indexer_program_state SET finalized_through_slot=3 WHERE program_id='HDXwMGmSvaHNUj2oghHWq6E5b7VJeFmo6vxUzDknJxQf'");
+    const staged=await stagePositionRebuild(db,basket,programs,snapshot);
     expect(staged.eventCount).toBe(4);
     expect((await pool.query("SELECT COUNT(*)::int AS count FROM position_rebuild_claims WHERE run_id=$1",[staged.runId])).rows[0].count).toBe(3);
     expect(await balances()).toEqual([{user,balance:"999"}]);
@@ -198,38 +227,38 @@ describe.skipIf(!url)("atomic position effects against disposable PostgreSQL", (
 
   it.each(["failed", "busy"])("does not authorize staging from stale completed state after a %s replay poll", async () => {
     await replayReady();
-    await pool.query("UPDATE indexer_program_state SET finalized_through_slot=100 WHERE program_id='program'");
+    await pool.query("UPDATE indexer_program_state SET finalized_through_slot=100 WHERE program_id='HDXwMGmSvaHNUj2oghHWq6E5b7VJeFmo6vxUzDknJxQf'");
     const poller={lastCompletedDiscoverySlot:null,pollOnce:async()=>[]};
-    await expect(replayThroughFinalizedSlot(poller,db,["program"],{remaining:1,polls:0},3)).rejects.toThrow(/verified catch-up/);
+    await expect(replayThroughFinalizedSlot(poller,db,programs,{remaining:1,polls:0},3)).rejects.toThrow(/verified catch-up/);
     expect((await pool.query("SELECT * FROM position_rebuild_runs")).rows).toEqual([]);
     expect(await balances()).toEqual([{user,balance:"999"}]);
   });
 
   it("requires current-poll and persisted finalized coverage together within the shared budget", async () => {
     await replayReady();
-    await pool.query("UPDATE indexer_program_state SET finalized_through_slot=2 WHERE program_id='program'");
+    await pool.query("UPDATE indexer_program_state SET finalized_through_slot=2 WHERE program_id='HDXwMGmSvaHNUj2oghHWq6E5b7VJeFmo6vxUzDknJxQf'");
     let polls=0;
     const poller={lastCompletedDiscoverySlot:3,pollOnce:async()=>{
       polls++;
-      if(polls===2) await pool.query("UPDATE indexer_program_state SET finalized_through_slot=3 WHERE program_id='program'");
+      if(polls===2) await pool.query("UPDATE indexer_program_state SET finalized_through_slot=3 WHERE program_id='HDXwMGmSvaHNUj2oghHWq6E5b7VJeFmo6vxUzDknJxQf'");
       return [];
     }};
     const budget={remaining:2,polls:0};
-    await replayThroughFinalizedSlot(poller,db,["program"],budget,3);
+    await replayThroughFinalizedSlot(poller,db,programs,budget,3);
     expect(polls).toBe(2);
     expect(budget).toEqual({remaining:0,polls:2});
   });
 
   it("fresh replay evidence never overrides a quarantined signature", async () => {
     await replayReady();
-    await pool.query("INSERT INTO indexer_signature_queue(program_id,sig,slot,status) VALUES('program','bad',3,'quarantined')");
-    await expect(replayThroughFinalizedSlot({lastCompletedDiscoverySlot:3,pollOnce:async()=>[]},db,["program"],{remaining:1,polls:0},3)).rejects.toThrow(/quarantined transactions/);
+    await pool.query("INSERT INTO indexer_signature_queue(program_id,sig,slot,status) VALUES('HDXwMGmSvaHNUj2oghHWq6E5b7VJeFmo6vxUzDknJxQf','bad',3,'quarantined')");
+    await expect(replayThroughFinalizedSlot({lastCompletedDiscoverySlot:3,pollOnce:async()=>[]},db,programs,{remaining:1,polls:0},3)).rejects.toThrow(/quarantined transactions/);
     expect((await pool.query("SELECT * FROM position_rebuild_runs")).rows).toEqual([]);
   });
 
   it("stages reconciled holders/claims without replacing legacy positions or clearing quarantine", async () => {
     await replayReady();
-    const staged = await stagePositionRebuild(db,basket,["program"],snapshot);
+    const staged = await stagePositionRebuild(db,basket,programs,snapshot);
     expect(staged.eventCount).toBe(2);
     expect(staged.historyHash).toMatch(/^[0-9a-f]{64}$/);
     expect(await balances()).toEqual([{user,balance:"999"}]);
@@ -246,7 +275,7 @@ describe.skipIf(!url)("atomic position effects against disposable PostgreSQL", (
       await blocker.query("BEGIN");
       await blocker.query("SELECT pg_advisory_xact_lock(hashtextextended($1,0))",["indexer-global-finalized-poll"]);
       let finished = false;
-      waiting = stagePositionRebuild(db,basket,["program"],snapshot).then(result=>{finished=true;return result;});
+      waiting = stagePositionRebuild(db,basket,programs,snapshot).then(result=>{finished=true;return result;});
       // Actual pg_locks evidence confirms the second transaction has reached and waits on this lock.
       let blocked = false;
       for (let attempt=0;attempt<50 && !blocked;attempt++) {
@@ -268,7 +297,7 @@ describe.skipIf(!url)("atomic position effects against disposable PostgreSQL", (
 
   it("rolls back a failed staging run while preserving all existing projection data", async () => {
     await replayReady();
-    await expect(stagePositionRebuild(failingPool(sql => sql.includes("INSERT INTO position_rebuild_staging")),basket,["program"],snapshot)).rejects.toThrow(/injected failure/);
+    await expect(stagePositionRebuild(failingPool(sql => sql.includes("INSERT INTO position_rebuild_staging")),basket,programs,snapshot)).rejects.toThrow(/injected failure/);
     expect((await pool.query("SELECT * FROM position_rebuild_runs")).rows).toEqual([]);
     expect(await balances()).toEqual([{user,balance:"999"}]);
   });

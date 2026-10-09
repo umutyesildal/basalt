@@ -1,0 +1,82 @@
+{
+  "observedAtUtc": "2026-10-09T11:01:23.209682+00:00",
+  "branch": "codex/backend-devnet-security",
+  "baselineCommit": "56fd56c",
+  "authorization": "Explicit user approval: Onayl\u0131yorum l\u00fctfen devam; source implementation and disposable tests only",
+  "recoverySourceApplied": true,
+  "liveDatabasePublication": false,
+  "liveRpcRecovery": false,
+  "chainWrites": false,
+  "results": {
+    "backendTests": 1248,
+    "backendFiles": 50,
+    "actualPostgresTests": 196,
+    "frontendNodeTests": 133,
+    "frontendVitestTests": 50,
+    "rustTests": 243,
+    "securityScriptTests": 9,
+    "backendBuild": "passed",
+    "appTypecheck": "passed",
+    "appProductionBuild": "passed",
+    "dependencyCompatibility": "passed",
+    "disposablePostgresStopped": true,
+    "unchangedDependencyLocks": [
+      "package-lock.json",
+      "backend/package-lock.json",
+      "app/package-lock.json"
+    ],
+    "secretHistoryScannedObjects": 6271,
+    "secretHistoryNewFindings": 0,
+    "historicalRetiredKeys": 4
+  },
+  "testIsolation": {
+    "applicationDatabaseUrl": "unset",
+    "applicationRpcUrl": "unset",
+    "testPostgres": "14.17, disposable unique schemas, Unix socket only",
+    "sqlFileScheduling": "serial; explicit in-test concurrency retained"
+  },
+  "sourceAndTestSha256": {
+    "backend/src/api/server.ts": "dd7451a237634d7c34ed844c02c023725f0f0b1b277603687029c7bce5247c5c",
+    "backend/src/api/social.ts": "2795c8882c8918ce9329abbb5265c3df872736f6c5b7b98af484f872ced83bb0",
+    "backend/src/api/valuation-quality.ts": "c82387a7f70a1a011f00c0450b48e900f65649a679cf0fe5234b598bcfb2b90b",
+    "backend/src/db/projectionGuard.ts": "85d7b217a70075112112fcf3fc7f5d993b9ebba1f1008eb5130d05b12ae39e03",
+    "backend/src/db/schema.sql": "bb20f353d85d790bf73cf077d06ea6c05323b8a7b3ac138d38aa40075939b3c2",
+    "backend/src/indexer/listener.ts": "8881596d1236a536406d0bc425ff3f1cb7d27144ef0cc08fec93bea18506e562",
+    "backend/src/indexer/positionRecovery.ts": "55cb1d630b896e42c86e28ba7b2d4c07741b6cf14e4343c49d970e6657db8a34",
+    "backend/src/indexer/positionSnapshotProjection.ts": "386403bd7f0c9b4fb2ec69176c462147db7c6df5107bf2de5ce4805ab1a6573e",
+    "backend/src/indexer/positions.ts": "e5433d573ba9918978a1a826f5d2f98fbf1a1a37d8113ab045d0288e7d8a4df5",
+    "backend/src/indexer/positionsSync.ts": "caff73808664837b72d0f76f3bc3f85f193b9dcbb3b873f8f2763c187352f4e9",
+    "backend/src/maintenance/replay-indexer.ts": "c8d6dbe83c467d2cf4bd29594ea3ad6e04d07fea54dc762c3cf12473c0fd7d2c",
+    "backend/tests/basket-returns.sql.test.ts": "ca0078c62326d5eba64a1ff125763f0584f9dbf3a67c582fc48a6f3350eebedb",
+    "backend/tests/fixtures/position-recovery.ts": "ec3e93dd7b9f176d76e267470be5a9d3bd7da55555ff163ff983835a93fb0a47",
+    "backend/tests/indexer-history.sql.test.ts": "c87f22585b86998f2a1cc1a0f4a958c98c67a08ea48c02622940e9b9ad4834bf",
+    "backend/tests/position-barrier.sql.test.ts": "012de54d9cf99c12159f2eaa635215c699e41c0d487bb4dbf61098e97940d8c4",
+    "backend/tests/position-events.sql.test.ts": "5d791424f7103e1274b281c822841c5c4bbe2d93913d4958214d69f6aedad640",
+    "backend/tests/position-recovery.sql.test.ts": "63f60b36e981bb1d542d3b92cef3db941f8d6b629d45839b6f47f3351ce70a93",
+    "backend/tests/positions-reconciliation.sql.test.ts": "ae4fbe29427fa050eb2f853c4e4f439b4779796e09bc9d2a8be6c31b85eeb1ef",
+    "backend/tests/positionsSync.test.ts": "5f550026a662bfcce26dc41c782d2aadc63d62701719b06c69ed2eb4a1f55c01",
+    "backend/vitest.config.ts": "06ce7c0b2e410333900a7a17c4da8878e96e3dce4cf4c12f3af9f5a73dc3aeaf"
+  },
+  "evidenceSha256": {
+    "app-build.txt": "897a7ef8eb6beb062a9f3938cf0970b5f1cb6e76ffb2cfbf0c059133876a0f06",
+    "app-node-tests.txt": "42b89cae70101728521977f894b0a9546372e56b09e62417ee2a724a901982bc",
+    "app-typecheck.txt": "53443a4d78e2bd19d0a87e918f78f2d01af44142a6c48b0325ffcf80cb50ed14",
+    "app-vitest.txt": "476cd22b56dec2bd9c7ee6dcaf9f38793b84d76c74b576056316d7e44ab178c0",
+    "backend-build.txt": "849f550024c3d91c972c68ec2df872cb14c2eb54c9c7cc327f3a6bf7c2f0b694",
+    "backend-tests.txt": "c50e8807a187ac40a3c8aed6aebade03b1ac2cf5b3cc2216b08e63f0acc9e8cd",
+    "dependency-smoke.txt": "3b77788ea89c06b84ecfd488ad041ee9eef34c76c8fbc3760841d8f522ef0b3f",
+    "rust-tests.txt": "c57a70c6a97801da6f7e0ae6e74500dca9d21ad4110d74fe386c60b989a43af5",
+    "security-scripts.txt": "677a301d8f3542dfa2f85afcb717ba83f6f47008f29aaea84da5467efd95fbd9",
+    "secret-history.json": "fd0db2655242469b517e95ba1fbccc62a775f0e2814cb4f8469f3412f4188bb3"
+  },
+  "priorEvidence": "../backend-security-2026-10-09/verification-summary.json; prior npm/RustSec reports apply to unchanged locks",
+  "limitations": [
+    "No live database replay/activation or deployment performed",
+    "Live treasury retirement and hardware-signer governance ceremony remain open",
+    "Strict equal finalized holder/mint context may exhaust provider retry budget",
+    "Historical recovery cost basis unknown; normal event reference costs are estimates",
+    "Rust exact dependency exceptions remain expiring 2026-10-23; mainnet/legal/external audit gates open"
+  ],
+  "evidenceNormalization": "Trailing whitespace and terminal blank lines normalized; test content preserved",
+  "secretScanScope": "All reachable history plus final staged source/test/output index; this generated scan report and updated manifest were added afterward. Exact source/test index hashes verified independently."
+}
