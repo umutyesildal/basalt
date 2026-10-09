@@ -1,4 +1,4 @@
-> **7D basket sharing, 2026-10-10:** Existing named sample mixes now reuse their real completed-stock-close weekly model in downloadable PNG posters. Exact holdings/mint matching and provenance guards prevent inheriting a different basket’s result; indexed cards display `7D` only when their own backend history and valuation are eligible. Unknown custom mixes and devnet mocks receive no fabricated metric. See [implementation, checks and release state](docs/basket-weekly-sharing-2026-10-10.md).
+> **7D basket sharing, 2026-10-10:** Existing named sample mixes now reuse their real completed-stock-close weekly model in downloadable PNG posters. Exact holdings/mint matching and provenance guards prevent inheriting a different basket’s result; indexed cards display `7D` only when their own backend history and valuation are eligible. Unknown custom mixes and devnet mocks receive no fabricated metric. Published at https://basalt.markets from source `b1f423a`; all six CI jobs and live PNG/API checks passed. See [implementation, checks and release evidence](docs/basket-weekly-sharing-2026-10-10.md).
 
 # Basalt handoff, landing revision 2026-10-03
 
