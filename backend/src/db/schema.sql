@@ -551,4 +551,13 @@ CREATE TRIGGER immutable_position_backup BEFORE UPDATE OR DELETE OR TRUNCATE ON 
 DROP TRIGGER IF EXISTS immutable_claim_backup ON position_rebuild_claims_backup;
 CREATE TRIGGER immutable_claim_backup BEFORE UPDATE OR DELETE OR TRUNCATE ON position_rebuild_claims_backup
   FOR EACH STATEMENT EXECUTE FUNCTION reject_position_backup_mutation();
+-- Public wallet-free preview snapshots. These never establish onchain ownership,
+-- permissions, prices, or indexed financial history. API writes are append-only.
+CREATE TABLE IF NOT EXISTS basket_shares (
+  id TEXT PRIMARY KEY CHECK (id ~ '^[A-Za-z0-9_-]{20}$'),
+  content_hash TEXT NOT NULL UNIQUE CHECK (content_hash ~ '^[a-f0-9]{64}$'),
+  encoded TEXT NOT NULL CHECK (octet_length(encoded) <= 4096 AND encoded ~ '^4[.][A-Za-z0-9_-]+$'),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
 COMMIT;

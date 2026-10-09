@@ -1,12 +1,13 @@
 "use client";
 
-import { ArrowUpRight, Download, ImagePlus, Loader2, Share2, X } from "lucide-react";
+import { Download, ImagePlus, Loader2, Share2, X } from "lucide-react";
 import { useEffect, useId, useRef, useState } from "react";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { createBasketImage } from "@/lib/basket-image";
 import { basketImageFilename } from "@/lib/basket-image-layout";
-import { basketPublicLink, basketSocialText, basketXIntent } from "@/lib/basket-social-share";
+import { basketSocialText, ensureBasketPublicLink } from "@/lib/basket-social-share";
+import { BasketXShareButton } from "@/components/preview/basket-x-share-button";
 import type { ConceptBasket } from "@/lib/concept-basket";
 import type { BasketPerformanceResponse } from "@/lib/basket-performance";
 import { findBasketPerformanceSample, getBasketSharePerformance } from "@/lib/basket-share-performance";
@@ -32,6 +33,10 @@ function BasketImageControl({ basket, performanceData, waitingForPerformance }: 
   const [image, setImage] = useState<string | null>(null);
   const [file, setFile] = useState<File | null>(null);
   const [origin, setOrigin] = useState("");
+  const [shareUrl, setShareUrl] = useState("");
+  const [shareLinkLoading, setShareLinkLoading] = useState(false);
+  const [shareLinkError, setShareLinkError] = useState("");
+  const shareLinkRequest = useRef(0);
   const [canShare, setCanShare] = useState(false);
   const [sharing, setSharing] = useState(false);
   const [shareError, setShareError] = useState("");
@@ -49,9 +54,22 @@ function BasketImageControl({ basket, performanceData, waitingForPerformance }: 
   const previousBasket = useRef(basket);
   const titleId = useId();
   const descriptionId = useId();
-  const shareUrl = origin ? basketPublicLink(basket, origin) : "";
 
   useEffect(() => { setOrigin(window.location.origin); }, []);
+  useEffect(() => {
+    const current = ++shareLinkRequest.current;
+    setShareUrl(""); setShareLinkError(""); setSharing(false);
+    if (!open || !origin) { setShareLinkLoading(false); return; }
+    setShareLinkLoading(true);
+    void ensureBasketPublicLink(basket, origin).then((link) => {
+      if (current === shareLinkRequest.current) setShareUrl(link);
+    }).catch(() => {
+      if (current === shareLinkRequest.current) setShareLinkError("Share link unavailable. Download the PNG or try X.");
+    }).finally(() => {
+      if (current === shareLinkRequest.current) setShareLinkLoading(false);
+    });
+    return () => { shareLinkRequest.current += 1; };
+  }, [open, origin, basket]);
   useEffect(() => {
     if (!open) return;
     const previousOverflow = document.body.style.overflow;
@@ -105,13 +123,14 @@ function BasketImageControl({ basket, performanceData, waitingForPerformance }: 
   }
 
   async function shareImage() {
-    if (!file || !canShare || sharing) return;
+    if (!file || !shareUrl || !canShare || sharing) return;
+    const current = shareLinkRequest.current;
     setSharing(true); setShareError("");
     try {
       await navigator.share({ files: [file], title: basket.name, text: basketSocialText(basket), url: shareUrl });
     } catch (cause) {
-      if (!(cause instanceof DOMException && cause.name === "AbortError")) setShareError("Couldn't share. Download the PNG instead.");
-    } finally { setSharing(false); }
+      if (current === shareLinkRequest.current && !(cause instanceof DOMException && cause.name === "AbortError")) setShareError("Couldn't share. Download the PNG instead.");
+    } finally { if (current === shareLinkRequest.current) setSharing(false); }
   }
 
   return (
@@ -136,9 +155,11 @@ function BasketImageControl({ basket, performanceData, waitingForPerformance }: 
               <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap">
                 <a href={image} download={basketImageFilename(basket.name)} className={cn(buttonVariants(), "min-h-11 gap-2")}><Download aria-hidden="true" className="size-4" />Download PNG</a>
                 {canShare && <Button variant="outline" onClick={shareImage} disabled={sharing} className="min-h-11 gap-2"><Share2 aria-hidden="true" className="size-4" />Share image</Button>}
-                {origin && <a href={basketXIntent(basket, origin)} target="_blank" rel="noopener noreferrer" className={cn(buttonVariants({ variant: "outline" }), "min-h-11 gap-2")}>Share on X<ArrowUpRight aria-hidden="true" className="size-4" /></a>}
+                <BasketXShareButton basket={basket} variant="outline" className="gap-2" />
               </div>
               <p className="text-xs text-muted-foreground">Posting on X? Add the downloaded PNG to your post.</p>
+              {shareLinkLoading && <p role="status" className="sr-only">Preparing share link…</p>}
+              {shareLinkError && <p role="status" className="text-xs text-muted-foreground">{shareLinkError}</p>}
               {shareError && <p role="status" className="text-xs text-muted-foreground">{shareError}</p>}
             </div>}
           </CardContent>

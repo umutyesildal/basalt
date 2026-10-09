@@ -1,5 +1,7 @@
 # Basalt documentation map
 
+- [Basket short links and preview actions, 2026-10-10](basket-short-links-2026-10-10.md): persistent compact share addresses and consolidated actions.
+
 - [Share poster cleanup, 2026-10-10](basket-share-cleanup-2026-10-10.md): fewer repeated labels beneath stacks, retained 7D and complete holdings.
 
 - [7D basket sharing, 2026-10-10](basket-weekly-sharing-2026-10-10.md): exact-mix weekly model in downloaded posters, existing card metrics and eligible indexed-card wiring; production release evidence.

@@ -37,6 +37,7 @@ import { navEligibilitySql, valuationQuality, currentNavEligibilitySql, position
 import { DEVNET_FLAGSHIP_BASKET, MOCK_XSTOCKS } from "../catalog/mockStocks.js";
 import { handleZapIn, handleZapOut, type QuoteContext } from "./quotes.js";
 import { tryHandleSocialRoute } from "./social.js";
+import { tryHandleBasketShareRoute } from "./basket-shares.js";
 import { socialAuthSecret, isValidWalletPubkey } from "./auth.js";
 import { JsonBodyError, readJsonBody } from "./json-body.js";
 import { ApiResourceLimits, ApiResourceLimitError } from "./resource-limits.js";
@@ -994,6 +995,8 @@ export function createHandler(ctx: ApiContext = { db: null }) {
       }
       return body;
     };
+
+    if (await tryHandleBasketShareRoute({ getDb: () => resolveDb(ctx), limits }, req, res, url)) return;
 
     // --- Social layer (profiles / follows / posts / feed / leaderboard /
     // wallet-signature auth). Falls through for non-social paths. ---

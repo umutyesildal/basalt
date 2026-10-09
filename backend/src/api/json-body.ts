@@ -11,7 +11,11 @@ export class JsonBodyError extends Error {
 }
 
 /** Bound bytes before decoding UTF-8; a declared length never replaces the streaming check. */
-export function readJsonBody(req: http.IncomingMessage): Promise<Record<string, unknown> | null> {
+export function readJsonBody(req: http.IncomingMessage, options: { maxBytes?: number; timeoutMs?: number } = {}): Promise<Record<string, unknown> | null> {
+  const maxBytes = options.maxBytes ?? MAX_JSON_BODY_BYTES;
+  const timeoutMs = options.timeoutMs ?? JSON_BODY_TIMEOUT_MS;
+  if (!Number.isSafeInteger(maxBytes) || maxBytes <= 0 || maxBytes > MAX_JSON_BODY_BYTES ||
+    !Number.isSafeInteger(timeoutMs) || timeoutMs <= 0 || timeoutMs > JSON_BODY_TIMEOUT_MS) throw new Error("Invalid JSON body limits");
   return new Promise((resolve, reject) => {
     let settled = false;
     let bytes = 0;
@@ -43,8 +47,8 @@ export function readJsonBody(req: http.IncomingMessage): Promise<Record<string, 
     const onData = (chunk: Buffer | string): void => {
       const buffer = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk, "utf8");
       bytes += buffer.length;
-      if (bytes > MAX_JSON_BODY_BYTES) {
-        fail(new JsonBodyError(413, "BODY_TOO_LARGE", `JSON body must not exceed ${MAX_JSON_BODY_BYTES} bytes`));
+      if (bytes > maxBytes) {
+        fail(new JsonBodyError(413, "BODY_TOO_LARGE", `JSON body must not exceed ${maxBytes} bytes`));
         return;
       }
       chunks.push(buffer);
@@ -69,8 +73,8 @@ export function readJsonBody(req: http.IncomingMessage): Promise<Record<string, 
     req.on("error", onError);
     req.once("close", () => req.off("error", onError));
     const declared = req.headers["content-length"];
-    if (typeof declared === "string" && /^\d+$/.test(declared) && BigInt(declared) > BigInt(MAX_JSON_BODY_BYTES)) {
-      fail(new JsonBodyError(413, "BODY_TOO_LARGE", `JSON body must not exceed ${MAX_JSON_BODY_BYTES} bytes`));
+    if (typeof declared === "string" && /^\d+$/.test(declared) && BigInt(declared) > BigInt(maxBytes)) {
+      fail(new JsonBodyError(413, "BODY_TOO_LARGE", `JSON body must not exceed ${maxBytes} bytes`));
       return;
     }
     if (req.aborted || req.destroyed) {
@@ -81,7 +85,7 @@ export function readJsonBody(req: http.IncomingMessage): Promise<Record<string, 
     req.once("end", onEnd);
     req.once("aborted", onAborted);
     req.once("close", onClose);
-    timer = setTimeout(() => fail(new JsonBodyError(408, "BODY_TIMEOUT", "request body timed out")), JSON_BODY_TIMEOUT_MS);
+    timer = setTimeout(() => fail(new JsonBodyError(408, "BODY_TIMEOUT", "request body timed out")), timeoutMs);
     timer.unref();
   });
 }

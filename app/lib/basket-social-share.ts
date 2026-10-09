@@ -1,6 +1,7 @@
 import type { ConceptBasket } from "@/lib/concept-basket";
-import { conceptPreviewHref } from "@/lib/concept-share";
+import { conceptPreviewHref, encodeConceptBasket } from "@/lib/concept-share";
 import { publicSiteOrigin } from "@/lib/site-origin";
+import { apiFetch } from "@/lib/api-client";
 
 /** Only editable post text and a basket link are passed to X, never a media upload. */
 export function basketSocialText(basket: Pick<ConceptBasket, "name" | "thesis">): string {
@@ -28,7 +29,40 @@ export function basketPublicLink(basket: ConceptBasket, origin: string): string 
   return new URL(conceptPreviewHref(basket), publicSiteOrigin(base.origin)).href;
 }
 
-export function basketXIntent(basket: ConceptBasket, origin: string): string {
-  const params = new URLSearchParams({ text: basketSocialText(basket), url: basketPublicLink(basket, origin) });
+export const BASKET_SHARE_ID_RE = /^[A-Za-z0-9_-]{20}$/;
+const shareIds = new Map<string, Promise<string>>();
+
+/** Persist only when someone chooses to share. Repeated clicks share one request. */
+export async function ensureBasketPublicLink(basket: ConceptBasket, origin: string): Promise<string> {
+  const fallback = new URL(basketPublicLink(basket, origin)); // Validate the site before writing.
+  const encoded = encodeConceptBasket(basket);
+  let pending = shareIds.get(encoded);
+  if (!pending) {
+    pending = (async () => {
+      const response = await apiFetch("/api/v1/basket-shares", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ encoded }), credentials: "omit", redirect: "error",
+        cache: "no-store", signal: AbortSignal.timeout(8000),
+      });
+      if (!response.ok) throw new Error("Couldn't create a short link. Try again.");
+      const value = await response.json();
+      if (typeof value?.data?.id !== "string" || !BASKET_SHARE_ID_RE.test(value.data.id)) throw new Error("Invalid basket link response");
+      return value.data.id as string;
+    })();
+    shareIds.set(encoded, pending);
+    if (shareIds.size > 64) shareIds.delete(shareIds.keys().next().value!);
+    void pending.catch(() => { if (shareIds.get(encoded) === pending) shareIds.delete(encoded); });
+  }
+  return new URL(`/b/${await pending}`, fallback.origin).href;
+}
+
+export function basketXIntent(basket: ConceptBasket, origin: string, shortLink?: string): string {
+  const fallback = new URL(basketPublicLink(basket, origin));
+  if (shortLink) {
+    const supplied = new URL(shortLink);
+    if (supplied.origin !== fallback.origin || supplied.username || supplied.password || supplied.search || supplied.hash ||
+      !/^\/b\/[A-Za-z0-9_-]{20}$/.test(supplied.pathname)) throw new Error("Invalid basket share link");
+  }
+  const params = new URLSearchParams({ text: basketSocialText(basket), url: shortLink || fallback.href });
   return `https://twitter.com/intent/tweet?${params}`;
 }

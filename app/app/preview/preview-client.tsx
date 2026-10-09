@@ -1,12 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowLeft, ArrowUpRight, Check, Copy, Share2 } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { ArrowLeft, ArrowUpRight, Check, Copy } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import { BasketMetrics, ModelPerformanceNote } from "@/components/basket/basket-performance";
 import Image from "next/image";
 import { getBasketCover } from "@/lib/basket-covers";
+import { BasketXShareButton } from "@/components/preview/basket-x-share-button";
 import { BasketImageButton } from "@/components/preview/basket-image-button";
 import { CreationCelebration } from "@/components/preview/creation-celebration";
 import { findBasketPerformanceSample } from "@/lib/basket-share-performance";
@@ -22,18 +23,30 @@ import { formatBpsAsPercent, formatUsd } from "@/lib/format";
 import { allocationColor } from "@/lib/allocation-colors";
 import { cn } from "@/lib/utils";
 import { devnetCreateHref } from "@/lib/devnet-links";
-import { basketPublicLink } from "@/lib/basket-social-share";
+import { basketPublicLink, ensureBasketPublicLink } from "@/lib/basket-social-share";
 
-export default function ConceptPreviewClient({ basket, created = false }: { basket: ConceptBasket | null; created?: boolean }) {
+export default function ConceptPreviewClient({ basket, created = false, publicHref }: { basket: ConceptBasket | null; created?: boolean; publicHref?: string }) {
   const sample = basket ? findBasketPerformanceSample(basket) : undefined;
+  const [copying, setCopying] = useState(false);
+  const copyRequest = useRef(0);
   const [shareUrl, setShareUrl] = useState("");
   const [shareStatus, setShareStatus] = useState("");
-  const [showFullLink, setShowFullLink] = useState(false);
+  const [showCopyFallback, setShowCopyFallback] = useState(false);
+  const shareLinkInput = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
+    setShareStatus("");
+    setShowCopyFallback(false);
     if (!basket) return;
-    setShareUrl(basketPublicLink(basket, window.location.origin));
-  }, [basket]);
+    copyRequest.current += 1;
+    setCopying(false);
+    setShareUrl(publicHref ? new URL(publicHref, window.location.origin).href : basketPublicLink(basket, window.location.origin));
+    return () => { copyRequest.current += 1; };
+  }, [basket, publicHref]);
+
+  useEffect(() => {
+    if (showCopyFallback) shareLinkInput.current?.focus();
+  }, [showCopyFallback]);
 
   const chartData = useMemo(
     () => basket?.assets.map((asset) => ({
@@ -45,15 +58,30 @@ export default function ConceptPreviewClient({ basket, created = false }: { bask
   );
 
   async function copyShareLink() {
-    if (!shareUrl) return;
+    if (!basket || copying) return;
+    const request = ++copyRequest.current;
+    setCopying(true); setShareStatus(""); setShowCopyFallback(false);
+    let link: string;
+    try {
+      link = await ensureBasketPublicLink(basket, window.location.origin);
+    } catch {
+      if (request === copyRequest.current) {
+        setShareStatus("Couldn't create a short link. Try again.");
+        setCopying(false);
+      }
+      return;
+    }
+    if (request !== copyRequest.current) return;
+    setShareUrl(link);
     try {
       if (!navigator.clipboard?.writeText) throw new Error("Clipboard unavailable");
-      await navigator.clipboard.writeText(shareUrl);
-      setShareStatus("Link copied");
+      await navigator.clipboard.writeText(link);
+      if (request === copyRequest.current) setShareStatus("Link copied");
     } catch {
-      setShowFullLink(true);
-      setShareStatus("Select and copy the link below");
-    }
+      if (request === copyRequest.current) {
+        setShowCopyFallback(true); setShareStatus("Select and copy the link below.");
+      }
+    } finally { if (request === copyRequest.current) setCopying(false); }
   }
 
   if (!basket) {
@@ -108,10 +136,6 @@ export default function ConceptPreviewClient({ basket, created = false }: { bask
             </div>
           </div>
         </div>
-        <Link href={conceptCopyHref(basket)} className={cn(buttonVariants(), "basalt-cta min-h-10 gap-2 self-start md:self-auto")}>
-          Use this mix
-          <ArrowUpRight aria-hidden="true" className="size-4" />
-        </Link>
       </div>
 
       {sample && <div className="space-y-2"><div className="max-w-xs"><BasketMetrics basketId={sample.id} /></div><ModelPerformanceNote /></div>}
@@ -180,25 +204,27 @@ export default function ConceptPreviewClient({ basket, created = false }: { bask
             </CardContent>
           </Card>
 
-          <Card>
-            <CardHeader className="space-y-1.5">
-              <div className="flex items-center gap-2">
-                <Share2 aria-hidden="true" className="size-4 text-muted-foreground" />
-                <CardTitle className="text-base">Share basket</CardTitle>
-              </div>
+          <Card aria-label="Basket actions">
+            <CardHeader className="pb-4">
+              <CardTitle className="text-base">Actions</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
-              <Button onClick={copyShareLink} disabled={!shareUrl} className="min-h-10 w-full gap-2">
-                {shareStatus === "Link copied" ? <Check aria-hidden="true" className="size-4" /> : <Copy aria-hidden="true" className="size-4" />}
-                {shareStatus === "Link copied" ? "Link copied" : "Copy basket link"}
-              </Button>
+              <Link href={conceptCopyHref(basket)} className={cn(buttonVariants(), "basalt-cta min-h-11 w-full gap-2")}>
+                Use this mix
+                <ArrowUpRight aria-hidden="true" className="size-4" />
+              </Link>
               <BasketImageButton basket={basket} />
-              <button type="button" onClick={() => setShowFullLink((show) => !show)} aria-expanded={showFullLink} className="min-h-9 text-xs text-muted-foreground underline-offset-4 hover:text-foreground hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
-                {showFullLink ? "Hide full link" : "Show full link"}
-              </button>
-              {showFullLink && <>
+              <div className="grid grid-cols-2 gap-2">
+                <Button type="button" variant="ghost" onClick={copyShareLink} disabled={!shareUrl || copying} className="min-h-11 gap-2 px-2 text-xs">
+                  {shareStatus === "Link copied" ? <Check aria-hidden="true" className="size-3.5" /> : <Copy aria-hidden="true" className="size-3.5" />}
+                  {copying ? "Creating link…" : shareStatus === "Link copied" ? "Copied" : "Copy link"}
+                </Button>
+                <BasketXShareButton basket={basket} variant="ghost" className="min-h-11 gap-1.5 px-2 text-xs" />
+              </div>
+              {showCopyFallback && <div>
                 <label htmlFor="preview-share-link" className="sr-only">Basket preview link</label>
                 <input
+                  ref={shareLinkInput}
                   id="preview-share-link"
                   type="url"
                   readOnly
@@ -206,19 +232,15 @@ export default function ConceptPreviewClient({ basket, created = false }: { bask
                   onFocus={(event) => event.currentTarget.select()}
                   className="h-11 w-full min-w-0 rounded-lg border border-border bg-background px-3 font-mono text-xs text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                 />
-              </>}
-              <p aria-live="polite" className="min-h-5 text-xs leading-5 text-muted-foreground">
+              </div>}
+              <p aria-live="polite" className={cn("text-xs leading-5 text-muted-foreground", !showCopyFallback && (!shareStatus || shareStatus === "Link copied") && "sr-only")}>
                 {shareStatus}
               </p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="space-y-1.5">
-              <CardTitle className="text-base">Create onchain</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <Link href={devnetCreateHref({ name: basket.name, thesis: basket.thesis, managementFeeBps: basket.fees.managementBps, coverId: basket.coverId })} className={cn(buttonVariants(), "min-h-11 w-full")}>Create on devnet</Link>
+              <div className="border-t border-border/70 pt-2">
+                <Link href={devnetCreateHref({ name: basket.name, thesis: basket.thesis, managementFeeBps: basket.fees.managementBps, coverId: basket.coverId })} className="inline-flex min-h-11 items-center gap-1.5 text-xs text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                  Create on devnet<ArrowUpRight aria-hidden="true" className="size-3.5" />
+                </Link>
+              </div>
             </CardContent>
           </Card>
         </div>

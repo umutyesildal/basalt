@@ -1,7 +1,7 @@
 import { performance } from "node:perf_hooks";
 
-export type ApiResourceAction = "auth-nonce" | "auth-verify" | "quote";
-export type AuthResourceAction = Exclude<ApiResourceAction, "quote">;
+export type ApiResourceAction = "auth-nonce" | "auth-verify" | "quote" | "share-create" | "share-read";
+export type AuthResourceAction = "auth-nonce" | "auth-verify";
 
 export class ApiResourceLimitError extends Error {
   readonly status = 429;
@@ -21,6 +21,8 @@ export interface ApiResourceLimitsOptions {
   maxBuckets?: number;
   cleanupBatchSize?: number;
   maxConcurrentQuotes?: number;
+  maxConcurrentBasketShares?: number;
+  maxBasketShareWrites?: number;
   maxQuoteUpstreamRequests?: number;
   ipLimits?: Partial<Record<ApiResourceAction, number>>;
   walletLimits?: Partial<Record<AuthResourceAction, number>>;
@@ -52,6 +54,9 @@ export class ApiResourceLimits {
   private readonly maxBuckets: number;
   private readonly cleanupBatchSize: number;
   private readonly maxConcurrentQuotes: number;
+  private readonly maxConcurrentBasketShares: number;
+  private readonly maxBasketShareWrites: number;
+  private activeBasketShares = 0;
   private readonly maxQuoteUpstreamRequests: number;
   private readonly ipLimits: Record<ApiResourceAction, number>;
   private readonly walletLimits: Record<AuthResourceAction, number>;
@@ -64,9 +69,11 @@ export class ApiResourceLimits {
     this.windowMs = positiveInteger(options.windowMs ?? 60_000, "windowMs");
     this.maxBuckets = positiveInteger(options.maxBuckets ?? 10_000, "maxBuckets");
     this.cleanupBatchSize = positiveInteger(options.cleanupBatchSize ?? 16, "cleanupBatchSize");
+    this.maxConcurrentBasketShares = positiveInteger(options.maxConcurrentBasketShares ?? 4, "maxConcurrentBasketShares");
+    this.maxBasketShareWrites = positiveInteger(options.maxBasketShareWrites ?? 60, "maxBasketShareWrites");
     this.maxConcurrentQuotes = positiveInteger(options.maxConcurrentQuotes ?? 4, "maxConcurrentQuotes");
     this.maxQuoteUpstreamRequests = positiveInteger(options.maxQuoteUpstreamRequests ?? 120, "maxQuoteUpstreamRequests");
-    this.ipLimits = { "auth-nonce": 30, "auth-verify": 60, quote: 30, ...options.ipLimits };
+    this.ipLimits = { "auth-nonce": 30, "auth-verify": 60, quote: 30, "share-create": 20, "share-read": 180, ...options.ipLimits };
     this.walletLimits = { "auth-nonce": 5, "auth-verify": 10, ...options.walletLimits };
     for (const [action, limit] of Object.entries(this.ipLimits)) {
       positiveInteger(limit, `ipLimits.${action}`);
@@ -117,6 +124,16 @@ export class ApiResourceLimits {
       released = true;
       this.activeQuotes -= 1;
     };
+  }
+
+  /** Independent global admission budget: changing network identity cannot bypass it. */
+  consumeBasketShareWrite(): void { this.consume("share-create:global", this.maxBasketShareWrites); }
+
+  acquireBasketShareWrite(): () => void {
+    if (this.activeBasketShares >= this.maxConcurrentBasketShares) throw new ApiResourceLimitError("RESOURCE_CAPACITY", 1);
+    this.activeBasketShares += 1;
+    let released = false;
+    return () => { if (!released) { released = true; this.activeBasketShares -= 1; } };
   }
 
   private identity(value: string): string {
