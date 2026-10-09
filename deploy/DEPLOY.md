@@ -99,9 +99,15 @@ If it is private, create a deploy key or transfer it from your local machine wit
 ```bash
 # from your local machine (at the repository root):
 rsync -avz --exclude node_modules --exclude .next --exclude target \
-  --exclude .env.local --exclude .env.devnet --exclude backend/.env* \
-  ./deploy ./backend user@SERVER_IP:/opt/basalt/
+  --include '.env*.example' --exclude '.env*' \
+  ./.dockerignore ./deploy ./backend ./vendor user@SERVER_IP:/opt/basalt/
 ```
+
+Compose builds from the repository root using `backend/Dockerfile`. Transfer the
+root `.dockerignore` and `vendor/` package as shown above; the image installs the
+standalone backend lockfile and never copies frontend files or local env files.
+The existing cache volume remains at `/app/.cache` in both compose settings and
+runtime environment variables.
 
 Configuration files:
 

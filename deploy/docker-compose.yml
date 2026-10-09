@@ -28,7 +28,9 @@ services:
       retries: 12
 
   backend:
-    build: ../backend
+    build:
+      context: ..
+      dockerfile: backend/Dockerfile
     restart: unless-stopped
     env_file:
       - ../backend/.env.production

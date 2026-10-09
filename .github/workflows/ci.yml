@@ -88,6 +88,23 @@ jobs:
             git show --check --format= HEAD
           fi
 
+  backend-container:
+    name: Backend Node 20 container
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      - name: Build backend image from restricted repository context
+        run: docker build --file backend/Dockerfile --tag basalt-backend:ci .
+      - name: Load production dependencies without network or application startup
+        run: >-
+          docker run --rm --network none --read-only --entrypoint node basalt-backend:ci -e
+          "const assert=require('node:assert/strict');
+          for(const name of ['@solana/web3.js','@solana/spl-token','pg']) require(name);
+          assert.equal(require('bigint-buffer/package.json').name,'@basalt/bigint-buffer');
+          assert.equal(require('bigint-buffer/package.json').version,'1.0.0');
+          assert.equal(require('bigint-buffer').toBigIntLE(Buffer.from([1])),1n);
+          assert.ok(require('node:fs').existsSync('dist/db/schema.sql'));"
+
   dependency-audit:
     name: Dependency audit
     runs-on: ubuntu-latest

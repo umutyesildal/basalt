@@ -99,3 +99,9 @@ The baseline source and evidence hashes are recorded in [verification-summary.js
 **Approved recovery source:** the user approved implementation and disposable tests on 2026-10-09. The reconciler now authenticates finalized basket/mint/holder facts, catches history up and rechecks it under locks before publication. Legacy projections still require explicit activation of a reviewed run; immutable backups, claims and the replay barrier commit together. Creator genesis recovery comes from authenticated holders rather than an invented historical credit. APIs exclude unresolved projections. See [the source and verification record](ledger-recovery-2026-10-09.md). Public creation against the retired treasury remains rejected; direct-RPC redemption remains available.
 
 No VPS/Vercel/program update, live auth rotation, transaction signing, asset transfer, history rewrite, authority transfer or production database replay occurred in this branch.
+
+## Merge preparation: production container packaging
+
+The final merge review caught an integration issue: the new locked local bigint codec lived outside the old backend-only Docker context. The production image now builds from the repository root with an allowlist `.dockerignore`, copies the exact vendor tarball into both stages, uses standalone `npm ci` and keeps the runtime limited to production dependencies and compiled backend/schema. Compose and transfer instructions include the required build inputs; existing absolute cache-volume paths remain unchanged.
+
+The isolated builder/runtime layout passed locked installs, compilation and installed Solana/pg/codec/schema loading locally. Docker is unavailable on the local host, so CI adds a real Node20 image build and a read-only, network-disabled dependency/schema smoke test. No application startup, production database access or deployment is performed by that check.
