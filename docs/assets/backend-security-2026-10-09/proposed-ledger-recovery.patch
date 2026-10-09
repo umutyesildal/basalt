@@ -1,0 +1,677 @@
+--- a/backend/src/indexer/positionsSync.ts
++++ b/backend/src/indexer/positionsSync.ts
+@@ -1,308 +1,156 @@
+-/**
+- * indexer/positionsSync.ts — periodic CHAIN-TRUTH reconciliation for
+- * user_positions (the durable fix for lost Minted/Redeemed events).
+- *
+- * WHY: the event listener derives balances from Anchor CPI logs, and on
+- * N-constituent baskets (6+) the transaction logs get truncated by the RPC —
+- * `Program data:` event lines disappear, so Minted/Redeemed events are missed
+- * while the shares DO exist on-chain (the user sees them client-side). Events
+- * are an approximation; the share-mint token accounts are the truth. This pass
+- * makes the backend converge on the chain no matter what the log parser saw:
+- *
+- *   for every indexed basket:
+- *     1. read ALL Token-2022 token accounts whose mint == basket.share_mint
+- *        (one getProgramAccounts call per basket with a memcmp filter on the
+- *        mint field — per-basket calls are the pagination unit; no
+- *        dataSize filter because Token-2022 extension accounts exceed 165
+- *        bytes and must not be dropped),
+- *     2. upsert user_positions from ACTUAL balances:
+- *          - a Minted/Redeemed events row exists for (user, basket) →
+- *            reconcile share_balance only; cost_basis + cost_basis_source
+- *            keep their event-derived values;
+- *          - balances exist but NO such events row (the truncation case) →
+- *            upsert with cost_basis_source = 'balance-sync' (honest
+- *            provenance; cost_basis stays untouched/NULL — backfilled by the
+- *            normal applyMinted path if the event surfaces later);
+- *          - DB row whose token account is gone (deleted/closed) or holds 0 →
+- *            row deleted (history remains in position_events).
+- *
+- * CONSISTENCY MODEL: this pass is the reconciler of last resort and runs every
+- * POSITIONS_SYNC_MS; event-driven writes (indexer/positions.ts) remain the
+- * low-latency path and the only cost-basis source. If an event applies after a
+- * sync pass already wrote the chain balance, balances can transiently drift —
+- * the next pass re-reads the chain and corrects them. share_balance is ALWAYS
+- * converged to chain truth; cost_basis is ONLY ever written by events.
+- *
+- * RPC LOAD: one holder read per indexed basket per pass, every call through
+- * the shared withRpcBackoff pacer and spaced with the 100ms state-sync
+- * convention (createPacer) — the same gentle shape as the whitelist/holdings
+- * syncs, no new 429 storm.
+- *
+- * PROVIDER FALLBACK: the primary read is getProgramAccounts on Token-2022
+- * with a mint memcmp filter (canonical shape). Some providers (notably
+- * api.devnet.solana.com / Triton) EXCLUDE the token programs from their gPA
+- * secondary indexes ("-32010 … excluded from account secondary indexes"); for
+- * exactly that error the pass falls back to the provider's enhanced
+- * `getTokenAccounts(null, <mint>, …)` JSON-RPC method, which enumerates ALL
+- * holders of a mint. Any other failure (429s after backoff, timeouts) is
+- * contained per-basket and retried next tick — never a fallback storm.
+- *
+- * SAFETY: strictly read-only against RPC (AGENTS.md §2 #5). A failing basket
+- * scan is contained (warn + skip) so a partial pass never zero-outs positions
+- * of baskets it could not read — those retry on the next tick.
+- */
+-import { PublicKey, type AccountInfo } from "@solana/web3.js";
+-import { TOKEN_2022_PROGRAM_ID } from "@solana/spl-token";
+-import { isPgLike, type PgLike } from "../db/client.js";
++/** Reviewed proposal only: strict finalized snapshots and serialized reconciliation. */
++import { PublicKey, type AccountInfo, type Context } from "@solana/web3.js";
++import { TOKEN_2022_PROGRAM_ID, unpackAccount, unpackMint } from "@solana/spl-token";
++import { isPgLike, withTransaction, type PgLike } from "../db/client.js";
+ import { withRpcBackoff, createPacer } from "../rpc/backoff.js";
++import { decodeBasketState } from "./basketState.js";
++import type { FinalizedPositionSnapshot } from "./positions.js";
+
+-/** Structural slice of @solana/web3.js Connection used here. */
+ export interface PositionsSyncRpc {
+-  getProgramAccounts(
+-    programId: PublicKey,
+-    config?: {
+-      encoding?: string;
+-      filters?: Array<{ memcmp?: { offset: number; bytes: string }; dataSize?: number }>;
+-      commitment?: unknown;
+-    },
+-  ): Promise<Array<{ pubkey: PublicKey; account: AccountInfo<Buffer> }>>;
++  getProgramAccounts(programId: PublicKey, config: {
++    encoding?: string; commitment: "finalized"; withContext: true; minContextSlot?: number;
++    filters: Array<{ memcmp: { offset: number; bytes: string } }>;
++  }): Promise<{ context: Context; value: Array<{ pubkey: PublicKey; account: AccountInfo<Buffer> }> }>;
++  getAccountInfoAndContext(address: PublicKey, config: { commitment: "finalized"; minContextSlot?: number }):
++    Promise<{ context: Context; value: AccountInfo<Buffer> | null }>;
+ }
+-
+-/** Raw JSON-RPC invoker for provider-enhanced methods (wired from env RPC_URL). */
+ export type JsonRpcInvoker = (method: string, params: unknown[]) => Promise<unknown>;
+-
+-/**
+- * True when the error is a provider refusing token-program getProgramAccounts
+- * (secondary-index exclusion) — the ONE error class with a documented
+- * alternative; everything else (429s, timeouts) just retries next tick.
+- */
+-export function isTokenIndexExcludedError(err: unknown): boolean {
+-  const msg = err instanceof Error ? err.message : String(err ?? "");
+-  return /excluded from account secondary indexes|this RPC method unavailable for key/i.test(msg);
++export interface ChainHolder { user: string; mint: string; amount: string }
++export interface PositionsSyncStats {
++  basketsScanned: number; basketsFailed: number; holders: number;
++  eventKept: number; balanceSynced: number; zeroed: number;
+ }
+-
+-export interface ChainHolder {
+-  /** Token account owner (the user) as base58. */
+-  user: string;
+-  /** Share mint as base58. */
+-  mint: string;
+-  /** On-chain u64 amount as a decimal string (BIGINT-safe binding). */
+-  amount: string;
++export interface RecoveryPrograms { basket: PublicKey; factory: PublicKey; ids: readonly string[] }
++export function isTokenIndexExcludedError(error: unknown): boolean {
++  return /excluded from account secondary indexes|this RPC method unavailable for key/i.test(String(error));
+ }
+-
+-/** One reconciled (user, basket) row outcome, for logging/tests. */
+-export interface PositionsSyncStats {
+-  /** Baskets whose token accounts were read successfully this pass. */
+-  basketsScanned: number;
+-  /** Baskets skipped (RPC failure) — their DB rows are left untouched. */
+-  basketsFailed: number;
+-  /** Distinct (user, basket) rows found on-chain with a positive balance. */
+-  holders: number;
+-  /** Rows reconciled while preserving event-derived cost basis. */
+-  eventKept: number;
+-  /** Rows created/updated with cost_basis_source = 'balance-sync'. */
+-  balanceSynced: number;
+-  /** Rows deleted because the on-chain account is gone or holds zero. */
+-  zeroed: number;
++export function parseTokenAccountOwnerAmount(data: Buffer): { owner: string; amount: bigint } | null {
++  if (!Buffer.isBuffer(data) || data.length < 165 || ![1,2].includes(data[108])) return null;
++  return { owner: new PublicKey(data.subarray(32,64)).toBase58(), amount: data.readBigUInt64LE(64) };
+ }
+-
+-// --- token account parsing (pure, fixture-testable) ---------------------------
+-
+-/**
+- * Parse (owner, amount) out of a raw SPL token / Token-2022 account buffer.
+- * Layout (identical for legacy Token and Token-2022): mint[0..32],
+- * owner[32..64], amount u64 LE [64..72]. Returns null for short/malformed
+- * buffers — never invents a position.
+- */
+-export function parseTokenAccountOwnerAmount(data: Buffer): { owner: string; amount: bigint } | null {
+-  if (!data || data.length < 72) return null;
++export function parseShareHolders(accounts: Array<{pubkey:PublicKey;account:AccountInfo<Buffer>}>, expectedMint: PublicKey | string): ChainHolder[] {
++  const mint = new PublicKey(expectedMint);
++  const totals = new Map<string,bigint>();
++  const seen = new Set<string>();
++  for (const row of accounts) {
++    const address = row.pubkey.toBase58();
++    if (seen.has(address)) throw new Error("Duplicate token account in holder snapshot");
++    seen.add(address);
++    const account = unpackAccount(row.pubkey,row.account,TOKEN_2022_PROGRAM_ID);
++    if (row.account.executable || !account.isInitialized || !account.mint.equals(mint)) throw new Error("Unauthenticated share holder snapshot");
++    const user = account.owner.toBase58();
++    totals.set(user,(totals.get(user) ?? 0n) + account.amount);
++  }
++  return [...totals].filter(([,amount]) => amount > 0n).map(([user,amount]) => ({user,mint:mint.toBase58(),amount:amount.toString()}));
++}
++/** Parsed enhanced-provider results cannot authenticate owner, mint or finalized context. */
++export async function fetchShareHoldersViaTokenApi(_invoke: JsonRpcInvoker,_mint: PublicKey | string): Promise<ChainHolder[]> {
++  throw new Error("Enhanced token-account enumeration is not authenticated finalized evidence");
++}
++export async function fetchShareHolders(rpc:PositionsSyncRpc,shareMint:PublicKey|string,opts:{backoffSleep?:(ms:number)=>Promise<void>;jsonRpcInvoke?:JsonRpcInvoker}={}): Promise<ChainHolder[]> {
++  const mint = new PublicKey(shareMint);
++  const snapshot = await withRpcBackoff(() => rpc.getProgramAccounts(TOKEN_2022_PROGRAM_ID, {
++    commitment:"finalized",encoding:"base64",withContext:true,filters:[{memcmp:{offset:0,bytes:mint.toBase58()}}],
++  }),{sleep:opts.backoffSleep,logKey:"positionsSync:finalized-holders"});
++  if (!Number.isSafeInteger(snapshot.context?.slot) || !Array.isArray(snapshot.value)) throw new Error("Missing finalized holder context");
++  return parseShareHolders(snapshot.value,mint);
++}
++/** Reject a stalled read without allowing a timed-out result to reach projection writes. */
++async function boundedSnapshotRead<T>(read:()=>Promise<T>,deadline:number):Promise<T> {
++  const remaining = deadline-Date.now();
++  if (remaining<=0) throw new Error("Finalized snapshot read deadline exhausted");
++  let timer:ReturnType<typeof setTimeout>|undefined;
+   try {
+-    const owner = new PublicKey(data.subarray(32, 64)).toBase58();
+-    const amount = data.readBigUInt64LE(64);
+-    return { owner, amount };
+-  } catch {
+-    return null;
++    return await Promise.race([read(),new Promise<never>((_resolve,reject)=>{timer=setTimeout(()=>reject(new Error("Finalized snapshot read deadline exhausted")),remaining);})]);
++  } finally { if(timer) clearTimeout(timer); }
++}
++/** All holder bytes and mint supply must be authenticated at exactly one finalized slot. */
++async function fetchFinalizedPositionSnapshotOnce(rpc:PositionsSyncRpc,basket:string,programs:RecoveryPrograms,backoffSleep:((ms:number)=>Promise<void>)|undefined,deadline:number): Promise<FinalizedPositionSnapshot> {
++  const address = new PublicKey(basket);
++  const account = await withRpcBackoff(() => boundedSnapshotRead(() => rpc.getAccountInfoAndContext(address,{commitment:"finalized"}),deadline),{sleep:backoffSleep,logKey:"positionsSync:basket"});
++  if (!account.value) throw new Error("Basket unavailable");
++  const state = decodeBasketState(basket,account.value,programs);
++  const mintAddress = new PublicKey(state.shareMint);
++  const holders = await withRpcBackoff(() => boundedSnapshotRead(() => rpc.getProgramAccounts(TOKEN_2022_PROGRAM_ID,{
++    commitment:"finalized",encoding:"base64",withContext:true,minContextSlot:account.context.slot,
++    filters:[{memcmp:{offset:0,bytes:state.shareMint}}],
++  }),deadline),{sleep:backoffSleep,logKey:"positionsSync:finalized-holders"});
++  if (!Number.isSafeInteger(holders.context?.slot) || !Array.isArray(holders.value)) throw new Error("Missing finalized holder context");
++  const balances = parseShareHolders(holders.value,mintAddress).map(row => ({user:row.user,shares:row.amount}));
++  const mintAccount = await withRpcBackoff(() => boundedSnapshotRead(() => rpc.getAccountInfoAndContext(mintAddress,{
++    commitment:"finalized",minContextSlot:holders.context.slot,
++  }),deadline),{sleep:backoffSleep,logKey:"positionsSync:finalized-mint"});
++  if (!mintAccount.value || mintAccount.context.slot !== holders.context.slot) throw new Error("Finalized holder/mint contexts differ; retry snapshot");
++  const mint = unpackMint(mintAddress,mintAccount.value,TOKEN_2022_PROGRAM_ID);
++  if (mintAccount.value.executable || !mint.isInitialized || mint.decimals !== 6 || !mint.mintAuthority?.equals(new PublicKey(state.vaultAuthority))) throw new Error("Share mint authentication failed");
++  if (balances.reduce((sum,row) => sum + BigInt(row.shares),0n) !== mint.supply) throw new Error("Holder snapshot does not reconcile to share supply");
++  return {slot:holders.context.slot,supply:mint.supply.toString(),balances};
++}
++/** Bound context-drift retries to three complete read-only snapshots. Other faults fail immediately. */
++export async function fetchFinalizedPositionSnapshot(rpc:PositionsSyncRpc,basket:string,programs:RecoveryPrograms,backoffSleep?:(ms:number)=>Promise<void>): Promise<FinalizedPositionSnapshot> {
++  const deadline=Date.now()+10_000;
++  return boundedSnapshotRead(async () => {
++    for (let attempt=0;attempt<3;attempt++) {
++      try { return await fetchFinalizedPositionSnapshotOnce(rpc,basket,programs,backoffSleep,deadline); }
++      catch(error) {
++        if (!(error instanceof Error) || !error.message.startsWith("Finalized holder/mint contexts differ") || attempt===2) throw error;
++      }
++    }
++    throw new Error("Finalized snapshot retry budget exhausted");
++  },deadline);
++}
++/** Same program-discovery lock order as activation, followed by basket lock. */
++export async function lockCompleteHistory(client:PgLike,basket:string,programs:readonly string[]):Promise<void> {
++  if (!programs.length || new Set(programs).size !== programs.length) throw new Error("Explicit unique program IDs required");
++  await client.query("SET LOCAL lock_timeout = '5s'");
++  await client.query("SET LOCAL statement_timeout = '15s'");
++  await client.query("SET LOCAL idle_in_transaction_session_timeout = '30s'");
++  await client.query("SELECT pg_advisory_xact_lock(hashtextextended($1,0))",["indexer-global-finalized-poll"]);
++  for (const program of [...programs].sort()) await client.query("SELECT pg_advisory_xact_lock(hashtextextended($1,0))",[`indexer-history:${program}`]);
++  await client.query("SELECT pg_advisory_xact_lock(hashtextextended($1,0))",[`positions:${basket}`]);
++  const state = await client.query("SELECT program_id,history_complete,scan_before,scan_head FROM indexer_program_state WHERE program_id=ANY($1::text[])",[[...programs]]);
++  if (state.rows.length !== programs.length || state.rows.some(row => !row.history_complete || row.scan_before !== null || row.scan_head !== null)) throw new Error("Canonical program scan incomplete");
++  const pending = await client.query("SELECT COUNT(*)::int AS count FROM indexer_signature_queue WHERE program_id=ANY($1::text[]) AND status<>'processed'",[[...programs]]);
++  if (pending.rows[0]?.count !== 0) throw new Error("Pending/quarantined canonical signatures block reconciliation");
++}
++/** Supply equality cannot prove no undiscovered zero-net history. */
++export async function assertFinalizedHistoryCoverage(client:PgLike,programs:readonly string[],slot:number):Promise<void> {
++  const state=await client.query("SELECT program_id,finalized_through_slot::text AS finalized_through_slot FROM indexer_program_state WHERE program_id=ANY($1::text[])",[[...programs]]);
++  if(state.rows.length!==programs.length || state.rows.some(row=>row.finalized_through_slot==null || BigInt(row.finalized_through_slot)<BigInt(slot))) throw new Error("Finalized snapshot is newer than verified canonical discovery; catch up and restage");
++}
++/** Every basket is all-or-nothing. No unverified fallback or partial zeroing. */
++export async function syncPositionsFromChain(rpc:PositionsSyncRpc,db:PgLike|null|undefined,opts:{spacingMs?:number;backoffSleep?:(ms:number)=>Promise<void>;jsonRpcInvoke?:JsonRpcInvoker;programs?:RecoveryPrograms}={}):Promise<PositionsSyncStats> {
++  const stats:PositionsSyncStats={basketsScanned:0,basketsFailed:0,holders:0,eventKept:0,balanceSynced:0,zeroed:0};
++  if (!isPgLike(db)) return stats;
++  if (!opts.programs) throw new Error("Authenticated recovery programs are required");
++  const programs = opts.programs;
++  const baskets = (await db.query("SELECT pubkey FROM baskets ORDER BY pubkey")).rows;
++  const pacer = createPacer(opts.spacingMs ?? 100);
++  for (const row of baskets) {
++    try {
++      await pacer.wait();
++      const result = await withTransaction(db,async client => {
++        await lockCompleteHistory(client,row.pubkey,programs.ids);
++        if ((await client.query("SELECT basket FROM position_rebuild_required WHERE basket=$1 AND (activated_run_id IS NULL OR NOT EXISTS(SELECT 1 FROM position_rebuild_runs activated WHERE activated.run_id=position_rebuild_required.activated_run_id AND activated.basket=position_rebuild_required.basket AND activated.status='activated'))",[row.pubkey])).rows.length) throw new Error("Legacy projection pending reviewed activation");
++        const snapshot = await fetchFinalizedPositionSnapshot(rpc,row.pubkey,programs,opts.backoffSleep);
++        await assertFinalizedHistoryCoverage(client,programs.ids,snapshot.slot);
++        const known = await client.query("SELECT COALESCE(MAX(slot),0)::text AS slot FROM events WHERE basket=$1 AND log_index>=0",[row.pubkey]);
++        if (BigInt(known.rows[0].slot) > BigInt(snapshot.slot)) throw new Error("Snapshot predates canonical events");
++        const previous = await client.query("SELECT snapshot_slot::text FROM position_reconciliation_state WHERE basket=$1",[row.pubkey]);
++        if (previous.rows[0] && BigInt(previous.rows[0].snapshot_slot) > BigInt(snapshot.slot)) throw new Error("Snapshot would move projection backwards");
++        const users = snapshot.balances.map(holder => holder.user);
++        const zeroed = await client.query(`UPDATE user_positions SET share_balance=0,cost_basis=NULL,cost_basis_source=NULL,updated_at=NOW()
++          WHERE basket=$1 AND NOT("user"=ANY($2::text[])) AND share_balance<>0`,[row.pubkey,users]);
++        for (const holder of snapshot.balances) await client.query(`INSERT INTO user_positions("user",basket,share_balance,cost_basis,cost_basis_source)
++          VALUES($1,$2,$3,NULL,'balance-sync') ON CONFLICT("user",basket) DO UPDATE SET share_balance=EXCLUDED.share_balance,
++          cost_basis=CASE WHEN user_positions.share_balance=EXCLUDED.share_balance THEN user_positions.cost_basis END,
++          cost_basis_source=CASE WHEN user_positions.share_balance=EXCLUDED.share_balance THEN user_positions.cost_basis_source ELSE 'balance-sync' END,updated_at=NOW()`,[holder.user,row.pubkey,holder.shares]);
++        await client.query(`INSERT INTO position_reconciliation_state(basket,snapshot_slot) VALUES($1,$2)
++          ON CONFLICT(basket) DO UPDATE SET snapshot_slot=EXCLUDED.snapshot_slot,updated_at=NOW()`,[row.pubkey,String(snapshot.slot)]);
++        return {holders:users.length,zeroed:zeroed.rowCount ?? 0};
++      });
++      stats.basketsScanned++;stats.holders+=result.holders;stats.balanceSynced+=result.holders;stats.zeroed+=result.zeroed;
++    } catch(error) { stats.basketsFailed++; console.warn(`[positionsSync] preserving prior projection for ${row.pubkey}:`,error instanceof Error ? error.message : "snapshot failed"); }
+   }
++  return stats;
+ }
+-
+-/**
+- * All holders of one share mint: decode + aggregate per owner (an owner may
+- * hold several token accounts; chain truth is the SUM). Unreadable accounts
+- * are skipped with a warn. Zero-balance accounts are returned as holders too
+- * (the caller decides zero-out vs skip) — no, they are dropped here: a
+- * zero-amount account is indistinguishable from "no position" for the holders
+- * count, and the zero-out branch is driven by DB rows missing from this map.
+- */
+-export function parseShareHolders(
+-  accounts: Array<{ pubkey: PublicKey; account: AccountInfo<Buffer> }>,
+-  expectedMint: PublicKey | string,
+-): ChainHolder[] {
+-  const totals = new Map<string, bigint>();
+-  for (const { pubkey, account } of accounts) {
+-    const parsed = parseTokenAccountOwnerAmount(account?.data);
+-    if (!parsed) {
+-      console.warn(`[positionsSync] undecodable token account ${pubkey?.toBase58() ?? "?"} — skipped`);
+-      continue;
+-    }
+-    if (parsed.amount === 0n) continue; // zero balance == no live position
+-    totals.set(parsed.owner, (totals.get(parsed.owner) ?? 0n) + parsed.amount);
+-  }
+-  const mint = new PublicKey(expectedMint).toBase58();
+-  return [...totals.entries()].map(([user, amount]) => ({ user, mint, amount: amount.toString() }));
+-}
+-
+-// --- static SQL (every dynamic value is a bound parameter) --------------------
+-
+-const LOAD_BASKETS_SQL = `SELECT pubkey, share_mint FROM baskets`;
+-
+-const LOAD_POSITIONS_SQL = `SELECT "user", basket FROM user_positions`;
+-
+-/** Distinct users with an indexed Minted/Redeemed event for this basket. */
+-const EVENT_EVIDENCE_SQL = `SELECT DISTINCT data->>'user' AS user FROM events
+- WHERE basket = $1 AND type IN ('Minted','Redeemed') AND data->>'user' = ANY($2)`;
+-
+-/** Event-derived row: reconcile the balance, keep cost_basis + provenance. */
+-const UPDATE_KEEP_EVENT_SQL = `UPDATE user_positions
+- SET share_balance = $3, updated_at = NOW()
+- WHERE "user" = $1 AND basket = $2`;
+-
+-/** Fresh row for a wallet that DOES have indexed events (cost basis pending
+- *  — the normal applyMinted path owns cost_basis, not the balance sync). */
+-const INSERT_EVENT_PENDING_SQL = `INSERT INTO user_positions ("user", basket, share_balance, cost_basis, cost_basis_source, updated_at)
+- VALUES ($1, $2, $3, NULL, NULL, NOW())
+- ON CONFLICT ("user", basket) DO NOTHING`;
+-
+-/** Balance-sync provenance: keeps any existing cost_basis, honest source. */
+-const UPDATE_BALANCE_SYNC_SQL = `UPDATE user_positions
+- SET share_balance = $3, cost_basis_source = 'balance-sync', updated_at = NOW()
+- WHERE "user" = $1 AND basket = $2`;
+-
+-/** Fresh row for the truncation case: balances exist, no events ever indexed. */
+-const INSERT_BALANCE_SYNC_SQL = `INSERT INTO user_positions ("user", basket, share_balance, cost_basis, cost_basis_source, updated_at)
+- VALUES ($1, $2, $3, NULL, 'balance-sync', NOW())
+- ON CONFLICT ("user", basket) DO UPDATE
+-   SET share_balance = EXCLUDED.share_balance,
+-       cost_basis_source = 'balance-sync',
+-       updated_at = NOW()`;
+-
+-/** Zero-out: the on-chain token account is deleted/closed or drained to 0. */
+-const ZERO_OUT_SQL = `DELETE FROM user_positions WHERE basket = $1 AND "user" = ANY($2)`;
+-
+-// --- the reconciliation pass ---------------------------------------------------
+-
+-/**
+- * Read every token account of `shareMint` via getProgramAccounts on Token-2022
+- * (memcmp filter on the mint field — offset 0 of a token account), through the
+- * shared 429 backoff. The mint filter alone; NO dataSize filter so extended
+- * Token-2022 accounts (>165 bytes) are never dropped.
+- *
+- * When the provider refuses token-program gPA (secondary-index exclusion —
+- * e.g. api.devnet.solana.com) AND a `jsonRpcInvoke` is wired, falls back to
+- * the provider-enhanced getTokenAccounts(null, <mint>) enumeration. Any other
+- * error propagates (the per-basket catch contains it; retried next tick).
+- */
+-export async function fetchShareHolders(
+-  rpc: PositionsSyncRpc,
+-  shareMint: PublicKey | string,
+-  opts: { backoffSleep?: (ms: number) => Promise<void>; jsonRpcInvoke?: JsonRpcInvoker } = {},
+-): Promise<ChainHolder[]> {
+-  const mint = new PublicKey(shareMint);
+-  try {
+-    const accounts = await withRpcBackoff(
+-      () =>
+-        rpc.getProgramAccounts(TOKEN_2022_PROGRAM_ID, {
+-          encoding: "base64",
+-          filters: [{ memcmp: { offset: 0, bytes: mint.toBase58() } }],
+-        }),
+-      { logKey: "positionsSync:getProgramAccounts", sleep: opts.backoffSleep },
+-    );
+-    return parseShareHolders(accounts, mint);
+-  } catch (err) {
+-    if (!opts.jsonRpcInvoke || !isTokenIndexExcludedError(err)) throw err;
+-    console.warn(
+-      `[positionsSync] provider blocks token-program getProgramAccounts — ` +
+-        `falling back to enhanced getTokenAccounts for mint ${mint.toBase58()}`,
+-    );
+-    return fetchShareHoldersViaTokenApi(opts.jsonRpcInvoke, mint);
+-  }
+-}
+-
+-/** One parsed entry of the enhanced getTokenAccounts response. */
+-export interface TokenApiAccount {
+-  address?: string;
+-  mint?: string;
+-  /** u64 — arrives as a JSON number from the provider (see precision note). */
+-  amount?: number | string;
+-  owner?: string;
+-}
+-
+-/**
+- * Provider-enhanced holder enumeration: getTokenAccounts(null, <mint>, …)
+- * returns EVERY token account of a mint (owner + amount pre-parsed). Uses the
+- * raw JSON-RPC invoker (web3.js Connection has no custom-method surface).
+- * PRECISION NOTE: providers serialize the u64 `amount` as a JSON number; for
+- * values beyond 2^53 the gPA path (raw account bytes) stays authoritative —
+- * this fallback is the devnet-reality path where supplies are small.
+- */
+-export async function fetchShareHoldersViaTokenApi(
+-  invoke: JsonRpcInvoker,
+-  mint: string | PublicKey,
+-): Promise<ChainHolder[]> {
+-  const mintKey = new PublicKey(mint).toBase58();
+-  const res = (await withRpcBackoff(
+-    () =>
+-      invoke("getTokenAccounts", [null, mintKey, null, null, null, null, null, null]) as Promise<{
+-        total?: number;
+-        limit?: number;
+-        token_accounts?: TokenApiAccount[];
+-      }>,
+-    { logKey: "positionsSync:getTokenAccounts" },
+-  )) as { total?: number; limit?: number; token_accounts?: TokenApiAccount[] };
+-
+-  const accounts = res.token_accounts ?? [];
+-  const totals = new Map<string, bigint>();
+-  for (const a of accounts) {
+-    if (typeof a.owner !== "string" || a.amount === undefined || a.amount === null) continue;
+-    const amount = BigInt(a.amount); // number or string — BigInt() accepts both exactly
+-    if (amount === 0n) continue;
+-    totals.set(a.owner, (totals.get(a.owner) ?? 0n) + amount);
+-  }
+-  if (typeof res.total === "number" && res.total > accounts.length) {
+-    console.warn(
+-      `[positionsSync] getTokenAccounts returned ${accounts.length}/${res.total} accounts for ${mintKey} — ` +
+-        `result may be incomplete this pass (limit ${res.limit ?? "?"})`,
+-    );
+-  }
+-  return [...totals.entries()].map(([user, amount]) => ({ user, mint: mintKey, amount: amount.toString() }));
+-}
+-
+-/**
+- * One reconciliation pass over every indexed basket. Per-basket failures are
+- * contained: the basket is counted in basketsFailed, its DB rows are left
+- * untouched, and the next tick retries it. Returns per-outcome counters for
+- * logging/tests.
+- */
+-export async function syncPositionsFromChain(
+-  rpc: PositionsSyncRpc,
+-  db: PgLike | null | undefined,
+-  opts: { spacingMs?: number; backoffSleep?: (ms: number) => Promise<void>; jsonRpcInvoke?: JsonRpcInvoker } = {},
+-): Promise<PositionsSyncStats> {
+-  const stats: PositionsSyncStats = {
+-    basketsScanned: 0,
+-    basketsFailed: 0,
+-    holders: 0,
+-    eventKept: 0,
+-    balanceSynced: 0,
+-    zeroed: 0,
+-  };
+-  if (!isPgLike(db)) {
+-    console.warn("[positionsSync] skipped (no DB)");
+-    return stats;
+-  }
+-  // Security hold: the old unversioned reconciler can race event accounting and
+-  // zero positions from partial RPC results. It stays read-only until the
+-  // separately reviewed finalized-snapshot/atomic-ledger recovery is approved.
+-  console.warn("[positionsSync] writes disabled pending reviewed ledger reconciliation");
+-  return stats;
+-
+-}
+--- a/backend/src/indexer/positions.ts
++++ b/backend/src/indexer/positions.ts
+@@ -93,7 +93,7 @@
+ }
+
+ async function claimPositionEvent(db: PgLike, sig: string, kind: string, basket: string, logIndex: number): Promise<boolean> {
+-  const legacy = await db.query(`SELECT basket FROM position_rebuild_required WHERE basket = $1`, [basket]);
++  const legacy = await db.query(`SELECT basket FROM position_rebuild_required WHERE basket = $1 AND (activated_run_id IS NULL OR NOT EXISTS(SELECT 1 FROM position_rebuild_runs activated WHERE activated.run_id=position_rebuild_required.activated_run_id AND activated.basket=position_rebuild_required.basket AND activated.status='activated'))`, [basket]);
+   if (legacy.rows.length) throw new PositionRebuildRequiredError(basket);
+   const res = await db.query(
+     `INSERT INTO position_events (sig, log_index, kind, basket) VALUES ($1, $2, $3, $4)
+@@ -303,25 +303,34 @@
+   return applyFeeAccruedEffect(db, ev);
+ }
+
+-async function applyAtomic(db: PgLike | null | undefined, sig: string, ev: PositionEvent, logIndex?: number): Promise<boolean> {
++async function applyAtomic(db: PgLike | null | undefined, sig: string, ev: PositionEvent, logIndex?: number, slot?: number): Promise<boolean> {
+   if (!isPgLike(db)) return false;
+   assertLogIndex(logIndex);
+   return withTransaction(db, async (client) => {
+     await lockBasket(client, ev.basket);
+     if (!(await claimPositionEvent(client, sig, ev.type, ev.basket, logIndex))) return false;
++    const marker = (await client.query("SELECT snapshot_slot::text AS snapshot_slot FROM position_reconciliation_state WHERE basket=$1",[ev.basket])).rows[0];
++    if (marker) {
++      if (!Number.isSafeInteger(slot) || slot! < 0) throw new Error("A finalized runtime slot is required after reconciliation");
++      if (BigInt(slot!) <= BigInt(marker.snapshot_slot)) {
++        // The chain snapshot includes this raw balance effect; historical fill cost is unknown.
++        await client.query("UPDATE user_positions SET cost_basis=NULL,cost_basis_source=NULL WHERE basket=$1",[ev.basket]);
++        return true;
++      }
++    }
+     await applyEffect(client, ev);
+     return true;
+   });
+ }
+
+-export function applyMinted(db: PgLike | null | undefined, sig: string, ev: MintedEvent, logIndex?: number): Promise<boolean> {
+-  return applyAtomic(db, sig, ev, logIndex);
+-}
+-export function applyRedeemed(db: PgLike | null | undefined, sig: string, ev: RedeemedEvent, logIndex?: number): Promise<boolean> {
+-  return applyAtomic(db, sig, ev, logIndex);
+-}
+-export function applyFeeAccrued(db: PgLike | null | undefined, sig: string, ev: FeeAccruedEvent, logIndex?: number): Promise<boolean> {
+-  return applyAtomic(db, sig, ev, logIndex);
++export function applyMinted(db: PgLike | null | undefined, sig: string, ev: MintedEvent, logIndex?: number, slot?: number): Promise<boolean> {
++  return applyAtomic(db, sig, ev, logIndex, slot);
++}
++export function applyRedeemed(db: PgLike | null | undefined, sig: string, ev: RedeemedEvent, logIndex?: number, slot?: number): Promise<boolean> {
++  return applyAtomic(db, sig, ev, logIndex, slot);
++}
++export function applyFeeAccrued(db: PgLike | null | undefined, sig: string, ev: FeeAccruedEvent, logIndex?: number, slot?: number): Promise<boolean> {
++  return applyAtomic(db, sig, ev, logIndex, slot);
+ }
+
+ /** The index is the original runtime log offset, not an index after event filtering. */
+@@ -330,8 +339,9 @@
+   sig: string,
+   ev: DecodedFolioxEvent,
+   logIndex?: number,
++  slot?: number,
+ ): Promise<boolean> {
+-  return ev.type === "BasketCreated" ? false : applyAtomic(db, sig, ev, logIndex);
++  return ev.type === "BasketCreated" ? false : applyAtomic(db, sig, ev, logIndex, slot);
+ }
+
+
+@@ -387,8 +397,8 @@
+     if (history.rows.some(row => BigInt(row.slot) > BigInt(snapshot.slot))) throw new Error("Finalized chain snapshot predates event history");
+     const historyHash = createHash("sha256").update(JSON.stringify(history.rows)).digest("hex");
+     const runId = randomUUID();
+-    await client.query("INSERT INTO position_rebuild_runs(run_id,basket,chain_slot,chain_supply,event_count,history_hash) VALUES($1,$2,$3,$4,$5,$6)",
+-      [runId,basket,String(snapshot.slot),snapshot.supply,history.rows.length,historyHash]);
++    await client.query("INSERT INTO position_rebuild_runs(run_id,basket,chain_slot,chain_supply,event_count,history_hash,program_ids) VALUES($1,$2,$3,$4,$5,$6,$7)",
++      [runId,basket,String(snapshot.slot),snapshot.supply,history.rows.length,historyHash,[...programIds]]);
+     for (const row of snapshot.balances) {
+       if (BigInt(row.shares) === 0n) continue;
+       await client.query('INSERT INTO position_rebuild_staging(run_id,"user",basket,share_balance,cost_basis,cost_basis_source) VALUES($1,$2,$3,$4,NULL,NULL)',
+--- /dev/null
++++ b/backend/src/indexer/positionRecovery.ts
+@@ -0,0 +1,55 @@
++/** Explicit reviewed activation API. Not called by bootstrap, workers or replay CLI. */
++import {createHash} from "node:crypto";
++import {withTransaction,type PgLike} from "../db/client.js";
++import {fetchFinalizedPositionSnapshot,lockCompleteHistory,assertFinalizedHistoryCoverage,type PositionsSyncRpc,type RecoveryPrograms} from "./positionsSync.js";
++
++export async function activateStagedPositionRebuild(db:PgLike,rpc:PositionsSyncRpc,runId:string,expectedHistoryHash:string,programs:RecoveryPrograms):Promise<void> {
++  if (!runId || !/^[a-f0-9]{64}$/.test(expectedHistoryHash)) throw new Error("Explicit reviewed run/hash required");
++  await withTransaction(db,async client => {
++    const found = (await client.query("SELECT * FROM position_rebuild_runs WHERE run_id=$1",[runId])).rows[0];
++    if (!found || found.status !== 'staged-pending-review' || found.history_hash !== expectedHistoryHash) throw new Error("Reviewed staged run not available");
++    if (JSON.stringify([...programs.ids].sort()) !== JSON.stringify([...(found.program_ids ?? [])].sort())) throw new Error("Program attestation differs from staging");
++    await lockCompleteHistory(client,found.basket,programs.ids);
++    const run = (await client.query("SELECT * FROM position_rebuild_runs WHERE run_id=$1 FOR UPDATE",[runId])).rows[0];
++    if (run.status !== 'staged-pending-review') throw new Error("Run already activated or superseded");
++    const stableFields = ["basket","history_hash","chain_slot","chain_supply","event_count"] as const;
++    if (stableFields.some(field=>String(run[field])!==String(found[field])) || run.history_hash!==expectedHistoryHash ||
++        JSON.stringify([...(run.program_ids ?? [])].sort())!==JSON.stringify([...programs.ids].sort())) {
++      throw new Error("Reviewed run metadata changed while acquiring locks; restage/review");
++    }
++    const pending = (await client.query("SELECT basket FROM position_rebuild_required WHERE basket=$1 AND (activated_run_id IS NULL OR NOT EXISTS(SELECT 1 FROM position_rebuild_runs activated WHERE activated.run_id=position_rebuild_required.activated_run_id AND activated.basket=position_rebuild_required.basket AND activated.status='activated')) FOR UPDATE",[run.basket])).rows;
++    if (pending.length !== 1) throw new Error("No quarantined projection to activate");
++    const history = (await client.query("SELECT sig,log_index,type,data,slot::text AS slot FROM events WHERE basket=$1 AND log_index>=0 ORDER BY slot,sig,log_index",[run.basket])).rows;
++    if (history.length !== run.event_count || createHash('sha256').update(JSON.stringify(history)).digest('hex') !== expectedHistoryHash) throw new Error("Canonical history changed; restage");
++    const snapshot = await fetchFinalizedPositionSnapshot(rpc,run.basket,programs);
++    await assertFinalizedHistoryCoverage(client,programs.ids,snapshot.slot);
++    if (BigInt(snapshot.slot) < BigInt(run.chain_slot) || snapshot.supply !== String(run.chain_supply)) throw new Error("Finalized snapshot no longer matches staged supply");
++    if (history.some(row => BigInt(row.slot)>BigInt(snapshot.slot))) throw new Error("Snapshot predates history");
++    const staged = (await client.query('SELECT "user" AS user,share_balance::text AS shares FROM position_rebuild_staging WHERE run_id=$1 ORDER BY "user"',[runId])).rows;
++    const normalized = snapshot.balances.filter(row=>BigInt(row.shares)>0n).map(row=>({user:row.user,shares:BigInt(row.shares).toString()})).sort((a,b)=>a.user.localeCompare(b.user));
++    const normalize = (rows:Array<{user:string;shares:string}>)=>rows.map(row=>`${row.user}:${BigInt(row.shares)}`).sort().join('\n');
++    if (normalize(staged)!==normalize(normalized)) throw new Error("Finalized holders changed; restage");
++    const stagedClaims = (await client.query("SELECT sig,log_index,kind,basket FROM position_rebuild_claims WHERE run_id=$1 ORDER BY sig,log_index",[runId])).rows;
++    const expectedClaims = history.filter(row=>row.type!=='BasketCreated').map(row=>({sig:row.sig,log_index:row.log_index,kind:row.type,basket:run.basket})).sort((a,b)=>a.sig.localeCompare(b.sig)||a.log_index-b.log_index);
++    if (JSON.stringify(stagedClaims)!==JSON.stringify(expectedClaims)) throw new Error("Staged claims differ from canonical history");
++    // Immutable backups commit atomically with publication; any later fault rolls all changes back.
++    await client.query(`INSERT INTO position_rebuild_positions_backup(run_id,"user",basket,share_balance,cost_basis,cost_basis_source,position_updated_at)
++      SELECT $1,"user",basket,share_balance,cost_basis,cost_basis_source,updated_at FROM user_positions WHERE basket=$2`,[runId,run.basket]);
++    await client.query(`INSERT INTO position_rebuild_claims_backup(run_id,sig,log_index,kind,basket,claimed_at)
++      SELECT $1,sig,log_index,kind,basket,ts FROM position_events WHERE basket=$2`,[runId,run.basket]);
++    const users = normalized.map(row=>row.user);
++    await client.query(`UPDATE user_positions SET share_balance=0,cost_basis=NULL,cost_basis_source=NULL,updated_at=NOW()
++      WHERE basket=$1 AND NOT("user"=ANY($2::text[]))`,[run.basket,users]);
++    for (const holder of normalized) await client.query(`INSERT INTO user_positions("user",basket,share_balance,cost_basis,cost_basis_source)
++      VALUES($1,$2,$3,NULL,NULL) ON CONFLICT("user",basket) DO UPDATE SET share_balance=EXCLUDED.share_balance,cost_basis=NULL,cost_basis_source=NULL,updated_at=NOW()`,[holder.user,run.basket,holder.shares]);
++    for (const claim of stagedClaims) {
++      const conflict = (await client.query("SELECT kind,basket FROM position_events WHERE sig=$1 AND log_index=$2",[claim.sig,claim.log_index])).rows[0];
++      if (conflict && (conflict.kind!==claim.kind || conflict.basket!==claim.basket)) throw new Error("Canonical claim collision");
++      await client.query("INSERT INTO position_events(sig,log_index,kind,basket) VALUES($1,$2,$3,$4) ON CONFLICT(sig,log_index) DO NOTHING",[claim.sig,claim.log_index,claim.kind,claim.basket]);
++    }
++    await client.query(`INSERT INTO position_reconciliation_state(basket,snapshot_slot) VALUES($1,$2)
++      ON CONFLICT(basket) DO UPDATE SET snapshot_slot=EXCLUDED.snapshot_slot,updated_at=NOW()`,[run.basket,String(snapshot.slot)]);
++    await client.query("UPDATE position_rebuild_required SET activated_run_id=$2 WHERE basket=$1 AND (activated_run_id IS NULL OR NOT EXISTS(SELECT 1 FROM position_rebuild_runs activated WHERE activated.run_id=position_rebuild_required.activated_run_id AND activated.basket=position_rebuild_required.basket AND activated.status='activated'))",[run.basket,runId]);
++    await client.query("UPDATE position_rebuild_runs SET status='activated',activated_at=NOW() WHERE run_id=$1",[runId]);
++  });
++}
+--- a/backend/src/db/schema.sql
++++ b/backend/src/db/schema.sql
+@@ -426,4 +426,42 @@
+   ON indexer_signature_queue(slot, tx_index) WHERE status = 'pending';
+ CREATE INDEX IF NOT EXISTS indexer_signature_queue_pending_idx
+   ON indexer_signature_queue(program_id, slot, discovered_at) WHERE status = 'pending';
++-- Proposed only: per-basket finalized projection barrier and immutable activation evidence.
++CREATE TABLE IF NOT EXISTS position_reconciliation_state (
++  basket TEXT PRIMARY KEY REFERENCES baskets(pubkey), snapshot_slot BIGINT NOT NULL CHECK(snapshot_slot>=0),
++  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
++);
++ALTER TABLE position_rebuild_runs ADD COLUMN IF NOT EXISTS program_ids TEXT[] NOT NULL DEFAULT '{}';
++ALTER TABLE position_rebuild_runs ADD COLUMN IF NOT EXISTS activated_at TIMESTAMPTZ;
++ALTER TABLE position_rebuild_required ADD COLUMN IF NOT EXISTS activated_run_id TEXT REFERENCES position_rebuild_runs(run_id);
++CREATE TABLE IF NOT EXISTS position_rebuild_positions_backup (
++  run_id TEXT NOT NULL REFERENCES position_rebuild_runs(run_id), "user" TEXT NOT NULL, basket TEXT NOT NULL,
++  share_balance NUMERIC NOT NULL, cost_basis NUMERIC, cost_basis_source TEXT, position_updated_at TIMESTAMPTZ NOT NULL,
++  PRIMARY KEY(run_id,"user",basket)
++);
++CREATE TABLE IF NOT EXISTS position_rebuild_claims_backup (
++  run_id TEXT NOT NULL REFERENCES position_rebuild_runs(run_id), sig TEXT NOT NULL, log_index INT NOT NULL,
++  kind TEXT NOT NULL, basket TEXT, claimed_at TIMESTAMPTZ NOT NULL, PRIMARY KEY(run_id,sig,log_index)
++);
++CREATE OR REPLACE FUNCTION guard_position_backup_insert() RETURNS trigger LANGUAGE plpgsql AS $$
++BEGIN
++  IF NOT EXISTS(SELECT 1 FROM position_rebuild_runs WHERE run_id=NEW.run_id AND status='staged-pending-review') THEN
++    RAISE EXCEPTION 'Activated position recovery backup cannot grow';
++  END IF;
++  RETURN NEW;
++END $$;
++DROP TRIGGER IF EXISTS closed_position_backup_insert ON position_rebuild_positions_backup;
++CREATE TRIGGER closed_position_backup_insert BEFORE INSERT ON position_rebuild_positions_backup
++  FOR EACH ROW EXECUTE FUNCTION guard_position_backup_insert();
++DROP TRIGGER IF EXISTS closed_claim_backup_insert ON position_rebuild_claims_backup;
++CREATE TRIGGER closed_claim_backup_insert BEFORE INSERT ON position_rebuild_claims_backup
++  FOR EACH ROW EXECUTE FUNCTION guard_position_backup_insert();
++CREATE OR REPLACE FUNCTION reject_position_backup_mutation() RETURNS trigger LANGUAGE plpgsql AS $$
++BEGIN RAISE EXCEPTION 'Position recovery backups are immutable'; END $$;
++DROP TRIGGER IF EXISTS immutable_position_backup ON position_rebuild_positions_backup;
++CREATE TRIGGER immutable_position_backup BEFORE UPDATE OR DELETE OR TRUNCATE ON position_rebuild_positions_backup
++  FOR EACH STATEMENT EXECUTE FUNCTION reject_position_backup_mutation();
++DROP TRIGGER IF EXISTS immutable_claim_backup ON position_rebuild_claims_backup;
++CREATE TRIGGER immutable_claim_backup BEFORE UPDATE OR DELETE OR TRUNCATE ON position_rebuild_claims_backup
++  FOR EACH STATEMENT EXECUTE FUNCTION reject_position_backup_mutation();
+ COMMIT;
+--- a/backend/src/indexer/listener.ts
++++ b/backend/src/indexer/listener.ts
+@@ -427,7 +427,8 @@
+         const stats = await syncPositionsFromChain(
+           full as unknown as PositionsSyncRpc,
+           this.db,
+-          { spacingMs: spacing, backoffSleep: this.cfg.backoffSleep, jsonRpcInvoke: this.cfg.jsonRpcInvoke },
++          { spacingMs: spacing, backoffSleep: this.cfg.backoffSleep, jsonRpcInvoke: this.cfg.jsonRpcInvoke,
++            programs: this.cfg.basketProgramId && this.cfg.factoryProgramId ? { basket:new PublicKey(this.cfg.basketProgramId),factory:new PublicKey(this.cfg.factoryProgramId),ids:this.cfg.programIds } : undefined },
+         );
+         if (stats.basketsScanned > 0) {
+           console.log(
+@@ -664,7 +665,7 @@
+         if (!this.cfg.replayOnly) for (const { event, logIndex } of txEvents) {
+           // Failure retains the signature in the durable queue; successful earlier
+           // effects are independently idempotent and safe to retry after a crash.
+-          await applyPositionEvent(this.db, sigInfo.signature, event, logIndex);
++          await applyPositionEvent(this.db, sigInfo.signature, event, logIndex, sigInfo.slot);
+         }
+       } catch (err) {
+         if (err instanceof BasketStateDecodeError) {
+--- a/backend/src/api/server.ts
++++ b/backend/src/api/server.ts
+@@ -705,7 +705,7 @@
+ /** GET /users/:pubkey/portfolio — user_positions + latest nav per basket. */
+ export async function userPortfolio(db: PgLike, user: string): Promise<{ status: number; payload: unknown }> {
+   const res = await db.query(
+-    `SELECT up.basket, up.share_balance::text AS share_balance, up.cost_basis::text AS cost_basis, up.updated_at, EXISTS(SELECT 1 FROM position_rebuild_required pr WHERE pr.basket=up.basket) AS legacy_projection_pending, NOT (${positionProjectionReadySql("up.basket")}) AS projection_pending
++    `SELECT up.basket, up.share_balance::text AS share_balance, up.cost_basis::text AS cost_basis, up.updated_at, EXISTS(SELECT 1 FROM position_rebuild_required pr WHERE pr.basket=up.basket AND (pr.activated_run_id IS NULL OR NOT EXISTS(SELECT 1 FROM position_rebuild_runs activated WHERE activated.run_id=pr.activated_run_id AND activated.basket=pr.basket AND activated.status='activated'))) AS legacy_projection_pending, NOT (${positionProjectionReadySql("up.basket")}) AS projection_pending
+      FROM user_positions up WHERE up."user" = $1 ORDER BY up.basket`,
+     [user],
+   );
+@@ -753,7 +753,7 @@
+          up.share_balance::text AS share_balance,
+          up.cost_basis::text AS cost_basis,
+          up.cost_basis_source AS cost_basis_source,
+-         EXISTS(SELECT 1 FROM position_rebuild_required pr WHERE pr.basket=up.basket) AS legacy_projection_pending, NOT (${positionProjectionReadySql("up.basket")}) AS projection_pending,
++         EXISTS(SELECT 1 FROM position_rebuild_required pr WHERE pr.basket=up.basket AND (pr.activated_run_id IS NULL OR NOT EXISTS(SELECT 1 FROM position_rebuild_runs activated WHERE activated.run_id=pr.activated_run_id AND activated.basket=pr.basket AND activated.status='activated'))) AS legacy_projection_pending, NOT (${positionProjectionReadySql("up.basket")}) AS projection_pending,
+          sp.share_price::text AS share_price,
+          sp.ts AS share_price_as_of, sp.valuation_eligible, sp.valuation_status, sp.current_status, sp.current_reason, sp.current_eligible,
+          (up.share_balance * sp.share_price)::text AS value_usd,

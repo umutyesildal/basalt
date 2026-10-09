@@ -42,6 +42,7 @@
  * treasury, fees, weights, seedAmounts, baskets{<nonce>}, alts.
  */
 
+import { assertNotRetiredPublicKey } from "./security/retired-keys.mjs";
 import { ComputeBudgetProgram, PublicKey, Transaction } from "@solana/web3.js";
 import { createHash } from "crypto";
 import fs from "fs";
@@ -50,6 +51,7 @@ import {
   ASSOCIATED_TOKEN_PROGRAM_ID,
   BASKET_PROGRAM_ID,
   CREATOR_FEE_SPLIT_BPS,
+  FACTORY_PROGRAM_ID,
   PACKET_LIMIT,
   TOKEN_2022_PROGRAM_ID,
   SYSTEM_PROGRAM_ID,
@@ -142,6 +144,13 @@ const METADATA_BLOB = JSON.stringify({
 
 async function main() {
   const conn = newConnection();
+  // Factory treasury is immutable and inherited by every new basket. Fail before
+  // loading a signer, funding accounts or entering steps that collect failures.
+  const existingFactory = await conn.getAccountInfo(deriveFactoryConfig());
+  if (existingFactory) {
+    if (!existingFactory.owner.equals(FACTORY_PROGRAM_ID) || existingFactory.data.length < 88) throw new Error("Unexpected factory account");
+    assertNotRetiredPublicKey(new PublicKey(existingFactory.data.subarray(40, 72)), "existing factory treasury for new baskets");
+  }
   const payer = payerKeypair(); // factory authority + basket creator
   console.log(`rpc: ${conn.rpcEndpoint}`);
   console.log(`creator/payer: ${payer.publicKey.toBase58()}`);
@@ -165,10 +174,12 @@ async function main() {
   // separately observable. The treasury never needs to sign or hold SOL.
   const treasuryKp = envKeypair("FOLIOX_E2E_TREASURY");
   const treasury = treasuryKp ? treasuryKp.publicKey : payer.publicKey;
+  assertNotRetiredPublicKey(treasury, "new basket treasury");
   if (treasuryKp) {
     fs.writeFileSync(
       path.join(stateDir(), "treasury.json"),
       JSON.stringify(Array.from(treasuryKp.secretKey)),
+      { mode: 0o600 },
     );
     console.log(`treasury: ${treasury.toBase58()} (independent wallet — fee split observable)`);
   } else {
@@ -210,6 +221,7 @@ async function main() {
     // FactoryConfig: 8 disc + authority 32 + treasury 32 + split u16 @72.
     const storedTreasury = new PublicKey(info.data.subarray(40, 72));
     const storedSplit = info.data.readUInt16LE(72);
+    assertNotRetiredPublicKey(storedTreasury, "existing factory treasury for new baskets");
     if (!storedTreasury.equals(treasury)) throw new Error("factory treasury mismatch");
     if (storedSplit !== CREATOR_FEE_SPLIT_BPS) throw new Error("factory split mismatch");
     console.log(

@@ -17,6 +17,37 @@ import type { Pool as PgPool, PoolClient, Client as PgClient, QueryResult } from
 /** Any pg Pool / PoolClient / Client (or test double) that can run queries. */
 export interface PgLike {
   query(sql: string, values?: unknown[]): Promise<QueryResult>;
+  /** Pool acquisition only. A dedicated client is required for atomic writers. */
+  connect?: () => Promise<PgTransactionClient>;
+}
+
+export interface PgTransactionClient extends PgLike {
+  release: () => void;
+}
+
+/** pg.Client.connect opens a connection; only Pool.connect acquires one. */
+export function isTransactionPool(db: PgLike): boolean {
+  return typeof db.connect === "function" && !("connection" in db);
+}
+
+/** Never issue BEGIN on a shared/memoized client. Every transaction owns its connection. */
+export async function withTransaction<T>(db: PgLike, run: (client: PgTransactionClient) => Promise<T>): Promise<T> {
+  if (!isTransactionPool(db)) throw new Error("Atomic persistence requires a PostgreSQL connection pool");
+  const client = await db.connect!();
+  if (!isPgLike(client) || typeof client.release !== "function") {
+    throw new Error("Atomic persistence requires a dedicated releasable PostgreSQL client");
+  }
+  try {
+    await client.query("BEGIN");
+    const result = await run(client);
+    await client.query("COMMIT");
+    return result;
+  } catch (error) {
+    try { await client.query("ROLLBACK"); } catch { /* Preserve the original failure for retry. */ }
+    throw error;
+  } finally {
+    client.release();
+  }
 }
 
 export function isPgLike(value: unknown): value is PgLike {
@@ -44,8 +75,8 @@ export async function connectFromEnv(databaseUrl?: string): Promise<PgLike | nul
   try {
     // Dynamic import keeps pg out of the module graph in DB-less environments.
     const pg = (await import("pg")) as typeof import("pg");
-    const client = new pg.Client({ connectionString: url });
-    await client.connect();
+    const client = new pg.Pool({ connectionString: url, max: 10, connectionTimeoutMillis: 10_000 });
+    await client.query("SELECT 1");
     console.log("[db] connected to Postgres");
     cachedClient = client as unknown as PgLike;
     return cachedClient;

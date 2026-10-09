@@ -10,6 +10,7 @@
  * never signs anything.
  */
 import type { PgLike } from "../db/client.js";
+import { navEligibilitySql, currentNavEligibilitySql, positionProjectionReadySql } from "../api/valuation-quality.js";
 
 export const DEFAULT_INTERVAL_MS = 5 * 60 * 1000;
 
@@ -20,20 +21,30 @@ export const DEFAULT_INTERVAL_MS = 5 * 60 * 1000;
  * inside Postgres NUMERIC — no JS arithmetic at all.
  */
 export const USER_SNAPSHOT_SQL = `
-  INSERT INTO user_value_snapshots (wallet, ts, value_usd, cost_basis)
+  INSERT INTO user_value_snapshots (wallet, ts, value_usd, cost_basis, valuation_eligible, valuation_status)
   SELECT up."user",
          date_trunc('minute', NOW()),
          SUM(up.share_balance * sp.share_price),
-         SUM(up.cost_basis)
+         SUM(up.cost_basis), true, 'complete'
   FROM user_positions up
-  JOIN LATERAL (
-    SELECT share_price FROM nav_snapshots WHERE basket = up.basket ORDER BY ts DESC LIMIT 1
+  LEFT JOIN LATERAL (
+    SELECT share_price FROM nav_snapshots n
+    WHERE n.basket = up.basket AND ${navEligibilitySql("n")}
+      AND ${currentNavEligibilitySql("up.basket", "n")}
+      AND ts <= NOW() AND ts >= NOW() - interval '15 minutes'
+      AND supply > 0 AND share_price >= 0
+      AND share_price::text NOT IN ('NaN', 'Infinity', '-Infinity')
+    ORDER BY ts DESC LIMIT 1
   ) sp ON true
   WHERE up.share_balance > 0
   GROUP BY up."user", date_trunc('minute', NOW())
+  HAVING COUNT(sp.share_price) = COUNT(*)
+    AND BOOL_AND(${positionProjectionReadySql("up.basket")})
   ON CONFLICT (wallet, ts) DO UPDATE
     SET value_usd = EXCLUDED.value_usd,
-        cost_basis = EXCLUDED.cost_basis`;
+        cost_basis = EXCLUDED.cost_basis,
+        valuation_eligible = true,
+        valuation_status = 'complete'`;
 
 export interface UserSnapshotter {
   start: () => void;

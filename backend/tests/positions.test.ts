@@ -15,13 +15,20 @@ import type { PgLike } from "../src/db/client";
 import { ANCHOR_EVENT_DISCRIMINATORS, type MintedEvent } from "../src/indexer/events";
 import { EventIndexer, type SolanaRpc } from "../src/indexer/listener";
 import {
-  applyFeeAccrued,
-  applyMinted,
-  applyPositionEvent,
-  applyRedeemed,
+  applyFeeAccrued as applyFeeAccruedAt,
+  applyMinted as applyMintedAt,
+  applyPositionEvent as applyPositionEventAt,
+  applyRedeemed as applyRedeemedAt,
   decimalToFixed,
   fixedToDecimalString,
+  PositionProjectionGapError,
 } from "../src/indexer/positions";
+
+// Fixtures choose explicit distinct runtime offsets; production has no inferred fallback.
+const applyMinted = (db: PgLike | null, sig: string, ev: Parameters<typeof applyMintedAt>[2]) => applyMintedAt(db, sig, ev, 1);
+const applyRedeemed = (db: PgLike | null, sig: string, ev: Parameters<typeof applyRedeemedAt>[2]) => applyRedeemedAt(db, sig, ev, 2);
+const applyFeeAccrued = (db: PgLike | null, sig: string, ev: Parameters<typeof applyFeeAccruedAt>[2]) => applyFeeAccruedAt(db, sig, ev, 3);
+const applyPositionEvent = (db: PgLike | null, sig: string, ev: Parameters<typeof applyPositionEventAt>[2]) => applyPositionEventAt(db, sig, ev, 1);
 
 // --- stateful fake PgLike ------------------------------------------------------
 
@@ -77,7 +84,7 @@ function positionsDb(
       }
       if (sql.includes("SELECT pubkey FROM baskets WHERE pubkey = $1")) return { rows: [{ pubkey: BASKET }], rowCount: 1 };
       if (sql.includes("FROM baskets WHERE pubkey")) {
-        const rows = opts.creator && opts.treasury ? [{ creator: opts.creator, treasury: opts.treasury }] : [];
+        const rows = opts.creator === null || opts.treasury === null ? [] : [{ creator: opts.creator ?? CREATOR, treasury: opts.treasury ?? TREASURY }];
         return { rows, rowCount: rows.length };
       }
       if (sql.includes("DELETE FROM user_positions")) {
@@ -109,6 +116,17 @@ function positionsDb(
       return { rows: [], rowCount: 0 };
     },
   };
+  Object.assign(db, { connect: async () => {
+    let snapshot: { positions: Map<string, FakePositionRow>; claims: Set<string> } | undefined;
+    return { release() {}, query: async (sql: string, values?: unknown[]) => {
+      if (sql === "BEGIN") snapshot = { positions: new Map([...positions].map(([key,row]) => [key,{...row}])), claims: new Set(positionClaims) };
+      if (sql === "ROLLBACK" && snapshot) {
+        positions.clear(); for (const [key,row] of snapshot.positions) positions.set(key,row);
+        positionClaims.clear(); for (const claim of snapshot.claims) positionClaims.add(claim);
+      }
+      return db.query(sql,values);
+    }};
+  }});
   return db as unknown as FakePositionsDb;
 }
 
@@ -256,12 +274,22 @@ describe("positions — applyRedeemed", () => {
     expect(db.positions.has(`${USER}|${BASKET}`)).toBe(false);
   });
 
-  it("redeem without an indexed position writes nothing for the user but still pays the fee split", async () => {
+  it("rolls back missing-position claims before any user or fee effect", async () => {
     const db = positionsDb({ creator: CREATOR, treasury: TREASURY });
-    expect(await applyRedeemed(db, "SIG-R3", redeemed({ exitFeeShares: "1000" }))).toBe(true);
-    expect(db.positions.has(`${USER}|${BASKET}`)).toBe(false); // never negative
-    expect(db.positions.get(`${CREATOR}|${BASKET}`)!.share_balance).toBe("900");
-    expect(db.positions.get(`${TREASURY}|${BASKET}`)!.share_balance).toBe("100");
+    await expect(applyRedeemed(db, "SIG-R3", redeemed({ exitFeeShares: "1000" }))).rejects.toBeInstanceOf(PositionProjectionGapError);
+    expect(db.positionClaims.has("SIG-R3|2")).toBe(false);
+    expect(db.positions.size).toBe(0);
+    expect(db.calls.some(call=>call.sql.includes("FROM baskets"))).toBe(false);
+  });
+
+  it("rejects insufficient indexed balance without clamping or crediting fees", async () => {
+    const db = positionsDb();
+    await applyMinted(db,"SIG-R-gap-seed",minted({netShares:"10",grossShares:"10",entryFeeShares:"0"}));
+    const before = {...db.positions.get(`${USER}|${BASKET}`)!};
+    await expect(applyRedeemed(db,"SIG-R-gap",redeemed({sharesBurned:"10",exitFeeShares:"1"}))).rejects.toThrow("position-projection-gap:insufficient-indexed-balance");
+    expect(db.positions.get(`${USER}|${BASKET}`)).toEqual(before);
+    expect(db.positionClaims.has("SIG-R-gap|2")).toBe(false);
+    expect(db.positions.size).toBe(1);
   });
 
   it("floors the proportional cost when the division is inexact", async () => {
@@ -304,8 +332,8 @@ describe("positions — applyFeeAccrued", () => {
   });
 
   it("degrades when the basket is not indexed yet — no fabricated recipients", async () => {
-    const db = positionsDb(); // no baskets row
-    expect(await applyFeeAccrued(db, "SIG-F4", { type: "FeeAccrued", basket: BASKET, sharesMinted: "10", elapsedSec: "1" })).toBe(true);
+    const db = positionsDb({ creator: null, treasury: null }); // no baskets row
+    await expect(applyFeeAccrued(db, "SIG-F4", { type: "FeeAccrued", basket: BASKET, sharesMinted: "10", elapsedSec: "1" })).rejects.toThrow(/Fee recipients/);
     expect(db.positions.size).toBe(0);
   });
 });

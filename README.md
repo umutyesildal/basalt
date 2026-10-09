@@ -1,5 +1,7 @@
 # Basalt — xStocks Strategy Baskets on Solana
 
+> **Backend/devnet security continuation, 2026-10-09:** `codex/backend-devnet-security` implements fail-closed auth/resource controls, canonical event identity, atomic position effects, restart-safe finalized history, authenticated holdings/complete valuations and dependency gates from the 4 October audit. The explicitly approved recovery source now verifies finalized holders, preserves immutable backups and publishes positions atomically; production activation remains an independent operator action. Old records are retained and unresolved values excluded. Live key retirement, governance and rollout remain open. See [implementation, tests, evidence and operator steps](docs/backend-devnet-security-2026-10-09.md).
+
 > **GitHub and live release, 2026-10-03:** The owner authorized the full latest source checkpoint and updates to the existing Vercel frontend and VPS backend. The release includes the four-mock wallet workspace, production dependency remediation and persistent quote/history storage. Read [the release record](docs/github-live-release-2026-10-03.md) for exact source/deployment identities, backups, final live checks and remaining scoped limitations. Dated local-only notes below describe earlier checkpoints.
 
 > **Current devnet wallet UI, 2026-10-03:** `/devnet` and `/create/onchain` now expose wallet-signed test-token claim, atomic basket creation, in-kind mint and redemption. The same four project-issued eight-decimal Token-2022 mocks, BSTESTA–D, back every new test basket; each basket gets its own share mint. `/create` offers **Try on devnet** and a shared preview offers **Create on devnet**. The funded, once-per-wallet faucet is `2GBfjd9jPKLoqNXdX7GDN9MHRKwzwXbHk65xQVf9HAcf`. Verified basket, supply, vault and wallet reads use direct devnet RPC, without a database or backend signer. [The wallet-flow record](docs/devnet-ui-wallet-flow-2026-10-03.md) links the finalized claim and shipped UI-builder proof: **seven finalized transactions and 20 assertions**. Names and theses are browser-local, verified against the immutable onchain metadata hash. An owner extension-wallet signature was not performed; build and responsive checks are recorded separately. This supersedes earlier redirect-only and incomplete mock-UI statements. Official xStocks, mainnet and Managed V2 release boundaries remain unchanged. Source changes remain local and unpushed.
@@ -57,7 +59,9 @@ Run the backend against devnet:
 
 ```bash
 cp backend/.env.devnet.example backend/.env.devnet
-cd backend && set -a && . ./.env.devnet && set +a && npx tsx src/index.ts
+cd backend && set -a && . ./.env.devnet && set +a
+# Local-only opt-in: process-random auth secret, invalidated on restart.
+SOCIAL_AUTH_ALLOW_DEV_SECRET=1 npx tsx src/index.ts
 ```
 
 Full evidence pack — signature tables, address tables, reconciliation, reproduction steps: `docs/devnet-live-2026-09-04.md`.

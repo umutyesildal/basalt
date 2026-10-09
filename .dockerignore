@@ -1,0 +1,11 @@
+# Backend image context: deny everything except the exact build inputs.
+**
+!backend/
+!backend/Dockerfile
+!backend/package.json
+!backend/package-lock.json
+!backend/tsconfig.json
+!backend/src/
+!backend/src/**
+!vendor/
+!vendor/basalt-bigint-buffer-1.0.0.tgz

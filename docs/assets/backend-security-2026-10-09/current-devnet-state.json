@@ -1,0 +1,42 @@
+{
+  "readonly": true,
+  "observedAt": "2026-10-09T10:18:25.178Z",
+  "cluster": "devnet",
+  "genesisHash": "EtWTRABZaYq6iMfeYKouRu166VU2xqa1wcaWoxPkrZBG",
+  "commitment": "finalized",
+  "contextSlots": [
+    "509145967",
+    "509145967"
+  ],
+  "upgrades": [
+    {
+      "name": "basket",
+      "program": "6Q43vFh4aqGxzvtU2vQwJX9PmX3skfYsGWZdA3fwJB9k",
+      "programData": "wgr99UCBVZWm7h9jswno2p9owpD8RSYE5iiUTyNFhJA",
+      "authority": "y72KA263br7MtZw7BqC2dx5QYCBUciJGzShE8BRSwRE"
+    },
+    {
+      "name": "basket_factory",
+      "program": "3hzoPep9JKgTmzLT6CNW5x3EN7WNYDevM6KHVM7pLgMF",
+      "programData": "C9g9HdnPpYy4HA9ivPhJKctTQ2YBNpran4fW5n3nPCmf",
+      "authority": "y72KA263br7MtZw7BqC2dx5QYCBUciJGzShE8BRSwRE"
+    },
+    {
+      "name": "whitelist",
+      "program": "FRavMcYQb2FVAHbbG6fGieQHdKk1UrQqgKsAAXTPRQeS",
+      "programData": "DtNwP5QCJZXTVTs5BkA2GHY1Ys2j2xdERrvBJBdiW1Kz",
+      "authority": "y72KA263br7MtZw7BqC2dx5QYCBUciJGzShE8BRSwRE"
+    }
+  ],
+  "whitelist": {
+    "address": "ESRwG8qoKaLM17dLEM6MJDRpKVYtkd9M2zUmbud2uXZd",
+    "authority": "y72KA263br7MtZw7BqC2dx5QYCBUciJGzShE8BRSwRE",
+    "pendingAuthority": null,
+    "pendingOption": 0
+  },
+  "factory": {
+    "address": "CfxquMe4MAPksEEsVyw8XmcxYH5W7qftRWNySgHjLi6e",
+    "treasury": "AAb2TXLQCPFvnUoJFSBe9PFs28w5kvAukH4Gaiia3eiJ",
+    "retiredTreasury": true
+  }
+}

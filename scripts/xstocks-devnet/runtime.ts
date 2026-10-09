@@ -4,6 +4,7 @@ import { dirname, join, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import { Connection, Keypair, PublicKey, type FetchFn } from "@solana/web3.js";
 import { DEVNET_GENESIS, FIXTURE_PROFILE } from "./profile.ts";
+import { assertNotRetiredPublicKey } from "../security/retired-keys.mjs";
 export const REPO_ROOT = fileURLToPath(new URL("../../", import.meta.url));
 export const RUNS_ROOT = join(REPO_ROOT, ".cache", "devnet-xstocks");
 export interface FixtureRecord { letter: string; symbol: string; name: string; mint: string; decimals: 8; multiplier: number; signatures: { create?: string; fund?: string; whitelist?: string } }
@@ -29,6 +30,7 @@ export async function loadSigner(file: string, expected?: PublicKey): Promise<Ke
     signer = Keypair.fromSecretKey(Uint8Array.from(value));
   } catch { throw new Error("Unable to decode signer file"); }
   if (expected && !signer.publicKey.equals(expected)) throw new Error("Signer public key does not match the explicitly expected payer");
+  assertNotRetiredPublicKey(signer.publicKey, "devnet signer");
   return signer;
 }
 export async function loadOrCreateRunKeypair(dir: string, name: string): Promise<Keypair> {

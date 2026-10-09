@@ -1,0 +1,19 @@
+{
+  "version": 1,
+  "cluster": "devnet",
+  "sourceCommit": null,
+  "releaseTag": null,
+  "expectedCurrentAuthority": "y72KA263br7MtZw7BqC2dx5QYCBUciJGzShE8BRSwRE",
+  "governance": {
+    "programId": "SQDS4ep65T869zMMBKyuUq6aM6uEgTu8meYaNbYQYY5",
+    "sdkVersion": "2.1.4",
+    "multisig": null,
+    "vault": null,
+    "vaultIndex": 0,
+    "configAuthority": "11111111111111111111111111111111",
+    "threshold": 2,
+    "timeLockSeconds": 172800,
+    "signers": []
+  },
+  "approvals": { "ownerTicket": null, "signers": [] }
+}

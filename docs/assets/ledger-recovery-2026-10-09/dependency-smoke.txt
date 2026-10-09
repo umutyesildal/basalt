@@ -1,0 +1,1 @@
+PASS: native-free bounded Solana u64/u128/u192/u256, Token-2022 mint layout, jayson browser client and web3 RPC compatibility

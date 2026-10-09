@@ -1,5 +1,9 @@
 # Basalt documentation map
 
+- [Backend/devnet security remediation, 2026-10-09](backend-devnet-security-2026-10-09.md): all ten findings mapped to implemented controls, real database tests, current devnet proof, approved recovery implementation and live rollout gates; live rollout remains separate.
+
+- [Approved ledger recovery implementation](ledger-recovery-2026-10-09.md): authenticated finalized snapshots, replay barriers, immutable backups and isolated PostgreSQL fault tests; no live activation.
+
 Current wallet UX: [one-action devnet flow](devnet-single-pipeline-2026-10-03.md), including partial account-setup recovery and verification.
 
 - [GitHub and live release, 2026-10-03](github-live-release-2026-10-03.md): source checkpoint, Vercel/VPS rollout, persistent public price history and live verification.

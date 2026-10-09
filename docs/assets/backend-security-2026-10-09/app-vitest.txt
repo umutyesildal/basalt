@@ -1,0 +1,13 @@
+
+ RUN  v1.6.1 /Users/umutyesildal/.codex/worktrees/backend-devnet-security/createyouretf/app
+
+ ✓ components/devnet/amounts.test.ts  (5 tests) 3ms
+ ✓ components/devnet/pipeline-state.test.ts  (15 tests) 4ms
+ ✓ components/devnet/create-draft.test.ts  (15 tests) 8ms
+ ✓ tests/managed-chain.test.ts  (6 tests) 20ms
+ ✓ tests/sign-and-send-local.test.ts  (9 tests) 31ms
+
+ Test Files  5 passed (5)
+      Tests  50 passed (50)
+   Start at  12:36:17
+   Duration  353ms (transform 164ms, setup 0ms, collect 369ms, tests 66ms, environment 0ms, prepare 303ms)

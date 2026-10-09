@@ -4,6 +4,9 @@
 # directly (Cloudflare proxy OFF / grey cloud). The orange-cloud proxy can be
 # enabled afterwards with SSL mode "Full (strict)" — see DEPLOY.md §5.
 {$API_DOMAIN} {
+	request_body {
+		max_size 65536
+	}
 	encode gzip
 	reverse_proxy backend:3001
 }

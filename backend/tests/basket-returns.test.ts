@@ -12,7 +12,7 @@ import {
 const NOW = new Date("2026-10-02T12:00:00Z");
 const WEEK = 7 * 24 * 60 * 60_000;
 const current = (patch: Partial<ReturnSnapshot> = {}): ReturnSnapshot => ({
-  nav: "100", supply: "1000000", sharePrice: "0.0001", ts: NOW.toISOString(), ...patch,
+  nav: "100", supply: "1000000", sharePrice: "0.0001", ts: NOW.toISOString(), valuationEligible: true, ...patch,
 });
 const baseline = (patch: Partial<ReturnSnapshot> = {}): ReturnSnapshot => ({
   ...current(), ts: new Date(NOW.getTime() - WEEK).toISOString(), ...patch,
@@ -79,11 +79,11 @@ describe("indexed basket share-price returns", () => {
     const row = returnSnapshot({
       cur_nav: "9007199254740993.123456789012",
       cur_supply: "9007199254740993",
-      cur_share_price: "0.0001", cur_ts: NOW,
+      cur_share_price: "0.0001", cur_ts: NOW, cur_valuation_eligible: true, cur_valuation_status: "complete",
     }, "cur_");
     expect(row).toEqual({
       nav: "9007199254740993.123456789012", supply: "9007199254740993",
-      sharePrice: "0.0001", ts: NOW.toISOString(),
+      sharePrice: "0.0001", ts: NOW.toISOString(), valuationEligible: true,
     });
     expect(snapshotTime("bad date")).toBeNull();
   });

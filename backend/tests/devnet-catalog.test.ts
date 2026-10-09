@@ -616,93 +616,31 @@ describe("workers/mockPriceFill — realistic gating (env on/off, per-symbol fal
 // 3e. NAV math is unchanged when realistic prices are injected
 // ============================================================================
 
-describe("NAV math with injected realistic (yahoo) prices — same formulas, real inputs", () => {
+describe("Production NAV rejects underlying-equity reference and mock prices", () => {
   const M_NVDA = mintPubkey(41);
   const M_AAPL = mintPubkey(42);
   const M_MSFT = mintPubkey(43);
-  // 40/32/28 units vs 4000/3200/2800 bps targets ⇒ exact zero drift.
   const BASKET = { pubkey: "BASKET_X", share_mint: "SHARE_X", constituents: [M_NVDA, M_AAPL, M_MSFT], weights_bps: [4000, 3200, 2800] };
-
-  function holdingsDb() {
-    return fakeDb([
-      {
-        match: "FROM vault_holdings",
-        rows: [
-          { mint: M_NVDA, scaled_amount: "40" },
-          { mint: M_AAPL, scaled_amount: "32" },
-          { mint: M_MSFT, scaled_amount: "28" },
-        ],
-      },
-    ]);
-  }
-
-  const REAL_PRICES = { nvda: 181.42, aapl: 233.09, msft: 402.17 };
-
-  function yahooQuoteMap(): PriceQuoteMap {
-    return {
-      [M_NVDA]: { mint: M_NVDA, price: REAL_PRICES.nvda, source: "yahoo", asOf: NOW.toISOString() },
-      [M_AAPL]: { mint: M_AAPL, price: REAL_PRICES.aapl, source: "yahoo", asOf: NOW.toISOString() },
-      [M_MSFT]: { mint: M_MSFT, price: REAL_PRICES.msft, source: "yahoo", asOf: NOW.toISOString() },
-    };
-  }
-
-  it("computeForBasket: NAV/share-price/drift formulas unchanged under yahoo quotes", async () => {
-    const engine = new NavEngine({
-      db: holdingsDb(),
-      fetchQuotes: async () => yahooQuoteMap(),
-      fetchSupply: async () => ({ supply: "1000000", source: "rpc" }),
-      now,
-    });
+  const holdingsDb = () => fakeDb([{ match: "FROM vault_holdings", rows: [
+    { mint: M_NVDA, scaled_amount: "40", authenticated: true, updated_at: NOW },
+    { mint: M_AAPL, scaled_amount: "32", authenticated: true, updated_at: NOW },
+    { mint: M_MSFT, scaled_amount: "28", authenticated: true, updated_at: NOW },
+  ] }]);
+  it.each(["yahoo", "mock"] as const)("does not publish %s prices as exact-mint NAV", async (source) => {
+    const quotes: PriceQuoteMap = Object.fromEntries(BASKET.constituents.map((mint) => [mint, {
+      mint, price: 200, source, asOf: NOW.toISOString(),
+    }]));
+    const engine = new NavEngine({ db: holdingsDb(), fetchQuotes: async () => quotes,
+      fetchSupply: async () => ({ supply: "1000000", source: "rpc", authenticated: true }), now });
     const c = await engine.computeForBasket(holdingsDb(), BASKET, NOW.toISOString());
-    expect(c.skipReason).toBeUndefined();
-
-    // NAV = Σ(scaled × real price) — the SAME exact fixed-point math, only the
-    // inputs are real now. Expected computed both ways and cross-checked.
-    const expectedNav = computeNavExact(
-      ["40", "32", "28"],
-      [REAL_PRICES.nvda, REAL_PRICES.aapl, REAL_PRICES.msft],
-    );
-    expect(c.nav).toBe(expectedNav);
-    expect(Number(c.nav)).toBeCloseTo(
-      40 * REAL_PRICES.nvda + 32 * REAL_PRICES.aapl + 28 * REAL_PRICES.msft,
-      6,
-    );
-    expect(c.sharePrice).toBe(computeSharePriceExact(expectedNav, "1000000"));
-    expect(c.driftBps).toEqual([0, 0, 0]); // weights math untouched by prices
+    expect(c.skipReason).toBe("no-prices");
+    expect(c.quality.eligible).toBe(false);
+    expect(c.quality.invalidQuotes).toEqual(BASKET.constituents);
   });
-
-  it("price provenance carries the real source labels into the snapshot payload", async () => {
-    const engine = new NavEngine({
-      db: holdingsDb(),
-      fetchQuotes: async () => yahooQuoteMap(),
-      fetchSupply: async () => ({ supply: "1000000", source: "rpc" }),
-      now,
-    });
-    const c = await engine.computeForBasket(holdingsDb(), BASKET, NOW.toISOString());
-    for (const mint of [M_NVDA, M_AAPL, M_MSFT]) {
-      expect(c.priceSource[mint].source).toBe("yahoo");
-      expect(c.priceSource[mint].asOf).toBe(NOW.toISOString());
-    }
-  });
-
-  it("mixed sources (yahoo / mock / missing) are labeled honestly; NAV sums only priced legs", async () => {
-    const mixed: PriceQuoteMap = {
-      [M_NVDA]: { mint: M_NVDA, price: REAL_PRICES.nvda, source: "yahoo", asOf: NOW.toISOString() },
-      [M_AAPL]: { mint: M_AAPL, price: 230, source: "mock", asOf: NOW.toISOString() },
-      // MSFT absent → labeled "missing", price null, NAV contribution 0.
-    };
-    const engine = new NavEngine({
-      db: holdingsDb(),
-      fetchQuotes: async () => mixed,
-      fetchSupply: async () => ({ supply: "1000000", source: "rpc" }),
-      now,
-    });
-    const c = await engine.computeForBasket(holdingsDb(), BASKET, NOW.toISOString());
-    expect(c.priceSource[M_NVDA]).toMatchObject({ source: "yahoo", price: REAL_PRICES.nvda });
-    expect(c.priceSource[M_AAPL]).toMatchObject({ source: "mock", price: 230 });
-    expect(c.priceSource[M_MSFT]).toMatchObject({ source: "missing", price: 0 });
-    expect(c.nav).toBe(computeNavExact(["40", "32", "28"], [REAL_PRICES.nvda, 230, null]));
-    expect(Number(c.nav)).toBeCloseTo(40 * REAL_PRICES.nvda + 32 * 230, 6);
+  it("preserves the pure math helpers for explicitly labeled reference models", () => {
+    const modelNav = computeNavExact(["40", "32", "28"], [181.42, 233.09, 402.17]);
+    expect(Number(modelNav)).toBeCloseTo(40 * 181.42 + 32 * 233.09 + 28 * 402.17, 6);
+    expect(computeSharePriceExact(modelNav, "1000000")).toBe((Number(modelNav) / 1000000).toFixed(12).replace(/0+$/, ""));
   });
 });
 

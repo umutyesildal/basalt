@@ -6,6 +6,7 @@
  */
 import { describe, it, expect } from "vitest";
 import http from "http";
+import { PassThrough } from "node:stream";
 import { PublicKey, VersionedTransaction } from "@solana/web3.js";
 import { TOKEN_2022_PROGRAM_ID } from "@solana/spl-token";
 
@@ -63,6 +64,7 @@ function fakeDb(routes: SqlRoute[] = []) {
     calls,
     query: async (sql: string, values?: unknown[]): Promise<{ rows: unknown[]; rowCount: number }> => {
       calls.push({ sql, values });
+      if (sql.includes("INSERT INTO basket_valuation_state")) return { rows: [], rowCount: 1 };
       for (const r of routes) {
         if (typeof r.match === "string" ? sql.includes(r.match) : r.match.test(sql)) {
           return { rows: r.rows.map((x) => ({ ...x })), rowCount: r.rowCount ?? r.rows.length };
@@ -221,15 +223,15 @@ describe("NavEngine worker", () => {
   function happyDb() {
     return fakeDb([
       { match: "FROM baskets ORDER", rows: [{ pubkey: BASKET, share_mint: "ShareMint11111111111111111111111111111111111", constituents: [MINT_A, MINT_B], weights_bps: [6000, 4000] }] },
-      { match: "FROM vault_holdings WHERE basket", rows: [{ mint: MINT_A, scaled_amount: "500" }, { mint: MINT_B, scaled_amount: "300" }] },
+      { match: "FROM vault_holdings WHERE basket", rows: [{ mint: MINT_A, scaled_amount: "500", authenticated: true, updated_at: NOW }, { mint: MINT_B, scaled_amount: "300", authenticated: true, updated_at: NOW }] },
       { match: "INSERT INTO nav_snapshots", rows: [], rowCount: 1 },
       { match: "REFRESH MATERIALIZED VIEW", rows: [], rowCount: 1 },
     ]);
   }
 
   const quotes = {
-    [MINT_A]: { mint: MINT_A, price: 250, source: "jupiter" as const, asOf: NOW.toISOString() },
-    [MINT_B]: { mint: MINT_B, price: 100, source: "jupiter" as const, asOf: NOW.toISOString() },
+    [MINT_A]: { mint: MINT_A, price: 250, source: "jupiter" as const, unit: "scaled-ui" as const, asOf: NOW.toISOString() },
+    [MINT_B]: { mint: MINT_B, price: 100, source: "jupiter" as const, unit: "scaled-ui" as const, asOf: NOW.toISOString() },
   };
 
   it("degrades honestly without DB: reason 'no-db', nothing persisted", async () => {
@@ -246,7 +248,7 @@ describe("NavEngine worker", () => {
       db,
       cache,
       fetchQuotes: async () => quotes,
-      fetchSupply: async () => ({ supply: "1000000", source: "rpc" }),
+      fetchSupply: async () => ({ supply: "1000000", source: "rpc", authenticated: true }),
       now: () => NOW,
     });
     const summary = await engine.runOnce();
@@ -278,7 +280,7 @@ describe("NavEngine worker", () => {
     const engine = new NavEngine({
       db,
       fetchQuotes: async () => quotes,
-      fetchSupply: async () => ({ supply: "1000000", source: "rpc" }),
+      fetchSupply: async () => ({ supply: "1000000", source: "rpc", authenticated: true }),
       now,
       rankingsRefreshMs: 300_000,
     });
@@ -294,26 +296,26 @@ describe("NavEngine worker", () => {
 
   it("skips persistence when no price is available — never a fabricated NAV=0 snapshot", async () => {
     const db = happyDb();
-    const engine = new NavEngine({ db, fetchQuotes: async () => ({}), fetchSupply: async () => ({ supply: "1", source: "rpc" }) });
+    const engine = new NavEngine({ db, now: () => NOW, fetchQuotes: async () => ({}), fetchSupply: async () => ({ supply: "1", source: "rpc", authenticated: true }) });
     const summary = await engine.runOnce();
     expect(summary.computations[0]?.skipReason).toBe("no-prices");
     expect(summary.snapshotsPersisted).toBe(0);
   });
 
-  it("labels absent per-mint prices source 'missing' so a partial NAV is self-describing", async () => {
+  it("rejects incomplete per-mint prices without persisting or caching partial NAV", async () => {
     const db = happyDb();
+    const cache = new InMemoryCache();
     const engine = new NavEngine({
-      db,
+      db, cache, now: () => NOW,
       fetchQuotes: async () => ({ [MINT_A]: quotes[MINT_A] }),
-      fetchSupply: async () => ({ supply: "1000000", source: "rpc" }),
+      fetchSupply: async () => ({ supply: "1000000", source: "rpc", authenticated: true }),
     });
     const summary = await engine.runOnce();
-    expect(summary.snapshotsPersisted).toBe(1);
-    const insert = db.calls.find((c) => c.sql.includes("INSERT INTO nav_snapshots"));
-    const priceSource = JSON.parse(insert!.values![5] as string) as Record<string, { source: string; price: number }>;
-    expect(priceSource[MINT_A].source).toBe("jupiter");
-    expect(priceSource[MINT_B].source).toBe("missing");
-    expect(insert!.values![2]).toBe("125000"); // only the priced leg counts
+    expect(summary.snapshotsPersisted).toBe(0);
+    expect(summary.cacheWrites).toBe(0);
+    expect(summary.computations[0].skipReason).toBe("incomplete-prices");
+    expect(summary.computations[0].quality.invalidQuotes).toEqual([MINT_B]);
+    expect(db.calls.some((c) => c.sql.includes("INSERT INTO nav_snapshots"))).toBe(false);
   });
 
   it("skips baskets without indexed holdings", async () => {
@@ -367,7 +369,7 @@ describe("quotes — POST /quotes/zap-in (mocked Jupiter)", () => {
   function dbForZapIn() {
     return fakeDb([
       { match: "FROM baskets WHERE pubkey", rows: [BASKET_ROW] },
-      { match: "FROM nav_snapshots WHERE basket", rows: [{ nav: "1000000.000000000000", supply: "1000000000" }] },
+      { match: "FROM nav_snapshots", rows: [{ nav: "1000000.000000000000", supply: "1000000000" }] },
     ]);
   }
 
@@ -399,8 +401,8 @@ describe("quotes — POST /quotes/zap-in (mocked Jupiter)", () => {
     expect(jup.urls[0]).toContain(`outputMint=${MINT_A}`);
     expect(jup.urls[0]).toContain("amount=50000000");
     expect(jup.urls[0]).toContain("slippageBps=50");
-    // expectedShares estimate (raw base units): 100e6 raw × 1e9 supply / 1e6 NAV = 1e11
-    expect(payload.expectedShares).toBe("100000000000");
+    // USDC input is $100: 100 USD × 1e9 raw supply / 1e6 USD NAV = 100,000 raw shares.
+    expect(payload.expectedShares).toBe("100000");
   });
 
   it("caches the quote for 30s (spec §7 quote:zap-in:{basket}:{amount}) and marks cached hits", async () => {
@@ -439,7 +441,7 @@ describe("quotes — POST /quotes/zap-out (mocked Jupiter)", () => {
   function dbForZapOut() {
     return fakeDb([
       { match: "FROM baskets WHERE pubkey", rows: [BASKET_ROW] },
-      { match: "FROM nav_snapshots WHERE basket", rows: [{ nav: "1000000", supply: "10000000" }] },
+      { match: "FROM nav_snapshots", rows: [{ nav: "1000000", supply: "10000000" }] },
       { match: "FROM vault_holdings", rows: [
         { mint: MINT_A, raw_amount: "550000000" },
         { mint: MINT_B, raw_amount: "300000000" },
@@ -477,7 +479,7 @@ describe("quotes — POST /quotes/zap-out (mocked Jupiter)", () => {
 
     const partialDb = fakeDb([
       { match: "FROM baskets WHERE pubkey", rows: [BASKET_ROW] },
-      { match: "FROM nav_snapshots WHERE basket", rows: [{ nav: "1", supply: "10000000" }] },
+      { match: "FROM nav_snapshots", rows: [{ nav: "1", supply: "10000000" }] },
       { match: "FROM vault_holdings", rows: [{ mint: MINT_A, raw_amount: "100" }] },
     ]);
     const missing = await handleZapOut({ db: partialDb }, { basket: BASKET, shares: "1" });
@@ -488,7 +490,7 @@ describe("quotes — POST /quotes/zap-out (mocked Jupiter)", () => {
   it("no supply snapshot ⇒ NOT_INDEXED; bad shares ⇒ 400", async () => {
     const noSupply = fakeDb([
       { match: "FROM baskets WHERE pubkey", rows: [BASKET_ROW] },
-      { match: "FROM nav_snapshots WHERE basket", rows: [] },
+      { match: "FROM nav_snapshots", rows: [] },
     ]);
     expect((await handleZapOut({ db: noSupply }, { basket: BASKET, shares: "1" })).status).toBe(404);
     expect((await handleZapOut({ db: dbForZapOut() }, { basket: BASKET, shares: "-3" })).status).toBe(400);
@@ -633,14 +635,14 @@ describe("server — GET routes (fake PgLike)", () => {
     expect((bad.payload as { error: { code: string; supported: string[] } }).error.code).toBe("INVALID_SORT");
   });
 
-  it("GET /baskets/:pubkey unknown ⇒ 404 NOT_INDEXED; known ⇒ detail + NAV + drift", async () => {
+  it("GET /baskets/:pubkey retains indexed detail but does not invent drift for incomplete holdings", async () => {
     const missing = await basketDetail(fakeDb(), BASKET);
     expect(missing.status).toBe(404);
     expect((missing.payload as { error: { code: string } }).error.code).toBe("NOT_INDEXED");
 
     const db = fakeDb([
       { match: "FROM baskets WHERE pubkey", rows: [{ ...BASKET_ROW, nonce: "0", created_at: "2026-08-01T00:00:00Z", metadata_hash: "0x00", metadata_json: null, num_constituents: 3, entry_fee_bps: 100, exit_fee_bps: 50, management_fee_bps: 200, last_fee_accrual_ts: "2026-08-01T00:00:00Z", factory: "F", creator: "C", treasury: "T" }] },
-      { match: "FROM nav_snapshots WHERE basket", rows: [{ nav: "155000", supply: "1000000", share_price: "0.155", price_source: {}, ts: "2026-09-01T11:59:00Z" }] },
+      { match: "FROM nav_snapshots", rows: [{ nav: "155000", supply: "1000000", share_price: "0.155", price_source: {}, ts: "2026-09-01T11:59:00Z" }] },
       { match: "FROM vault_holdings WHERE basket", rows: [
         { mint: MINT_A, raw_amount: "500", multiplier: "1", scaled_amount: "500", decimals: 6, updated_at: "2026-09-01T11:59:00Z" },
         { mint: MINT_B, raw_amount: "300", multiplier: "1", scaled_amount: "300", decimals: 6, updated_at: "2026-09-01T11:59:00Z" },
@@ -650,9 +652,7 @@ describe("server — GET routes (fake PgLike)", () => {
     expect(out.status).toBe(200);
     const data = (out.payload as { data: Record<string, unknown> }).data;
     expect(data.source).toBe("onchain-indexed");
-    const drift = data.drift as { actualWeightsBps: number[]; driftBps: number[] };
-    expect(drift.actualWeightsBps).toEqual([6250, 3750, 0]); // 500/800, 300/800, 3rd holding not indexed yet
-    expect(drift.driftBps).toEqual([1250, 750, -2000]); // vs the 3-item 5000/3000/2000 target
+    expect(data.drift).toBeNull(); // the third constituent has no authenticated holding
     expect((data.nav as Record<string, unknown>).value).toBe("155000");
   });
 
@@ -707,6 +707,9 @@ describe("server — GET routes (fake PgLike)", () => {
     const db = fakeDb([
       { match: "FROM baskets WHERE pubkey", rows: [{ 1: 1 }] },
       { match: "SELECT", rows: [{
+        current_status: "complete", current_eligible: true, latest_valuation_eligible: true, latest_valuation_status: "complete",
+        b24_valuation_eligible: true, b24_valuation_status: "complete", b7d_valuation_eligible: true, b7d_valuation_status: "complete",
+        b_inception_valuation_eligible: true, b_inception_valuation_status: "complete",
         latest_nav: "120", latest_supply: "1000000", latest_share_price: "0.00012",
         latest_ts: new Date("2026-09-01T12:00:00Z"), evaluated_at: new Date("2026-09-01T12:01:00Z"),
         b24_nav: "100", b24_supply: "1000000", b24_share_price: "0.0001", b24_ts: "2026-08-31T12:00:00Z",
@@ -790,7 +793,7 @@ describe("server — GET routes (fake PgLike)", () => {
     const handler = createHandler({
       db: fakeDb([
         { match: "FROM baskets WHERE pubkey", rows: [BASKET_ROW] },
-        { match: "FROM nav_snapshots WHERE basket", rows: [{ nav: "1000000", supply: "1000000000" }] },
+        { match: "FROM nav_snapshots", rows: [{ nav: "1000000", supply: "1000000000" }] },
       ]),
       fetchImpl: jup.fetchImpl,
       now: () => NOW,
@@ -804,11 +807,7 @@ describe("server — GET routes (fake PgLike)", () => {
     expect(payload.warning).toContain("sequential");
 
     // malformed JSON body ⇒ 400 INVALID_JSON
-    const bad = makeReq("POST", "/api/v1/quotes/zap-in");
-    (bad as unknown as { on: (event: string, cb: (chunk?: Buffer) => void) => void }).on = (event, cb) => {
-      if (event === "data") cb(Buffer.from("{not json"));
-      if (event === "end") cb();
-    };
+    const bad = makeReq("POST", "/api/v1/quotes/zap-in", undefined, "{not json");
     const { res: res2, state: state2 } = makeRes();
     await handler(bad, res2);
     expect(state2.statusCode).toBe(400);
@@ -818,17 +817,16 @@ describe("server — GET routes (fake PgLike)", () => {
 
 // --- http mocks for handler-level tests --------------------------------------
 
-function makeReq(method: string, url: string, body?: unknown): http.IncomingMessage {
-  const payload = body === undefined ? "" : JSON.stringify(body);
-  const req = {
+function makeReq(method: string, url: string, body?: unknown, rawBody?: string): http.IncomingMessage {
+  // Use an actual readable stream so byte limits, once/off and pause behave
+  // like IncomingMessage rather than synchronously invoking fake callbacks.
+  const req = Object.assign(new PassThrough(), {
     method,
     url,
     headers: { host: "localhost:3001" },
-    on: (event: string, cb: (chunk?: Buffer) => void) => {
-      if (event === "data" && payload) cb(Buffer.from(payload));
-      if (event === "end") cb();
-    },
-  };
+    aborted: false,
+  });
+  req.end(rawBody ?? (body === undefined ? "" : JSON.stringify(body)));
   return req as unknown as http.IncomingMessage;
 }
 

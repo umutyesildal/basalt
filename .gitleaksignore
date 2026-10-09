@@ -3,3 +3,23 @@
 # acf8837ecc252eebdc25d35d3a702d3227344eb70ad23b97f51700c6cf353abc
 # Ignore only this immutable commit/path/rule/line finding; all other findings remain active.
 e0e1edce2978ae8a717ef0b87d8683bddc296b19:docs/assets/xstocks-contract-compatibility-2026-10-03/evidence-manifest.json:generic-api-key:10
+
+# Public SHA-256 source/evidence checksums from the 2026-10-09 audit manifests.
+# Each digest was recomputed from its file at the named commit before allowlisting.
+# Exact immutable fingerprints only; no file, rule or content-wide exclusion.
+# Verified public checksum for docs/assets/ledger-recovery-2026-10-09/secret-history.json
+8831dc4602c1369367a8c1e91ce6bb46d897ff2d:docs/assets/ledger-recovery-2026-10-09/verification-summary.json:generic-api-key:70
+# Verified public checksum for backend/src/api/auth.ts
+56fd56c684c519e957b35d75817c91dfc695e3e8:docs/assets/backend-security-2026-10-09/verification-summary.json:generic-api-key:41
+# Verified public checksum for backend/tests/auth-hardening.test.ts
+56fd56c684c519e957b35d75817c91dfc695e3e8:docs/assets/backend-security-2026-10-09/verification-summary.json:generic-api-key:60
+# Verified public checksum for backend/tests/waveb-nav-api.test.ts
+56fd56c684c519e957b35d75817c91dfc695e3e8:docs/assets/backend-security-2026-10-09/verification-summary.json:generic-api-key:77
+# Verified public checksum for scripts/security/check-secret-history.mjs
+56fd56c684c519e957b35d75817c91dfc695e3e8:docs/assets/backend-security-2026-10-09/verification-summary.json:generic-api-key:87
+# Verified public checksum for scripts/security/retired-keys.d.mts
+56fd56c684c519e957b35d75817c91dfc695e3e8:docs/assets/backend-security-2026-10-09/verification-summary.json:generic-api-key:91
+# Verified public checksum for scripts/security/retired-keys.json
+56fd56c684c519e957b35d75817c91dfc695e3e8:docs/assets/backend-security-2026-10-09/verification-summary.json:generic-api-key:92
+# Verified public checksum for scripts/security/retired-keys.mjs
+56fd56c684c519e957b35d75817c91dfc695e3e8:docs/assets/backend-security-2026-10-09/verification-summary.json:generic-api-key:93

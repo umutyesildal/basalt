@@ -6,7 +6,11 @@
     "dev": "next dev",
     "build": "next build",
     "typecheck": "tsc --noEmit --incremental false",
-    "start": "next start"
+    "start": "next start",
+    "test": "npm run test:node && npm run test:vitest && npm run test:concept-preview",
+    "test:node": "tsx --test lib/*.test.ts components/create/*.test.ts tests/alt-setup-recovery.test.ts tests/create-basket-security.test.ts tests/devnet-baskets.test.ts tests/token-2022.test.ts tests/xstock-catalog.test.ts tests/xstock-history.test.ts",
+    "test:vitest": "vitest run components/devnet/*.test.ts tests/managed-chain.test.ts tests/sign-and-send-local.test.ts",
+    "test:concept-preview": "tsx tests/concept-preview.test.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.7.0",
@@ -32,11 +36,12 @@
     "d3-shape": "^3.2.0",
     "lucide-react": "^1.39.0",
     "motion": "^13.1.1",
-    "next": "^15.5.25",
+    "next": "15.5.27",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
     "tailwind-merge": "^3.6.0",
-    "tw-animate-css": "^1.4.0"
+    "tw-animate-css": "^1.4.0",
+    "bs58": "^5.0.0"
   },
   "devDependencies": {
     "@types/d3-array": "3.0.3",
@@ -49,10 +54,17 @@
     "shadcn": "^4.21.1",
     "tailwindcss": "^3.4.0",
     "tailwindcss-animate": "^1.0.7",
-    "typescript": "^5.4.0"
+    "typescript": "^5.4.0",
+    "vitest": "^1.4.0",
+    "tsx": "4.23.13"
   },
   "overrides": {
     "lodash": "4.18.1",
-    "postcss": "8.5.28"
+    "postcss": "8.5.28",
+    "bigint-buffer": "file:../vendor/basalt-bigint-buffer-1.0.0.tgz",
+    "jayson": "5.0.0",
+    "source-map-js": "1.2.2",
+    "uuid@<11.1.1": "11.1.1",
+    "sharp": "0.35.5"
   }
 }

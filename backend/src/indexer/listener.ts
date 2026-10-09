@@ -30,23 +30,29 @@ import {
   type DecodedFolioxEvent,
   type FolioxEventType,
 } from "./events.js";
-import { applyPositionEvent } from "./positions.js";
+import { applyPositionEvent, markPositionRebuildRequired, PositionProjectionGapError } from "./positions.js";
 import { syncPositionsFromChain, type JsonRpcInvoker, type PositionsSyncRpc } from "./positionsSync.js";
 import { syncWhitelistedMints, type WhitelistRpc } from "./whitelistSync.js";
 import { createPacer, rateLimitedWarn, withRpcBackoff, type Pacer } from "../rpc/backoff.js";
+import { DurableHistory } from "./history.js";
 import { BasketStateDecodeError, decodeBasketState, decodeFactoryTreasuryState } from "./basketState.js";
 
 /** Minimal structural slice of @solana/web3.js Connection used here. */
 export interface SolanaRpc {
   getSignaturesForAddress(
     address: PublicKey,
-    options?: { limit?: number; before?: string; until?: string },
+    options?: { limit?: number; before?: string; until?: string; minContextSlot?: number },
+    commitment?: "finalized",
   ): Promise<Array<{ signature: string; slot: number; err: unknown; blockTime?: number | null }>>;
   getParsedTransaction(
     signature: string,
-    config?: { maxSupportedTransactionVersion?: number },
+    config?: { maxSupportedTransactionVersion?: number; commitment?: "finalized" },
   ): Promise<ParsedTransactionWithMeta | null>;
   getAccountInfo(address: PublicKey): Promise<AccountInfo<Buffer> | null>;
+  // web3.js 1.98 getBlock cannot decode signatures mode. This public method
+  // invokes getBlock(transactionDetails:'signatures', rewards:false) correctly.
+  getBlockSignatures?(slot: number, commitment?: "finalized"): Promise<{ signatures: string[] }>;
+  getSlot?(commitment?: "finalized"): Promise<number>;
 }
 
 /**
@@ -64,6 +70,11 @@ export interface ChainStateRpc extends SolanaRpc {
 
 export interface IndexerConfig {
   programIds: string[];
+  /** Required in env-created production indexers. Tests may exercise the DB-less decoder. */
+  durableHistory?: boolean;
+  historyPagesPerPoll?: number;
+  /** Persist canonical logs without changing position projections (migration replay). */
+  replayOnly?: boolean;
   pollIntervalMs: number;
   signaturesPerPoll: number;
   maxSeenCache: number;
@@ -144,6 +155,8 @@ export const DEFAULT_INDEXER_CONFIG: IndexerConfig = {
 
 export interface EventRow {
   sig: string;
+  /** Actual index in the transaction runtime log array. */
+  logIndex: number;
   slot: number;
   basket: string | null;
   type: FolioxEventType;
@@ -185,11 +198,12 @@ export async function insertEvent(db: PgLike | null | undefined, row: EventRow):
     console.warn("[indexer] insertEvent skipped (no DB):", row.sig, row.type);
     return false;
   }
+  if (!Number.isSafeInteger(row.logIndex) || row.logIndex < 0) throw new Error("Event requires actual runtime log index");
   const res = await db.query(
-    `INSERT INTO events (sig, slot, basket, type, data, ts)
-     VALUES ($1, $2, $3, $4, $5, $6)
-     ON CONFLICT (sig) DO NOTHING`,
-    [row.sig, row.slot, row.basket, row.type, JSON.stringify(row.data), row.ts],
+    `INSERT INTO events (sig, slot, basket, type, data, ts, log_index)
+     VALUES ($1, $2, $3, $4, $5, $6, $7)
+     ON CONFLICT (sig, log_index) DO NOTHING`,
+    [row.sig, row.slot, row.basket, row.type, JSON.stringify(row.data), row.ts, row.logIndex],
   );
   return res.rowCount === 1;
 }
@@ -246,9 +260,9 @@ export async function incrementCreatorStats(db: PgLike | null | undefined, creat
   if (!isPgLike(db)) return; // silent: stats are optional in DB-less mode
   await db.query(
     `INSERT INTO creator_stats (creator, basket_count)
-     VALUES ($1, 1)
+     SELECT $1, COUNT(*) FROM baskets WHERE creator=$1
      ON CONFLICT (creator) DO UPDATE
-       SET basket_count = creator_stats.basket_count + 1, updated_at = NOW()`,
+       SET basket_count = EXCLUDED.basket_count, updated_at = NOW()`,
     [creator],
   );
 }
@@ -291,6 +305,14 @@ export class EventIndexer {
   private readonly factoryTreasuries = new Map<string, string>();
   private readonly attemptedThisPoll = new Set<string>();
   private readonly rpcPacer: Pacer;
+  private readonly history: DurableHistory | null;
+  private readonly finalizedBlocks = new Map<number, string[]>();
+  private completedDiscoverySlot: number | null = null;
+  private discoveryGeneration = 0;
+
+  /** Fresh successful discovery in the latest durable poll only; busy/failure resets it. */
+  get lastCompletedDiscoverySlot(): number | null { return this.completedDiscoverySlot; }
+  private lastDiscoveryMs = 0;
   private lastWhitelistSyncMs = 0;
   private lastHoldingsSyncMs = 0;
   private lastPositionsSyncMs = 0;
@@ -310,6 +332,8 @@ export class EventIndexer {
     private readonly cfg: IndexerConfig,
     private readonly db: PgLike | null = null,
   ) {
+    this.history = cfg.durableHistory && isPgLike(db) ? new DurableHistory(db) : null;
+    if (this.history && typeof db?.connect !== "function") throw new Error("Durable indexer requires a PostgreSQL pool");
     this.rpcPacer = createPacer(cfg.transactionSpacingMs ?? TRANSACTION_SPACING_MS, { sleep: cfg.backoffSleep });
   }
 
@@ -335,12 +359,10 @@ export class EventIndexer {
    * from WhitelistedMint accounts, vault_holdings for indexed baskets).
    */
   async pollOnce(): Promise<PollResult[]> {
-    const results: PollResult[] = [];
     this.attemptedThisPoll.clear();
-    for (const programId of this.cfg.programIds) {
-      results.push(await this.pollProgram(programId));
-    }
-    await this.syncChainState();
+    const results: PollResult[] = this.history ? await this.pollDurableHistory() : [];
+    if (!this.history) for (const programId of this.cfg.programIds) results.push(await this.pollProgram(programId));
+    if (!this.cfg.replayOnly) await this.syncChainState();
     return results;
   }
 
@@ -361,6 +383,22 @@ export class EventIndexer {
     if (typeof full.getProgramAccounts !== "function") return; // hand-rolled test rpc
     const now = Date.now();
     const spacing = this.cfg.stateSyncSpacingMs ?? STATE_SYNC_SPACING_MS;
+    // Discover authenticated Basket accounts even when creation logs were truncated or pruned.
+    if (this.cfg.basketProgramId && this.cfg.factoryProgramId && now - this.lastDiscoveryMs >= 300_000) {
+      this.lastDiscoveryMs = now;
+      try {
+        const accounts = await this.pacedRead(() => full.getProgramAccounts(new PublicKey(this.cfg.basketProgramId!), { commitment: "finalized", filters: [{ dataSize: 888 }] }));
+        for (const account of accounts) {
+          try {
+            const state = decodeBasketState(account.pubkey.toBase58(), account.account, { basket: new PublicKey(this.cfg.basketProgramId), factory: new PublicKey(this.cfg.factoryProgramId) });
+            if (await this.fetchTreasury(state.factory, this.cfg.factoryProgramId) !== state.treasury) throw new Error("factory treasury mismatch");
+            await upsertBasketFromCreation(this.db, state);
+            this.rememberBasket(state.pubkey);
+            await incrementCreatorStats(this.db, state.creator);
+          } catch (error) { console.warn("[indexer] basket discovery rejected account", account.pubkey.toBase58(), error instanceof Error ? error.message : error); }
+        }
+      } catch (error) { console.warn("[indexer] basket discovery failed", error instanceof Error ? error.message : error); }
+    }
     if (this.cfg.whitelistProgramId && now - this.lastWhitelistSyncMs >= WHITELIST_SYNC_INTERVAL_MS) {
       this.lastWhitelistSyncMs = now;
       try {
@@ -381,7 +419,7 @@ export class EventIndexer {
       }
     }
     const positionsIntervalMs = this.cfg.positionsSyncIntervalMs ?? POSITIONS_SYNC_INTERVAL_MS;
-    if (now - this.lastPositionsSyncMs >= positionsIntervalMs) {
+    if (!this.cfg.replayOnly && now - this.lastPositionsSyncMs >= positionsIntervalMs) {
       this.lastPositionsSyncMs = now;
       try {
         // Structural cast: the real Connection (and the test doubles that opt
@@ -390,7 +428,13 @@ export class EventIndexer {
         const stats = await syncPositionsFromChain(
           full as unknown as PositionsSyncRpc,
           this.db,
-          { spacingMs: spacing, backoffSleep: this.cfg.backoffSleep, jsonRpcInvoke: this.cfg.jsonRpcInvoke },
+          { spacingMs: spacing, backoffSleep: this.cfg.backoffSleep, jsonRpcInvoke: this.cfg.jsonRpcInvoke,
+            catchUpThroughSlot: async (requiredSlot: number) => {
+              if (!this.history) throw new Error("Finalized reconciliation requires durable canonical discovery");
+              await this.pollDurableHistory();
+              if (this.lastCompletedDiscoverySlot === null || this.lastCompletedDiscoverySlot < requiredSlot) throw new Error("Canonical discovery could not reach finalized snapshot slot within this poll budget");
+            },
+            programs: this.cfg.basketProgramId && this.cfg.factoryProgramId ? { basket:new PublicKey(this.cfg.basketProgramId),factory:new PublicKey(this.cfg.factoryProgramId),ids:this.cfg.programIds } : undefined },
         );
         if (stats.basketsScanned > 0) {
           console.log(
@@ -405,33 +449,103 @@ export class EventIndexer {
     }
   }
 
+  /** Discover every program before globally ordered effects; no signature sorting guesses. */
+  private async discoverProgram(programId: string, watermark: number): Promise<boolean> {
+    const pageBudget = Math.max(1,Math.min(10,this.cfg.historyPagesPerPoll ?? 2));
+    try {
+      for (let i=0;i<pageBudget;i++) {
+        const state = await this.history!.state(programId);
+        const page = await withRpcBackoff(() => this.pacedRead(() => this.rpc.getSignaturesForAddress(new PublicKey(programId), {
+          limit:this.cfg.signaturesPerPoll,minContextSlot:watermark,
+          ...(state.scan_before ? {before:state.scan_before} : {}),
+          ...((state.scan_until ?? state.head_signature) ? {until:(state.scan_until ?? state.head_signature)!} : {}),
+        },"finalized")), {logKey:"indexer:getSignaturesForAddress",sleep:this.cfg.backoffSleep});
+        if (await this.history!.savePage(state,page,this.cfg.signaturesPerPoll)) {
+          // A resumed scan has an older head. Finish a fresh catch-up scan before
+          // effects, or another program could expose a newer event first.
+          if (state.scan_before === null && state.scan_head === null) return true;
+        }
+      }
+    } catch(error) { console.warn(`[indexer] history discovery failed for ${programId}:`,error instanceof Error ? error.message : error); }
+    return false;
+  }
+
+  private async pollDurableHistory(): Promise<PollResult[]> {
+    this.completedDiscoverySlot = null;
+    const generation = ++this.discoveryGeneration;
+    return this.history!.withPollLock(() => this.drainDurableHistory(generation),this.cfg.programIds.map(programId => ({programId,signaturesSeen:0,events:[]})));
+  }
+
+  private async drainDurableHistory(generation: number): Promise<PollResult[]> {
+    const results = new Map(this.cfg.programIds.map(programId => [programId,{programId,signaturesSeen:0,events:[] as DecodedFolioxEvent[]}]));
+    if (!this.rpc.getSlot) throw new Error("Durable history requires a finalized slot watermark");
+    const watermark = await withRpcBackoff(() => this.pacedRead(() => this.rpc.getSlot!("finalized")),{logKey:"indexer:getSlot",sleep:this.cfg.backoffSleep});
+    if (!Number.isSafeInteger(watermark) || watermark < 0) throw new Error("Invalid finalized slot watermark");
+    let ready = true;
+    for (const program of this.cfg.programIds) {
+      if (await this.discoverProgram(program,watermark)) await this.history!.markVerifiedThrough(program,watermark);
+      else ready = false;
+    }
+    if (!ready || await this.history!.hasQuarantined(this.cfg.programIds)) return [...results.values()];
+    if (generation === this.discoveryGeneration) this.completedDiscoverySlot = watermark;
+    const budget = Math.max(1,Math.min(1000,this.cfg.signaturesPerPoll));
+    for (let i=0;i<budget;i++) {
+      let info = await this.history!.nextPendingGlobal(this.cfg.programIds);
+      if (!info || info.slot > watermark) break;
+      try {
+        if (info.txIndex === null) {
+          let signatures = this.finalizedBlocks.get(info.slot);
+          if (!signatures) {
+            if (!this.rpc.getBlockSignatures) throw new Error("Durable history requires finalized block transaction ordering");
+            const block = await withRpcBackoff(() => this.pacedRead(() => this.rpc.getBlockSignatures!(info!.slot,"finalized")), {logKey:"indexer:getBlockSignatures",sleep:this.cfg.backoffSleep});
+            if (!block?.signatures) throw new Error("Finalized block unavailable; canonical transaction order retained for retry");
+            signatures = block.signatures;
+            // Validate before caching; malformed or incomplete block lists never unlock effects.
+            await this.history!.assignTransactionIndices(this.cfg.programIds,info.slot,signatures);
+            this.finalizedBlocks.set(info.slot,signatures);
+            if (this.finalizedBlocks.size > 32) this.finalizedBlocks.delete(this.finalizedBlocks.keys().next().value!);
+          } else await this.history!.assignTransactionIndices(this.cfg.programIds,info.slot,signatures);
+          info = await this.history!.nextPendingGlobal(this.cfg.programIds);
+          if (!info || info.txIndex === null) throw new Error("Queued signature missing from canonical finalized block");
+        }
+        const processed = await this.processSignatures(info.programId,[info],true);
+        const result = results.get(info.programId)!;
+        result.signaturesSeen += processed.signaturesSeen; result.events.push(...processed.events);
+        if (processed.blocked) break;
+      } catch(error) {
+        if (info) await this.history!.retryGlobal(this.cfg.programIds,info.signature,error);
+        rateLimitedWarn("indexer:global-order",`[indexer] global history retained for retry: ${error instanceof Error ? error.message : String(error)}`);
+        break;
+      }
+    }
+    return [...results.values()];
+  }
+
   private async pollProgram(programId: string): Promise<PollResult> {
+    try {
+      const infos = await withRpcBackoff(() => this.pacedRead(() => this.rpc.getSignaturesForAddress(new PublicKey(programId), {limit:this.cfg.signaturesPerPoll},"finalized")), {logKey:"indexer:getSignaturesForAddress",sleep:this.cfg.backoffSleep});
+      return await this.processSignatures(programId,infos,false);
+    } catch(error) {
+      console.warn(`[indexer] signature read failed for ${programId}:`,error instanceof Error ? error.message : error);
+      return {programId,signaturesSeen:0,events:[]};
+    }
+  }
+
+  private async processSignatures(programId: string, sigInfos: SignatureInfo[], globalDrain: boolean): Promise<PollResult & {blocked:boolean}> {
     const events: DecodedFolioxEvent[] = [];
     let signaturesSeen = 0;
-    let sigInfos;
-    try {
-      // The shared backoff is the ONLY retry layer: when this batch already
-      // went through 429 backoff and still failed, the catch below logs and
-      // returns — it never re-fires the batch (no double-fire).
-      sigInfos = await withRpcBackoff(
-        () =>
-          this.pacedRead(() => this.rpc.getSignaturesForAddress(new PublicKey(programId), {
-            limit: this.cfg.signaturesPerPoll,
-          })),
-        { logKey: "indexer:getSignaturesForAddress", sleep: this.cfg.backoffSleep },
-      );
-    } catch (err) {
-      console.warn(`[indexer] getSignaturesForAddress failed for ${programId}:`, err instanceof Error ? err.message : err);
-      return { programId, signaturesSeen, events };
-    }
-
     // getSignaturesForAddress returns NEWEST-first; process OLDEST-first so a
     // fresh sync lands the BasketCreated tx (which upserts the baskets row)
     // before the Minted/Redeemed/FeeAccrued txs whose rows FK-reference it.
-    const pending = [...this.pending.values()]
+    const pending = globalDrain ? [] : [...this.pending.values()]
       .filter((entry) => entry.programId === programId).map((entry) => entry.info);
     const candidates = new Map([...pending, ...sigInfos].map((info) => [info.signature, info]));
-    for (const sigInfo of [...candidates.values()].sort((a, b) => a.slot - b.slot)) {
+    const ordered = [...candidates.values()];
+    if (!globalDrain) ordered.sort((a,b) => a.slot-b.slot); // DB-less decoder mode only.
+    const finish = (sig: string, quarantine?: string) => globalDrain ? this.history!.finishGlobal(this.cfg.programIds,sig,quarantine) : this.history?.finish(programId,sig,quarantine);
+    const retry = (sig: string, error: unknown) => globalDrain ? this.history!.retryGlobal(this.cfg.programIds,sig,error) : this.history?.retry(programId,sig,error);
+    let blocked = false;
+    for (const sigInfo of ordered) {
       if (sigInfo.err) {
         // ERR GUARD (layer 1): a transaction that failed on-chain must never
         // contribute events — count and skip; the chain-truth positions sync
@@ -439,7 +553,11 @@ export class EventIndexer {
         this.failedTxSkips++;
         continue;
       }
-      if (this.seen.has(sigInfo.signature) || this.attemptedThisPoll.has(sigInfo.signature)) continue;
+      if (this.seen.has(sigInfo.signature)) {
+        await finish(sigInfo.signature);
+        continue;
+      }
+      if (this.attemptedThisPoll.has(sigInfo.signature)) { if (globalDrain) { blocked = true; break; } continue; }
       this.attemptedThisPoll.add(sigInfo.signature);
       if (!this.pending.has(sigInfo.signature)) this.pending.set(sigInfo.signature, { programId, info: sigInfo });
       // The retry ledger is bounded independently of the successful-signature cache.
@@ -456,13 +574,15 @@ export class EventIndexer {
         const tx = await withRpcBackoff(
           () =>
             this.pacedRead(() => this.rpc.getParsedTransaction(sigInfo.signature, {
-              maxSupportedTransactionVersion: 0,
+              maxSupportedTransactionVersion: 0, commitment: "finalized",
             })),
           { logKey: "indexer:getParsedTransaction", sleep: this.cfg.backoffSleep },
         );
         if (!tx?.meta?.logMessages) {
           throw new Error("transaction or logs temporarily unavailable");
         }
+        if (globalDrain && tx.slot !== sigInfo.slot) throw new Error("Finalized transaction slot disagrees with queued signature; retained for retry");
+        if (globalDrain && tx.transaction.signatures?.[0] !== sigInfo.signature) throw new Error("Finalized transaction signature disagrees with requested signature; retained for retry");
         if (tx.meta.err) {
           // ERR GUARD (layer 2): the fetched transaction itself reports a
           // on-chain failure (meta.err). Its logs may still contain partial
@@ -474,33 +594,39 @@ export class EventIndexer {
             `[indexer] skipping failed tx ${sigInfo.signature} (meta.err set) — ` +
               `no events indexed from failed transactions (skipped so far: ${this.failedTxSkips})`,
           );
+          await finish(sigInfo.signature);
           this.markSeen(sigInfo.signature);
           continue;
         }
+        if (tx.meta.logMessages.some((line) => /log truncated/i.test(line))) {
+          throw new BasketStateDecodeError("truncated-account", "Runtime logs truncated; canonical event history is incomplete");
+        }
         const rows: EventRow[] = [];
         // Events decoded from THIS transaction only (for the positions sync).
-        const txEvents: DecodedFolioxEvent[] = [];
-        let basketCreated: Extract<DecodedFolioxEvent, { type: "BasketCreated" }> | null = null;
-        let createArgs: CreateBasketArgs | null = null;
-        let creationProgramId: string | null = null;
+        const txEvents: Array<{ event: DecodedFolioxEvent; logIndex: number }> = [];
+        const creations: Array<{ event: Extract<DecodedFolioxEvent, { type: "BasketCreated" }>; args: CreateBasketArgs | null; programId: string }> = [];
 
-        for (const { programId: emitter, payload } of extractAttributedProgramDataLogs(tx.meta.logMessages)) {
+        for (const { programId: emitter, payload, logIndex } of extractAttributedProgramDataLogs(tx.meta.logMessages)) {
           const type = matchAnchorEvent(payload);
           if (!type || !this.isTrustedEmitter(emitter, type)) continue;
           const event = decodeAnchorEvent(type, payload);
-          if (!event) continue;
-          txEvents.push(event);
-          const tsSec = sigInfo.blockTime ?? (event.type === "BasketCreated" ? event.ts : Math.floor(Date.now() / 1000));
+          if (!event) {
+            if (globalDrain) throw new Error(`Malformed trusted ${type} event payload; retained for review`);
+            continue;
+          }
+          txEvents.push({ event, logIndex });
+          // Durable history uses canonical chain time only. The DB-less decoder
+          // keeps its legacy test clock; production never substitutes wall time.
+          const tsSec = sigInfo.blockTime ?? tx.blockTime ?? (event.type === "BasketCreated" ? event.ts : globalDrain ? undefined : Math.floor(Date.now() / 1000));
+          if (tsSec === undefined || !Number.isSafeInteger(tsSec) || tsSec < 0 || !Number.isFinite(new Date(tsSec*1000).getTime())) throw new Error("Canonical event timestamp unavailable; retained for retry");
           const data: Record<string, unknown> = { ...event, programId: emitter };
           if (event.type === "BasketCreated") {
-            basketCreated = event;
-            creationProgramId = emitter;
-            // Enrich from the create_basket instruction in the same tx.
-            createArgs = await this.decodeCreateBasketFromTx(tx, emitter);
-            if (createArgs) data.createBasket = createArgs;
+            const args = await this.decodeCreateBasketFromTx(tx, emitter, event.basket);
+            creations.push({ event, args, programId: emitter });
+            if (args) data.createBasket = args;
           }
           rows.push({
-            sig: sigInfo.signature,
+            sig: sigInfo.signature, logIndex,
             slot: sigInfo.slot,
             basket: event.basket,
             type,
@@ -516,24 +642,13 @@ export class EventIndexer {
           // upsert is idempotent (ON CONFLICT DO NOTHING); creator_stats below
           // stays gated on the event insert being fresh AND the basket row
           // being newly created, so replays never double-count.
-          let basketUpserted = false;
-          if (
-            basketCreated &&
-            createArgs &&
-            creationProgramId &&
-            createArgs.constituents.length === basketCreated.numConstituents
-          ) {
-            const factory = await this.resolveFactory(tx, creationProgramId);
-            if (factory) {
-              const treasury = await this.fetchTreasury(factory, creationProgramId);
-              if (treasury) {
-                const upsert = buildBasketUpsert(basketCreated, factory, createArgs, treasury);
-                basketUpserted = await upsertBasketFromCreation(this.db, upsert);
-                if (isPgLike(this.db)) this.rememberBasket(upsert.pubkey);
-              } else {
-                console.warn(`[indexer] could not decode FactoryConfig treasury for basket ${basketCreated.basket}`);
-              }
-            }
+          for (const { event, args, programId: emitter } of creations) {
+            if (!args || args.constituents.length !== event.numConstituents) continue;
+            const factory = await this.resolveFactory(tx, emitter, event.basket);
+            if (!factory) continue;
+            const treasury = await this.fetchTreasury(factory, emitter);
+            await upsertBasketFromCreation(this.db, buildBasketUpsert(event, factory, args, treasury));
+            if (isPgLike(this.db)) this.rememberBasket(event.basket);
           }
           // Old creations may be outside the bounded history page. Recover
           // absent FK parents from authenticated current chain state, retaining
@@ -544,38 +659,39 @@ export class EventIndexer {
           }
           // Only persist downstream rows when the event insert is fresh, so
           // re-processing a signature can never double-count creator_stats.
-          let fresh = false;
-          for (const row of rows) fresh = (await insertEvent(this.db, row)) || fresh;
-          if (fresh && basketCreated && basketUpserted) {
-            await incrementCreatorStats(this.db, basketCreated.creator);
-          }
+          for (const row of rows) await insertEvent(this.db, row);
+          for (const { event } of creations) await incrementCreatorStats(this.db, event.creator);
         }
 
-        events.push(...txEvents);
+        events.push(...txEvents.map(({ event }) => event));
 
         // user_positions sync — AFTER the core upserts. The position_events
         // (sig, kind) ledger makes each write idempotent on its own, so this
         // runs even when the events row insert above was not fresh (recovery
         // after a crash between the two writes). Degrades to a warn when db
         // is null; per-event failures never break the poll loop.
-        for (const ev of txEvents) {
-          try {
-            await applyPositionEvent(this.db, sigInfo.signature, ev);
-          } catch (err) {
-            console.warn(
-              `[indexer] user_positions sync failed for ${sigInfo.signature} (${ev.type}):`,
-              err instanceof Error ? err.message : err,
-            );
-          }
+        if (!this.cfg.replayOnly) for (const { event, logIndex } of txEvents) {
+          // Failure retains the signature in the durable queue; successful earlier
+          // effects are independently idempotent and safe to retry after a crash.
+          await applyPositionEvent(this.db, sigInfo.signature, event, logIndex, sigInfo.slot);
         }
       } catch (err) {
+        if (err instanceof PositionProjectionGapError && isPgLike(this.db)) {
+          // The balance/claim transaction has rolled back. Persist only an
+          // operational guard so reviewed replay and explicit recovery can
+          // resolve legitimate genesis/transfer projection gaps.
+          await markPositionRebuildRequired(this.db, err.basket, "position-projection-gap");
+        }
         if (err instanceof BasketStateDecodeError) {
           // A malformed/wrong-program account is explicit quarantine, never
           // an invented FK parent. Transport and DB errors take the retry path.
           console.warn(`[indexer] rejected basket state for ${sigInfo.signature}: ${err.reason}`);
+          await finish(sigInfo.signature, err.message);
           this.markSeen(sigInfo.signature);
+          if (globalDrain) { blocked = true; break; }
           continue;
         }
+        await retry(sigInfo.signature, err);
         const attempt = (this.attempts.get(sigInfo.signature) ?? 0) + 1;
         this.attempts.set(sigInfo.signature, attempt);
         rateLimitedWarn(
@@ -583,18 +699,21 @@ export class EventIndexer {
           `[indexer] failed to process ${sigInfo.signature} (attempt ${attempt}, retained for retry): ` +
             (err instanceof Error ? err.message : String(err)),
         );
+        if (globalDrain) { blocked = true; break; } // Never pass a failed global predecessor.
         continue; // transient RPC/FK/DB failures are never marked successfully seen
       }
+      await finish(sigInfo.signature);
       this.markSeen(sigInfo.signature);
       this.attempts.delete(sigInfo.signature);
     }
-    return { programId, signaturesSeen, events };
+    return { programId, signaturesSeen, events, blocked };
   }
 
   /** Find the create_basket ix for this program and decode its base58 args. */
   private async decodeCreateBasketFromTx(
     tx: ParsedTransactionWithMeta,
     programId: string,
+    basket: string,
   ): Promise<CreateBasketArgs | null> {
     const all = [
       ...tx.transaction.message.instructions,
@@ -605,6 +724,8 @@ export class EventIndexer {
       if (pid !== programId) continue;
       const data = (ix as { data?: unknown }).data;
       if (typeof data !== "string") continue;
+      const accounts = (ix as { accounts?: readonly PublicKey[] }).accounts;
+      if (!accounts?.some((key) => key.toBase58() === basket)) continue;
       const args = decodeCreateBasketIx(data);
       if (args) return args;
     }
@@ -612,7 +733,7 @@ export class EventIndexer {
   }
 
   /** FactoryConfig PDA = first account of the create_basket instruction. */
-  private async resolveFactory(tx: ParsedTransactionWithMeta, programId: string): Promise<string | null> {
+  private async resolveFactory(tx: ParsedTransactionWithMeta, programId: string, basket: string): Promise<string | null> {
     const all = [
       ...tx.transaction.message.instructions,
       ...(tx.meta?.innerInstructions ?? []).flatMap((inner) => inner.instructions),
@@ -623,6 +744,7 @@ export class EventIndexer {
       if (typeof data !== "string") continue;
       if (!decodeCreateBasketIx(data)) continue;
       const accounts = (ix as { accounts?: readonly PublicKey[] }).accounts;
+      if (!accounts?.some((key) => key.toBase58() === basket)) continue;
       return accounts?.[0]?.toBase58() ?? null;
     }
     return null;
@@ -736,10 +858,15 @@ export function indexerConfigFromEnv(env: NodeJS.ProcessEnv = process.env): (Ind
   if (!rpcUrl) return null;
   const programIds = [env.PROGRAM_WHITELIST, env.PROGRAM_FACTORY, env.PROGRAM_BASKET]
     .filter((p): p is string => typeof p === "string" && p.length > 0);
-  if (programIds.length === 0) return null;
+  try {
+    if (programIds.length !== 3 || new Set(programIds).size !== 3 || programIds.some(id => new PublicKey(id).toBase58() !== id)) throw new Error("invalid program roles");
+  } catch {
+    console.warn("[indexer] disabled: PROGRAM_WHITELIST, PROGRAM_FACTORY and PROGRAM_BASKET must be three distinct valid public keys");
+    return null;
+  }
   return {
     rpcUrl,
-    programIds,
+    programIds, durableHistory: true, historyPagesPerPoll: 2,
     whitelistProgramId: env.PROGRAM_WHITELIST,
     basketProgramId: env.PROGRAM_BASKET,
     factoryProgramId: env.PROGRAM_FACTORY,
@@ -779,5 +906,5 @@ export async function createIndexerFromEnv(env: NodeJS.ProcessEnv = process.env)
     if (body.error) throw new Error(`jsonrpc ${method} failed: ${body.error.message}`);
     return body.result;
   };
-  return new EventIndexer(new Connection(cfg.rpcUrl, { disableRetryOnRateLimit: true }), { ...cfg, jsonRpcInvoke }, db);
+  return new EventIndexer(new Connection(cfg.rpcUrl, { commitment: "finalized", disableRetryOnRateLimit: true }), { ...cfg, jsonRpcInvoke }, db);
 }

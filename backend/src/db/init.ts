@@ -13,7 +13,7 @@
 import { readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { isPgLike, type PgLike } from "./client.js";
+import { isPgLike, isTransactionPool, type PgLike } from "./client.js";
 
 const here = dirname(fileURLToPath(import.meta.url));
 
@@ -56,8 +56,16 @@ export async function applySchema(db: PgLike | null | undefined): Promise<boolea
     return false;
   }
   // Simple query protocol (no bind params) supports multi-statement scripts.
-  await db.query(sql);
-  return true;
+  const client = isTransactionPool(db) ? await db.connect!() : db;
+  try {
+    await client.query(sql);
+    return true;
+  } catch (error) {
+    try { await client.query("ROLLBACK"); } catch { /* Preserve migration failure. */ }
+    throw error;
+  } finally {
+    if (client !== db && "release" in client && typeof client.release === "function") client.release();
+  }
 }
 
 /**

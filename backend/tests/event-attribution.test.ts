@@ -13,6 +13,7 @@ describe("Anchor runtime event attribution", () => {
     const rows = extractAttributedProgramDataLogs([`Program ${factory} invoke [1]`, data,
       `Program ${basket} invoke [2]`, data, `Program ${basket} success`, data, `Program ${factory} success`, data]);
     expect(rows.map(row => row.programId)).toEqual([factory, basket, factory]);
+    expect(rows.map(row => row.logIndex)).toEqual([1, 3, 5]);
     expect(rows.every(row => row.payload.equals(payload))).toBe(true);
   });
 

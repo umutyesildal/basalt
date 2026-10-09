@@ -1,0 +1,60 @@
+{
+  "observedAt": "2026-10-09",
+  "scope": "Public metadata and local source/lock validation; no live deployment, key reads or authority transactions",
+  "lockfiles": {
+    "package-lock.json": "af1b765293afa40083d0d565960baeb54343f1f1cdecd34ba6eb53bf435f6d76",
+    "app/package-lock.json": "64806f240ba3fe3e99a2ecdf9beb71b11daae93218095a64e551c7344dd02f93",
+    "backend/package-lock.json": "9e6f352e21fff91bca099bbb40329f01051b7c33204fdaceaff57d178ef1d067",
+    "Cargo.lock": "807773e4aabeb5945172fbffbaf4f89a8336435342702e45ce881f2c6cb64691"
+  },
+  "productionAudits": {
+    "root": {
+      "info": 0,
+      "low": 0,
+      "moderate": 0,
+      "high": 0,
+      "critical": 0,
+      "total": 0
+    },
+    "app": {
+      "info": 0,
+      "low": 0,
+      "moderate": 0,
+      "high": 0,
+      "critical": 0,
+      "total": 0
+    },
+    "backend": {
+      "info": 0,
+      "low": 0,
+      "moderate": 0,
+      "high": 0,
+      "critical": 0,
+      "total": 0
+    }
+  },
+  "validation": [
+    "Nine security regression tests passed, including independent full devnet genesis and streaming size bound",
+    "Actual bounded u64/u128/u192/u256 and Token-2022 mint codec compatibility passed",
+    "Jayson browser client and web3 mocked RPC compatibility passed",
+    "Clean root npm ci --ignore-scripts and standalone installs passed; locks are deterministic",
+    "Historical keypair scan: 6212 reachable/staged-index objects, four acknowledged retired historical blobs, zero new findings",
+    "Real disposable PostgreSQL canonical history tests: 20 passed; SDK/config tests: 2 passed; backend build passed",
+    "RustSec gate: two vulnerabilities and fourteen informational/unsound advisories with exact version/checksum exceptions expiring 2026-10-23; zero blockers, no mainnet approval"
+  ],
+  "secretHistory": {
+    "report": "secret-history.json",
+    "scannedObjects": 6212,
+    "retiredHistoricalBlobs": 4,
+    "newFindings": 0,
+    "largeCompilerBinaries": "Recognized by ELF/Mach-O/ar/Rust metadata/RSIC headers; filename alone never exempts text"
+  },
+  "canonicalHistory": {
+    "postgresTests": 20,
+    "sdkAndConfigurationTests": 2,
+    "order": "Global slot + finalized block transaction index, deduplicated across programs",
+    "discovery": "All programs freshly catch up with minContextSlot; persisted finalized_through_slot; busy/failed/resumed-only attempts cannot advance proof",
+    "lock": "indexer-global-finalized-poll before per-program history and basket locks",
+    "liveReplayPerformed": false
+  }
+}

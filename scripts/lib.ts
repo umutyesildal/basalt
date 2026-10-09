@@ -31,6 +31,7 @@ import {
 import { createHash } from "crypto";
 import fs from "fs";
 import path from "path";
+import { assertNotRetiredPublicKey } from "./security/retired-keys.mjs";
 
 // ===================== fixed addresses =====================
 
@@ -346,6 +347,8 @@ export function ixInitFactory(
   treasury: PublicKey,
   creatorFeeSplitBps = CREATOR_FEE_SPLIT_BPS,
 ): TransactionInstruction {
+  assertNotRetiredPublicKey(authority, "factory authority");
+  assertNotRetiredPublicKey(treasury, "new factory treasury");
   if (creatorFeeSplitBps !== CREATOR_FEE_SPLIT_BPS) {
     throw new RangeError(
       `V0 creator fee split is fixed at ${CREATOR_FEE_SPLIT_BPS} bps`,
@@ -608,7 +611,7 @@ export function stateDir(): string {
   const dir =
     process.env.FOLIOX_E2E_STATE_DIR ||
     path.join(process.cwd(), "scripts", ".e2e");
-  fs.mkdirSync(dir, { recursive: true });
+  fs.mkdirSync(dir, { recursive: true, mode: 0o700 });
   return dir;
 }
 
@@ -684,7 +687,9 @@ export function keypairFromFile(file: string): Keypair {
       `keypair file ${JSON.stringify(file)} resolves outside the state dir (${dir}) — pass a state-dir-relative name or set FOLIOX_E2E_STATE_DIR`,
     );
   }
-  return Keypair.fromSecretKey(Uint8Array.from(JSON.parse(fs.readFileSync(real, "utf8"))));
+  const keypair = Keypair.fromSecretKey(Uint8Array.from(JSON.parse(fs.readFileSync(real, "utf8"))));
+  assertNotRetiredPublicKey(keypair.publicKey, "E2E signer or treasury");
+  return keypair;
 }
 
 /**
@@ -717,17 +722,21 @@ export function envKeypair(name: "FOLIOX_E2E_PAYER" | "FOLIOX_E2E_TREASURY"): Ke
       `${name} resolves outside the state dir (${dir}) — pass a state-dir-relative name or set FOLIOX_E2E_STATE_DIR`,
     );
   }
-  return Keypair.fromSecretKey(Uint8Array.from(JSON.parse(fs.readFileSync(real, "utf8"))));
+  const keypair = Keypair.fromSecretKey(Uint8Array.from(JSON.parse(fs.readFileSync(real, "utf8"))));
+  assertNotRetiredPublicKey(keypair.publicKey, "E2E signer or treasury");
+  return keypair;
 }
 
 /** Loads or creates a keypair file inside the state dir. */
 export function stateKeypair(name: string): Keypair {
   const file = keypairFilename(name);
   if (fs.existsSync(file)) {
-    return Keypair.fromSecretKey(Uint8Array.from(JSON.parse(fs.readFileSync(file, "utf8"))));
+    const keypair = Keypair.fromSecretKey(Uint8Array.from(JSON.parse(fs.readFileSync(file, "utf8"))));
+    assertNotRetiredPublicKey(keypair.publicKey, "E2E actor");
+    return keypair;
   }
   const kp = Keypair.generate();
-  fs.writeFileSync(file, JSON.stringify(Array.from(kp.secretKey)));
+  fs.writeFileSync(file, JSON.stringify(Array.from(kp.secretKey)), { mode: 0o600, flag: "wx" });
   return kp;
 }
 
@@ -868,6 +877,7 @@ async function sendRetry(
   opts: { skipPreflight: boolean },
   tries = 5,
 ): Promise<string> {
+  signers.forEach(signer => assertNotRetiredPublicKey(signer.publicKey, "transaction signer"));
   let lastErr: unknown;
   for (let i = 0; i < tries; i++) {
     try {
@@ -1220,6 +1230,7 @@ export async function sendVersioned(
   rebuild?: (blockhash: string) => VersionedTransaction,
   tries = 5,
 ): Promise<string> {
+  signers.forEach(signer => assertNotRetiredPublicKey(signer.publicKey, "versioned transaction signer"));
   await txPace();
   let lastErr: unknown;
   for (let i = 0; i < tries; i++) {

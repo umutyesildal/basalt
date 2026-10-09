@@ -8,11 +8,12 @@
  *   * Fee crank  — DATABASE_URL (opt-out FEE_CRANK=0; RPC for blockhashes) → hourly
  *                  UNSIGNED accrue_management_fee tx builder (never signs — AGENTS §2 #5)
  *   * Cache      — REDIS_URL → Redis, else in-memory TTL map (nav:{basket}, quote:*)
- *   * API        — always up, even with zero env (DB routes then answer 503
+ *   * API        — requires a generated auth secret (DB routes answer 503
  *                  DB_UNAVAILABLE and subsystems report disabled — nothing is
  *                  ever fabricated).
  */
 import http from "http";
+import { socialAuthSecret } from "./api/auth.js";
 import { XStockQuoteService } from "./workers/xstockQuotes.js";
 import { connectFromEnv, disconnectFromEnv } from "./db/client.js";
 import { applySchema } from "./db/init.js";
@@ -25,6 +26,7 @@ import { createHandler, API_VERSION, type SubsystemStatus } from "./api/server.j
 const PORT = Number(process.env.PORT || 3001);
 
 async function main(): Promise<void> {
+  const authSecret = socialAuthSecret(); // Fail before starting any worker or opening a listener.
   console.log(`Basalt backend v${API_VERSION} starting (port ${PORT})`);
 
   // Public mainnet quote caching works independently of DB/devnet transaction readiness.
@@ -75,7 +77,7 @@ async function main(): Promise<void> {
     feeCrank: { enabled: feeCrank !== null, running: feeCrank?.isRunning ?? false },
     userSnapshot: { enabled: userSnapshotter !== null, running: userSnapshotter?.isRunning ?? false },
   });
-  const server = http.createServer(createHandler({ db, cache, status, xstockQuotes }));
+  const server = http.createServer(createHandler({ db, cache, status, xstockQuotes, authSecret }));
   await new Promise<void>((resolve) => server.listen(PORT, resolve));
   console.log(`Basalt backend listening on :${PORT}`);
   console.log(` - GET  /api/v1/baskets            (basket_rankings, source: onchain-indexed)`);

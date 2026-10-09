@@ -185,7 +185,7 @@ describe("getUserProfile", () => {
     // must be listed first or the fake matches the inner stats fragment.
     const db = fakeDb([
       { match: "FROM profiles p", rows: [] },
-      { match: "COUNT(DISTINCT e.sig)", rows: [{ trade_count: 3 }] },
+      { match: "COUNT(*) AS trade_count", rows: [{ trade_count: 3 }] },
     ]);
     const out = await getUserProfile(db, W1, null);
     const payload = out.payload as { profile: unknown; stats: { tradeCount: number } };
@@ -231,7 +231,7 @@ describe("getUserHistory", () => {
         match: "h.shares_raw",
         rows: [
           {
-            sig: "sig1",
+            sig: "sig1", log_index: 2, item_key: "sig1:2",
             ts,
             trade_type: "Minted",
             basket: "Bk1",
@@ -253,7 +253,7 @@ describe("getUserHistory", () => {
     const page2 = await getUserHistory(db, W1, { limit: 1, cursor: payload.nextCursor });
     expect((page2.payload as { items: unknown[] }).items).toHaveLength(1);
     // cursor param must be bound as $2 with the limit as $3
-    expect(db.calls[1].values).toEqual([W1, expect.any(Date), 1]);
+    expect(db.calls[1].values).toEqual([W1, expect.any(Date), "sig1:2", 1]);
   });
 
   it("rejects garbage cursors with 400", async () => {
@@ -635,7 +635,7 @@ describe("tryHandleSocialRoute", () => {
     );
     expect(noAuth.state.statusCode).toBe(401);
 
-    const db = fakeDb([{ match: "FROM profiles p", rows: [] }, { match: "COUNT(DISTINCT e.sig)", rows: [{ trade_count: 0 }] }]);
+    const db = fakeDb([{ match: "FROM profiles p", rows: [] }, { match: "COUNT(*) AS trade_count", rows: [{ trade_count: 0 }] }]);
     const read = fakeRes();
     await tryHandleSocialRoute(
       TEST_DEPS(db),

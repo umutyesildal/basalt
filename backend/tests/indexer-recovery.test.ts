@@ -54,13 +54,14 @@ function fkDb() {
   const calls: { sql: string; values: unknown[] }[] = [];
   const db = {
     parents, events, calls,
+    async connect() { return { query: db.query.bind(db), release() {} }; },
     async query(sql: string, values: unknown[] = []) {
       calls.push({ sql, values });
       if (sql.startsWith("SELECT pubkey FROM baskets WHERE")) return { rows: parents.has(String(values[0])) ? [{ pubkey: values[0] }] : [], rowCount: 0 };
       if (sql.includes("INSERT INTO baskets")) { const fresh = !parents.has(String(values[0])); parents.add(String(values[0])); return { rows: [], rowCount: fresh ? 1 : 0 }; }
       if (sql.includes("INSERT INTO events")) {
         if (!parents.has(String(values[2]))) throw new Error("events_basket_fkey");
-        const fresh = !events.has(String(values[0])); events.add(String(values[0])); return { rows: [], rowCount: fresh ? 1 : 0 };
+        const eventKey = `${values[0]}:${values[6]}`; const fresh = !events.has(eventKey); events.add(eventKey); return { rows: [], rowCount: fresh ? 1 : 0 };
       }
       if (sql.includes("INSERT INTO position_events")) { const key = `${values[0]}:${values[1]}`; const fresh = !claims.has(key); claims.add(key); return { rows: [], rowCount: fresh ? 1 : 0 }; }
       return { rows: [], rowCount: 0 };

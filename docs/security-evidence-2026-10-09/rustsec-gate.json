@@ -1,0 +1,120 @@
+{
+  "databaseCommit": "7eebec69c352c7191b1f13eb95dd510eeca5d1de",
+  "findings": 16,
+  "accepted": [
+    {
+      "advisory": "RUSTSEC-2024-0344",
+      "package": "curve25519-dalek",
+      "version": "3.2.1",
+      "kind": "vulnerability",
+      "expiresAt": "2026-10-23"
+    },
+    {
+      "advisory": "RUSTSEC-2022-0093",
+      "package": "ed25519-dalek",
+      "version": "1.0.1",
+      "kind": "vulnerability",
+      "expiresAt": "2026-10-23"
+    },
+    {
+      "advisory": "RUSTSEC-2024-0375",
+      "package": "atty",
+      "version": "0.2.14",
+      "kind": "unmaintained",
+      "expiresAt": "2026-10-23"
+    },
+    {
+      "advisory": "RUSTSEC-2025-0141",
+      "package": "bincode",
+      "version": "1.3.3",
+      "kind": "unmaintained",
+      "expiresAt": "2026-10-23"
+    },
+    {
+      "advisory": "RUSTSEC-2026-0247",
+      "package": "bitmaps",
+      "version": "2.1.0",
+      "kind": "unmaintained",
+      "expiresAt": "2026-10-23"
+    },
+    {
+      "advisory": "RUSTSEC-2024-0388",
+      "package": "derivative",
+      "version": "2.2.0",
+      "kind": "unmaintained",
+      "expiresAt": "2026-10-23"
+    },
+    {
+      "advisory": "RUSTSEC-2026-0248",
+      "package": "im",
+      "version": "15.1.0",
+      "kind": "unmaintained",
+      "expiresAt": "2026-10-23"
+    },
+    {
+      "advisory": "RUSTSEC-2025-0161",
+      "package": "libsecp256k1",
+      "version": "0.6.0",
+      "kind": "unmaintained",
+      "expiresAt": "2026-10-23"
+    },
+    {
+      "advisory": "RUSTSEC-2024-0436",
+      "package": "paste",
+      "version": "1.0.15",
+      "kind": "unmaintained",
+      "expiresAt": "2026-10-23"
+    },
+    {
+      "advisory": "RUSTSEC-2026-0251",
+      "package": "sized-chunks",
+      "version": "0.6.5",
+      "kind": "unmaintained",
+      "expiresAt": "2026-10-23"
+    },
+    {
+      "advisory": "RUSTSEC-2021-0145",
+      "package": "atty",
+      "version": "0.2.14",
+      "kind": "unsound",
+      "expiresAt": "2026-10-23"
+    },
+    {
+      "advisory": "RUSTSEC-2023-0033",
+      "package": "borsh",
+      "version": "0.9.3",
+      "kind": "unsound",
+      "expiresAt": "2026-10-23"
+    },
+    {
+      "advisory": "RUSTSEC-2023-0126",
+      "package": "im",
+      "version": "15.1.0",
+      "kind": "unsound",
+      "expiresAt": "2026-10-23"
+    },
+    {
+      "advisory": "RUSTSEC-2026-0186",
+      "package": "memmap2",
+      "version": "0.5.10",
+      "kind": "unsound",
+      "expiresAt": "2026-10-23"
+    },
+    {
+      "advisory": "RUSTSEC-2026-0097",
+      "package": "rand",
+      "version": "0.7.3",
+      "kind": "unsound",
+      "expiresAt": "2026-10-23"
+    },
+    {
+      "advisory": "RUSTSEC-2026-0255",
+      "package": "sized-chunks",
+      "version": "0.6.5",
+      "kind": "unsound",
+      "expiresAt": "2026-10-23"
+    }
+  ],
+  "blockers": [],
+  "mainnetApproved": false
+}

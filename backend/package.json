@@ -15,12 +15,20 @@
     "bullmq": "^5.0.0",
     "ioredis": "^5.3.0",
     "pg": "^8.11.0",
-    "tweetnacl": "^1.0.3"
+    "tweetnacl": "^1.0.3",
+    "bigint-buffer": "file:../vendor/basalt-bigint-buffer-1.0.0.tgz"
   },
   "devDependencies": {
     "@types/pg": "^8.23.1",
     "tsx": "^4.7.0",
     "typescript": "^5.4.0",
     "vitest": "^1.4.0"
+  },
+  "overrides": {
+    "bigint-buffer": "$bigint-buffer",
+    "jayson": "5.0.0",
+    "source-map-js": "1.2.2",
+    "uuid@<11.1.1": "11.1.1",
+    "sharp": "0.35.5"
   }
 }

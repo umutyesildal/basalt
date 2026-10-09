@@ -53,6 +53,7 @@ import { Buffer } from "buffer";
 
 import { CREATE_BASKET_COMPUTE_UNITS, buildCreateBasketInstruction, deriveCreateBasketPdas, estimateCreateBasketTxSize, sha256Hex, type CreateBasketArgs } from "@/lib/create-basket";
 import { withRetry, withRetryOnce } from "@/lib/rpc-retry";
+import { assertSafeCreateBasketFactory } from "@/lib/create-basket-security";
 
 /**
  * UTF-8 seed bytes (stand-in for Buffer.from so no Buffer global/polyfill is
@@ -665,6 +666,7 @@ export async function buildCreateBasketTransaction(params: {
   lookupTableAddresses?: PublicKey[];
 }): Promise<BuiltCreateBasketTx> {
   const { connection, creator, args } = params;
+  await assertSafeCreateBasketFactory(connection);
   const instruction = buildCreateBasketInstruction(creator, args);
   const needsAlt = createBasketNeedsAlt(args.constituents.length);
   const tables: AddressLookupTableAccount[] = [];
@@ -862,6 +864,7 @@ export async function ensureCreateBasketAlt(params: {
   recentSlot?: number;
 }): Promise<EnsureCreateBasketAltResult> {
   const { connection, creator, args, sendTransaction, onAwaitingWallet } = params;
+  await assertSafeCreateBasketFactory(connection);
   const addresses = deriveCreateBasketAltAddresses(creator, args);
   const cacheKey = await altCacheKey(connection, "create", new PublicKey(creator), addresses);
   return ensureAltCovering({

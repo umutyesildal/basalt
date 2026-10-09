@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test, { afterEach } from "node:test";
 import { createHash } from "node:crypto";
 import { spawnSync } from "node:child_process";
+import { fileURLToPath } from "node:url";
 import {
   AddressLookupTableAccount, AddressLookupTableInstruction, AddressLookupTableProgram,
   PublicKey, TransactionInstruction, type Connection, type VersionedTransaction,
@@ -12,6 +13,7 @@ import {
 } from "../lib/transactions";
 import { PROGRAMS } from "../lib/solana";
 import type { CreateBasketArgs } from "../lib/create-basket";
+import { FACTORY_FIXTURE_ADDRESS, factoryFixture } from "./factory-fixture";
 
 const GENESIS = "EtWTRABZaYq6iMfeYKouRu166VU2xqa1wcaWoxPkrZBG";
 const SIGNATURE = "2".repeat(87);
@@ -47,8 +49,8 @@ function fixture() {
   const rpc = {
     getGenesisHash: async () => f.genesis,
     getSlot: async () => { f.slotReads += 1; return f.slot; },
-    getAccountInfo: async (address: PublicKey) => tables.has(address.toBase58())
-      ? { owner: f.owner, executable: false, lamports: 1, data: Buffer.alloc(56) } : null,
+    getAccountInfo: async (address: PublicKey) => address.equals(FACTORY_FIXTURE_ADDRESS) ? factoryFixture(f.keys.treasury)
+      : tables.has(address.toBase58()) ? { owner: f.owner, executable: false, lamports: 1, data: Buffer.alloc(56) } : null,
     getAddressLookupTable: async (address: PublicKey) => ({ context: { slot: f.slot }, value: tables.get(address.toBase58()) ?? null }),
     getLatestBlockhash: async () => ({ blockhash: key(1).toBase58(), lastValidBlockHeight: 1_000 }),
     confirmTransaction: async () => {
@@ -264,7 +266,8 @@ test("a fresh process resumes the serialized receipt after create succeeds and t
   const script = `
     import assert from "node:assert/strict";
     import { AddressLookupTableAccount, AddressLookupTableInstruction, AddressLookupTableProgram, PublicKey, TransactionInstruction } from "@solana/web3.js";
-    import { ensureMintRedeemAlt } from "./app/lib/transactions.ts";
+    import * as transactionsModule from "./lib/transactions.ts";
+    const { ensureMintRedeemAlt } = transactionsModule.default ?? transactionsModule;
     const payload = ${JSON.stringify(payload)};
     const values = new Map(payload.storage);
     globalThis.window = { localStorage: { getItem: key => values.get(key) ?? null, setItem: (key, value) => values.set(key, value), removeItem: key => values.delete(key) } };
@@ -295,7 +298,9 @@ test("a fresh process resumes the serialized receipt after create succeeds and t
     console.log(JSON.stringify({ created: result.created, approvals: result.approvals, address: result.lookupTableAddress.toBase58(), sends }));
   `;
   const child = spawnSync(process.execPath, ["--import", "tsx", "--input-type=module", "-e", script], {
-    cwd: process.cwd(), env: { ...process.env, TSX_TSCONFIG_PATH: `${process.cwd()}/app/tsconfig.json` }, timeout: 10_000, encoding: "utf8",
+    cwd: fileURLToPath(new URL("../", import.meta.url)),
+    env: { ...process.env, TSX_TSCONFIG_PATH: fileURLToPath(new URL("../tsconfig.json", import.meta.url)) },
+    timeout: 10_000, encoding: "utf8",
   });
   assert.equal(child.status, 0, child.stderr);
   assert.deepEqual(JSON.parse(child.stdout), { created: false, approvals: 1, address: original.key.toBase58(), sends: 1 });

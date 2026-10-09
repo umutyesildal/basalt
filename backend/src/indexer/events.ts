@@ -179,12 +179,12 @@ export function extractProgramDataLogs(logMessages: string[]): Buffer[] {
  * transaction succeeds; failed or unfinished frames therefore discard data.
  * Broken depth/completion sequences discard unfinished frames until a root.
  */
-export function extractAttributedProgramDataLogs(logMessages: readonly string[]): Array<{ programId: string; payload: Buffer }> {
-  const out: Array<{ programId: string; payload: Buffer }> = [];
-  const stack: Array<{ programId: string; events: Array<{ programId: string; payload: Buffer }> }> = [];
+export function extractAttributedProgramDataLogs(logMessages: readonly string[]): Array<{ programId: string; payload: Buffer; logIndex: number }> {
+  const out: Array<{ programId: string; payload: Buffer; logIndex: number }> = [];
+  const stack: Array<{ programId: string; events: Array<{ programId: string; payload: Buffer; logIndex: number }> }> = [];
   const invoke = /^Program ([1-9A-HJ-NP-Za-km-z]{32,44}) invoke \[(\d+)\]$/;
   const finish = /^Program ([1-9A-HJ-NP-Za-km-z]{32,44}) (success|failed:.*)$/;
-  for (const line of logMessages) {
+  for (const [logIndex, line] of logMessages.entries()) {
     const start = invoke.exec(line);
     if (start) {
       const depth = Number(start[2]);
@@ -213,7 +213,7 @@ export function extractAttributedProgramDataLogs(logMessages: readonly string[])
     const payload = Buffer.from(encoded, "base64");
     if (payload.toString("base64") !== encoded) continue;
     const frame = stack[stack.length - 1];
-    frame.events.push({ programId: frame.programId, payload });
+    frame.events.push({ programId: frame.programId, payload, logIndex });
   }
   return out;
 }

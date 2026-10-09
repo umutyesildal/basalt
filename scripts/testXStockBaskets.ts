@@ -1,4 +1,5 @@
 /** Independent raw-accounting proof for project-issued devnet fixtures. Default: no RPC or signer access. */
+import { assertNotRetiredPublicKey } from "./security/retired-keys.mjs";
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
 import { parseArgs } from "node:util";
@@ -141,6 +142,7 @@ export async function main(args = process.argv.slice(2)) {
   const factory = await conn.getAccountInfo(deriveFactoryConfig());
   assert(factory?.owner.equals(FACTORY_PROGRAM_ID) && factory.data.subarray(0, 8).equals(accountDiscriminator("FactoryConfig")), "Existing factory required");
   const treasury = new PublicKey(factory.data.subarray(40, 72));
+  assertNotRetiredPublicKey(treasury, "factory treasury for new devnet baskets");
   assert.equal(factory.data.readUInt16LE(72), 9000, "Factory must use 90/10 fee split");
   for (const row of mocks) {
     assertFixtureMint(await getMint(conn, row.key, "confirmed", TOKEN_2022_PROGRAM_ID), payer.publicKey);

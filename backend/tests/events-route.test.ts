@@ -43,6 +43,7 @@ const ALT_BASKET = new PublicKey(Buffer.alloc(32, 21)).toBase58();
 const EVENT_ROWS = [
   {
     sig: "SIG-M2",
+    log_index: 7,
     slot: "77",
     basket: BASKET,
     type: "Minted",
@@ -51,6 +52,7 @@ const EVENT_ROWS = [
   },
   {
     sig: "SIG-M1",
+    log_index: 3,
     slot: "70",
     basket: BASKET,
     type: "Redeemed",
@@ -67,7 +69,7 @@ describe("events route — happy path + provenance", () => {
   it("returns ledger rows with source + asOf on every row and honest metadata", async () => {
     const db = fakeDb([
       { match: "FROM baskets WHERE pubkey", rows: [{ "?column?": 1 }] },
-      { match: "FROM events WHERE basket", rows: EVENT_ROWS },
+      { match: "FROM events WHERE log_index >= 0 AND basket", rows: EVENT_ROWS },
     ]);
     const out = await basketEvents(db, BASKET, {});
     expect(out.status).toBe(200);
@@ -89,11 +91,11 @@ describe("events route — happy path + provenance", () => {
   it("orders by ts DESC, slot DESC, sig ASC and binds limit as the second param", async () => {
     const db = fakeDb([
       { match: "FROM baskets WHERE pubkey", rows: [{ "?column?": 1 }] },
-      { match: "FROM events WHERE basket", rows: EVENT_ROWS },
+      { match: "FROM events WHERE log_index >= 0 AND basket", rows: EVENT_ROWS },
     ]);
     await basketEvents(db, BASKET, { limit: 25 });
-    const evCall = db.calls.find((c) => c.sql.includes("FROM events WHERE basket"))!;
-    expect(evCall.sql).toContain("ORDER BY ts DESC, slot DESC, sig ASC");
+    const evCall = db.calls.find((c) => c.sql.includes("FROM events WHERE log_index >= 0 AND basket"))!;
+    expect(evCall.sql).toContain("ORDER BY ts DESC, slot DESC, sig ASC, log_index ASC");
     expect(evCall.values).toEqual([BASKET, 25]);
   });
 
@@ -130,7 +132,7 @@ describe("events route — limit clamping", () => {
       const db = fakeDb([{ match: "FROM baskets WHERE pubkey", rows: [{ "?column?": 1 }] }]);
       const out = await basketEvents(db, BASKET, { limit: raw });
       expect(out.status).toBe(200);
-      const evCall = db.calls.find((c) => c.sql.includes("FROM events WHERE basket"))!;
+      const evCall = db.calls.find((c) => c.sql.includes("FROM events WHERE log_index >= 0 AND basket"))!;
       expect(evCall.values![1]).toBe(clamped);
       expect((out.payload as Record<string, unknown>).limit).toBe(clamped);
     });
@@ -155,7 +157,7 @@ describe("events route — type filter", () => {
     ]);
     const out = await basketEvents(db, BASKET, { type: "Redeemed", limit: 10 });
     expect(out.status).toBe(200);
-    const evCall = db.calls.find((c) => c.sql.includes("FROM events WHERE basket"))!;
+    const evCall = db.calls.find((c) => c.sql.includes("FROM events WHERE log_index >= 0 AND basket"))!;
     expect(evCall.sql).toContain("AND type = $2");
     expect(evCall.values).toEqual([BASKET, "Redeemed", 10]);
     expect((out.payload as Record<string, unknown>).type).toBe("Redeemed");
@@ -175,11 +177,11 @@ describe("events route — type filter", () => {
   it("empty-string type means 'no filter' (falls through to the unfiltered query)", async () => {
     const db = fakeDb([
       { match: "FROM baskets WHERE pubkey", rows: [{ "?column?": 1 }] },
-      { match: "FROM events WHERE basket", rows: EVENT_ROWS },
+      { match: "FROM events WHERE log_index >= 0 AND basket", rows: EVENT_ROWS },
     ]);
     const out = await basketEvents(db, BASKET, { type: "" });
     expect(out.status).toBe(200);
-    const evCall = db.calls.find((c) => c.sql.includes("FROM events WHERE basket"))!;
+    const evCall = db.calls.find((c) => c.sql.includes("FROM events WHERE log_index >= 0 AND basket"))!;
     expect(evCall.sql).not.toContain("AND type");
     expect((out.payload as Record<string, unknown>).type).toBeUndefined();
   });
@@ -238,7 +240,7 @@ describe("events route — handler plumbing", () => {
   const handlerDb = () =>
     fakeDb([
       { match: "FROM baskets WHERE pubkey", rows: [{ "?column?": 1 }] },
-      { match: "FROM events WHERE basket", rows: EVENT_ROWS },
+      { match: "FROM events WHERE log_index >= 0 AND basket", rows: EVENT_ROWS },
     ]);
 
   it("serves GET /api/v1/events?basket= end-to-end with clamped query limit", async () => {
@@ -250,7 +252,7 @@ describe("events route — handler plumbing", () => {
     const payload = JSON.parse(state.body) as Record<string, unknown>;
     expect(payload.limit).toBe(500);
     expect((payload.data as unknown[]).length).toBe(2);
-    const evCall = db.calls.find((c) => c.sql.includes("FROM events WHERE basket"))!;
+    const evCall = db.calls.find((c) => c.sql.includes("FROM events WHERE log_index >= 0 AND basket"))!;
     expect(evCall.values![1]).toBe(500);
   });
 
