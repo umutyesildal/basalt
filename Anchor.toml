@@ -1,3 +1,4 @@
+# Default legacy build. The explicit owner-devnet feature uses Anchor.owner-devnet.toml.
 [features]
 seeds = false
 skip-lint = false

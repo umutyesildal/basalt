@@ -6,6 +6,8 @@ Owner area: governance / security / release engineering
 
 Mainnet gate: **blocked until the verification evidence in this document exists**
 
+A separately scoped [contained devnet single-owner bootstrap preparation](devnet-owner-bootstrap.md) uses an explicit mock-only policy and honest single-key disclosure. It does not satisfy or weaken this production 2-of-3/48-hour policy; its owner/treasury acceptance and actual signing remain separate gates.
+
 This document defines Basalt's V0 upgrade-governance target and the evidence
 required to claim that target is active. It does not claim that a multisig or
 timelock currently controls the deployed programs.

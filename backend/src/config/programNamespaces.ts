@@ -1,5 +1,6 @@
 /** Reviewed devnet trust roots. Registration is source-controlled, never API/env supplied. */
 import { PublicKey } from "@solana/web3.js";
+import ownerPolicy from "./devnetOwnerPolicy.json" with { type: "json" };
 
 export const DEVNET_GENESIS_HASH = "EtWTRABZaYq6iMfeYKouRu166VU2xqa1wcaWoxPkrZBG";
 export type NamespaceRole = "whitelist" | "factory" | "basket";
@@ -53,6 +54,14 @@ export const PROGRAM_NAMESPACES = validateNamespaceRegistry([{
   whitelistConfig: "ESRwG8qoKaLM17dLEM6MJDRpKVYtkd9M2zUmbud2uXZd",
   creation: {enabled:false,treasury:null},
 }]);
+/** Prepared actual identities; the active union only changes after finalized deployment evidence. */
+export const DEVNET_OWNER_NAMESPACE: ProgramNamespace = validateNamespaceRegistry([{
+  id: "devnet-owner-v1", genesisHash: DEVNET_GENESIS_HASH,
+  programs: {whitelist:ownerPolicy.programIds.whitelist,factory:ownerPolicy.programIds.basket_factory,basket:ownerPolicy.programIds.basket},
+  factoryConfig: derive("factory",ownerPolicy.programIds.basket_factory),
+  whitelistConfig: derive("config",ownerPolicy.programIds.whitelist),
+  creation: {enabled:false,treasury:ownerPolicy.treasury},
+}])[0];
 /** Only a separately reviewed source change may select an activated clean namespace. */
 export const CREATION_NAMESPACE_ID: string | null = null;
 export const namespaceProgramIds = (entry: ProgramNamespace): string[] => roles.map(role=>entry.programs[role]).sort();

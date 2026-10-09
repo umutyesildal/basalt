@@ -1,0 +1,15 @@
+# Public identity map for scripts/build-v0-sbf.sh --features owner-devnet.
+# Default Anchor.toml and existing legacy binaries remain unchanged.
+[programs.localnet]
+whitelist = "37UVmx2uysqkKibBcSP5EZMycUeKnWRmnXVpr967juKF"
+basket_factory = "2xvJKG8DTmSZFu1zXpNVP3wvaCCCgGC2ufGGhYjzr4DH"
+basket = "8XPKfAYPaDSvUH95CeyjkgujTXAE5nFBJyFSqZvFvX7T"
+
+[programs.devnet]
+whitelist = "37UVmx2uysqkKibBcSP5EZMycUeKnWRmnXVpr967juKF"
+basket_factory = "2xvJKG8DTmSZFu1zXpNVP3wvaCCCgGC2ufGGhYjzr4DH"
+basket = "8XPKfAYPaDSvUH95CeyjkgujTXAE5nFBJyFSqZvFvX7T"
+
+[provider]
+cluster = "devnet"
+# Key material is supplied explicitly outside this repository; no default wallet.

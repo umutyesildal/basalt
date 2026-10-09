@@ -11,7 +11,11 @@ use anchor_spl::token_interface::{
 use basket::Basket as BasketAccount;
 use whitelist::WhitelistedMint;
 
+// The default artifact retains the deployed legacy identity. Clean devnet uses an explicit build feature.
+#[cfg(not(feature = "owner-devnet"))]
 declare_id!("3hzoPep9JKgTmzLT6CNW5x3EN7WNYDevM6KHVM7pLgMF");
+#[cfg(feature = "owner-devnet")]
+declare_id!("2xvJKG8DTmSZFu1zXpNVP3wvaCCCgGC2ufGGhYjzr4DH");
 
 pub const FACTORY_SEED: &[u8] = b"factory";
 pub const BASKET_SEED: &[u8] = b"basket";
@@ -1507,6 +1511,31 @@ mod bootstrap_authority_tests {
                 assert_eq!(accounts.factory.authority, authority);
                 true
             },
+        );
+    }
+}
+
+#[cfg(all(test, feature = "owner-devnet"))]
+mod owner_devnet_identity_tests {
+    use super::*;
+    #[test]
+    fn clean_cross_program_bindings_match_compiled_dependencies() {
+        assert_eq!(basket::FACTORY_PROGRAM_ID, crate::ID);
+        assert_eq!(basket::WHITELIST_PROGRAM_ID, whitelist::ID);
+        assert_ne!(basket::ID, crate::ID);
+        assert_ne!(whitelist::ID, crate::ID);
+        assert_ne!(basket::ID, whitelist::ID);
+        assert_eq!(
+            crate::ID.to_string(),
+            "2xvJKG8DTmSZFu1zXpNVP3wvaCCCgGC2ufGGhYjzr4DH"
+        );
+        assert_eq!(
+            basket::ID.to_string(),
+            "8XPKfAYPaDSvUH95CeyjkgujTXAE5nFBJyFSqZvFvX7T"
+        );
+        assert_eq!(
+            whitelist::ID.to_string(),
+            "37UVmx2uysqkKibBcSP5EZMycUeKnWRmnXVpr967juKF"
         );
     }
 }
