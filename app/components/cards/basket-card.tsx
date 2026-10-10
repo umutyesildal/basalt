@@ -1,35 +1,20 @@
+"use client";
+
+import Image from "next/image";
 import Link from "next/link";
+import { useId, useState } from "react";
+import { ArrowUpRight } from "lucide-react";
 
-import { WeightBar, type WeightBarConstituent } from "@/components/basket/weight-bar";
-import { CompositionChips } from "@/components/cards/composition-chips";
-import {
-  BenchmarkDelta,
-  CARD_LINK_CLASS,
-  MICRO_LABEL_CLASS,
-  StatCell,
-} from "@/components/cards/card-frame";
+import type { WeightBarConstituent } from "@/components/basket/weight-bar";
+import { BenchmarkDelta } from "@/components/cards/card-frame";
+import { SocialAvatar } from "@/components/social/avatar";
 import { ChangeValue } from "@/components/stocks/change-value";
-import { formatUsd } from "@/lib/format";
-import { cn } from "@/lib/utils";
-import { BasketDataNote } from "@/components/basket/basket-data-note";
-import type { BasketDataQuality } from "@/lib/basket-data-quality";
+import { Card } from "@/components/ui/card";
+import { getBasketCover, isBasketCoverId, type BasketCoverId } from "@/lib/basket-covers";
+import { basketDataMessage, type BasketDataQuality } from "@/lib/basket-data-quality";
+import { formatUsd, truncateAddress } from "@/lib/format";
+import { logoUrl } from "@/lib/logos";
 
-/**
- * Shared basket card — the /explore grid anatomy (Cesto-derived, monochrome
- * chrome; docs/ui-plan.md §1): name-first headline, one-line context (the
- * presentation-layer category label), composition shown EITHER as the Stax
- * weight strip (docs/stax-analiz/05 §5.3/§5.8 — when the caller passes
- * `weights`, the strip replaces the avatar chips and a single mono micro
- * count line dedupes the two representations) OR as the avatar-chips row
- * with `+N` overflow when no weights are available (never fabricate equal
- * weights). Below: mono share price with the unlabeled 24h change riding
- * beside it (owner feedback round 2 — no "24h" caption, the number only;
- * hidden when the price is missing), AUM, and a bottom zone carrying the
- * 7D and 30d cells plus the optional gray vs-SPY comparison, closed by the trust
- * provenance line (NAV estimate, with an explicit devnet/mock qualifier when
- * applicable). Cells exist only when the indexer actually carries the
- * figure. The whole card is one link; nothing interactive lives inside.
- */
 export interface BasketCardCompare {
   label: string;
   value: number | null;
@@ -39,34 +24,77 @@ export interface BasketCardCompare {
 export interface BasketCardProps {
   quality: BasketDataQuality;
   href: string;
-  /** Basket name when indexed, else the composition string / pubkey fragment. */
   headline: string;
-  /** Pubkey for the hover/assistive title. */
   pubkey?: string;
-  /** Category label (MicroLabel style) — omitted when classification has no label. */
   context?: string | null;
-  /** Constituent tickers in list order — drives the avatar chips. */
   tickers?: string[];
-  /**
-   * Weighted composition (percent weights) — when present it replaces the
-   * avatar chips with the Stax weight strip. Optional and additive: callers
-   * without weight data keep the chips path untouched.
-   */
   weights?: WeightBarConstituent[];
-  /** Share price; null renders an em dash with a public availability reason. */
+  coverId?: BasketCoverId | null;
+  thesis?: string | null;
+  assetCount?: number | null;
+  creator?: string | null;
   price: number | null;
-  /** Basket USD value; unavailable values remain an em dash. */
   aum: number | null;
-  /** True when the visible indexer data describes devnet/localnet mock tokens. */
   devnetPreview?: boolean;
   return24h?: number | null;
-  /** Seven-day return in percentage points; absent until verified history exists. */
   return7d?: number | null;
   return30d?: number | null;
-  /** vs-SPY comparison — only passed by the page when benchmark data exists. */
   compare?: BasketCardCompare | null;
 }
 
+const PLACEHOLDER_SRC = "/images/baskets/onchain-placeholder.svg";
+const finite = (value: number | null | undefined): value is number =>
+  typeof value === "number" && Number.isFinite(value);
+
+/** Local art is always underneath the cover, including while it loads or fails. */
+function OnchainCover({ coverId }: { coverId: BasketCoverId | null | undefined }) {
+  const cover = isBasketCoverId(coverId) ? getBasketCover(coverId) : null;
+  return (
+    <div
+      className="basket-story-cover relative bg-cover bg-center"
+      style={{ backgroundImage: `url("${PLACEHOLDER_SRC}")`, backgroundSize: "cover", backgroundPosition: "center" }}
+      aria-hidden="true"
+    >
+      {cover && <CoverImage key={cover.src} src={cover.src} />}
+    </div>
+  );
+}
+
+function CoverImage({ src }: { src: string }) {
+  const [failed, setFailed] = useState(false);
+  if (failed) return null;
+  return (
+    <Image
+      src={src}
+      alt=""
+      fill
+      sizes="(max-width: 639px) 100vw, (max-width: 1023px) 50vw, 320px"
+      quality={80}
+      onError={() => setFailed(true)}
+    />
+  );
+}
+
+function AssetMark({ ticker, devnet }: { ticker: string; devnet: boolean }) {
+  const [failed, setFailed] = useState(false);
+  return (
+    <span className={`basket-story-asset ${devnet ? "!border-border !bg-muted !text-[0.625rem] text-muted-foreground" : ""}`} aria-hidden="true" title={ticker}>
+      {devnet || failed ? ticker.slice(0, 2) : (
+        <img
+          src={logoUrl(ticker)}
+          alt=""
+          width={24}
+          height={24}
+          loading="lazy"
+          decoding="async"
+          onError={() => setFailed(true)}
+        />
+      )}
+    </span>
+  );
+}
+
+/** Same cover-first gallery anatomy as stock baskets, with indexed values only. */
 export function BasketCard({
   href,
   headline,
@@ -74,6 +102,10 @@ export function BasketCard({
   context,
   tickers = [],
   weights,
+  coverId,
+  thesis,
+  assetCount,
+  creator,
   quality,
   price: suppliedPrice,
   aum: suppliedAum,
@@ -83,120 +115,73 @@ export function BasketCard({
   return30d: suppliedReturn30d = null,
   compare: suppliedCompare = null,
 }: BasketCardProps) {
+  const availabilityId = useId();
   const eligible = quality.valuation.eligible;
-  const price = eligible ? suppliedPrice : null;
-  const aum = eligible ? suppliedAum : null;
-  const return24h = eligible ? suppliedReturn24h : null;
-  const return7d = eligible && typeof suppliedReturn7d === "number" && Number.isFinite(suppliedReturn7d) ? suppliedReturn7d : null;
-  const return30d = eligible ? suppliedReturn30d : null;
-  const compare = eligible ? suppliedCompare : null;
-  const unavailable = price === null;
-  // Composition dedupe: the weight strip and the avatar chips say the same
-  // thing, so only one renders. Weights win (they carry the proportions);
-  // without them the chips stay exactly as before — no equal-weight
-  // fabrication for baskets whose weights the feed does not carry.
-  const shownWeights =
-    Array.isArray(weights) && weights.length > 0 ? weights : null;
-  // The current 24h change sits beside the price. Longer windows appear
-  // only when their eligible historical figure exists.
-  const stats = [
-    ...(return7d !== null ? [{ key: "7D", value: return7d }] : []),
-    ...(return30d !== null ? [{ key: "30d", value: return30d }] : []),
-  ];
-  const hasFooter = stats.length > 0 || compare !== null;
+  const price = eligible && finite(suppliedPrice) && suppliedPrice >= 0 ? suppliedPrice : null;
+  const aum = eligible && finite(suppliedAum) && suppliedAum >= 0 ? suppliedAum : null;
+  const return24h = eligible && finite(suppliedReturn24h) ? suppliedReturn24h : null;
+  const return7d = eligible && finite(suppliedReturn7d) ? suppliedReturn7d : null;
+  const return30d = eligible && finite(suppliedReturn30d) ? suppliedReturn30d : null;
+  const compare = eligible && suppliedCompare && finite(suppliedCompare.value) ? suppliedCompare : null;
+  const count = Number.isSafeInteger(assetCount) && (assetCount as number) > 0
+    ? assetCount as number : tickers.length || weights?.length || null;
+  const description = thesis?.trim() || tickers.join(" · ") || context?.trim() || null;
+  const reason = basketDataMessage(quality) ?? "Price and return data are not available yet.";
+  const hasMetrics = price !== null || aum !== null || return7d !== null || return30d !== null || compare !== null;
 
   return (
-    <Link
-      href={href}
-      title={pubkey ? `Open basket ${pubkey}` : `Open ${headline}`}
-      className={CARD_LINK_CLASS}
-    >
-      <div className="flex items-start justify-between gap-2">
-        <div className="min-w-0">
-          <span
-            className="block break-words text-sm font-medium tracking-tight text-foreground"
-            title={pubkey}
-          >
-            {headline}
-          </span>
-          {context ? (
-            <span className={cn("mt-1 block", MICRO_LABEL_CLASS)}>{context}</span>
-          ) : null}
-        </div>
-      </div>
-
-      {shownWeights ? (
-        // Stax weight strip + one deduping micro line: the constituent count
-        // rides on the right (docs/stax-analiz/05 §5.3) so the strip never
-        // doubles up with a chip row saying the same thing.
-        <div className="mt-3">
-          <WeightBar constituents={shownWeights} />
-          <span className={cn("mt-1.5 block text-right", MICRO_LABEL_CLASS)}>
-            {shownWeights.length} constituents
-          </span>
-        </div>
-      ) : tickers.length > 0 ? (
-        <div className="mt-3">
-          <CompositionChips tickers={tickers} />
-        </div>
-      ) : null}
-
-      {/* Price line: big mono price with the unlabeled 24h change beside it,
-          baseline-aligned (owner feedback round 2). When the basket is not
-          indexed the change is hidden too — no figure, no delta. */}
-      <span className="mt-4 flex items-baseline gap-2">
-        <span
-          className={cn(
-            "font-mono text-2xl tabular-nums",
-            unavailable ? "text-muted-foreground" : "text-foreground",
-          )}
-        >
-          {formatUsd(price)}
-        </span>
-        {!unavailable && return24h !== null ? (
-          <ChangeValue changePct={return24h} className="text-sm" />
-        ) : null}
-      </span>
-      <span className="mt-0.5 font-mono text-xs tabular-nums text-muted-foreground">
-        Basket value {formatUsd(aum, { maximumFractionDigits: 0 })}
-      </span>
-
-      {!eligible ? <div className="mt-auto pt-4"><BasketDataNote quality={quality} /></div> : null}
-
-      {/* Bottom zone: the 7D/30d/vs-SPY footer (when any figure exists) and a
-          concise NAV provenance line. Do not imply mock-token valuations are
-          live xStocks NAV. */}
-      {hasFooter || !unavailable ? (
-        <div className="mt-auto pt-4">
-          {hasFooter ? (
-            <div className="flex items-center justify-between gap-2 border-t border-border/60 pt-3">
-              {stats.length > 0 ? (
-                <span className="flex gap-4">
-                  {stats.map((cell) => (
-                    <StatCell key={cell.key} label={cell.key} changePct={cell.value} />
-                  ))}
-                </span>
-              ) : null}
-              {compare ? (
-                <span className="flex flex-col items-end gap-0.5">
-                  <span className={MICRO_LABEL_CLASS}>{compare.label}</span>
-                  <BenchmarkDelta value={compare.value} window={compare.window} />
-                </span>
-              ) : null}
-            </div>
-          ) : null}
-          {!unavailable ? (
-            <span
-              className={cn(
-                "mt-2 block text-[0.6rem] leading-3 text-muted-foreground/60",
-                MICRO_LABEL_CLASS,
-              )}
-            >
-              {devnetPreview ? "Devnet · mock tokens · reference NAV" : "NAV estimate"}
+    <Card className="basket-story-card">
+      <Link
+        href={href}
+        className="basket-story-link"
+        aria-label={`View ${headline}`}
+        aria-describedby={!hasMetrics ? availabilityId : undefined}
+        title={!hasMetrics ? reason : pubkey ? `Open basket ${pubkey}` : undefined}
+      >
+        <OnchainCover coverId={coverId} />
+        <div className="basket-story-content">
+          <div className="basket-story-title-row">
+            <h3 className="font-display line-clamp-2 break-words" title={headline}>{headline}</h3>
+            <ArrowUpRight className="size-4 shrink-0" aria-hidden="true" />
+          </div>
+          <p className="basket-story-thesis min-h-[2.6rem] line-clamp-2 break-words" aria-hidden={!description || undefined}>{description}</p>
+          <div className="basket-story-meta">
+            <span className="basket-story-assets" aria-label={tickers.length ? `Holdings: ${tickers.join(", ")}` : undefined}>
+              {tickers.slice(0, 4).map((ticker, index) => (
+                <AssetMark key={`${ticker}-${index}-${devnetPreview}`} ticker={ticker} devnet={devnetPreview} />
+              ))}
+              {tickers.length > 4 && <span className="basket-story-count" aria-hidden="true">+{tickers.length - 4}</span>}
             </span>
-          ) : null}
+            {count !== null && <span className="font-mono">{count} {count === 1 ? "asset" : "assets"}</span>}
+          </div>
+          {hasMetrics ? (
+            <div className="mt-auto">
+              <dl className="basket-model-metrics flex-wrap">
+                {price !== null && <div><dt>Share price</dt><dd className="flex items-baseline gap-2">{formatUsd(price)}{return24h !== null && <ChangeValue changePct={return24h} className="text-xs" />}</dd></div>}
+                {return7d !== null && <div><dt>7D</dt><dd><ChangeValue changePct={return7d} /></dd></div>}
+                {return30d !== null && <div><dt>30D</dt><dd><ChangeValue changePct={return30d} /></dd></div>}
+                {aum !== null && <div><dt>Basket value</dt><dd>{formatUsd(aum, { maximumFractionDigits: 0 })}</dd></div>}
+                {compare && <div><dt>{compare.label}</dt><dd><BenchmarkDelta value={compare.value} window={compare.window} /></dd></div>}
+              </dl>
+              <span className="mt-2 block text-[0.6rem] leading-4 text-muted-foreground">
+                {devnetPreview ? "Devnet · mock tokens · reference NAV" : "NAV estimate"}
+              </span>
+            </div>
+          ) : devnetPreview ? (
+            <p id={availabilityId} className="sr-only" title={reason}>{reason}</p>
+          ) : (
+            <p id={availabilityId} className="mt-[1.1rem] border-t border-border/65 pt-4 text-xs leading-5 text-muted-foreground" title={reason} aria-label={reason}>
+              {quality.status === "pending" ? "Checking basket data." : "Prices not available yet."}
+            </p>
+          )}
         </div>
-      ) : null}
-    </Link>
+      </Link>
+      {creator && (
+        <Link href={`/creator/${encodeURIComponent(creator)}`} className="basket-story-owner" title={creator}>
+          <SocialAvatar wallet={creator} className="!size-6" />
+          <span>by {truncateAddress(creator, 4, 4)}</span>
+        </Link>
+      )}
+    </Card>
   );
 }

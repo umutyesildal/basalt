@@ -10,13 +10,13 @@ import { Button } from "@/components/ui/button";
 import { fadeUpStagger } from "@/components/ui/motion";
 import { SkeletonShimmer } from "@/components/ui/skeleton-shimmer";
 import { BasketCard, type BasketCardCompare } from "@/components/cards/basket-card";
-import type { WeightBarConstituent } from "@/components/basket/weight-bar";
 import { prettyTicker, truncateAddress } from "@/lib/format";
 import { apiFetch } from "@/lib/api-client";
 import { categoryOf, compareBasketCategories } from "@/lib/categories";
 import { CLUSTER } from "@/lib/wallet";
 import { cn } from "@/lib/utils";
 import { parseBasketDataQuality } from "@/lib/basket-data-quality";
+import { onchainBasketDisplay } from "@/lib/onchain-basket-display";
 import { ConceptGallery } from "./concept-gallery";
 
 const DEVNET_PREVIEW = CLUSTER === "devnet" || CLUSTER === "localnet";
@@ -210,8 +210,7 @@ function compositionOf(b: BasketRow, mintTickers: Map<string, string>): string |
 /**
  * Constituent tickers (list order) with optional weights in plain percent,
  * fed to the presentation-layer category classification (see lib/categories.ts)
- * and the card weight strip (WeightBarConstituent.weight is a percent — the
- * weights_bps leg divides by 100 here so both legs share one unit). Same
+ * using weights in percent. Same
  * extraction rules as compositionOf — mint pubkeys resolve through the
  * whitelist ticker map, metadata constituents carry pct weights.
  */
@@ -415,7 +414,7 @@ export default function ExploreClient() {
   // Per-basket card inputs, derived presentation-side from constituent tickers
   // (lib/categories.ts): avatar-chip tickers + the category label. The heaviest
   // classified constituent wins; unmapped tickers fall back to "Other".
-  // Weight pairs ride along (percent, same order) to feed the card weight strip.
+  // Weight pairs ride along in percent for category classification.
   const cardInfoByPubkey = useMemo(() => {
     const map = new Map<
       string,
@@ -493,7 +492,7 @@ export default function ExploreClient() {
             Onchain baskets
           </h2>
           <p className="max-w-2xl text-sm leading-6 text-muted-foreground">
-            Deployed on {CLUSTER}.{DEVNET_PREVIEW ? " Project test tokens have no USD market value." : ""}
+            Created by the community on {CLUSTER}.
           </p>
         </div>
 
@@ -501,18 +500,24 @@ export default function ExploreClient() {
         <div
           role="status"
           aria-label="Loading baskets"
-          className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
+          className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4"
         >
           {Array.from({ length: 8 }, (_, i) => (
             <div
               key={i}
               aria-hidden="true"
-              className="rounded-xl border border-border bg-card p-5"
+              className="overflow-hidden rounded-xl border border-border"
             >
-              <SkeletonShimmer width="7rem" height="1rem" />
-              <SkeletonShimmer width="6rem" height="1.75rem" className="mt-4" />
-              <SkeletonShimmer width="4rem" height="0.75rem" className="mt-1.5" />
-              <SkeletonShimmer height="0.75rem" className="mt-6" />
+              <SkeletonShimmer className="aspect-[1.25] !h-auto !rounded-none" />
+              <div className="space-y-3 p-5">
+                <SkeletonShimmer width="75%" height="1.25rem" />
+                <SkeletonShimmer height="0.75rem" />
+                <SkeletonShimmer width="50%" height="0.75rem" />
+                <SkeletonShimmer height="1.5rem" className="!mt-6" />
+              </div>
+              <div className="border-t border-border px-5 py-4">
+                <SkeletonShimmer width="50%" height="1rem" />
+              </div>
             </div>
           ))}
         </div>
@@ -601,7 +606,7 @@ export default function ExploreClient() {
             ))}
           </nav>
 
-          {/* Grid only — same responsive layout as /stocks (1 / 2 / 3-4 columns). */}
+          {/* Match the stock basket gallery above at every breakpoint. */}
           {visible.length === 0 ? (
             <p className="text-sm text-muted-foreground">
               {query.trim()
@@ -609,37 +614,28 @@ export default function ExploreClient() {
                 : "No baskets in this category yet."}
             </p>
           ) : (
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
               {visible.map((b, index) => {
                 const change = returnPercent(b.return_24h);
                 const r7 = returnPercent(b.return_7d);
                 const r30 = returnPercent(b.return_30d);
                 const compare = comparisonOf(b, bench);
                 const info = cardInfoByPubkey.get(b.pubkey);
-                // Weight strip slices (percent); null weights drop out — the
-                // bar needs a positive weight per block to be honest.
-                const weightSlices: WeightBarConstituent[] | undefined = info
-                  ? info.tickers
-                      .map((symbol, i) => ({
-                        symbol,
-                        weight: info.weights[i] ?? 0,
-                      }))
-                      .filter((s) => s.weight > 0)
-                  : undefined;
+                const display = onchainBasketDisplay(b.metadata_json, b.pubkey);
+                const assetCount = Array.isArray(b.constituents) && b.constituents.length > 0
+                  ? b.constituents.length : num(b.num_constituents);
                 return (
-                  // Fade-up stagger wrapper (motion.ts constants; reduced
-                  // motion handled by motion.css). BasketCard keeps its frozen
-                  // prop set — the animation lives on the grid cell around it.
-                  <div key={b.pubkey} className={fadeUpStagger(index)}>
+                  <div key={b.pubkey} className={cn("min-w-0", fadeUpStagger(index))}>
                     <BasketCard
                       href={`/basket/${b.pubkey}`}
                       pubkey={b.pubkey}
-                      headline={
-                        nameOf(b) ?? compositionOf(b, mintTickers) ?? truncateAddress(b.pubkey, 6, 4)
-                      }
+                      headline={display.name}
+                      thesis={display.thesis}
+                      coverId={display.coverId}
+                      creator={b.creator}
+                      assetCount={assetCount}
                       context={info?.category ?? null}
                       tickers={info?.tickers ?? []}
-                      weights={weightSlices && weightSlices.length > 0 ? weightSlices : undefined}
                       quality={parseBasketDataQuality(b.dataQuality, b.quality)}
                       price={sharePriceUsd(b.share_price)}
                       aum={num(b.nav)}

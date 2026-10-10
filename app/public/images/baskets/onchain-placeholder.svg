@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="600" height="480" viewBox="0 0 600 480" fill="none">
+  <rect width="600" height="480" fill="#101110"/>
+  <defs>
+    <pattern id="grid" width="32" height="32" patternUnits="userSpaceOnUse">
+      <circle cx="16" cy="16" r="1" fill="#252824"/>
+    </pattern>
+  </defs>
+  <rect width="600" height="480" fill="url(#grid)"/>
+  <path d="M105 368 300 255 495 368 300 481Z" fill="#151713"/>
+  <g stroke="#414637" stroke-width="1.5" stroke-linejoin="round">
+    <path d="M168 148 206 170V358L168 336Z" fill="#41482B"/>
+    <path d="M206 170 244 148V336L206 358Z" fill="#252C1B"/>
+    <path d="M168 148 206 126 244 148 206 170Z" fill="#DCE64C" stroke="#DCE64C"/>
+    <path d="M168 179 206 201 244 179M168 211 206 233 244 211M168 242 206 264 244 242M168 274 206 296 244 274M168 305 206 327 244 305"/>
+    <path d="M262 210 300 232V358L262 336Z" fill="#353A2B"/>
+    <path d="M300 232 338 210V336L300 358Z" fill="#20251B"/>
+    <path d="M262 210 300 188 338 210 300 232Z" fill="#80894B"/>
+    <path d="M262 241 300 263 338 241M262 273 300 295 338 273M262 305 300 327 338 305"/>
+    <path d="M356 272 394 294V358L356 336Z" fill="#292D24"/>
+    <path d="M394 294 432 272V336L394 358Z" fill="#1A1E16"/>
+    <path d="M356 272 394 250 432 272 394 294Z" fill="#525A39"/>
+    <path d="M356 304 394 326 432 304"/>
+  </g>
+  <g stroke="#DEE74F" stroke-width="1.7" stroke-linejoin="miter" transform="translate(32 32)">
+    <path d="M4.3 3.7 6.5 2.5 8.7 3.7V21.5H4.3ZM9.8 10.7 12 9.5 14.2 10.7V21.5H9.8ZM15.3 15.7 17.5 14.5 19.7 15.7V21.5H15.3Z"/>
+  </g>
+  <path d="M36 424H564" stroke="#2B2F25"/>
+  <text x="36" y="450" fill="#9CA18D" font-family="Arial,sans-serif" font-size="11" letter-spacing="3">BASALT</text>
+  <circle cx="558" cy="446" r="3" fill="#DCE64C"/>
+</svg>
