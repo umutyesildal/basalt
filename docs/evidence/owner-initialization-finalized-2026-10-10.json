@@ -1,0 +1,115 @@
+{
+  "version": 1,
+  "checkedAt": "2026-10-10T16:54:54.050Z",
+  "mode": "independent-read-only-finalized-owner-initialization-verification",
+  "verificationSourceSha": "06258516e61b4ac2bfdbbd048134964115a48f17",
+  "runtimeUiSourceSha": "b5fecf67c10915b0e17e4db1059f3fdd6635a753",
+  "cluster": "devnet",
+  "rpc": "https://api.devnet.solana.com",
+  "genesisHash": "EtWTRABZaYq6iMfeYKouRu166VU2xqa1wcaWoxPkrZBG",
+  "signature": "5XkjbrtExkx719PoyVsZUxc2AAnDCLma2CvwGGCpCVRe1ETPv7ENFX37wQuq3FGNCvryUuAerosZPkuUfJRfFNhy",
+  "explorer": "https://explorer.solana.com/tx/5XkjbrtExkx719PoyVsZUxc2AAnDCLma2CvwGGCpCVRe1ETPv7ENFX37wQuq3FGNCvryUuAerosZPkuUfJRfFNhy?cluster=devnet",
+  "transactionSlot": 509606852,
+  "blockTime": 1791651149,
+  "finalizedStatus": "finalized",
+  "owner": "TcAgGWYnr5uVQGRiU67C1ynpH5JDKCmwWaCA6V2ANea",
+  "ownerSignatureVerified": true,
+  "exactReconstructedMessageVerified": true,
+  "messageSha256": "4a1526ebda7171394ffe7803809f0502aa08f9153e8847ba8a64d80ecd055926",
+  "packetBytes": 864,
+  "computeUnitLimit": 200000,
+  "computeUnitPriceMicroLamports": "0",
+  "feeLamports": 5000,
+  "unitsConsumed": 98956,
+  "topLevelPrograms": [
+    "ComputeBudget111111111111111111111111111111",
+    "ComputeBudget111111111111111111111111111111",
+    "37UVmx2uysqkKibBcSP5EZMycUeKnWRmnXVpr967juKF",
+    "2xvJKG8DTmSZFu1zXpNVP3wvaCCCgGC2ufGGhYjzr4DH",
+    "37UVmx2uysqkKibBcSP5EZMycUeKnWRmnXVpr967juKF",
+    "37UVmx2uysqkKibBcSP5EZMycUeKnWRmnXVpr967juKF",
+    "37UVmx2uysqkKibBcSP5EZMycUeKnWRmnXVpr967juKF",
+    "37UVmx2uysqkKibBcSP5EZMycUeKnWRmnXVpr967juKF"
+  ],
+  "expectedActions": [
+    "init-whitelist",
+    "init-factory",
+    "admit-BSTESTA",
+    "admit-BSTESTB",
+    "admit-BSTESTC",
+    "admit-BSTESTD"
+  ],
+  "inspectedState": {
+    "contextSlot": 509607445,
+    "loaderAuthority": "owner",
+    "whitelist": "owner",
+    "factoryInitialized": true,
+    "admitted": [
+      "BSTESTA",
+      "BSTESTB",
+      "BSTESTC",
+      "BSTESTD"
+    ],
+    "steps": [],
+    "ownerBalanceLamports": 13919341612
+  },
+  "directlyDecodedAccountsContextSlot": 509607445,
+  "whitelistConfig": {
+    "address": "E9Ads3k4ABKBJeu68JprMDomrAKne7WH71nVpyNqDVuz",
+    "authority": "TcAgGWYnr5uVQGRiU67C1ynpH5JDKCmwWaCA6V2ANea",
+    "pendingAuthority": null,
+    "admissionCount": 4
+  },
+  "factoryConfig": {
+    "address": "FExz3aUSJyb2zTHcePJv71SM5Luk1FR7FU3MAzmfUJUJ",
+    "authority": "TcAgGWYnr5uVQGRiU67C1ynpH5JDKCmwWaCA6V2ANea",
+    "treasury": "TcAgGWYnr5uVQGRiU67C1ynpH5JDKCmwWaCA6V2ANea",
+    "creatorFeeSplitBps": 9000,
+    "maxEntryFeeBps": 300,
+    "maxExitFeeBps": 100,
+    "maxManagementFeeBps": 300,
+    "basketCount": "0",
+    "bump": 252
+  },
+  "admissions": [
+    {
+      "address": "6atsG4XYjznLTMNozEm38FZZD6mPLWHB7YMLLWtfgy4q",
+      "mint": "CrjoC7fq5XAbdej5zjinKNGXVqo8E8qCmh8XSiu2QViQ",
+      "symbol": "BSTESTA",
+      "decimals": 8,
+      "recordedMultiplier": "1000000",
+      "status": "Active",
+      "priceSource": "mock:BSTESTA"
+    },
+    {
+      "address": "8eoNCXeYadHFTXH5TZVLsaFb8jHmfuGLL2Spv3a5QgwQ",
+      "mint": "EpH2swtxW2rCuFg2o2ukD5Qw5Xv3toaug1M3mbcB4hab",
+      "symbol": "BSTESTB",
+      "decimals": 8,
+      "recordedMultiplier": "1000000",
+      "status": "Active",
+      "priceSource": "mock:BSTESTB"
+    },
+    {
+      "address": "972WmbqGnMmbqWmopJ74H8963Jafw26wzoJ32DJjajRr",
+      "mint": "5G1hMSqs2nWKaFQt737FTxwnruPgeQqQWZ2FRoqxvehA",
+      "symbol": "BSTESTC",
+      "decimals": 8,
+      "recordedMultiplier": "1000000",
+      "status": "Active",
+      "priceSource": "mock:BSTESTC"
+    },
+    {
+      "address": "HHgN7gi8r9dBAfzPwSbHHk7yujF6ibthnuLwSEA3Vpzm",
+      "mint": "8W2hrfJPPrXEBjs5gDgpVZcs8HsELeHkBaqSjnUvgJUq",
+      "symbol": "BSTESTD",
+      "decimals": 8,
+      "recordedMultiplier": "1000000",
+      "status": "Active",
+      "priceSource": "mock:BSTESTD"
+    }
+  ],
+  "independentlyVerifiedAllThreePinnedProgramsAndLoaderOwner": true,
+  "usedPrivateKeys": false,
+  "broadcast": false
+}

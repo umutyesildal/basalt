@@ -1,0 +1,184 @@
+{
+  "version": 1,
+  "checkedAt": "2026-10-10T17:00:58.220Z",
+  "mode": "independent-read-only-interrupted-lifecycle-review",
+  "sourceSha": "06258516e61b4ac2bfdbbd048134964115a48f17",
+  "genesisHash": "EtWTRABZaYq6iMfeYKouRu166VU2xqa1wcaWoxPkrZBG",
+  "rpc": "https://api.devnet.solana.com",
+  "publicJournalSha256": "cbf589287a079680f8c019c05fcc5b4f0f42e0f8dee5166df35b64850723dcbe",
+  "runCompleted": false,
+  "lifecycleAccountingComplete": false,
+  "creationActivationEligible": false,
+  "actualFinalizedReceiptCount": 2,
+  "verifiedReceipts": [
+    {
+      "label": "fund-fresh-actors",
+      "signature": "2VLCXMmxJQMa6BxYPNt7TzwZ5taSWjUWBAmb8ed1UsukgmdXXoJgr6GrLuUBcHk9aiyvJX6gAAAb2YmeJmJK387U",
+      "finalizedSlot": 509608280,
+      "soleActor": "8B2wktjNVETgnkoe92r2hTL9THw7umh4zF7iuidMt5H4",
+      "signatureVerified": true,
+      "messageHashVerified": true,
+      "wireHashVerified": true,
+      "feeLamports": 15000,
+      "unitsConsumed": 600,
+      "preToken": [],
+      "postToken": []
+    },
+    {
+      "label": "claim-creator",
+      "signature": "42aFoaCxU7mqq5P4hbFeJDU386iVkeoshyZDFhtDqx4eeM2riYGpDmjw82YM3dp1U6CyvkH3nNQQQmvimVCF1NQV",
+      "finalizedSlot": 509608290,
+      "soleActor": "8FTPfvB5hkxKY1gYtUd5kg7sf8CKvwoE4FfgvuVR77ga",
+      "signatureVerified": true,
+      "messageHashVerified": true,
+      "wireHashVerified": true,
+      "feeLamports": 15000,
+      "unitsConsumed": 144493,
+      "preToken": [
+        {
+          "address": "DMxJLcFNx3CMrNsHyPFcxCZLCY7jtZ6z5QcWHxNBcGqB",
+          "mint": "CrjoC7fq5XAbdej5zjinKNGXVqo8E8qCmh8XSiu2QViQ",
+          "owner": "Cn1nynhQYPKCaRooTcuEVvB3AZgP2wZNiXNoNdpKNaAb",
+          "raw": "9500000000000"
+        },
+        {
+          "address": "8X6wHi2bDgWQ1BKm8ELxLPibQ3xr5vLHjSAtg2z43GBP",
+          "mint": "EpH2swtxW2rCuFg2o2ukD5Qw5Xv3toaug1M3mbcB4hab",
+          "owner": "Cn1nynhQYPKCaRooTcuEVvB3AZgP2wZNiXNoNdpKNaAb",
+          "raw": "9500000000000"
+        },
+        {
+          "address": "BuVPHqcjYf5c8NBjvUYe7gbQfrzoqGxnCQxhCo61oR6a",
+          "mint": "5G1hMSqs2nWKaFQt737FTxwnruPgeQqQWZ2FRoqxvehA",
+          "owner": "Cn1nynhQYPKCaRooTcuEVvB3AZgP2wZNiXNoNdpKNaAb",
+          "raw": "9500000000000"
+        },
+        {
+          "address": "6M2ZHa75ZScJNCEar3iPduyeoqptKSWVNkgFMbBd7cUe",
+          "mint": "8W2hrfJPPrXEBjs5gDgpVZcs8HsELeHkBaqSjnUvgJUq",
+          "owner": "Cn1nynhQYPKCaRooTcuEVvB3AZgP2wZNiXNoNdpKNaAb",
+          "raw": "9500000000000"
+        }
+      ],
+      "postToken": [
+        {
+          "address": "2rX4yhfS164kgAAnJwW3sR3u9sjNnTt85YjvHtiknuuh",
+          "mint": "CrjoC7fq5XAbdej5zjinKNGXVqo8E8qCmh8XSiu2QViQ",
+          "owner": "8FTPfvB5hkxKY1gYtUd5kg7sf8CKvwoE4FfgvuVR77ga",
+          "raw": "100000000000"
+        },
+        {
+          "address": "6A6aywKNZXY63RgWwobU2FC89CpU7WWzmF6GNBCqjbGx",
+          "mint": "EpH2swtxW2rCuFg2o2ukD5Qw5Xv3toaug1M3mbcB4hab",
+          "owner": "8FTPfvB5hkxKY1gYtUd5kg7sf8CKvwoE4FfgvuVR77ga",
+          "raw": "100000000000"
+        },
+        {
+          "address": "G3K2Xaf98DzwXDicors1LkWjXBciNVcRPvobUCoBNENU",
+          "mint": "5G1hMSqs2nWKaFQt737FTxwnruPgeQqQWZ2FRoqxvehA",
+          "owner": "8FTPfvB5hkxKY1gYtUd5kg7sf8CKvwoE4FfgvuVR77ga",
+          "raw": "100000000000"
+        },
+        {
+          "address": "FiXxdWXsjSUSurXQ9t2Pwda8N6HicmeS6TvvJcdYLWrR",
+          "mint": "8W2hrfJPPrXEBjs5gDgpVZcs8HsELeHkBaqSjnUvgJUq",
+          "owner": "8FTPfvB5hkxKY1gYtUd5kg7sf8CKvwoE4FfgvuVR77ga",
+          "raw": "100000000000"
+        },
+        {
+          "address": "DMxJLcFNx3CMrNsHyPFcxCZLCY7jtZ6z5QcWHxNBcGqB",
+          "mint": "CrjoC7fq5XAbdej5zjinKNGXVqo8E8qCmh8XSiu2QViQ",
+          "owner": "Cn1nynhQYPKCaRooTcuEVvB3AZgP2wZNiXNoNdpKNaAb",
+          "raw": "9400000000000"
+        },
+        {
+          "address": "8X6wHi2bDgWQ1BKm8ELxLPibQ3xr5vLHjSAtg2z43GBP",
+          "mint": "EpH2swtxW2rCuFg2o2ukD5Qw5Xv3toaug1M3mbcB4hab",
+          "owner": "Cn1nynhQYPKCaRooTcuEVvB3AZgP2wZNiXNoNdpKNaAb",
+          "raw": "9400000000000"
+        },
+        {
+          "address": "BuVPHqcjYf5c8NBjvUYe7gbQfrzoqGxnCQxhCo61oR6a",
+          "mint": "5G1hMSqs2nWKaFQt737FTxwnruPgeQqQWZ2FRoqxvehA",
+          "owner": "Cn1nynhQYPKCaRooTcuEVvB3AZgP2wZNiXNoNdpKNaAb",
+          "raw": "9400000000000"
+        },
+        {
+          "address": "6M2ZHa75ZScJNCEar3iPduyeoqptKSWVNkgFMbBd7cUe",
+          "mint": "8W2hrfJPPrXEBjs5gDgpVZcs8HsELeHkBaqSjnUvgJUq",
+          "owner": "Cn1nynhQYPKCaRooTcuEVvB3AZgP2wZNiXNoNdpKNaAb",
+          "raw": "9400000000000"
+        }
+      ]
+    }
+  ],
+  "recordedProofKinds": [
+    "finalized-prerequisites",
+    "bounded-native-funding"
+  ],
+  "finalizedAccountsContextSlot": 509608968,
+  "creatorFaucetClaimFinalized": true,
+  "investorFaucetClaimExists": false,
+  "creatorAssets": [
+    {
+      "mint": "CrjoC7fq5XAbdej5zjinKNGXVqo8E8qCmh8XSiu2QViQ",
+      "symbol": "BSTESTA",
+      "raw": "100000000000"
+    },
+    {
+      "mint": "EpH2swtxW2rCuFg2o2ukD5Qw5Xv3toaug1M3mbcB4hab",
+      "symbol": "BSTESTB",
+      "raw": "100000000000"
+    },
+    {
+      "mint": "5G1hMSqs2nWKaFQt737FTxwnruPgeQqQWZ2FRoqxvehA",
+      "symbol": "BSTESTC",
+      "raw": "100000000000"
+    },
+    {
+      "mint": "8W2hrfJPPrXEBjs5gDgpVZcs8HsELeHkBaqSjnUvgJUq",
+      "symbol": "BSTESTD",
+      "raw": "100000000000"
+    }
+  ],
+  "nativeBalances": {
+    "bootstrap": 5478983720,
+    "creator": 83091440,
+    "investor": 60000000
+  },
+  "allocated": {
+    "bootstrap": 150015000,
+    "creator": 13065520,
+    "investor": 0
+  },
+  "failureClassification": {
+    "reported": "Lifecycle RPC unavailable",
+    "sourceMeaning": "HTTP non-success or missing HTTP response body; method/request/time budget errors use a different message",
+    "observedHttpStatusesDuringIndependentReads": [
+      {
+        "method": "getGenesisHash",
+        "status": 200
+      },
+      {
+        "method": "getSignatureStatuses",
+        "status": 200
+      },
+      {
+        "method": "getTransaction",
+        "status": 200
+      },
+      {
+        "method": "getTransaction",
+        "status": 200
+      },
+      {
+        "method": "getMultipleAccounts",
+        "status": 200
+      }
+    ],
+    "exactOriginalHttpStatusNotRecorded": true
+  },
+  "noResend": true,
+  "usedPrivateKeys": false,
+  "broadcast": false
+}

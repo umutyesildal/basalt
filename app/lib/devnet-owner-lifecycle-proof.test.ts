@@ -9,7 +9,7 @@ import {
   LIFECYCLE_LIMITS, lifecyclePlan, lifecycleRouting, lifecycleBasketArgs, assertCompleteOwnerSetup,
   assertFreshActors, assertLifecycleTransition, assertBudget, submitLifecycleOnce, createLifecycleRun,
   assertPublicLifecycleJournal, quoteLifecycleBudget, main,
-  verifyLifecycleFaucet, type LifecycleJournal, type LifecycleSnapshot, type SendRpc,
+  verifyLifecycleFaucet, boundedLifecycleFetch, LIFECYCLE_RPC_URL, type LifecycleJournal, type LifecycleSnapshot, type SendRpc,
 } from "../../scripts/devnet-owner-lifecycle-proof";
 import { APP_NAMESPACE_ROUTING, DEVNET_GENESIS_HASH } from "./program-namespaces";
 import { DEVNET_MOCK_TOKENS, DEVNET_FAUCET_CLAIM_RAW, DEVNET_FAUCET_PROGRAM_ID, deriveDevnetFaucetAuthority } from "./devnet-faucet";
@@ -279,4 +279,62 @@ test("all six exact three/four-token signed packet shapes fit with their reviewe
     }
   }
   assert.deepEqual(sizes, { "create-3": 1110, "mint-3": 1047, "redeem-3": 928, "create-4": 543, "mint-4": 392, "redeem-4": 356 });
+});
+
+
+function rpcFetchHarness(responses: Array<Response | Error>) {
+  let clock = 0; const starts: number[] = [], methods: string[] = [], waits: number[] = [];
+  const rpcFetch = boundedLifecycleFetch({ now: () => clock, wait: async ms => { waits.push(ms); clock += ms; },
+    transport: (async (_input, init) => { starts.push(clock); methods.push(JSON.parse(String(init?.body)).method);
+      const response = responses.shift(); if (response instanceof Error) throw response;
+      assert(response, "Unexpected extra HTTP attempt"); return response; }) as typeof fetch });
+  const call = (method: string, url = LIFECYCLE_RPC_URL) => rpcFetch(url, { method: "POST", body: JSON.stringify({ jsonrpc: "2.0", id: 1, method, params: [] }) });
+  return { call, starts, methods, waits, advance: (ms: number) => { clock += ms; } };
+}
+const rpcOk = () => new Response('{"jsonrpc":"2.0","id":1,"result":1}', { headers: { "content-type": "application/json" } });
+
+test("public RPC concurrent reads and broadcasts are serialized with bounded spacing", async () => {
+  const h = rpcFetchHarness([rpcOk(), rpcOk(), rpcOk()]);
+  await Promise.all([h.call("getBalance"), h.call("getSlot"), h.call("sendTransaction")]);
+  assert.deepEqual(h.starts, [0, 500, 1000]); assert.deepEqual(h.methods, ["getBalance", "getSlot", "sendTransaction"]);
+});
+test("explicit read HTTP 429 honors Retry-After and permits at most two retries", async () => {
+  const h = rpcFetchHarness([new Response("quota", { status: 429, headers: { "retry-after": "2" } }),
+    new Response("quota", { status: 429 }), rpcOk()]);
+  await h.call("getBalance"); assert.deepEqual(h.starts, [0, 2000, 7000]);
+  const exhausted = rpcFetchHarness(Array.from({ length: 3 }, () => new Response("quota", { status: 429 })));
+  await assert.rejects(exhausted.call("getBalance"), /HTTP 429 for getBalance; read stopped/); assert.equal(exhausted.starts.length, 3);
+});
+test("broadcast HTTP 429, server errors and transport uncertainty are never retried", async () => {
+  for (const [method, response, error] of [["sendTransaction", new Response("quota", { status: 429 }), /broadcast not retried/],
+    ["getBalance", new Response("unavailable", { status: 503 }), /HTTP 503/],
+    ["sendTransaction", new Error("uncertain transport"), /uncertain transport/]] as const) {
+    const h = rpcFetchHarness([response]); await assert.rejects(h.call(method), error); assert.equal(h.starts.length, 1);
+  }
+});
+test("read retries refuse excessive Retry-After, unknown methods, RPC override and expired deadlines", async () => {
+  for (const retryAfter of ["16", "-1", "invalid"]) {
+    const h = rpcFetchHarness([new Response("quota", { status: 429, headers: { "retry-after": retryAfter } })]);
+    await assert.rejects(h.call("getBalance"), /retry delay exceeds/); assert.equal(h.starts.length, 1);
+  }
+  const h = rpcFetchHarness([]); await assert.rejects(h.call("requestAirdrop"), /method/);
+  await assert.rejects(h.call("getBalance", "https://example.com"), /fixed official/);
+  h.advance(LIFECYCLE_LIMITS.deadlineMs); await assert.rejects(h.call("getBalance"), /budget exceeded/); assert.equal(h.starts.length, 0);
+});
+test("physical RPC attempts including retries consume the 600-request ceiling", async () => {
+  const h = rpcFetchHarness(Array.from({ length: 600 }, rpcOk));
+  for (let index = 0; index < 600; index++) await h.call("getSlot");
+  await assert.rejects(h.call("getSlot"), /budget exceeded/); assert.equal(h.starts.length, 600);
+});
+
+test("queued and retried RPC requests retain the validated immutable URL and body", async () => {
+  let clock = 0, url = LIFECYCLE_RPC_URL; const actual: Array<{ url: string; body: string }> = [];
+  const transport = boundedLifecycleFetch({ now: () => clock, wait: async ms => { clock += ms; },
+    transport: (async (input, init) => { actual.push({ url: String(input), body: String(init?.body) });
+      return actual.length === 1 ? new Response("quota", { status: 429, headers: { "retry-after": "0" } }) : rpcOk(); }) as typeof fetch });
+  const body = JSON.stringify({ jsonrpc: "2.0", id: 1, method: "getBalance", params: [] });
+  const init: RequestInit = { method: "POST", body, headers: { "content-type": "application/json" } };
+  const pending = transport({ toString: () => url } as any, init);
+  init.body = JSON.stringify({ jsonrpc: "2.0", id: 1, method: "sendTransaction", params: [] }); init.method = "GET"; url = "https://example.com";
+  await pending; assert.equal(actual.length, 2); assert(actual.every(attempt => attempt.url === LIFECYCLE_RPC_URL && attempt.body === body));
 });

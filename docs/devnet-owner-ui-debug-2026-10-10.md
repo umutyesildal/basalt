@@ -48,3 +48,8 @@ The diagnostic implementation is complete: fixed account-verification, simulatio
 ## Explicit fee preparation and persistent diagnostics live
 
 Source `b5fecf67c10915b0e17e4db1059f3fdd6635a753` passed all six exact-source CI jobs and is live at https://basalt.markets in deployment `dpl_9dt51ubjeVGozeJYMWWaaiFgUuQn`. The hosted build, exact deployment metadata and Chrome finalized program verification passed. A separate read-only run of the actual submission path reached checking, simulating and signing; its wallet callback and sender were explicitly disabled, so it requested no signature and sent nothing. The same live Chrome tab is connected to the designated owner. Actual owner initialization and runtime lifecycle execution remain pending, creation stays disabled, and no backend cutover was performed. [Exact live release evidence](evidence/owner-explicit-budget-live-release-2026-10-10.json).
+
+
+## Genuine initialization finalized, 16:53 UTC
+
+Human owner transaction `5XkjbrtExkx719PoyVsZUxc2AAnDCLma2CvwGGCpCVRe1ETPv7ENFX37wQuq3FGNCvryUuAerosZPkuUfJRfFNhy` finalized at slot `509606852`, with no instruction error. Independent verification authenticated the actual owner signature and exact eight-instruction message, 864-byte packet, 200,000-unit limit, zero compute-unit price, 5,000-lamport fee and 98,956 consumed units. Owner whitelist, factory treasury `TcAg…ANea`, 90/10 split, caps 300/100/300 and all four active fixed mock admissions match. No initialization actions remain. [Public proof](./evidence/owner-initialization-finalized-2026-10-10.json). Chrome displayed “Owner setup verified on devnet.” No further owner setup signature is required.

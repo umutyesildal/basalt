@@ -490,19 +490,49 @@ export async function executeLifecycleProof(options: { connection: Connection; s
   } finally { await bootstrapRun.close(); }
 }
 
-function boundedLifecycleFetch(): typeof fetch {
-  const deadline = Date.now() + LIFECYCLE_LIMITS.deadlineMs; let count = 0;
+/** Serialize public RPC traffic. Only idempotent reads may retry an explicit HTTP 429. */
+export function boundedLifecycleFetch(dependencies: {
+  transport?: typeof fetch; now?: () => number; wait?: (ms: number) => Promise<void>;
+} = {}): typeof fetch {
+  const transport = dependencies.transport ?? fetch, now = dependencies.now ?? Date.now, wait = dependencies.wait ?? sleep;
+  const deadline = now() + LIFECYCLE_LIMITS.deadlineMs; let count = 0, lastStart = -Infinity;
+  let queue: Promise<unknown> = Promise.resolve();
   const allowed = new Set(["getGenesisHash", "getMultipleAccounts", "getAccountInfo", "getBalance", "getMinimumBalanceForRentExemption", "getLatestBlockhash", "getFeeForMessage", "getSlot", "simulateTransaction", "sendTransaction", "getSignatureStatuses"]);
   return (async (input, init) => {
-    assert(String(input) === LIFECYCLE_RPC_URL || String(input) === `${LIFECYCLE_RPC_URL}/`, "Only the fixed official devnet RPC is permitted");
-    const request = JSON.parse(String(init?.body)); assert(!Array.isArray(request) && allowed.has(request.method) && ++count <= 600 && Date.now() < deadline, "Lifecycle RPC method/request/time budget exceeded");
-    const response = await fetch(input, { ...init, redirect: "error", signal: AbortSignal.timeout(Math.min(12_000, deadline - Date.now())) });
-    assert(response.ok && response.body, "Lifecycle RPC unavailable");
-    const reader = response.body.getReader(), chunks: Uint8Array[] = []; let size = 0;
-    try { for (;;) { const chunk = await reader.read(); if (chunk.done) break; size += chunk.value.byteLength;
-      assert(size <= 16 * 1024 * 1024 && Date.now() < deadline, "Lifecycle RPC response budget exceeded"); chunks.push(chunk.value); } }
-    finally { await reader.cancel(); }
-    return new Response(Buffer.concat(chunks), { status: response.status, headers: response.headers });
+    const url = String(input), body = String(init?.body), method = init?.method;
+    assert(url === LIFECYCLE_RPC_URL || url === `${LIFECYCLE_RPC_URL}/`, "Only the fixed official devnet RPC is permitted");
+    const request = JSON.parse(body);
+    assert(method === "POST" && request && !Array.isArray(request) && allowed.has(request.method), "Lifecycle RPC method/request/time budget exceeded");
+    const captured: RequestInit = { ...init, method, body, headers: new Headers(init?.headers) };
+    const perform = async () => {
+      for (let attempt = 0; attempt < 3; attempt++) {
+        const spacing = Math.max(0, lastStart + 500 - now());
+        assert(now() + spacing < deadline, "Lifecycle RPC method/request/time budget exceeded");
+        if (spacing) await wait(spacing);
+        assert(++count <= 600 && now() < deadline, "Lifecycle RPC method/request/time budget exceeded");
+        lastStart = now();
+        const response = await transport(url, { ...captured, redirect: "error", signal: AbortSignal.timeout(Math.min(12_000, deadline - now())) });
+        if (!response.ok) {
+          await response.body?.cancel();
+          if (response.status === 429 && request.method !== "sendTransaction" && attempt < 2) {
+            const header = response.headers.get("retry-after");
+            const delay = header === null ? 5000 : /^\d+(?:\.\d+)?$/.test(header) ? Number(header) * 1000 : Date.parse(header) - now();
+            assert(Number.isFinite(delay) && delay >= 0 && delay <= 15_000 && now() + Math.max(500, delay) < deadline,
+              "Lifecycle RPC retry delay exceeds bounded read budget");
+            await wait(Math.max(500, delay)); continue;
+          }
+          throw new Error(`Lifecycle RPC HTTP ${response.status} for ${request.method}; ${request.method === "sendTransaction" ? "broadcast not retried" : "read stopped"}`);
+        }
+        assert(response.body, "Lifecycle RPC response body missing");
+        const reader = response.body.getReader(), chunks: Uint8Array[] = []; let size = 0;
+        try { for (;;) { const chunk = await reader.read(); if (chunk.done) break; size += chunk.value.byteLength;
+          assert(size <= 16 * 1024 * 1024 && now() < deadline, "Lifecycle RPC response budget exceeded"); chunks.push(chunk.value); } }
+        finally { await reader.cancel(); }
+        return new Response(Buffer.concat(chunks), { status: response.status, headers: response.headers });
+      }
+      throw new Error("Lifecycle RPC read retry budget exceeded");
+    };
+    const result = queue.then(perform); queue = result.then(() => undefined, () => undefined); return result;
   }) as typeof fetch;
 }
 export async function main(args = process.argv.slice(2)): Promise<unknown> {

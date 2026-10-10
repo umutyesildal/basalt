@@ -1,0 +1,150 @@
+{
+  "version": 1,
+  "mode": "devnet-owner-lifecycle-proof",
+  "sourceCommit": "06258516e61b4ac2bfdbbd048134964115a48f17",
+  "buildSourceCommit": "cdc2e8b978470d12335d2186d7eaafdf52abc8a0",
+  "genesisHash": "EtWTRABZaYq6iMfeYKouRu166VU2xqa1wcaWoxPkrZBG",
+  "owner": "TcAgGWYnr5uVQGRiU67C1ynpH5JDKCmwWaCA6V2ANea",
+  "treasury": "TcAgGWYnr5uVQGRiU67C1ynpH5JDKCmwWaCA6V2ANea",
+  "bootstrapAuthority": "8B2wktjNVETgnkoe92r2hTL9THw7umh4zF7iuidMt5H4",
+  "creator": "8FTPfvB5hkxKY1gYtUd5kg7sf8CKvwoE4FfgvuVR77ga",
+  "investor": "6BEKzMcjWmuqEQ5V4RJgWGyLKDyrixdsfpGeA94saVeU",
+  "startedAt": "2026-10-10T16:58:12.421Z",
+  "completed": false,
+  "allocated": {
+    "bootstrap": 150015000,
+    "creator": 13065520,
+    "investor": 0
+  },
+  "initialBootstrapBalance": 5628998720,
+  "receipts": [
+    {
+      "label": "fund-fresh-actors",
+      "actor": "bootstrap",
+      "signature": "2VLCXMmxJQMa6BxYPNt7TzwZ5taSWjUWBAmb8ed1UsukgmdXXoJgr6GrLuUBcHk9aiyvJX6gAAAb2YmeJmJK387U",
+      "wireSha256": "0b950e785e2aef84c7e70e84582c61ad1a4c7fa0bd265bed65f29e25653234c1",
+      "messageSha256": "b65af2a9e43b1fe683380deeeae0247bd4c39e1b2d7b13b912023bde18319596",
+      "blockhash": "8kDcPEhDGcyp69W6bWNWznr9UzJhxUsGCzPLxYRZUGPW",
+      "lastValidBlockHeight": 496838669,
+      "preSlot": 509608275,
+      "feeLamports": 15000,
+      "rentLamports": 150000000,
+      "status": "finalized",
+      "preState": {
+        "creator": "8FTPfvB5hkxKY1gYtUd5kg7sf8CKvwoE4FfgvuVR77ga",
+        "investor": "6BEKzMcjWmuqEQ5V4RJgWGyLKDyrixdsfpGeA94saVeU",
+        "initialBootstrapBalance": 5628998720
+      },
+      "lookupTables": [],
+      "finalizedSlot": 509608280
+    },
+    {
+      "label": "claim-creator",
+      "actor": "creator",
+      "signature": "42aFoaCxU7mqq5P4hbFeJDU386iVkeoshyZDFhtDqx4eeM2riYGpDmjw82YM3dp1U6CyvkH3nNQQQmvimVCF1NQV",
+      "wireSha256": "adef41e232370510a15212f768c75138c67c61be1ed1ed9d29eb63a47e9eda00",
+      "messageSha256": "c622267f4320a170098448722fc1bfc685b4645b9be1501f2d492ee5f881500d",
+      "blockhash": "7GDYJ1LX94v1L86RWMBeJK8ZtX9b1LbheYG5aps6Xgzk",
+      "lastValidBlockHeight": 496838678,
+      "preSlot": 509608285,
+      "feeLamports": 15000,
+      "rentLamports": 13050520,
+      "status": "finalized",
+      "preState": {
+        "slot": 509608285,
+        "claimed": false,
+        "assets": [
+          "0",
+          "0",
+          "0",
+          "0"
+        ],
+        "vaults": [
+          "9500000000000",
+          "9500000000000",
+          "9500000000000",
+          "9500000000000"
+        ],
+        "supplies": [
+          "1000000000000000",
+          "1000000000000000",
+          "1000000000000000",
+          "1000000000000000"
+        ],
+        "mintConfigHashes": [
+          "f04e7bbd1712c7a152bb30582b2211dff3f7e45dee7dcddfa84230fee5eba26f",
+          "875d3371cb0f5943fdf569fec73c67e7718247b59e5bec37b36d0c79e71e9eca",
+          "fb5e7552b3307e6455e7a36ad242bccb79b03ce76e963a1dc0156f11b3c443a4",
+          "24254f7f4fe2e0566fca238312baf3316781fcd12e2cd4221319ce25c05b8e62"
+        ],
+        "accountSizes": [
+          482,
+          482,
+          482,
+          482
+        ],
+        "hashes": {
+          "2GBfjd9jPKLoqNXdX7GDN9MHRKwzwXbHk65xQVf9HAcf": "b305a4204fab2d1818078043699d7b00f0303cf6b026e0151f27ba5371002856",
+          "CBf7YatnSXfB8tjDJnMSyB8WsaDfttyWvoDSa6CsQx8F": null,
+          "CrjoC7fq5XAbdej5zjinKNGXVqo8E8qCmh8XSiu2QViQ": "018fd17396e657728bf370d959d384b6bb06bc132be714d66ae5a36aebf74327",
+          "EpH2swtxW2rCuFg2o2ukD5Qw5Xv3toaug1M3mbcB4hab": "691399fdb4f4d153c6edab7a7ce6f62c1c589e662596396c1581226a8a3c644c",
+          "5G1hMSqs2nWKaFQt737FTxwnruPgeQqQWZ2FRoqxvehA": "eb8e662ff33869d16611e976427232758c95180eb53bd7b3642fec373616496b",
+          "8W2hrfJPPrXEBjs5gDgpVZcs8HsELeHkBaqSjnUvgJUq": "ca4e8a8aebfe5c51af2695ea42dc80cecc2e238ec10a4977eb6eb1550278675a",
+          "DMxJLcFNx3CMrNsHyPFcxCZLCY7jtZ6z5QcWHxNBcGqB": "e4d3ffac254505426d7bb5443519b6f59bda334ed706f60b99577a4663da396e",
+          "8X6wHi2bDgWQ1BKm8ELxLPibQ3xr5vLHjSAtg2z43GBP": "5b4fec30d04e76dbe49c877e31a2e93644a26289d6a957f020ed0a33d2c4d9d2",
+          "BuVPHqcjYf5c8NBjvUYe7gbQfrzoqGxnCQxhCo61oR6a": "78b6743ae0a48185b9969284ab3cef1a86b7d908646004d255f1dc2e629d7fa0",
+          "6M2ZHa75ZScJNCEar3iPduyeoqptKSWVNkgFMbBd7cUe": "567fb0342623f32025071e33a6400a68cacc8250b755fe866ebb9bef834eaf95",
+          "2rX4yhfS164kgAAnJwW3sR3u9sjNnTt85YjvHtiknuuh": null,
+          "6A6aywKNZXY63RgWwobU2FC89CpU7WWzmF6GNBCqjbGx": null,
+          "G3K2Xaf98DzwXDicors1LkWjXBciNVcRPvobUCoBNENU": null,
+          "FiXxdWXsjSUSurXQ9t2Pwda8N6HicmeS6TvvJcdYLWrR": null
+        }
+      },
+      "lookupTables": [],
+      "finalizedSlot": 509608290
+    }
+  ],
+  "proofs": [
+    {
+      "kind": "finalized-prerequisites",
+      "state": {
+        "contextSlot": 509608275,
+        "loaderAuthority": "owner",
+        "whitelist": "owner",
+        "factoryInitialized": true,
+        "admitted": [
+          "BSTESTA",
+          "BSTESTB",
+          "BSTESTC",
+          "BSTESTD"
+        ],
+        "steps": [],
+        "ownerBalanceLamports": 13919341612
+      },
+      "rentBudget": {
+        "creator": 56512360,
+        "investor": 25954840,
+        "underlying": [
+          3098800,
+          3098800,
+          3098800,
+          3098800
+        ],
+        "basket": 5161280,
+        "mint": 1066800,
+        "share": 1513840,
+        "claim": 655320,
+        "createAlt": 5486400,
+        "tradeAlt": 5648960
+      }
+    },
+    {
+      "kind": "bounded-native-funding",
+      "creatorLamports": 90000000,
+      "investorLamports": 60000000,
+      "bootstrapMaximumOutflow": 160000000,
+      "bootstrapReserve": 100000000,
+      "slot": 509608285
+    }
+  ]
+}
