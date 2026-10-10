@@ -1,6 +1,6 @@
 # Onchain basket gallery, 2026-10-10
 
-Status: local implementation and browser checks complete; production publication pending.
+Status: live at https://basalt.markets/explore; source, exact-source CI, hosted build and Chrome verification complete.
 
 The owner requested that the lower Onchain baskets section of `/explore` use the same visual layout as the stock basket templates, with immediate artwork for baskets that have no cover.
 
@@ -30,4 +30,12 @@ No backend schema, API, signer, contract, fee accounting, price worker or onchai
 
 ## Publication
 
-Production build, exact-source CI/deployment identities and live browser evidence will be added after release. Frontend rollback deployment: `dpl_DQxGPWM5wjzCN4uujDVUdvTwjdr7`. The VPS remains at `307053da1310331c658c0401d0107f8405912199`.
+- Application source: `9e847a8b0014c5e402c2c8592a0e3280bbed5023`, pushed to public `origin/main`.
+- All six exact-source CI jobs passed: https://github.com/umutyesildal/basalt/actions/runs/38044594010 . Node workspace includes the app tests, typecheck and build; Rust, backend-container, secret-scan and both dependency gates passed.
+- Vercel deployment: `dpl_2YCPYFKdZh8e7ZETYMTKJKnkMTyQ`; immutable URL https://basalt-67gwr9pl2-yesildaladams-projects.vercel.app . The hosted build completed and deployment metadata confirmed `READY` with matching `sourceSha` and `gitCommitSha`.
+- Chrome verified the candidate's ten cover-first cards, ten placeholder backgrounds, no horizontal overflow, no missing-value dashes and no console errors. After CI completed, this exact deployment was promoted. Inspecting https://basalt.markets resolved to the same ID.
+- Live Chrome verification at https://basalt.markets/explore confirmed ten redesigned cards and ten placeholders. The public website screenshot is saved below. The live result remains open in Chrome; candidate and local test tabs were closed, and viewport overrides reset.
+- Frontend rollback deployment: `dpl_DQxGPWM5wjzCN4uujDVUdvTwjdr7`. The VPS remains at `307053da1310331c658c0401d0107f8405912199`; no backend rollout or chain transaction occurred.
+- Later documentation-only commits do not change the deployed application bytes. Preserve the older dirty UI/pitch checkout.
+
+![Live onchain basket gallery](assets/onchain-baskets-2026-10-10/live-gallery.png)

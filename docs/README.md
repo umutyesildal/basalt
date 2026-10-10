@@ -1,5 +1,7 @@
 # Basalt documentation map
 
+- [Onchain basket gallery, 2026-10-10](onchain-basket-gallery-2026-10-10.md): matching stock/onchain card layout, immediate cover fallback, metadata boundary and live release.
+
 - [Vercel Web Analytics, 2026-10-10](vercel-web-analytics-2026-10-10.md): official page-view integration, URL filtering and live verification.
 
 - [Basket tweet template, 2026-10-10](basket-tweet-template-2026-10-10.md): verified weekly return, thesis/short link and final Basalt account line.
