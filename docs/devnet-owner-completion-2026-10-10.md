@@ -2,7 +2,7 @@
 
 ## Status
 
-All three isolated owner-devnet programs are deployed and byte-attested. Genuine owner-wallet handoff/setup, lifecycle verification and creation activation are still pending. Existing legacy basket redemption remains available; the legacy factory was not reopened.
+All three isolated owner-devnet programs are deployed and byte-attested. Genuine owner-wallet loader handoff is finalized and independently signature-verified. Owner-signed whitelist/factory initialization, four test-token admissions, lifecycle verification and creation activation remain pending. The owner setup screen is live at https://basalt.markets/devnet/setup. Existing legacy basket redemption remains available; the legacy factory was not reopened.
 
 ## Funding and deployments
 
@@ -26,7 +26,7 @@ The existing whitelist's earlier exact ELF remained in place. Its program/build 
 
 ## Owner-first completion
 
-Treasury is pinned to the user's explicitly selected wallet `TcAgGWYnr5uVQGRiU67C1ynpH5JDKCmwWaCA6V2ANea`. This recipient choice alone does not prove wallet control. Owner acceptance remains pending.
+Treasury is pinned to the user's explicitly selected wallet `TcAgGWYnr5uVQGRiU67C1ynpH5JDKCmwWaCA6V2ANea`. This recipient choice alone does not prove wallet control. Genuine loader acceptance was subsequently finalized as recorded below; initialization remains a separate owner action.
 
 1. Prepare a bounded, dedicated durable nonce and a bootstrap-partially-signed public package.
 2. Have the designated owner review/sign the exact checked transfer of all three loaders through `/devnet/setup`.
@@ -54,4 +54,12 @@ The local Chrome screen authenticated real finalized devnet state and showed “
 
 The clean committed operator checkout `5ed2db1fa6e7b2b77d5bb209e47835b6229c59cd` proved exact program/build equivalence to `cdc2e8b978470d12335d2186d7eaafdf52abc8a0` and exported the 494-byte transaction after two fresh finalized code/nonce reads at context 509530087. The public bootstrap-partially-signed package is shipped at `/devnet/owner-handoff.json`; the owner's signature is absent. The exact network fee quote was 10,000 lamports. Preparing/exporting this package sent no transaction and transferred no authority. [Preparation receipt](evidence/owner-handoff-preparation-2026-10-10.json).
 
-Final frontend typecheck and production build passed. The actual exported package also passed the frontend parser with its genuine bootstrap signature. Owner signature and chain execution remain absent.
+Final frontend typecheck and production build passed. The actual exported package also passed the frontend parser with its genuine bootstrap signature. At preparation time the owner signature and chain execution were absent; the later finalized handoff is recorded below.
+
+## Live release and genuine owner handoff
+
+Source `823126105562247228ec4d90f082367b3e1270f0` passed all six GitHub CI jobs, including Node, Rust, dependency reachability, backend Node 20 container, dependency audit and secret scan. Vercel candidate `dpl_CfZ9bMCppy7dkYPydRKRDYZMvVUG` completed its hosted frozen install/production build, passed the Chrome review, and was promoted to `https://basalt.markets`. The Vercel API resolves the custom domain to that exact deployment with both metadata commit fields equal to the source. [Compact release evidence](evidence/owner-setup-live-release-2026-10-10.json).
+
+The genuine owner accepted all three loader authorities in transaction [`2aHjrLcbZQ8oogQQmpCZKVetb5wX9v34c5aDyao7eeX7jVvLHZ681pJLUyixKKmcctnMvvguSYW67SLAFwjv4JAC`](https://explorer.solana.com/tx/2aHjrLcbZQ8oogQQmpCZKVetb5wX9v34c5aDyao7eeX7jVvLHZ681pJLUyixKKmcctnMvvguSYW67SLAFwjv4JAC?cluster=devnet), finalized at slot 509531529. The independently fetched legacy message exactly matches the reviewed durable-nonce handoff, and both actual bootstrap/owner Ed25519 signatures verify. A fresh finalized inspection at slot 509533148 authenticated all three deployed code hashes, slots, padding, pointers and owner authorities. [Finalized public evidence](evidence/owner-wallet-handoff-finalized-2026-10-10.json).
+
+At that snapshot the whitelist and factory were still absent and the four admissions were absent. Chrome displays the remaining owner initialization actions and a wallet-connect control. The human was asked to connect the designated devnet owner and review/sign the remaining setup; no owner secret is available to the agent. Public basket creation is deliberately still disabled until genuine initialization and the dedicated bounded lifecycle proof pass. The backend was not changed by this setup-screen release.

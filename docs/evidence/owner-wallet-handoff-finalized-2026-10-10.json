@@ -1,0 +1,37 @@
+{
+  "version": 1,
+  "checkedAt": "2026-10-10T11:58:22.086Z",
+  "cluster": "devnet",
+  "genesisHash": "EtWTRABZaYq6iMfeYKouRu166VU2xqa1wcaWoxPkrZBG",
+  "releaseCommit": "823126105562247228ec4d90f082367b3e1270f0",
+  "handoff": {
+    "signature": "2aHjrLcbZQ8oogQQmpCZKVetb5wX9v34c5aDyao7eeX7jVvLHZ681pJLUyixKKmcctnMvvguSYW67SLAFwjv4JAC",
+    "slot": 509531529,
+    "blockTime": 1791633116,
+    "feeLamports": 10000,
+    "signers": [
+      "8B2wktjNVETgnkoe92r2hTL9THw7umh4zF7iuidMt5H4",
+      "TcAgGWYnr5uVQGRiU67C1ynpH5JDKCmwWaCA6V2ANea"
+    ],
+    "allSignaturesVerified": true,
+    "exactPreparedMessage": true,
+    "messageSha256": "ef763c8a45254d8bc9e08cf12e209e07425750879809fbe3eedb7de4a9bb3fbf"
+  },
+  "state": {
+    "contextSlot": 509533148,
+    "loaderAuthority": "owner",
+    "whitelist": "absent",
+    "factoryInitialized": false,
+    "admitted": [],
+    "steps": [
+      "init-whitelist",
+      "init-factory",
+      "admit-BSTESTA",
+      "admit-BSTESTB",
+      "admit-BSTESTC",
+      "admit-BSTESTD"
+    ],
+    "ownerBalanceLamports": 13926514492
+  },
+  "creationActive": false
+}

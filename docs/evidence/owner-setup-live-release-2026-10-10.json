@@ -1,0 +1,60 @@
+{
+  "version": 1,
+  "checkedAt": "2026-10-10T11:58:22.086Z",
+  "sourceCommit": "823126105562247228ec4d90f082367b3e1270f0",
+  "live": {
+    "domain": "https://basalt.markets",
+    "setupUrl": "https://basalt.markets/devnet/setup",
+    "deploymentId": "dpl_CfZ9bMCppy7dkYPydRKRDYZMvVUG",
+    "deploymentUrl": "https://basalt-82ergthtf-yesildaladams-projects.vercel.app",
+    "readyState": "READY",
+    "sourceSha": "823126105562247228ec4d90f082367b3e1270f0",
+    "gitCommitSha": "823126105562247228ec4d90f082367b3e1270f0"
+  },
+  "ci": {
+    "url": "https://github.com/umutyesildal/basalt/actions/runs/38049692487",
+    "headSha": "823126105562247228ec4d90f082367b3e1270f0",
+    "conclusion": "success",
+    "jobs": [
+      {
+        "name": "Node workspace",
+        "conclusion": "success",
+        "completedAt": "2026-10-10T11:52:01Z"
+      },
+      {
+        "name": "Rust dependency reachability gate",
+        "conclusion": "success",
+        "completedAt": "2026-10-10T11:50:01Z"
+      },
+      {
+        "name": "Backend Node 20 container",
+        "conclusion": "success",
+        "completedAt": "2026-10-10T11:48:39Z"
+      },
+      {
+        "name": "Secret scan",
+        "conclusion": "success",
+        "completedAt": "2026-10-10T11:48:48Z"
+      },
+      {
+        "name": "Rust workspace",
+        "conclusion": "success",
+        "completedAt": "2026-10-10T11:49:54Z"
+      },
+      {
+        "name": "Dependency audit",
+        "conclusion": "success",
+        "completedAt": "2026-10-10T11:48:28Z"
+      }
+    ]
+  },
+  "rollback": {
+    "deploymentId": "dpl_HRjf3RYgJqmmjbby9c91jJRdYgwp",
+    "sourceCommit": "b145e324062f6a82d612959a06ee27f4a214a983"
+  },
+  "backend": {
+    "changed": false,
+    "sourceCommit": "307053da1310331c658c0401d0107f8405912199"
+  },
+  "creationActive": false
+}

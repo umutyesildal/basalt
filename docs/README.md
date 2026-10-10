@@ -1,3 +1,6 @@
+- [Funded owner-devnet completion, 2026-10-10](devnet-owner-completion-2026-10-10.md): three byte-attested programs, public wallet handoff, tests and current activation boundary.
+- [Owner handoff review](devnet-owner-handoff-review-2026-10-10.md) and [post-acceptance lifecycle plan](devnet-owner-lifecycle-plan-2026-10-10.md): reviewed signing and the remaining runtime proof before creation activation.
+
 - [Shared Stock mix, 2026-10-10](stock-mix-parity-2026-10-10.md): shared preview/onchain card, stock-themed mock decoration, direct Create fix and publication evidence.
 - [Devnet onboarding audit](devnet-onboarding-audit-2026-10-10.md): partial deployment, treasury decision, faucet/rent and safe activation prerequisites.
 - [Official xStocks devnet research](xstocks-devnet-availability-2026-10-10.md): issuer documentation and finalized mint checks.
