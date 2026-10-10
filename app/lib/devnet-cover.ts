@@ -1,11 +1,10 @@
-import { getBasketCover, isBasketCoverId, resolveLegacyBasketCover, type BasketCover, type BasketCoverId } from "@/lib/basket-covers";
+import { getBasketCover, isBasketCoverId, type BasketCover, type BasketCoverId } from "@/lib/basket-covers";
+import { onchainBasketDisplay } from "@/lib/onchain-basket-display";
 
 /** Display-only resolution leaves old metadata bytes and their onchain commitment untouched. */
 export function devnetBasketCover(metadata: unknown, address: string): BasketCover {
-  const value = metadata && typeof metadata === "object" && !Array.isArray(metadata) ? metadata as Record<string, unknown> : {};
-  if (isBasketCoverId(value.coverId)) return getBasketCover(value.coverId);
-  const name = typeof value.name === "string" && value.name.trim() ? value.name : address;
-  return getBasketCover(resolveLegacyBasketCover(name));
+  const display = onchainBasketDisplay(metadata, address, { devnet: true });
+  return getBasketCover(display.coverId ?? undefined);
 }
 
 /** New basket metadata must commit a selected local artwork ID before hashing. */

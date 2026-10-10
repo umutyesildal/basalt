@@ -17,6 +17,7 @@ import { CLUSTER } from "@/lib/wallet";
 import { cn } from "@/lib/utils";
 import { parseBasketDataQuality } from "@/lib/basket-data-quality";
 import { onchainBasketDisplay } from "@/lib/onchain-basket-display";
+import { fetchProfile } from "@/lib/social-api";
 import { ConceptGallery } from "./concept-gallery";
 
 const DEVNET_PREVIEW = CLUSTER === "devnet" || CLUSTER === "localnet";
@@ -248,6 +249,16 @@ function tickerWeightsOf(
   return { tickers, weights };
 }
 
+/** Preserve real mint identity and target weights; decorative token art is resolved separately. */
+function holdingsOf(basket: BasketRow, mintTickers: Map<string, string>) {
+  return (Array.isArray(basket.constituents) ? basket.constituents : []).map((item, i) => {
+    const mint = typeof item === "string" ? item : typeof item.mint === "string" ? item.mint : undefined;
+    const symbol = typeof item === "object" && item ? constituentTicker(item) : null;
+    const bps = num(basket.weights_bps?.[i]);
+    return { mint, symbol: symbol || (mint ? mintTickers.get(mint) : null) || "Token", weight: bps === null ? null : bps / 100 };
+  });
+}
+
 /** Category filter pill — rounded-full monochrome token treatment, filled when active. */
 function pillClasses(active: boolean) {
   return cn(
@@ -283,6 +294,7 @@ export default function ExploreClient() {
   const [bench, setBench] = useState<Bench | null>(null);
   const [mintTickers, setMintTickers] = useState<Map<string, string>>(new Map());
 
+  const [creators, setCreators] = useState<Map<string, { name: string; avatarUrl: string | null }>>(new Map());
   const [query, setQuery] = useState("");
   const [sortKey, setSortKey] = useState<SortKey>("popular");
   const [category, setCategory] = useState<string>("All");
@@ -323,6 +335,28 @@ export default function ExploreClient() {
     void load();
     return () => controller.abort();
   }, [reloadKey]);
+
+  // Optional public profile decoration never blocks the basket list.
+  useEffect(() => {
+    let active = true;
+    const controller = new AbortController();
+    const wallets = [...new Set(baskets.map(b => b.creator).filter((wallet): wallet is string => !!wallet))];
+    const timeout = window.setTimeout(() => controller.abort(), 8_000);
+    void Promise.allSettled(wallets.map(async wallet => {
+      const payload = await fetchProfile(wallet, controller.signal);
+      const profile = payload.profile;
+      if (!profile || profile.isPublic !== true) return null;
+      const name = (profile.displayName || profile.handle || "").replace(/[\u0000-\u001f\u007f-\u009f\u202a-\u202e]/g, " ").trim().slice(0, 64);
+      return name ? { wallet, name, avatarUrl: profile.avatarUrl } : null;
+    })).then(results => {
+      window.clearTimeout(timeout);
+      if (!active) return;
+      const profiles = new Map<string, { name: string; avatarUrl: string | null }>();
+      for (const result of results) if (result.status === "fulfilled" && result.value) profiles.set(result.value.wallet, result.value);
+      setCreators(profiles);
+    });
+    return () => { active = false; window.clearTimeout(timeout); controller.abort(); };
+  }, [baskets]);
 
   // Whitelist mint→ticker map for card composition strings — fetched once, optional.
   useEffect(() => {
@@ -442,7 +476,7 @@ export default function ExploreClient() {
       if (category !== "All" && cardInfoByPubkey.get(b.pubkey)?.category !== category)
         return false;
       if (!q) return true;
-      const name = nameOf(b)?.toLowerCase() ?? "";
+      const name = onchainBasketDisplay(b.metadata_json, b.pubkey, { devnet: DEVNET_PREVIEW }).name.toLowerCase();
       const composition = compositionOf(b, mintTickers)?.toLowerCase() ?? "";
       return (
         b.pubkey.toLowerCase().includes(q) ||
@@ -492,7 +526,7 @@ export default function ExploreClient() {
             Onchain baskets
           </h2>
           <p className="max-w-2xl text-sm leading-6 text-muted-foreground">
-            Created by the community on {CLUSTER}.
+            Community baskets built with {DEVNET_PREVIEW ? "devnet test tokens" : "onchain assets"}.
           </p>
         </div>
 
@@ -621,7 +655,7 @@ export default function ExploreClient() {
                 const r30 = returnPercent(b.return_30d);
                 const compare = comparisonOf(b, bench);
                 const info = cardInfoByPubkey.get(b.pubkey);
-                const display = onchainBasketDisplay(b.metadata_json, b.pubkey);
+                const display = onchainBasketDisplay(b.metadata_json, b.pubkey, { devnet: DEVNET_PREVIEW, assetCount: num(b.num_constituents) ?? b.constituents?.length, tickers: info?.tickers, weightsBps: b.weights_bps?.map(v => num(v) ?? 0) });
                 const assetCount = Array.isArray(b.constituents) && b.constituents.length > 0
                   ? b.constituents.length : num(b.num_constituents);
                 return (
@@ -633,6 +667,9 @@ export default function ExploreClient() {
                       thesis={display.thesis}
                       coverId={display.coverId}
                       creator={b.creator}
+                      creatorName={b.creator ? creators.get(b.creator)?.name : null}
+                      creatorAvatarUrl={b.creator ? creators.get(b.creator)?.avatarUrl : null}
+                      holdings={holdingsOf(b, mintTickers)}
                       assetCount={assetCount}
                       context={info?.category ?? null}
                       tickers={info?.tickers ?? []}

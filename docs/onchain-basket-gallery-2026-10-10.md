@@ -1,5 +1,7 @@
 # Onchain basket gallery, 2026-10-10
 
+> Superseded for names, descriptions, token badges and creator portraits by [the later identity refinement](onchain-basket-identities-2026-10-10.md). This record preserves the original gallery checkpoint.
+
 Status: live at https://basalt.markets/explore; source, exact-source CI, hosted build and Chrome verification complete.
 
 The owner requested that the lower Onchain baskets section of `/explore` use the same visual layout as the stock basket templates, with immediate artwork for baskets that have no cover.

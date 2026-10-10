@@ -1,3 +1,5 @@
+- [Onchain basket identities, 2026-10-10](onchain-basket-identities-2026-10-10.md): varied covers, stable devnet display names, illustrated tokens and local creator portraits; supersedes the neutral gallery presentation.
+
 # Basalt documentation map
 
 - [Onchain basket gallery, 2026-10-10](onchain-basket-gallery-2026-10-10.md): matching stock/onchain card layout, immediate cover fallback, metadata boundary and live release.

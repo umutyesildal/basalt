@@ -41,6 +41,9 @@ import { ChangeValue } from "@/components/stocks/change-value";
 import { formatAsOf, formatUsd, truncateAddress } from "@/lib/format";
 import { BasketDataNote } from "@/components/basket/basket-data-note";
 import { parseBasketDataQuality } from "@/lib/basket-data-quality";
+import { onchainBasketDisplay } from "@/lib/onchain-basket-display";
+import { getBasketCover } from "@/lib/basket-covers";
+import { CLUSTER } from "@/lib/wallet";
 
 type SectionTab = "about" | "history" | "risk" | "thesis";
 
@@ -51,21 +54,6 @@ const SECTION_TABS: { value: SectionTab; label: string }[] = [
   { value: "thesis", label: "Thesis" },
 ];
 
-const MAX_COMPOSITION_PARTS = 4;
-
-/** metadata_json may arrive as object or JSON text — parse defensively. */
-function metaObj(mj: unknown): Record<string, unknown> | null {
-  if (!mj) return null;
-  let obj: unknown = mj;
-  if (typeof mj === "string") {
-    try {
-      obj = JSON.parse(mj);
-    } catch {
-      return null;
-    }
-  }
-  return obj && typeof obj === "object" ? (obj as Record<string, unknown>) : null;
-}
 
 /**
  * Basket detail — client body of the detail page (the route's server component
@@ -190,31 +178,17 @@ export default function BasketDetailClient({
       ? Math.max(0, Math.floor(Date.now() / 1000) - lastAccrualSeconds)
       : null;
 
-  // Name-first identity, same resolution order as the /explore cards.
-  const composition = useMemo(() => {
-    if (!detail) return null;
-    const parts: string[] = [];
-    detail.constituents.forEach((mint, i) => {
-      const ticker = mintTickers.get(mint) ?? truncateAddress(mint, 4, 4);
-      parts.push(ticker);
-    });
-    if (parts.length === 0) return null;
-    const shown = parts.slice(0, MAX_COMPOSITION_PARTS).join(" · ");
-    return parts.length > MAX_COMPOSITION_PARTS
-      ? `${shown} · +${parts.length - MAX_COMPOSITION_PARTS}`
-      : shown;
-  }, [detail, mintTickers]);
-
-  const name = useMemo(() => {
-    const n = metaObj(detail?.metadata_json)?.name;
-    return typeof n === "string" && n.trim() ? n.trim() : null;
-  }, [detail]);
-  const creatorThesis = useMemo(() => {
-    const description = metaObj(detail?.metadata_json)?.description;
-    return typeof description === "string" && description.trim() ? description.trim() : null;
-  }, [detail]);
-
-  const headline = name ?? composition ?? truncateAddress(pubkey, 6, 6);
+  // One display identity across discovery, indexed detail and the devnet workspace.
+  // This changes presentation only; chain state and metadata commitments stay intact.
+  const display = useMemo(() => detail ? onchainBasketDisplay(detail.metadata_json, pubkey, {
+    devnet: CLUSTER === "devnet" || CLUSTER === "localnet",
+    assetCount: detail.constituents.length,
+    tickers: detail.constituents.flatMap((mint) => mintTickers.get(mint) ?? []),
+    weightsBps: detail.weights_bps,
+  }) : null, [detail, pubkey, mintTickers]);
+  const name = display?.name ?? null;
+  const creatorThesis = display?.thesis ?? null;
+  const headline = name ?? truncateAddress(pubkey, 6, 6);
   const vsSpy = shownChange24h !== null && spy24h !== null ? shownChange24h - spy24h : null;
 
   return (
@@ -251,12 +225,17 @@ export default function BasketDetailClient({
       {status === "ready" && detail ? (
         <>
           {/* identity header */}
-          <div className="min-w-0 space-y-1.5">
-            <h1 className="font-display text-3xl font-semibold tracking-tight" title={detail.pubkey}>
-              {headline}
-            </h1>
-            {creatorThesis ? <p className="max-w-2xl text-sm leading-6 text-muted-foreground">{creatorThesis}</p> : null}
-            <p className="text-sm leading-5 text-muted-foreground">Devnet · project test tokens</p>
+          <div className="flex min-w-0 items-start gap-4">
+            {display?.coverId && <div aria-hidden="true" className="size-20 shrink-0 overflow-hidden rounded-xl bg-cover bg-center" style={{ backgroundImage: 'url("/images/baskets/onchain-placeholder.svg")' }}>
+              <img key={display.coverId} src={getBasketCover(display.coverId).src} alt="" width={80} height={80} className="size-full object-cover" onError={(event) => { event.currentTarget.style.opacity = "0"; }} />
+            </div>}
+            <div className="min-w-0 space-y-1.5">
+              <h1 className="break-words font-display text-3xl font-semibold tracking-tight" title={detail.pubkey}>
+                {headline}
+              </h1>
+              {creatorThesis ? <p className="max-w-2xl text-sm leading-6 text-muted-foreground">{creatorThesis}</p> : null}
+              <p className="text-sm leading-5 text-muted-foreground">Devnet · project test tokens</p>
+            </div>
           </div>
 
           <BasketDataNote quality={dataQuality} details />

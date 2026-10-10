@@ -5,25 +5,11 @@ import BasketPageVerify from "@/components/basket/basket-page-verify";
 import { API_BASE } from "@/lib/api-client";
 import { formatBpsAsPercent, prettyTicker, truncateAddress } from "@/lib/format";
 import type { BasketDetail } from "@/components/basket/basket-api";
+import { onchainBasketDisplay } from "@/lib/onchain-basket-display";
+import { CLUSTER } from "@/lib/wallet";
 
 const MAX_COMPOSITION_PARTS = 4;
 const META_FETCH_TIMEOUT_MS = 5000;
-
-/** metadata_json may arrive as object or JSON text — parse defensively. */
-function metaName(mj: unknown): string | null {
-  if (!mj) return null;
-  let obj: unknown = mj;
-  if (typeof mj === "string") {
-    try {
-      obj = JSON.parse(mj);
-    } catch {
-      return null;
-    }
-  }
-  if (!obj || typeof obj !== "object") return null;
-  const n = (obj as Record<string, unknown>).name;
-  return typeof n === "string" && n.trim() ? n.trim() : null;
-}
 
 const BASE58_RE = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/;
 
@@ -90,7 +76,12 @@ export async function generateMetadata({
   const pubkey = decodeURIComponent(rawPubkey);
 
   const detail = await fetchBasketForMeta(pubkey);
-  const name = detail ? metaName(detail.metadata_json) : null;
+  const display = detail ? onchainBasketDisplay(detail.metadata_json, pubkey, {
+    devnet: CLUSTER === "devnet" || CLUSTER === "localnet",
+    assetCount: detail.constituents.length,
+    weightsBps: detail.weights_bps,
+  }) : null;
+  const name = display?.name ?? null;
 
   let composition: string | null = null;
   if (detail && detail.constituents.length > 0) {
@@ -110,6 +101,7 @@ export async function generateMetadata({
     : "Basalt | Strategy basket on Solana";
 
   const sentences: string[] = [];
+  if (display?.thesis) sentences.push(display.thesis);
   if (name && composition) {
     sentences.push(
       `${name} holds ${detail?.constituents.length ?? ""} whitelisted tokens (${composition}) in one Token-2022 strategy basket.`,

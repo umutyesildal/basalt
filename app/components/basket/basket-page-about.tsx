@@ -21,6 +21,8 @@ import {
 } from "@/components/basket/basket-api";
 import { BasketSectionHeader } from "@/components/basket/basket-page-section-header";
 import { formatAsOf, formatBpsAsPercent, formatTokenAmount, truncateAddress } from "@/lib/format";
+import { onchainTokenDisplay } from "@/lib/onchain-token-display";
+import { CLUSTER } from "@/lib/wallet";
 import { PROTOCOL_FEE_SPLIT_LABEL } from "@/lib/protocol-policy";
 
 /**
@@ -39,9 +41,8 @@ import { PROTOCOL_FEE_SPLIT_LABEL } from "@/lib/protocol-policy";
  * All figures are API-driven; missing values render as em dashes.
  */
 
-function sliceColor(index: number): string {
-  return `hsl(var(--chart-${(index % 5) + 1}))`;
-}
+const DEVNET = CLUSTER === "devnet" || CLUSTER === "localnet";
+function tokenArt(mint: string, ticker: string) { return onchainTokenDisplay(ticker, mint, DEVNET); }
 
 export function BasketPageAbout({
   detail,
@@ -58,7 +59,8 @@ export function BasketPageAbout({
         const bps = weights[i];
         if (bps === undefined || bps <= 0) return null;
         const ticker = mintTickers.get(mint) ?? truncateAddress(mint, 4, 4);
-        return { label: ticker, value: bps / 100, color: sliceColor(i) };
+        const art = tokenArt(mint, ticker);
+        return { label: art.label, value: bps / 100, color: art.color };
       })
       .filter((slice): slice is { label: string; value: number; color: string } => slice !== null);
   }, [detail.constituents, mintTickers, weights]);
@@ -144,12 +146,11 @@ export function BasketPageAbout({
                 return (
                   <li key={mint} className="flex items-center justify-between gap-3 py-2">
                     <div className="flex min-w-0 items-center gap-2.5">
-                      <span
-                        aria-hidden="true"
-                        className="inline-block size-2 shrink-0 rounded-sm"
-                        style={{ backgroundColor: sliceColor(i) }}
-                      />
-                      <span className="font-mono text-xs font-medium text-foreground">{ticker}</span>
+                      <img src={tokenArt(mint, ticker).src} alt="" width={36} height={36} className="size-9 shrink-0 rounded-full" />
+                      <span className="min-w-0" title={`${tokenArt(mint, ticker).sourceLabel} · ${mint}`}>
+                        <span className="block text-sm font-medium text-foreground">{tokenArt(mint, ticker).label}</span>
+                        <span className="block text-xs text-muted-foreground">{DEVNET ? "Test token" : ticker}</span>
+                      </span>
                     </div>
                     <div className="flex shrink-0 items-center gap-2">
                       <span className="font-mono text-xs tabular-nums text-foreground">

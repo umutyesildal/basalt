@@ -12,13 +12,20 @@ import { ChangeValue } from "@/components/stocks/change-value";
 import { Card } from "@/components/ui/card";
 import { getBasketCover, isBasketCoverId, type BasketCoverId } from "@/lib/basket-covers";
 import { basketDataMessage, type BasketDataQuality } from "@/lib/basket-data-quality";
-import { formatUsd, truncateAddress } from "@/lib/format";
-import { logoUrl } from "@/lib/logos";
+import { formatPercent, formatUsd } from "@/lib/format";
+import { onchainTokenDisplay } from "@/lib/onchain-token-display";
 
 export interface BasketCardCompare {
   label: string;
   value: number | null;
   window: "24h" | "30d";
+}
+
+export interface BasketCardHolding {
+  symbol: string;
+  /** Actual target percentage. Null means the feed has no verified weight. */
+  weight: number | null;
+  mint?: string;
 }
 
 export interface BasketCardProps {
@@ -29,10 +36,13 @@ export interface BasketCardProps {
   context?: string | null;
   tickers?: string[];
   weights?: WeightBarConstituent[];
+  holdings?: BasketCardHolding[];
   coverId?: BasketCoverId | null;
   thesis?: string | null;
   assetCount?: number | null;
   creator?: string | null;
+  creatorName?: string | null;
+  creatorAvatarUrl?: string | null;
   price: number | null;
   aum: number | null;
   devnetPreview?: boolean;
@@ -75,22 +85,24 @@ function CoverImage({ src }: { src: string }) {
   );
 }
 
-function AssetMark({ ticker, devnet }: { ticker: string; devnet: boolean }) {
+function HoldingTile({ holding, devnet }: { holding: BasketCardHolding; devnet: boolean }) {
+  const display = onchainTokenDisplay(holding.symbol, holding.mint, devnet);
   const [failed, setFailed] = useState(false);
+  const title = [display.sourceLabel, holding.mint].filter(Boolean).join(" · ");
   return (
-    <span className={`basket-story-asset ${devnet ? "!border-border !bg-muted !text-[0.625rem] text-muted-foreground" : ""}`} aria-hidden="true" title={ticker}>
-      {devnet || failed ? ticker.slice(0, 2) : (
-        <img
-          src={logoUrl(ticker)}
-          alt=""
-          width={24}
-          height={24}
-          loading="lazy"
-          decoding="async"
-          onError={() => setFailed(true)}
-        />
-      )}
-    </span>
+    <li className="onchain-holding" title={title}>
+      <span className="onchain-holding-art" style={{ backgroundColor: display.color }} aria-hidden="true">
+        {failed ? (
+          <svg viewBox="0 0 32 32" fill="none" aria-hidden="true"><path d="m16 6 10 6-10 6-10-6 10-6Z" stroke="currentColor" strokeWidth="1.5" /><path d="m6 17 10 6 10-6M6 22l10 6 10-6" stroke="currentColor" strokeWidth="1.5" /></svg>
+        ) : (
+          <img src={display.src} alt="" width={32} height={32} loading="lazy" decoding="async" onError={() => setFailed(true)} />
+        )}
+      </span>
+      <span className="onchain-holding-copy">
+        <span className="onchain-holding-label">{display.label}</span>
+        {holding.weight !== null && <span className="onchain-holding-weight">{formatPercent(holding.weight, { fractionDigits: Number.isInteger(holding.weight) ? 0 : 2 })}</span>}
+      </span>
+    </li>
   );
 }
 
@@ -102,10 +114,13 @@ export function BasketCard({
   context,
   tickers = [],
   weights,
+  holdings: suppliedHoldings,
   coverId,
   thesis,
   assetCount,
   creator,
+  creatorName,
+  creatorAvatarUrl,
   quality,
   price: suppliedPrice,
   aum: suppliedAum,
@@ -123,14 +138,22 @@ export function BasketCard({
   const return7d = eligible && finite(suppliedReturn7d) ? suppliedReturn7d : null;
   const return30d = eligible && finite(suppliedReturn30d) ? suppliedReturn30d : null;
   const compare = eligible && suppliedCompare && finite(suppliedCompare.value) ? suppliedCompare : null;
+  const holdings = (suppliedHoldings?.length ? suppliedHoldings : weights?.length ? weights : tickers.map(symbol => ({ symbol, weight: null })))
+    .filter(holding => typeof holding.symbol === "string" && holding.symbol.trim())
+    .map(holding => ({
+      symbol: holding.symbol,
+      weight: finite(holding.weight) && holding.weight >= 0 && holding.weight <= 100 ? holding.weight : null,
+      mint: "mint" in holding && typeof holding.mint === "string" ? holding.mint : undefined,
+    }))
+    .sort((a, b) => (b.weight ?? -1) - (a.weight ?? -1));
   const count = Number.isSafeInteger(assetCount) && (assetCount as number) > 0
-    ? assetCount as number : tickers.length || weights?.length || null;
-  const description = thesis?.trim() || tickers.join(" · ") || context?.trim() || null;
+    ? assetCount as number : holdings.length || null;
+  const description = thesis?.trim() || context?.trim() || null;
   const reason = basketDataMessage(quality) ?? "Price and return data are not available yet.";
   const hasMetrics = price !== null || aum !== null || return7d !== null || return30d !== null || compare !== null;
 
   return (
-    <Card className="basket-story-card">
+    <Card className="basket-story-card onchain-basket-card">
       <Link
         href={href}
         className="basket-story-link"
@@ -145,15 +168,14 @@ export function BasketCard({
             <ArrowUpRight className="size-4 shrink-0" aria-hidden="true" />
           </div>
           <p className="basket-story-thesis min-h-[2.6rem] line-clamp-2 break-words" aria-hidden={!description || undefined}>{description}</p>
-          <div className="basket-story-meta">
-            <span className="basket-story-assets" aria-label={tickers.length ? `Holdings: ${tickers.join(", ")}` : undefined}>
-              {tickers.slice(0, 4).map((ticker, index) => (
-                <AssetMark key={`${ticker}-${index}-${devnetPreview}`} ticker={ticker} devnet={devnetPreview} />
-              ))}
-              {tickers.length > 4 && <span className="basket-story-count" aria-hidden="true">+{tickers.length - 4}</span>}
-            </span>
-            {count !== null && <span className="font-mono">{count} {count === 1 ? "asset" : "assets"}</span>}
-          </div>
+          {holdings.length > 0 && (
+            <div className="onchain-composition">
+              <div className="onchain-composition-heading"><span>Holdings</span>{count !== null && <span>{count > 4 ? `${Math.min(holdings.length, 4)} of ${count} tokens` : `${count} ${count === 1 ? "token" : "tokens"}`}</span>}</div>
+              <ul className="onchain-holdings" aria-label="Basket holdings">
+                {holdings.slice(0, 4).map((holding, index) => <HoldingTile key={`${holding.mint ?? holding.symbol}-${index}-${devnetPreview}`} holding={holding} devnet={devnetPreview} />)}
+              </ul>
+            </div>
+          )}
           {hasMetrics ? (
             <div className="mt-auto">
               <dl className="basket-model-metrics flex-wrap">
@@ -177,9 +199,10 @@ export function BasketCard({
         </div>
       </Link>
       {creator && (
-        <Link href={`/creator/${encodeURIComponent(creator)}`} className="basket-story-owner" title={creator}>
-          <SocialAvatar wallet={creator} className="!size-6" />
-          <span>by {truncateAddress(creator, 4, 4)}</span>
+        <Link href={`/creator/${encodeURIComponent(creator)}`} className="basket-story-owner onchain-basket-owner" title={creator}>
+          <SocialAvatar wallet={creator} displayName={creatorName} avatarUrl={creatorAvatarUrl} className="!size-7" />
+          <span className="truncate">{creatorName?.trim() || "Basket manager"}</span>
+          <ArrowUpRight className="size-3.5 shrink-0" aria-hidden="true" />
         </Link>
       )}
     </Card>

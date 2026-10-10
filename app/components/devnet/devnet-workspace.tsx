@@ -30,6 +30,7 @@ import { assertDevnetFaucetReady, buildDevnetFaucetClaim, readDevnetFaucetClaime
 import { signAndSendLocal } from "@/lib/sign-and-send-local";
 import { CLUSTER, RPC_ENDPOINT, describeRpcError } from "@/lib/wallet";
 import { truncateAddress } from "@/lib/format";
+import { onchainBasketDisplay } from "@/lib/onchain-basket-display";
 import { budgetDeposits, formatTokenUnitsInput, maximumBudget, parseTokenUnits, percentBps, tokenUnits, U64_MAX, weightedSeed } from "./amounts";
 
 type WalletSnapshot = Awaited<ReturnType<typeof readDevnetWallet>>;
@@ -57,9 +58,12 @@ function Field({ id, label, value, onChange, hint, decimal = false, decimalPlace
 }
 
 function basketName(snapshot: RawDevnetSnapshot): string {
-  const json = snapshot.detail.metadata_json;
-  const name = json && typeof json === "object" ? (json as { name?: unknown }).name : null;
-  return typeof name === "string" && name.trim() ? name : `Basket ${truncateAddress(snapshot.detail.pubkey)}`;
+  const detail = snapshot.detail;
+  return onchainBasketDisplay(detail.metadata_json, detail.pubkey, {
+    devnet: CLUSTER === "devnet" || CLUSTER === "localnet",
+    assetCount: detail.constituents.length,
+    weightsBps: detail.weights_bps,
+  }).name;
 }
 
 function coreKeys(snapshot: RawDevnetSnapshot, user: PublicKey): BasketCoreKeys {
