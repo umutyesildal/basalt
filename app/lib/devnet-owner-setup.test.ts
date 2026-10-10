@@ -1,9 +1,10 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { createHash } from "node:crypto";
+import { createRequire } from "node:module";
 import { Buffer } from "buffer";
 import bs58 from "bs58";
-import { Keypair, PublicKey, SystemProgram, Transaction, TransactionInstruction, type AccountInfo } from "@solana/web3.js";
+import { ComputeBudgetProgram, Keypair, PublicKey, SystemProgram, Transaction, TransactionInstruction, TransactionMessage, VersionedTransaction, type AccountInfo } from "@solana/web3.js";
 import { createDevnetOwnerSetupClient, DEVNET_OWNER_SETUP_POLICY, DevnetOwnerSetupError, describeDevnetOwnerSetupError, ownerProgramData, type OwnerSetupArtifacts, type OwnerSetupIntent, type OwnerSetupPolicy, type OwnerSetupReceipt, type OwnerSetupRpc, type OwnerSetupSubmission } from "./devnet-owner-setup";
 import { UPGRADEABLE_LOADER } from "./devnet-owner-claim";
 import { DEVNET_GENESIS_HASH } from "./program-namespaces";
@@ -330,4 +331,112 @@ test("setup accepts the standard-wallet serialized transaction roundtrip", async
   };
   const receipt = await client.submitSetup(f.rpc, review, f.options);
   assert.equal(receipt.status, "finalized"); assert.equal(f.counts().sends, 1);
+});
+
+
+// The installed package exposes separate Node/browser constructor identities even
+// when npm has deduplicated its version. This reproduces that boundary offline.
+const BrowserTransaction = createRequire(import.meta.url)("@solana/web3.js/lib/index.browser.cjs.js").Transaction as typeof Transaction;
+const foreignWire = (wire: unknown): Transaction => ({ serialize: () => wire }) as unknown as Transaction;
+const walletCopy = (tx: Transaction) => Transaction.from(tx.serialize({ requireAllSignatures: false, verifySignatures: false }));
+
+test("exact signed wire from another installed web3 constructor is accepted for setup", async () => {
+  const f = fixture("owner"), review = await client.prepare(f.rpc, owner.publicKey);
+  f.options.signTransaction = async tx => {
+    const other = BrowserTransaction.from(tx.serialize({ requireAllSignatures: false, verifySignatures: false }));
+    assert.equal(other instanceof Transaction, false);
+    other.partialSign(owner);
+    assert.deepEqual(Buffer.from(other.serializeMessage()), tx.serializeMessage());
+    return other;
+  };
+  const receipt = await client.submitSetup(f.rpc, review, f.options);
+  assert.equal(receipt.status, "finalized"); assert.equal(receipt.lastValidBlockHeight, 200);
+  assert.equal(f.counts().sends, 1); assert.equal(f.counts().simulations, 2);
+});
+
+test("foreign constructor handoff preserves the exact bootstrap signature and nonce message", async () => {
+  const f = fixture(), pkg = packageFixture();
+  f.options.signTransaction = async tx => {
+    const other = BrowserTransaction.from(tx.serialize({ requireAllSignatures: false, verifySignatures: false }));
+    other.partialSign(owner); return other;
+  };
+  const receipt = await client.submitHandoff(f.rpc, pkg, f.options);
+  const expected = Transaction.from(Buffer.from(pkg.transactionBase64, "base64")), actual = Transaction.from(f.sent[0]);
+  assert.equal(receipt.status, "finalized"); assert.deepEqual(actual.serializeMessage(), expected.serializeMessage());
+  assert.deepEqual(actual.signatures[0].signature, expected.signatures[0].signature); assert.equal(f.counts().sends, 1);
+});
+
+test("foreign structural wallet result contributes bytes only, never trusted verification methods", async () => {
+  const f = fixture("owner"), review = await client.prepare(f.rpc, owner.publicKey);
+  f.options.signTransaction = async tx => {
+    const copy = walletCopy(tx); copy.partialSign(owner);
+    return { serialize: () => new Uint8Array(copy.serialize()), serializeMessage: () => { throw new Error("must not be called"); }, verifySignatures: () => { throw new Error("must not be called"); }, lastValidBlockHeight: 999999 } as unknown as Transaction;
+  };
+  const receipt = await client.submitSetup(f.rpc, review, f.options);
+  assert.equal(receipt.status, "finalized"); assert.equal(receipt.lastValidBlockHeight, 200); assert.equal(f.counts().sends, 1);
+});
+
+for (const [name, result] of Object.entries({
+  "null result": (_: Transaction): unknown => null,
+  "missing serializer": (_: Transaction) => ({}),
+  "throwing serializer": (_: Transaction) => ({ serialize: () => { throw new Error("private wallet payload"); } }),
+  "string wire": (_: Transaction) => foreignWire("not bytes"),
+  "array wire": (_: Transaction) => foreignWire([1, 2, 3]),
+  "empty wire": (_: Transaction) => foreignWire(new Uint8Array()),
+  "oversized wire": (_: Transaction) => foreignWire(new Uint8Array(1233)),
+  "truncated wire": (_: Transaction) => foreignWire(new Uint8Array([1, 2, 3])),
+  "versioned wire": (tx: Transaction) => {
+    const v0 = new VersionedTransaction(new TransactionMessage({ payerKey: owner.publicKey, recentBlockhash: tx.recentBlockhash!, instructions: tx.instructions }).compileToV0Message());
+    v0.sign([owner]); return foreignWire(v0.serialize());
+  },
+  "trailing wire": (tx: Transaction) => { const copy = walletCopy(tx); copy.partialSign(owner); return foreignWire(Buffer.concat([copy.serialize(), Buffer.from([0])])); },
+  "noncanonical compact length": (tx: Transaction) => { const copy = walletCopy(tx); copy.partialSign(owner); const wire = copy.serialize(); return foreignWire(Buffer.concat([Buffer.from([0x81, 0]), wire.subarray(1)])); },
+})) test(`wallet normalization rejects ${name} before signed simulation or broadcast`, async () => {
+  const f = fixture("owner"), review = await client.prepare(f.rpc, owner.publicKey);
+  f.options.signTransaction = async tx => result(tx) as Transaction;
+  await assert.rejects(client.submitSetup(f.rpc, review, f.options), error => error instanceof DevnetOwnerSetupError && !error.message.includes("private wallet payload"));
+  assert.equal(f.counts().sends, 0); assert.equal(f.counts().simulations, 1); assert.equal(f.receipt(), null);
+});
+
+for (const [name, mutate, reason] of [
+  ["compute limit", (tx: Transaction) => tx.add(ComputeBudgetProgram.setComputeUnitLimit({ units: 500000 })), /compute budget/],
+  ["priority fee", (tx: Transaction) => tx.add(ComputeBudgetProgram.setComputeUnitPrice({ microLamports: 20000 })), /compute budget/],
+  ["blockhash", (tx: Transaction) => { tx.recentBlockhash = nonce.toBase58(); }, /blockhash/],
+  ["fee payer", (tx: Transaction) => { tx.feePayer = bootstrap.publicKey; }, /fee payer/],
+  ["program accounts", (tx: Transaction) => { tx.instructions[0].keys[0].pubkey = nonce; }, /transaction accounts/],
+  ["factory fee split", (tx: Transaction) => { tx.instructions[1].data.writeUInt16LE(8000, 40); }, /program instructions/],
+] as const) test(`wallet normalization rejects genuinely altered ${name} with a fixed public reason`, async () => {
+  const f = fixture("owner"), review = await client.prepare(f.rpc, owner.publicKey);
+  f.options.signTransaction = async tx => {
+    const copy = walletCopy(tx); mutate(copy); copy.partialSign(owner);
+    if (name === "fee payer") copy.partialSign(bootstrap);
+    return foreignWire(copy.serialize({ requireAllSignatures: false, verifySignatures: false }));
+  };
+  await assert.rejects(client.submitSetup(f.rpc, review, f.options), reason);
+  assert.equal(f.counts().sends, 0); assert.equal(f.counts().simulations, 1); assert.equal(f.receipt(), null);
+});
+
+for (const kind of ["missing owner", "corrupted owner", "missing bootstrap", "corrupted bootstrap"] as const) test(`foreign wire with ${kind} fails independent signature verification`, async () => {
+  const handoff = kind.includes("bootstrap"), f = fixture(handoff ? "bootstrap" : "owner");
+  const review = handoff ? null : await client.prepare(f.rpc, owner.publicKey);
+  f.options.signTransaction = async tx => {
+    const copy = walletCopy(tx); copy.partialSign(owner);
+    const index = kind.includes("bootstrap") ? 0 : copy.signatures.length - 1;
+    if (kind.startsWith("missing")) copy.signatures[index].signature = null;
+    else copy.signatures[index].signature![0] ^= 1;
+    return foreignWire(copy.serialize({ requireAllSignatures: false, verifySignatures: false }));
+  };
+  await assert.rejects(handoff ? client.submitHandoff(f.rpc, packageFixture(), f.options) : client.submitSetup(f.rpc, review!, f.options), /exact required signatures/);
+  assert.equal(f.counts().sends, 0); assert.equal(f.counts().simulations, 1);
+});
+
+test("returning exact signed wire cannot hide mutation of the original reviewed transaction", async () => {
+  const f = fixture("owner"), review = await client.prepare(f.rpc, owner.publicKey);
+  f.options.signTransaction = async tx => {
+    const copy = walletCopy(tx); copy.partialSign(owner);
+    tx.instructions[1].data.writeUInt16LE(8000, 40);
+    return foreignWire(copy.serialize());
+  };
+  await assert.rejects(client.submitSetup(f.rpc, review, f.options), /mutated the reviewed transaction/);
+  assert.equal(f.counts().sends, 0); assert.equal(f.counts().simulations, 1);
 });

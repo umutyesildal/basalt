@@ -14,3 +14,12 @@ This source update does not prove owner initialization or any owner-namespace ba
 ## Live diagnostic observation
 
 Source `b075cbea25edcf3e4acbb4b03dc1e77abf535fb4` is live at https://basalt.markets in Vercel `dpl_9as2xcijMATprUxkJKg5BHfCJJbJ`. All six exact-source CI jobs passed. The actual owner signed again, and Chrome exposed the exact pre-broadcast guard: **The wallet changed the reviewed transaction. Nothing was broadcast.** This combined guard checks both local constructor identity and exact serialized message bytes, so this message alone does not establish that Phantom altered instructions. The next investigation separates cross-constructor wallet return objects from genuine wire-message changes. No changed instructions, compute budgets, fees or blockhash will be silently accepted. Creation is still disabled and the VPS backend is unchanged. See [release evidence](evidence/owner-diagnostics-live-release-2026-10-10.json).
+
+
+## Signed-wire compatibility correction
+
+The installed deduplicated web3 1.99.0 package exposes distinct Node/browser constructors. An offline regression now reproduces exact signed message bytes with a foreign constructor for both initialization and the durable nonce handoff; the previous local instanceof check rejects that legitimate shape. This establishes a possible failure mechanism, not the exact cause of the earlier production return.
+
+The wallet boundary now reads at most 1,232 serialized bytes, reparses a local legacy transaction, requires a canonical full-wire roundtrip, exact reviewed message bytes, all exact independently verified signatures, unchanged bootstrap signature and unchanged original message. Signed simulation and broadcast use that normalized local transaction. It accepts no changed instruction, compute budget, fee payer, blockhash or account. Fixed public diagnostics distinguish actual changed message fields without exposing arbitrary wallet payloads. Original expiry, finalized account checks, pre-send receipt persistence and no automatic resend remain intact.
+
+All 68 setup tests pass, including 25 new foreign-constructor and rejection regressions. App typecheck passes and independent source review found no concrete blocker. [Offline evidence](evidence/owner-wallet-wire-compatibility-2026-10-10.json). A later live owner signature and finalized setup inspection are still required; these tests do not claim initialization or creation activation.

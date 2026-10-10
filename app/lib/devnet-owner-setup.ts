@@ -1,7 +1,7 @@
 /** Source-pinned, public-only devnet administration. No key loading or creation activation. */
 import { Buffer } from "buffer";
 import bs58 from "bs58";
-import { NonceAccount, NONCE_ACCOUNT_LENGTH, PublicKey, SystemProgram, Transaction, TransactionInstruction, VersionedTransaction, type AccountInfo, type Connection } from "@solana/web3.js";
+import { ComputeBudgetProgram, Message, NonceAccount, NONCE_ACCOUNT_LENGTH, PublicKey, SystemProgram, Transaction, TransactionInstruction, VersionedTransaction, type AccountInfo, type Connection } from "@solana/web3.js";
 import publicPolicy from "../../backend/src/config/devnetOwnerPolicy.json";
 import reviewedArtifacts from "./devnet-owner-artifacts.json";
 import { DEVNET_GENESIS_HASH } from "./program-namespaces";
@@ -287,13 +287,43 @@ export function createDevnetOwnerSetupClient(policy: Readonly<OwnerSetupPolicy> 
     if (result.value.err === "BlockhashNotFound") fail("The setup transaction expired before it was sent. Review the current setup to prepare a fresh transaction.");
     requireThat(result.value.err === null, "The reviewed devnet transaction did not pass simulation. No transaction was sent.");
   }
-  function verifyOwnerSigned(unsigned: Transaction, signed: Transaction, originalMessage: Buffer, originalBootstrap?: Buffer) {
-    requireThat(signed instanceof Transaction && signed.serializeMessage().equals(originalMessage), "The wallet changed the reviewed transaction. Nothing was broadcast.");
+  function verifyOwnerSigned(unsigned: Transaction, signed: unknown, originalMessage: Buffer, originalBootstrap?: Buffer) {
+    // Wallet adapters can return a Transaction from another module/realm. Treat only
+    // its bounded wire bytes as input; never trust its message/signature methods.
+    let wire: Buffer;
+    try {
+      requireThat(typeof signed === "object" && signed !== null && "serialize" in signed && typeof signed.serialize === "function", "The wallet did not return a serialized transaction. Nothing was broadcast.");
+      const raw: unknown = signed.serialize({ requireAllSignatures: false, verifySignatures: false });
+      requireThat(ArrayBuffer.isView(raw) && Object.prototype.toString.call(raw) === "[object Uint8Array]", "The wallet did not return transaction bytes. Nothing was broadcast.");
+      requireThat(raw.byteLength > 0 && raw.byteLength <= 1_232, "The wallet returned an invalid transaction size. Nothing was broadcast.");
+      wire = Buffer.from(new Uint8Array(raw.buffer, raw.byteOffset, raw.byteLength));
+    } catch (error) {
+      if (error instanceof DevnetOwnerSetupError) throw error;
+      return fail("The wallet transaction could not be serialized. Nothing was broadcast.");
+    }
+    let normalized: Transaction;
+    try {
+      normalized = Transaction.from(wire);
+      requireThat(normalized.compileMessage().version === "legacy" && normalized.serialize({ requireAllSignatures: false, verifySignatures: false }).equals(wire), "The wallet returned noncanonical transaction bytes. Nothing was broadcast.");
+    } catch (error) {
+      if (error instanceof DevnetOwnerSetupError) throw error;
+      return fail("The wallet did not return a valid legacy transaction. Nothing was broadcast.");
+    }
+    if (!normalized.serializeMessage().equals(originalMessage)) {
+      const original = Transaction.populate(Message.from(originalMessage));
+      const compute = (tx: Transaction) => JSON.stringify(tx.instructions.filter(ix => ix.programId.equals(ComputeBudgetProgram.programId)).map(ix => [ix.data.toString("hex"), ix.keys.map(key => [key.pubkey.toBase58(), key.isSigner, key.isWritable])]));
+      requireThat(compute(normalized) === compute(original), "The wallet changed the reviewed compute budget. Nothing was broadcast.");
+      requireThat(normalized.recentBlockhash === original.recentBlockhash, "The wallet changed the reviewed blockhash. Nothing was broadcast.");
+      requireThat(normalized.feePayer?.equals(original.feePayer!), "The wallet changed the reviewed fee payer. Nothing was broadcast.");
+      const before = original.compileMessage(), after = normalized.compileMessage();
+      requireThat(JSON.stringify(before.header) === JSON.stringify(after.header) && before.accountKeys.length === after.accountKeys.length && before.accountKeys.every((key, index) => key.equals(after.accountKeys[index])), "The wallet changed the reviewed transaction accounts. Nothing was broadcast.");
+      fail("The wallet changed the reviewed program instructions. Nothing was broadcast.");
+    }
     const required = originalBootstrap ? [bootstrap, owner] : [owner];
-    requireThat(signed.signatures.length === required.length && required.every((key, index) => signed.signatures[index].publicKey.equals(key)) && signed.verifySignatures(true), "The wallet did not provide the exact required signatures.");
-    if (originalBootstrap) requireThat(signed.signatures[0].signature?.equals(originalBootstrap), "The bootstrap signature changed. Nothing was broadcast.");
+    requireThat(normalized.signatures.length === required.length && required.every((key, index) => normalized.signatures[index].publicKey.equals(key)) && normalized.verifySignatures(true), "The wallet did not provide the exact required signatures.");
+    if (originalBootstrap) requireThat(normalized.signatures[0].signature?.equals(originalBootstrap), "The bootstrap signature changed. Nothing was broadcast.");
     requireThat(unsigned.serializeMessage().equals(originalMessage), "The wallet mutated the reviewed transaction.");
-    return signed.serialize({ requireAllSignatures: true, verifySignatures: true });
+    return { transaction: normalized, bytes: normalized.serialize({ requireAllSignatures: true, verifySignatures: true }) };
   }
   async function reconcile(rpc: OwnerSetupRpc, receipt: OwnerSetupReceipt): Promise<OwnerSetupReceipt> {
     requireThat(receipt.version === 1 && receipt.genesisHash === DEVNET_GENESIS_HASH && receipt.owner === policy.owner && ["handoff", "setup"].includes(receipt.kind) && bs58.decode(receipt.signature).length === 64);
@@ -351,10 +381,10 @@ export function createDevnetOwnerSetupClient(policy: Readonly<OwnerSetupPolicy> 
     transaction.minNonceContextSlot = state.contextSlot;
     options.onProgress?.("signing"); assertIntent(rpc, options);
     const signed = await options.signTransaction(transaction); assertIntent(rpc, options);
-    const bytes = verifyOwnerSigned(transaction, signed, originalMessage, originalBootstrap);
-    await simulate(rpc, signed, state.contextSlot, true); assertIntent(rpc, options);
+    const verified = verifyOwnerSigned(transaction, signed, originalMessage, originalBootstrap);
+    await simulate(rpc, verified.transaction, state.contextSlot, true); assertIntent(rpc, options);
     state = await inspectHandoff(rpc, pkg, state.contextSlot); assertIntent(rpc, options);
-    return broadcast(rpc, options, bytes, "handoff", ["checked-loader-whitelist", "checked-loader-factory", "checked-loader-basket"], state.contextSlot);
+    return broadcast(rpc, options, verified.bytes, "handoff", ["checked-loader-whitelist", "checked-loader-factory", "checked-loader-basket"], state.contextSlot);
   }
   async function submitSetup(rpc: OwnerSetupRpc, reviewed: OwnerSetupReview, options: OwnerSetupSubmission) {
     assertIntent(rpc, options); options.onProgress?.("checking");
@@ -370,11 +400,11 @@ export function createDevnetOwnerSetupClient(policy: Readonly<OwnerSetupPolicy> 
     requireThat(stateKey(state) === stateKey(next.state), "Finalized setup changed. Refresh and review the remaining actions.");
     options.onProgress?.("signing"); assertIntent(rpc, options);
     const signed = await options.signTransaction(transaction); assertIntent(rpc, options);
-    const bytes = verifyOwnerSigned(transaction, signed, originalMessage);
-    await simulate(rpc, signed, state.contextSlot, true); assertIntent(rpc, options);
+    const verified = verifyOwnerSigned(transaction, signed, originalMessage);
+    await simulate(rpc, verified.transaction, state.contextSlot, true); assertIntent(rpc, options);
     state = await inspect(rpc, state.contextSlot); assertIntent(rpc, options);
     requireThat(stateKey(state) === stateKey(next.state), "Finalized setup changed. Refresh and review the remaining actions.");
-    return broadcast(rpc, options, bytes, "setup", next.steps, state.contextSlot, lifetime);
+    return broadcast(rpc, options, verified.bytes, "setup", next.steps, state.contextSlot, lifetime);
   }
   return Object.freeze({ parsePackage, inspectHandoff, inspect, prepare, submitHandoff, submitSetup, reconcile });
 }

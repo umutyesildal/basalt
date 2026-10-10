@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "scope": "offline source regression and independent review",
+  "checkedAt": "2026-10-10T12:29:24.802Z",
+  "testCount": 68,
+  "passed": 68,
+  "failed": 0,
+  "sourceSha256": "d8796b2ef550ef1109e102128c4274b6bb841107f0eb9d216a8bbae647fbf9a2",
+  "testSha256": "abbdf952dbc3185056f6c613181740aee7d8b51dc06abde4c7b535337dffc6f0",
+  "appTypecheck": "passed",
+  "independentReview": "no concrete blocker",
+  "liveCause": "Combined constructor/message guard observed; constructor-only production cause not yet proven",
+  "ownerInitializationVerified": false,
+  "chainWrites": false
+}

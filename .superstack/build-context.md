@@ -66,3 +66,8 @@
 ## Owner setup debug observation, 2026-10-10
 
 Live b075cbea25edcf3e4acbb4b03dc1e77abf535fb4 passed six CI jobs. Genuine owner signing returns before-broadcast constructor/message-integrity failure. Exact wire change versus cross-constructor return remains under investigation. Do not claim initialization, lifecycle or activation complete. Bounded lifecycle operator 2d814cd is committed, reviewed and offline-tested (32 tests); not executed.
+
+
+## Owner wallet wire compatibility patch, 2026-10-10
+
+A valid foreign installed web3 constructor reproduces the overly strict instanceof rejection offline. Replace constructor identity with bounded canonical legacy wire parsing, retaining exact message/signatures and all finalized state/budget/recovery guards. 68 setup tests and app typecheck pass; independent review has no blocker. Actual production constructor-only cause and initialization remain unverified until a fresh live owner signature.
