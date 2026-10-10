@@ -203,7 +203,7 @@ export default function BasketDetailClient({
           title="This basket is not indexed"
           description={`The backend has no basket ${truncateAddress(pubkey, 6, 6)} — baskets only appear here after a create_basket transaction is indexed. Nothing is fabricated to fill the page.`}
           action={
-            <Button render={<Link href="/explore" />} size="sm">
+            <Button nativeButton={false} render={<Link href="/explore" />} size="sm">
               Back to explore
             </Button>
           }
@@ -241,8 +241,8 @@ export default function BasketDetailClient({
           <BasketDataNote quality={dataQuality} details />
 
           <div className="grid grid-cols-2 gap-3 lg:hidden" aria-label="Basket actions">
-            <Button render={<Link href={`/basket/${detail.pubkey}/buy`} />}>Buy shares</Button>
-            <Button render={<Link href={`/basket/${detail.pubkey}/redeem`} />} variant="outline">Redeem shares</Button>
+            <Button nativeButton={false} render={<Link href={`/basket/${detail.pubkey}/buy`} />}>Buy shares</Button>
+            <Button nativeButton={false} render={<Link href={`/basket/${detail.pubkey}/redeem`} />} variant="outline">Redeem shares</Button>
           </div>
 
           {/* tabbed sections + sticky trade rail */}

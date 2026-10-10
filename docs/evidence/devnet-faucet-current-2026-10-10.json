@@ -1,0 +1,51 @@
+{
+  "observedAt": "2026-10-10T10:55:51.290Z",
+  "contextSlot": 509517471,
+  "programExecutable": true,
+  "vaults": [
+    {
+      "mint": "CrjoC7fq5XAbdej5zjinKNGXVqo8E8qCmh8XSiu2QViQ",
+      "vault": "DMxJLcFNx3CMrNsHyPFcxCZLCY7jtZ6z5QcWHxNBcGqB",
+      "raw": "9500000000000",
+      "remainingWholeClaims": "95",
+      "ownerMatches": true,
+      "mintMatches": true,
+      "frozen": false,
+      "accountDataBytes": 179,
+      "rentLamports": 1559560
+    },
+    {
+      "mint": "EpH2swtxW2rCuFg2o2ukD5Qw5Xv3toaug1M3mbcB4hab",
+      "vault": "8X6wHi2bDgWQ1BKm8ELxLPibQ3xr5vLHjSAtg2z43GBP",
+      "raw": "9500000000000",
+      "remainingWholeClaims": "95",
+      "ownerMatches": true,
+      "mintMatches": true,
+      "frozen": false,
+      "accountDataBytes": 179,
+      "rentLamports": 1559560
+    },
+    {
+      "mint": "5G1hMSqs2nWKaFQt737FTxwnruPgeQqQWZ2FRoqxvehA",
+      "vault": "BuVPHqcjYf5c8NBjvUYe7gbQfrzoqGxnCQxhCo61oR6a",
+      "raw": "9500000000000",
+      "remainingWholeClaims": "95",
+      "ownerMatches": true,
+      "mintMatches": true,
+      "frozen": false,
+      "accountDataBytes": 179,
+      "rentLamports": 1559560
+    },
+    {
+      "mint": "8W2hrfJPPrXEBjs5gDgpVZcs8HsELeHkBaqSjnUvgJUq",
+      "vault": "6M2ZHa75ZScJNCEar3iPduyeoqptKSWVNkgFMbBd7cUe",
+      "raw": "9500000000000",
+      "remainingWholeClaims": "95",
+      "ownerMatches": true,
+      "mintMatches": true,
+      "frozen": false,
+      "accountDataBytes": 179,
+      "rentLamports": 1559560
+    }
+  ]
+}

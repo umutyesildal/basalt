@@ -1,0 +1,274 @@
+{
+  "checkedAt": "2026-10-10T10:52:56.997147+00:00",
+  "apiBase": "https://api.backed.fi/api/v2",
+  "assets": [
+    {
+      "symbol": "AAPLx",
+      "name": "Apple xStock",
+      "deployments": [
+        {
+          "network": "Ethereum",
+          "address": "0x9d275685dc284c8eb1c79f6aba7a63dc75ec890a"
+        },
+        {
+          "network": "BinanceSmartChain",
+          "address": "0x9d275685dc284c8eb1c79f6aba7a63dc75ec890a"
+        },
+        {
+          "network": "Arbitrum",
+          "address": "0x9d275685dc284c8eb1c79f6aba7a63dc75ec890a"
+        },
+        {
+          "network": "Solana",
+          "address": "XsbEhLAtcf6HdfpFZ5xEMdqW8nfAvcsP5bdudRLJzJp"
+        },
+        {
+          "network": "Tron",
+          "address": "TZ7nsyCuQq1cusCtex6V4qbzWcb3NbibAM"
+        },
+        {
+          "network": "Ton",
+          "address": "EQDsjAwfKo-6FVZv2EYt-1CaZTY_ZL-pfkSId6jeQchNwmdo"
+        },
+        {
+          "network": "Mantle",
+          "address": "0x9d275685dc284c8eb1c79f6aba7a63dc75ec890a"
+        },
+        {
+          "network": "HyperEVM",
+          "address": "0x9d275685dc284c8eb1c79f6aba7a63dc75ec890a"
+        },
+        {
+          "network": "Ink",
+          "address": "0x9d275685dc284c8eb1c79f6aba7a63dc75ec890a"
+        },
+        {
+          "network": "XLayer",
+          "address": "0x9d275685dc284c8eb1c79f6aba7a63dc75ec890a"
+        },
+        {
+          "network": "Optimism",
+          "address": "0x9d275685dc284c8eb1c79f6aba7a63dc75ec890a"
+        },
+        {
+          "network": "Monad",
+          "address": "0x9d275685dc284c8eb1c79f6aba7a63dc75ec890a"
+        }
+      ]
+    },
+    {
+      "symbol": "NVDAx",
+      "name": "NVIDIA xStock",
+      "deployments": [
+        {
+          "network": "Ton",
+          "address": "EQCva-Of7acQdU_piADdlcbzsFtA-xJwZoctz8ZOXBdBoaB8"
+        },
+        {
+          "network": "Tron",
+          "address": "TNMR6r9Z4cL7eWNrNQ4e4sm2XPhhifexZU"
+        },
+        {
+          "network": "Solana",
+          "address": "Xsc9qvGR1efVDFGLrVsmkzv3qi45LTBjeUKSPmx9qEh"
+        },
+        {
+          "network": "HyperEVM",
+          "address": "0xc845b2894dbddd03858fd2d643b4ef725fe0849d"
+        },
+        {
+          "network": "Ink",
+          "address": "0xc845b2894dbddd03858fd2d643b4ef725fe0849d"
+        },
+        {
+          "network": "BinanceSmartChain",
+          "address": "0xc845b2894dbddd03858fd2d643b4ef725fe0849d"
+        },
+        {
+          "network": "Arbitrum",
+          "address": "0xc845b2894dbddd03858fd2d643b4ef725fe0849d"
+        },
+        {
+          "network": "Monad",
+          "address": "0xc845b2894dbddd03858fd2d643b4ef725fe0849d"
+        },
+        {
+          "network": "XLayer",
+          "address": "0xc845b2894dbddd03858fd2d643b4ef725fe0849d"
+        },
+        {
+          "network": "Mantle",
+          "address": "0xc845b2894dbddd03858fd2d643b4ef725fe0849d"
+        },
+        {
+          "network": "Optimism",
+          "address": "0xc845b2894dbddd03858fd2d643b4ef725fe0849d"
+        },
+        {
+          "network": "Ethereum",
+          "address": "0xc845b2894dbddd03858fd2d643b4ef725fe0849d"
+        }
+      ]
+    },
+    {
+      "symbol": "SPYx",
+      "name": "SP500 xStock",
+      "deployments": [
+        {
+          "network": "Ethereum",
+          "address": "0x90a2a4c76b5d8c0bc892a69ea28aa775a8f2dd48"
+        },
+        {
+          "network": "BinanceSmartChain",
+          "address": "0x90a2a4c76b5d8c0bc892a69ea28aa775a8f2dd48"
+        },
+        {
+          "network": "Arbitrum",
+          "address": "0x90a2a4c76b5d8c0bc892a69ea28aa775a8f2dd48"
+        },
+        {
+          "network": "Solana",
+          "address": "XsoCS1TfEyfFhfvj8EtZ528L3CaKBDBRqRapnBbDF2W"
+        },
+        {
+          "network": "Tron",
+          "address": "TKN6A3wSWHdZGanW5wBFkeFq2Yw3rhGqNz"
+        },
+        {
+          "network": "Ton",
+          "address": "EQB1fyBAA9qQDP6LEGaF3cbU-Xbr-p6ESBZGnqlHkHIHAJZv"
+        },
+        {
+          "network": "Mantle",
+          "address": "0x90a2a4c76b5d8c0bc892a69ea28aa775a8f2dd48"
+        },
+        {
+          "network": "HyperEVM",
+          "address": "0x90a2a4c76b5d8c0bc892a69ea28aa775a8f2dd48"
+        },
+        {
+          "network": "Ink",
+          "address": "0x90a2a4c76b5d8c0bc892a69ea28aa775a8f2dd48"
+        },
+        {
+          "network": "XLayer",
+          "address": "0x90a2a4c76b5d8c0bc892a69ea28aa775a8f2dd48"
+        },
+        {
+          "network": "Optimism",
+          "address": "0x90a2a4c76b5d8c0bc892a69ea28aa775a8f2dd48"
+        },
+        {
+          "network": "Monad",
+          "address": "0x90a2a4c76b5d8c0bc892a69ea28aa775a8f2dd48"
+        }
+      ]
+    },
+    {
+      "symbol": "TSLAx",
+      "name": "Tesla xStock",
+      "deployments": [
+        {
+          "network": "Ethereum",
+          "address": "0x8ad3c73f833d3f9a523ab01476625f269aeb7cf0"
+        },
+        {
+          "network": "BinanceSmartChain",
+          "address": "0x8ad3c73f833d3f9a523ab01476625f269aeb7cf0"
+        },
+        {
+          "network": "Arbitrum",
+          "address": "0x8ad3c73f833d3f9a523ab01476625f269aeb7cf0"
+        },
+        {
+          "network": "Solana",
+          "address": "XsDoVfqeBukxuZHWhdvWHBhgEHjGNst4MLodqsJHzoB"
+        },
+        {
+          "network": "Tron",
+          "address": "TTfj39Vm7ATpNJMsfDUWYVzxK8mPPA4yYE"
+        },
+        {
+          "network": "Ton",
+          "address": "EQB4IwqWZPUczntdry8vSN2tsJKt-9F7iIb7gEFREYYOB563"
+        },
+        {
+          "network": "Mantle",
+          "address": "0x8ad3c73f833d3f9a523ab01476625f269aeb7cf0"
+        },
+        {
+          "network": "HyperEVM",
+          "address": "0x8ad3c73f833d3f9a523ab01476625f269aeb7cf0"
+        },
+        {
+          "network": "Ink",
+          "address": "0x8ad3c73f833d3f9a523ab01476625f269aeb7cf0"
+        },
+        {
+          "network": "XLayer",
+          "address": "0x8ad3c73f833d3f9a523ab01476625f269aeb7cf0"
+        },
+        {
+          "network": "Optimism",
+          "address": "0x8ad3c73f833d3f9a523ab01476625f269aeb7cf0"
+        },
+        {
+          "network": "Monad",
+          "address": "0x8ad3c73f833d3f9a523ab01476625f269aeb7cf0"
+        }
+      ]
+    }
+  ],
+  "devnetResult": {
+    "jsonrpc": "2.0",
+    "result": {
+      "context": {
+        "apiVersion": "4.4.0-beta.0",
+        "slot": 509516760
+      },
+      "value": [
+        null,
+        null,
+        null,
+        {
+          "data": [
+            "",
+            "base64"
+          ],
+          "executable": false,
+          "lamports": 5000000000,
+          "owner": "11111111111111111111111111111111",
+          "rentEpoch": 18446744073709551615,
+          "space": 0
+        }
+      ]
+    },
+    "id": 1
+  },
+  "summary": [
+    {
+      "symbol": "AAPLx",
+      "address": "XsbEhLAtcf6HdfpFZ5xEMdqW8nfAvcsP5bdudRLJzJp",
+      "owner": null,
+      "dataBytes": null
+    },
+    {
+      "symbol": "NVDAx",
+      "address": "Xsc9qvGR1efVDFGLrVsmkzv3qi45LTBjeUKSPmx9qEh",
+      "owner": null,
+      "dataBytes": null
+    },
+    {
+      "symbol": "SPYx",
+      "address": "XsoCS1TfEyfFhfvj8EtZ528L3CaKBDBRqRapnBbDF2W",
+      "owner": null,
+      "dataBytes": null
+    },
+    {
+      "symbol": "TSLAx",
+      "address": "XsDoVfqeBukxuZHWhdvWHBhgEHjGNst4MLodqsJHzoB",
+      "owner": "11111111111111111111111111111111",
+      "dataBytes": 0
+    }
+  ]
+}

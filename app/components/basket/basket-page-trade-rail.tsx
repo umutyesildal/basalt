@@ -45,20 +45,22 @@ export function BasketPageTradeRail({
         </div>
         <div className="flex flex-col gap-2 p-4">
           <Button
+            nativeButton={false}
             render={<Link href={buyHref} />}
             className="hidden lg:inline-flex"
             variant={buyActive ? "secondary" : "default"}
             aria-current={buyActive ? "page" : undefined}
-            title="Open the mint form — deposit the underlying xStocks in-kind or zap in with USDC"
+            title="Open the mint form and deposit the underlying tokens"
           >
             Buy shares
           </Button>
           <Button
+            nativeButton={false}
             render={<Link href={redeemHref} />}
             className="hidden lg:inline-flex"
             variant={redeemActive ? "secondary" : "outline"}
             aria-current={redeemActive ? "page" : undefined}
-            title="Open the redeem form — burn shares, receive every underlying pro-rata"
+            title="Open the redeem form to exchange shares for proportional underlying tokens"
           >
             Redeem shares
           </Button>

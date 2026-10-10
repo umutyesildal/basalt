@@ -1,31 +1,44 @@
-import { logoUrl } from "./logos";
+import { allocationColor, NEUTRAL_ALLOCATION_COLOR } from "./allocation-colors";
+import { getConceptAsset } from "./concept-assets";
 
-/** Decorative aliases for these exact project mock mints, never issuer-backed assets. */
-const FIXTURES: Record<string, { label: string; icon: string; letter: string; color: string }> = {
-  CrjoC7fq5XAbdej5zjinKNGXVqo8E8qCmh8XSiu2QViQ: { label: "Core", icon: "core", letter: "A", color: "#D5D8AE" },
-  EpH2swtxW2rCuFg2o2ukD5Qw5Xv3toaug1M3mbcB4hab: { label: "Pulse", icon: "pulse", letter: "B", color: "#D7A894" },
-  "5G1hMSqs2nWKaFQt737FTxwnruPgeQqQWZ2FRoqxvehA": { label: "Orbit", icon: "orbit", letter: "C", color: "#AFC7D0" },
-  "8W2hrfJPPrXEBjs5gDgpVZcs8HsELeHkBaqSjnUvgJUq": { label: "Wave", icon: "wave", letter: "D", color: "#B7ADC9" },
+/** Stock-themed presentation for exact project mocks. These are not issuer xStocks. */
+const DEMO_THEMES: Readonly<Record<string, { symbol: string; letter: string }>> = {
+  CrjoC7fq5XAbdej5zjinKNGXVqo8E8qCmh8XSiu2QViQ: { symbol: "TSLA", letter: "A" },
+  EpH2swtxW2rCuFg2o2ukD5Qw5Xv3toaug1M3mbcB4hab: { symbol: "NVDA", letter: "B" },
+  "5G1hMSqs2nWKaFQt737FTxwnruPgeQqQWZ2FRoqxvehA": { symbol: "PLTR", letter: "C" },
+  "8W2hrfJPPrXEBjs5gDgpVZcs8HsELeHkBaqSjnUvgJUq": { symbol: "COIN", letter: "D" },
 };
-const MOCK_SYMBOL_ART: Record<string, { icon: string; color: string }> = {
-  NVDA: { icon: "chip", color: "#ADC4A1" }, AAPL: { icon: "spark", color: "#D6C5A3" },
-  MSFT: { icon: "window", color: "#AEC4D9" }, TSLA: { icon: "route", color: "#CFABA6" },
-  META: { icon: "loop", color: "#B4C7BE" }, AMZN: { icon: "parcel", color: "#D8B493" },
-  GOOGL: { icon: "signal", color: "#C2C6AD" },
-};
+const GENERIC_TOKEN_ART = "/images/devnet-tokens/core.svg";
 
-export function onchainTokenDisplay(ticker: string, mint?: string, devnet = false): { label: string; src: string; sourceLabel: string; color: string } {
-  const symbol = ticker.replace(/[\u0000-\u001f\u007f]/g, "").trim().slice(0, 20) || "Token";
-  const fixture = devnet && mint ? FIXTURES[mint] : undefined;
-  if (fixture) return {
-    label: fixture.label, src: `/images/devnet-tokens/${fixture.icon}.svg`, color: fixture.color,
-    sourceLabel: `${fixture.label} · Basalt test token ${fixture.letter} (BSTEST${fixture.letter})`,
-  };
-  const art = MOCK_SYMBOL_ART[symbol.toUpperCase()];
+export interface OnchainTokenDisplay {
+  label: string;
+  symbol: string;
+  secondaryLabel: string;
+  src: string;
+  sourceLabel: string;
+  color: string;
+  isTestToken: boolean;
+}
+
+export function onchainTokenDisplay(ticker: string, mint?: string, devnet = false): OnchainTokenDisplay {
+  const symbol = ticker.replace(/[\u0000-\u001f\u007f-\u009f\u200b-\u200f\u202a-\u202e\u2066-\u2069\ufeff]/g, "").trim().slice(0, 20) || "Token";
+  const theme = devnet && mint ? DEMO_THEMES[mint] : undefined;
+  // A devnet theme explicitly borrows stock artwork for a test experience.
+  // Mainnet always resolves the exact mint; text alone cannot borrow issuer identity.
+  const unresolvedFixture = /^(?:[ABCD]|BSTEST[ABCD])$/i.test(symbol);
+  const asset = devnet
+    ? theme ? getConceptAsset(theme.symbol) : unresolvedFixture ? undefined : getConceptAsset(symbol)
+    : getConceptAsset(symbol, mint);
+  const displaySymbol = asset?.symbol ?? symbol;
   return {
-    label: symbol,
-    src: devnet ? `/images/devnet-tokens/${art?.icon ?? "core"}.svg` : logoUrl(symbol),
-    sourceLabel: devnet ? `${symbol} · devnet test token` : symbol,
-    color: art?.color ?? "#D5D8AE",
+    label: asset?.name ?? symbol,
+    symbol: displaySymbol,
+    secondaryLabel: devnet ? `${displaySymbol} · test token` : displaySymbol,
+    src: asset?.logoUrl ?? GENERIC_TOKEN_ART,
+    sourceLabel: theme
+      ? `${asset?.name ?? theme.symbol} themed demo · Basalt test token ${theme.letter} (BSTEST${theme.letter}) · not issuer-backed`
+      : devnet ? `${symbol} · project devnet test token · not issuer-backed` : `${displaySymbol}${mint ? ` · ${mint}` : ""}`,
+    color: asset ? allocationColor(asset.symbol, devnet ? undefined : mint) : NEUTRAL_ALLOCATION_COLOR,
+    isTestToken: devnet,
   };
 }

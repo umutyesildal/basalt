@@ -93,7 +93,7 @@ function friendlyError(error: unknown): string {
 }
 
 /** A wallet-signed devnet workspace. No indexer, database, or server signer is required. */
-export default function DevnetWorkspace() {
+export default function DevnetWorkspace({ initialMode = "trade" }: { initialMode?: "create" | "trade" }) {
   const { connection } = useConnection();
   const { publicKey, connected, signTransaction } = useWallet();
   const params = useSearchParams();
@@ -109,7 +109,7 @@ export default function DevnetWorkspace() {
   const [legal, setLegal] = useState(false);
   const [factoryCheck, setFactoryCheck] = useState<{ connection: typeof connection; status: CreateAvailability } | null>(null);
   const factoryCheckGeneration = useRef(0);
-  const [workspaceMode, setWorkspaceMode] = useState<"create" | "trade">(() => params.get("name") ? "create" : "trade");
+  const [workspaceMode, setWorkspaceMode] = useState<"create" | "trade">(() => params.get("name") ? "create" : initialMode);
   const [tradeMode, setTradeMode] = useState<"mint" | "redeem">("mint");
   const [mintBudget, setMintBudget] = useState("100");
   const [redeemShares, setRedeemShares] = useState("0.1");
@@ -539,7 +539,7 @@ export default function DevnetWorkspace() {
       <div className="space-y-2">
         <Badge variant="outline">Devnet · Test tokens</Badge>
         <h1 className="font-display text-3xl font-semibold tracking-tight sm:text-4xl">Your basket, onchain.</h1>
-        <p className="text-sm leading-6 text-muted-foreground">Choose a basket. Set an amount. Confirm in your wallet.</p>
+        <p className="text-sm leading-6 text-muted-foreground">{workspaceMode === "create" ? "Name your basket. Set your mix. Confirm in your wallet." : "Choose a basket. Set an amount. Confirm in your wallet."}</p>
       </div>
       <WalletButton />
     </div>

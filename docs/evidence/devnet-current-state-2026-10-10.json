@@ -1,0 +1,84 @@
+{
+  "version": 1,
+  "observedAt": "2026-10-10T10:54:11.574Z",
+  "sourceCommit": "091f42a50ccc92c1038190ba2155b2b6eca7d0aa",
+  "cluster": "devnet",
+  "rpcOrigin": "https://api.devnet.solana.com",
+  "genesisHash": "EtWTRABZaYq6iMfeYKouRu166VU2xqa1wcaWoxPkrZBG",
+  "commitment": "finalized",
+  "contextSlots": {
+    "programsWhitelistFactory": 509517056,
+    "programData": 509517056
+  },
+  "programs": [
+    {
+      "name": "basket",
+      "programId": "6Q43vFh4aqGxzvtU2vQwJX9PmX3skfYsGWZdA3fwJB9k",
+      "programData": "wgr99UCBVZWm7h9jswno2p9owpD8RSYE5iiUTyNFhJA",
+      "stateTag": 3,
+      "slot": "506817619",
+      "upgradeAuthority": "y72KA263br7MtZw7BqC2dx5QYCBUciJGzShE8BRSwRE",
+      "authorityOption": 1,
+      "metadataLength": 45,
+      "programDataLength": 593416
+    },
+    {
+      "name": "basket_factory",
+      "programId": "3hzoPep9JKgTmzLT6CNW5x3EN7WNYDevM6KHVM7pLgMF",
+      "programData": "C9g9HdnPpYy4HA9ivPhJKctTQ2YBNpran4fW5n3nPCmf",
+      "stateTag": 3,
+      "slot": "506817882",
+      "upgradeAuthority": "y72KA263br7MtZw7BqC2dx5QYCBUciJGzShE8BRSwRE",
+      "authorityOption": 1,
+      "metadataLength": 45,
+      "programDataLength": 537736
+    },
+    {
+      "name": "whitelist",
+      "programId": "FRavMcYQb2FVAHbbG6fGieQHdKk1UrQqgKsAAXTPRQeS",
+      "programData": "DtNwP5QCJZXTVTs5BkA2GHY1Ys2j2xdERrvBJBdiW1Kz",
+      "stateTag": 3,
+      "slot": "506817308",
+      "upgradeAuthority": "y72KA263br7MtZw7BqC2dx5QYCBUciJGzShE8BRSwRE",
+      "authorityOption": 1,
+      "metadataLength": 45,
+      "programDataLength": 261816
+    }
+  ],
+  "whitelist": {
+    "address": "ESRwG8qoKaLM17dLEM6MJDRpKVYtkd9M2zUmbud2uXZd",
+    "authority": "y72KA263br7MtZw7BqC2dx5QYCBUciJGzShE8BRSwRE",
+    "pendingAuthority": null,
+    "pendingOption": 0
+  },
+  "factory": {
+    "address": "CfxquMe4MAPksEEsVyw8XmcxYH5W7qftRWNySgHjLi6e",
+    "authority": "y72KA263br7MtZw7BqC2dx5QYCBUciJGzShE8BRSwRE",
+    "treasury": "AAb2TXLQCPFvnUoJFSBe9PFs28w5kvAukH4Gaiia3eiJ",
+    "treasuryRetired": true,
+    "creatorFeeSplitBps": 9000,
+    "entryFeeCapBps": 300,
+    "exitFeeCapBps": 100,
+    "managementFeeCapBps": 300,
+    "basketCount": "10"
+  },
+  "containment": {
+    "newBasketCreationBlocked": true,
+    "creationPolicyEnforcedBy": "supported-client-guards",
+    "onChainCreationDisabled": false,
+    "reason": "retired-immutable-factory-treasury",
+    "legacyRedemptionMustRemainAvailable": true,
+    "expectedCurrentAuthority": "y72KA263br7MtZw7BqC2dx5QYCBUciJGzShE8BRSwRE",
+    "currentAuthoritiesMatchBaseline": true
+  },
+  "scope": {
+    "mode": "unsigned-current-devnet-inventory",
+    "readOnly": true,
+    "executionAuthorized": false,
+    "programUpgrades": false,
+    "authorityTransfers": false,
+    "governanceActivationVerified": false,
+    "mainnetReadinessVerified": false,
+    "deployedProgramBytesVerified": false
+  }
+}

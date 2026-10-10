@@ -1,0 +1,67 @@
+{
+  "observedAt": "2026-10-10T10:54:53.483Z",
+  "contextSlot": 509517232,
+  "rows": [
+    {
+      "address": "37UVmx2uysqkKibBcSP5EZMycUeKnWRmnXVpr967juKF",
+      "exists": true,
+      "owner": "BPFLoaderUpgradeab1e11111111111111111111111",
+      "executable": true,
+      "lamports": 833120,
+      "space": 36,
+      "tag": 2
+    },
+    {
+      "address": "2xvJKG8DTmSZFu1zXpNVP3wvaCCCgGC2ufGGhYjzr4DH",
+      "exists": false
+    },
+    {
+      "address": "8XPKfAYPaDSvUH95CeyjkgujTXAE5nFBJyFSqZvFvX7T",
+      "exists": false
+    },
+    {
+      "address": "BVU9c7KKhPbxEBt2CQpdttAXJPVQnb2LXCKYhJTUbBWj",
+      "exists": true,
+      "owner": "BPFLoaderUpgradeab1e11111111111111111111111",
+      "executable": false,
+      "lamports": 1912096760,
+      "space": 376269,
+      "tag": 3,
+      "upgradeAuthority": "8B2wktjNVETgnkoe92r2hTL9THw7umh4zF7iuidMt5H4"
+    },
+    {
+      "address": "rdV4eezquLj3DK893VHqTppXdqmTwc5Uxts9vEdJct7",
+      "exists": false
+    },
+    {
+      "address": "Dh1MT7pftdbrPj8KpiNHUsp43m9Rzm7tpDBQwWt8NsjS",
+      "exists": false
+    },
+    {
+      "address": "E9Ads3k4ABKBJeu68JprMDomrAKne7WH71nVpyNqDVuz",
+      "exists": false
+    },
+    {
+      "address": "FExz3aUSJyb2zTHcePJv71SM5Luk1FR7FU3MAzmfUJUJ",
+      "exists": false
+    },
+    {
+      "address": "TcAgGWYnr5uVQGRiU67C1ynpH5JDKCmwWaCA6V2ANea",
+      "exists": true,
+      "owner": "11111111111111111111111111111111",
+      "executable": false,
+      "lamports": 13931998332,
+      "space": 0,
+      "tag": null
+    },
+    {
+      "address": "8B2wktjNVETgnkoe92r2hTL9THw7umh4zF7iuidMt5H4",
+      "exists": true,
+      "owner": "11111111111111111111111111111111",
+      "executable": false,
+      "lamports": 85145120,
+      "space": 0,
+      "tag": null
+    }
+  ]
+}

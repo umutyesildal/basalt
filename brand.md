@@ -1,3 +1,5 @@
+> **Shared Stock mix, 2026-10-10:** Preview and onchain About now use the same boxed Bklit allocation card. Exact devnet mocks use visibly test-marked stock themes and the preview logo colors, superseding Core/Pulse/Orbit/Wave artwork. Actual mint/weights and financial eligibility remain intact; direct Create opens the correct mode. Source/build verified; hosted publication pending. See [implementation and release evidence](docs/stock-mix-parity-2026-10-10.md), [devnet onboarding audit](docs/devnet-onboarding-audit-2026-10-10.md) and [issuer research](docs/xstocks-devnet-availability-2026-10-10.md).
+
 > **Onchain gallery, 2026-10-10:** Missing devnet identities use stable decorative basket names and varied local collage covers. Render illustrated token marks with actual weights, and local line portraits for missing creator avatars. Use real public profile names when available; do not invent creator identities, asset backing or returns. Preserve exact mint identity in the detailed view. [Implementation and release record](docs/onchain-basket-identities-2026-10-10.md).
 
 # Brand — Basalt

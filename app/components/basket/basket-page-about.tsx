@@ -3,9 +3,7 @@
 import { useMemo } from "react";
 
 import { IconCopyButton as CopyButton } from "@/components/ui/copy-button";
-import { PieChart } from "@/components/charts/pie-chart";
-import { PieCenter } from "@/components/charts/pie-center";
-import { PieSlice } from "@/components/charts/pie-slice";
+import { StockMixCard, type StockMixAsset } from "@/components/basket/stock-mix-card";
 import {
   Table,
   TableBody,
@@ -53,17 +51,20 @@ export function BasketPageAbout({
 }) {
   const weights = detail.weights_bps ?? [];
 
-  const donutData = useMemo(() => {
-    return detail.constituents
-      .map((mint, i) => {
-        const bps = weights[i];
-        if (bps === undefined || bps <= 0) return null;
-        const ticker = mintTickers.get(mint) ?? truncateAddress(mint, 4, 4);
-        const art = tokenArt(mint, ticker);
-        return { label: art.label, value: bps / 100, color: art.color };
-      })
-      .filter((slice): slice is { label: string; value: number; color: string } => slice !== null);
-  }, [detail.constituents, mintTickers, weights]);
+  const mixAssets = useMemo<StockMixAsset[]>(() => detail.constituents.map((mint, index) => {
+    const ticker = mintTickers.get(mint) ?? truncateAddress(mint, 4, 4);
+    const art = tokenArt(mint, ticker);
+    return {
+      id: mint,
+      label: art.label,
+      symbol: art.symbol,
+      weightBps: weights[index] ?? null,
+      logoSrc: art.src,
+      color: art.color,
+      secondaryLabel: art.secondaryLabel,
+      title: `${art.sourceLabel} · ${mint}`,
+    };
+  }), [detail.constituents, mintTickers, weights]);
 
   const holdingsByMint = useMemo(
     () => new Map((detail.holdings ?? []).map((h) => [h.mint, h])),
@@ -90,80 +91,9 @@ export function BasketPageAbout({
 
   return (
     <div className="divide-y divide-border">
-      {/* composition — donut + copyable mint list */}
+      {/* composition reuses the accepted preview allocation card */}
       <section aria-label="Composition" className="pb-10 pt-2">
-        <BasketSectionHeader
-          eyebrow="Allocation"
-          title="Composition"
-        />
-        <div className="grid gap-6 md:grid-cols-[auto_minmax(0,1fr)] md:gap-10">
-          <div className="justify-self-center">
-            {donutData.length > 0 ? (
-              <PieChart data={donutData} size={200} innerRadius={62}>
-                {donutData.map((slice, index) => (
-                  <PieSlice
-                    key={slice.label}
-                    index={index}
-                    animate={false}
-                    hoverEffect="none"
-                    showGlow={false}
-                  />
-                ))}
-                <PieCenter defaultLabel="Allocated" suffix="%">
-                  {({ isHovered, data }) =>
-                    isHovered ? (
-                      <span className="font-mono text-sm tabular-nums text-foreground">
-                        {data.label}{" "}
-                        <span className="text-muted-foreground">
-                          {((data.value / donutData.reduce((s, d) => s + d.value, 0)) * 100).toFixed(0)}%
-                        </span>
-                      </span>
-                    ) : (
-                      <span className="font-mono text-sm tabular-nums text-foreground">
-                        {donutData.length}
-                        <span className="ml-1 text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
-                          assets
-                        </span>
-                      </span>
-                    )
-                  }
-                </PieCenter>
-              </PieChart>
-            ) : (
-              <div className="flex size-[200px] items-center justify-center rounded-xl border border-border">
-                <p className="px-4 text-center font-mono text-[11px] text-muted-foreground">
-                  Weights not indexed yet
-                </p>
-              </div>
-            )}
-          </div>
-
-          <div className="min-w-0 space-y-1">
-            <ul className="divide-y divide-border/60">
-              {detail.constituents.map((mint, i) => {
-                const ticker = mintTickers.get(mint) ?? truncateAddress(mint, 4, 4);
-                const target = weights[i];
-                return (
-                  <li key={mint} className="flex items-center justify-between gap-3 py-2">
-                    <div className="flex min-w-0 items-center gap-2.5">
-                      <img src={tokenArt(mint, ticker).src} alt="" width={36} height={36} className="size-9 shrink-0 rounded-full" />
-                      <span className="min-w-0" title={`${tokenArt(mint, ticker).sourceLabel} · ${mint}`}>
-                        <span className="block text-sm font-medium text-foreground">{tokenArt(mint, ticker).label}</span>
-                        <span className="block text-xs text-muted-foreground">{DEVNET ? "Test token" : ticker}</span>
-                      </span>
-                    </div>
-                    <div className="flex shrink-0 items-center gap-2">
-                      <span className="font-mono text-xs tabular-nums text-foreground">
-                        {target !== undefined ? formatBpsAsPercent(target) : "—"}
-                      </span>
-                    </div>
-                  </li>
-                );
-              })}
-            </ul>
-
-          </div>
-        </div>
+        <StockMixCard assets={mixAssets} description={DEVNET ? `Project test tokens on ${CLUSTER}` : undefined} />
       </section>
 
       {/* fees — spec §6 math, one visually quiet card */}

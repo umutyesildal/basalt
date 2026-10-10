@@ -1,3 +1,5 @@
+> **Later owner correction:** The [shared Stock mix revision](stock-mix-parity-2026-10-10.md) supersedes the Core/Pulse/Orbit/Wave artwork and composition layout below. Names, covers, creator portraits and metadata boundaries remain.
+
 # Onchain basket identities, 2026-10-10
 
 Status: live at https://basalt.markets/explore. Source pushed, all six exact-source CI jobs passed, hosted build verified and Chrome live checks complete.

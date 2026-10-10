@@ -11,9 +11,7 @@ import { BasketXShareButton } from "@/components/preview/basket-x-share-button";
 import { BasketImageButton } from "@/components/preview/basket-image-button";
 import { CreationCelebration } from "@/components/preview/creation-celebration";
 import { findBasketPerformanceSample } from "@/lib/basket-share-performance";
-import { PieCenter } from "@/components/charts/pie-center";
-import { PieChart } from "@/components/charts/pie-chart";
-import { PieSlice } from "@/components/charts/pie-slice";
+import { StockMixCard } from "@/components/basket/stock-mix-card";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { getConceptAsset, getConceptAssetName } from "@/lib/concept-assets";
@@ -48,11 +46,15 @@ export default function ConceptPreviewClient({ basket, created = false, publicHr
     if (showCopyFallback) shareLinkInput.current?.focus();
   }, [showCopyFallback]);
 
-  const chartData = useMemo(
-    () => basket?.assets.map((asset) => ({
-      label: asset.symbol,
-      value: asset.weightBps / 100,
+  const mixAssets = useMemo(
+    () => basket?.assets.map(asset => ({
+      id: asset.mint ?? asset.symbol,
+      label: getConceptAssetName(asset.symbol, asset.mint),
+      symbol: asset.symbol,
+      weightBps: asset.weightBps,
+      logoSrc: getConceptAsset(asset.symbol, asset.mint)?.logoUrl ?? "",
       color: allocationColor(asset.symbol, asset.mint),
+      amountUsd: (basket.amountUsd * asset.weightBps) / 10_000,
     })) ?? [],
     [basket],
   );
@@ -141,53 +143,7 @@ export default function ConceptPreviewClient({ basket, created = false, publicHr
       {sample && <div className="space-y-2"><div className="max-w-xs"><BasketMetrics basketId={sample.id} /></div><ModelPerformanceNote /></div>}
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1.3fr)_minmax(18rem,0.7fr)]">
-        <Card className="basalt-arrive self-start">
-          <CardHeader>
-            <CardTitle className="font-display text-xl">Stock mix</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid items-center gap-5 md:grid-cols-[220px_minmax(0,1fr)]">
-              <figure className="mx-auto" aria-label={`Basket composition: ${basket.assets.map((asset) => `${asset.symbol} ${formatBpsAsPercent(asset.weightBps)}`).join(", ")}`}>
-                <PieChart data={chartData} size={220} innerRadius={68} hoverOffset={4}>
-                  {chartData.map((slice, index) => (
-                    <PieSlice key={slice.label} index={index} animate={false} hoverEffect="none" showGlow={false} />
-                  ))}
-                  <PieCenter defaultLabel="Assets" suffix="">
-                    {({ data, isHovered }) => (
-                      <span className="text-center font-mono text-xs font-medium leading-5 tabular-nums text-foreground">
-                        {isHovered ? <>{data.label}<br />{formatBpsAsPercent(Math.round(data.value * 100))}</> : `${basket.assets.length} assets`}
-                      </span>
-                    )}
-                  </PieCenter>
-                </PieChart>
-                <figcaption className="sr-only">Illustrative allocation weights add up to one hundred percent.</figcaption>
-              </figure>
-
-              <ul className="divide-y divide-border/70" aria-label="Asset allocations">
-                {basket.assets.map((asset) => (
-                  <li key={asset.symbol} className="flex items-center gap-3 py-3 first:pt-0 last:pb-0">
-                    <span aria-hidden="true" className="size-2 shrink-0 rounded-full" style={{ backgroundColor: allocationColor(asset.symbol, asset.mint) }} />
-                    <AssetMark symbol={asset.symbol} mint={asset.mint} />
-                    <span className="min-w-0 flex-1">
-                      <span className="block truncate text-sm font-medium text-foreground">
-                        {getConceptAssetName(asset.symbol, asset.mint)}
-                      </span>
-                      <span className="font-mono text-xs text-muted-foreground">{asset.symbol}</span>
-                    </span>
-                    <span className="shrink-0 text-right">
-                      <span className="block font-mono text-sm tabular-nums text-foreground">
-                        {formatBpsAsPercent(asset.weightBps)}
-                      </span>
-                      <span className="font-mono text-xs tabular-nums text-muted-foreground">
-                        {formatUsd((basket.amountUsd * asset.weightBps) / 10_000)}
-                      </span>
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </CardContent>
-        </Card>
+        <StockMixCard assets={mixAssets} className="basalt-arrive" />
 
         <div className="space-y-6">
           <Card className="basalt-arrive basalt-arrive-later">
@@ -260,25 +216,5 @@ function FeeRow({ label, value, annual = false }: { label: string; value: number
         {formatBpsAsPercent(value)}{annual ? "/yr" : ""}
       </dd>
     </div>
-  );
-}
-
-function AssetMark({ symbol, mint }: { symbol: string; mint?: string }) {
-  const [failed, setFailed] = useState(false);
-  const asset = getConceptAsset(symbol, mint);
-  const initials = symbol.replace(/[^A-Za-z0-9]/g, "").slice(0, 2).toUpperCase();
-
-  if (!asset?.logoUrl || failed) {
-    return (
-      <span aria-hidden="true" className="flex size-10 shrink-0 items-center justify-center rounded-full border border-border bg-muted font-mono text-xs font-semibold text-foreground">
-        {initials}
-      </span>
-    );
-  }
-
-  return (
-    <span className="flex size-10 shrink-0 items-center justify-center overflow-hidden rounded-full border border-border bg-background">
-      <img src={asset.logoUrl} alt="" width={40} height={40} loading="lazy" onError={() => setFailed(true)} className="size-full object-cover" />
-    </span>
   );
 }

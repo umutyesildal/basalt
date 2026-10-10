@@ -1,3 +1,7 @@
+- [Shared Stock mix, 2026-10-10](stock-mix-parity-2026-10-10.md): shared preview/onchain card, stock-themed mock decoration, direct Create fix and publication evidence.
+- [Devnet onboarding audit](devnet-onboarding-audit-2026-10-10.md): partial deployment, treasury decision, faucet/rent and safe activation prerequisites.
+- [Official xStocks devnet research](xstocks-devnet-availability-2026-10-10.md): issuer documentation and finalized mint checks.
+
 - [Onchain basket identities, 2026-10-10](onchain-basket-identities-2026-10-10.md): varied covers, stable devnet display names, illustrated tokens and local creator portraits; supersedes the neutral gallery presentation.
 
 # Basalt documentation map
