@@ -1,5 +1,5 @@
 import {namespaceFixtures} from "./fixtures/program-namespaces";
-import {namespaceProgramIds} from "../src/config/programNamespaces";
+import {namespaceProgramIds,registeredProgramIds} from "../src/config/programNamespaces";
 /** Current holdings may be proven without certifying historical financial claims. */
 import {afterAll,beforeAll,beforeEach,describe,it,expect} from 'vitest';
 import pg from 'pg';
@@ -7,7 +7,6 @@ import {applySchema} from '../src/db/init';
 import type {PgLike} from '../src/db/client';
 import {currentBalancesForWallet} from '../src/api/current-balances';
 import {userPortfolio,userPositionsByWallet} from '../src/api/server';
-import {DEVNET_PROGRAMS} from '../src/api/readiness';
 import {PROGRAM_NAMESPACES} from '../src/config/programNamespaces';
 const url=process.env.BASKET_RETURNS_TEST_DATABASE_URL;
 const schema=`current_balance_api_${process.pid}_${Date.now()}`;
@@ -21,8 +20,8 @@ describe.skipIf(!url)('current balance API on actual PostgreSQL',()=>{
   await client.query(`INSERT INTO user_positions("user",basket,share_balance,cost_basis) VALUES('wallet','basket',99,123)`);
   await client.query(`INSERT INTO position_rebuild_required(basket,reason) VALUES('basket','legacy-gap')`);
  });
- async function snapshot(shares='10000000000000001') {await client.query(`INSERT INTO current_balance_snapshots(basket,program_ids,slot,supply,balances,accounts_digest,account_count,observed_at,status)
-  VALUES('basket',$1,500,$2,$3,$4,1,$5,'verified')`,[DEVNET_PROGRAMS,shares,JSON.stringify(shares==='0'?[]:[{user:'wallet',shares}]),'a'.repeat(64),now]);}
+ async function snapshot(shares='10000000000000001',programs=namespaceProgramIds(PROGRAM_NAMESPACES[0])) {await client.query(`INSERT INTO current_balance_snapshots(basket,program_ids,slot,supply,balances,accounts_digest,account_count,observed_at,status)
+  VALUES('basket',$1,500,$2,$3,$4,1,$5,'verified')`,[programs,shares,JSON.stringify(shares==='0'?[]:[{user:'wallet',shares}]),'a'.repeat(64),now]);}
  it('uses exact finalized raw balances while preserving old positions and recovery guards',async()=>{await snapshot();
   expect((await userPortfolio(db,'wallet')).payload).toMatchObject({count:1,coverage:{indexedBaskets:1,verifiedBaskets:1,complete:true},data:[{share_balance:'10000000000000001',cost_basis:null,estimatedValue:null,projectionStatus:'snapshot-verified',balanceEvidence:{slot:500,historyComplete:false,costBasisKnown:false}}]});
   expect((await userPositionsByWallet(db,'wallet')).payload).toMatchObject({data:[{shareBalance:'10000000000000001',valueUsd:null,costBasis:null,projectionStatus:'snapshot-verified'}]});
@@ -56,6 +55,20 @@ describe.skipIf(!url)('current balance API on actual PostgreSQL',()=>{
   await client.query("UPDATE current_balance_snapshots SET program_ids=$1 WHERE basket='second'",[namespaceProgramIds(namespaceFixtures[1])]);
   result=await currentBalancesForWallet(db,'wallet',new Date(),namespaceFixtures);
   expect(result.coverage).toEqual({indexedBaskets:2,verifiedBaskets:2,complete:true});expect(result.rows.map(row=>row.shares)).toEqual(['7','11']);
+ });
+ it('binds the activated production owner factory to its own three programs',async()=>{
+  const owner=PROGRAM_NAMESPACES.find(namespace=>namespace.id==='devnet-owner-v1')!;
+  expect(owner.creation.enabled).toBe(true);expect(registeredProgramIds()).toHaveLength(6);
+  await client.query('UPDATE baskets SET factory=$1',[owner.factoryConfig]);
+  await snapshot('7',namespaceProgramIds(owner));
+  expect((await userPortfolio(db,'wallet')).payload).toMatchObject({count:1,coverage:{indexedBaskets:1,verifiedBaskets:1,complete:true},data:[{share_balance:'7',cost_basis:null,estimatedValue:null,projectionStatus:'snapshot-verified'}]});
+  await client.query('UPDATE current_balance_snapshots SET program_ids=$1',[namespaceProgramIds(PROGRAM_NAMESPACES[0])]);
+  expect((await currentBalancesForWallet(db,'wallet')).coverage).toEqual({indexedBaskets:1,verifiedBaskets:0,complete:false});
+ });
+ it('rejects the global six-program readiness union as a single basket snapshot identity',async()=>{
+  await snapshot();expect(registeredProgramIds()).toHaveLength(6);
+  await expect(client.query('UPDATE current_balance_snapshots SET program_ids=$1',[registeredProgramIds()])).rejects.toThrow(/current_balance_snapshots_program_ids_check/);
+  expect((await client.query('SELECT program_ids FROM current_balance_snapshots')).rows[0].program_ids).toEqual(namespaceProgramIds(PROGRAM_NAMESPACES[0]));
  });
  it('forbids claiming recovered historical completeness in the snapshot table',async()=>{await snapshot();await expect(client.query('UPDATE current_balance_snapshots SET history_complete=true')).rejects.toThrow();});
 });
