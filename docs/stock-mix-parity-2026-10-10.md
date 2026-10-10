@@ -1,6 +1,6 @@
 # Shared stock mix presentation, 2026-10-10
 
-Status: source complete, local tests and production build passed. Hosted release and exact-source CI evidence will be recorded below after verification.
+Status: pushed to GitHub and live at https://basalt.markets. All six exact-source CI jobs, hosted build and Chrome live verification passed.
 
 The owner prefers the stock logos, logo-derived colors and boxed allocation card from concept previews over the prior Core/Pulse/Orbit/Wave presentation. This supersedes only the token artwork, aliases and composition layout in [the earlier identity pass](onchain-basket-identities-2026-10-10.md). Stable basket names, varied covers, creator portraits and actual metadata priority remain.
 
@@ -31,4 +31,13 @@ The shortest intended public flow is Connect wallet → Get test tokens if neede
 
 ## Publication
 
-Pending exact-source CI, Vercel candidate inspection and live Chrome verification. Backend remains at `307053da1310331c658c0401d0107f8405912199`. Previous frontend deployment `dpl_9uNcxGVkAruWuyCjnLYKG7aFyhqQ` is retained as rollback.
+- Application source `b145e324062f6a82d612959a06ee27f4a214a983` pushed to public `origin/main`.
+- [Exact-source CI](https://github.com/umutyesildal/basalt/actions/runs/38047179406): all six jobs succeeded, including Node workspace, dependency audit, backend container, Rust reachability, Rust workspace and secret scan.
+- Vercel deployment `dpl_HRjf3RYgJqmmjbby9c91jJRdYgwp` is READY. Both deployment metadata hashes match the source commit. Immutable candidate: https://basalt-4gppeubhn-yesildaladams-projects.vercel.app .
+- Chrome candidate checks verified all four loaded stock logos, matching colors, exact 25% weights, no invented mock dollars and Create selected on direct navigation. Existing Base UI button warnings are absent; the separate existing Phantom wallet-adapter registration warning remains.
+- Direct Create encountered a transient public-devnet RPC 429. One explicit Retry connection cleared the displayed connection error; the creation-unavailable guard remained visible. This is not a completed wallet/create proof. Provider resilience and account-rent estimation remain onboarding work in the linked audit.
+- This exact deployment was promoted after all six CI jobs passed. Inspecting https://basalt.markets resolved to the same ID and source hashes. Live Chrome verified the shared card and visible mock identity; the result remains open. Candidate/local tabs were closed. [Sanitized release evidence](assets/stock-mix-2026-10-10/release-checks.json).
+- Backend remains at `307053da1310331c658c0401d0107f8405912199`. Previous frontend deployment `dpl_9uNcxGVkAruWuyCjnLYKG7aFyhqQ` is retained as rollback. No chain transaction, deployment, authority transfer or creation activation occurred in this UI release.
+- Later documentation-only commits do not change deployed application bytes. The older dirty UI/pitch checkout is preserved; only this revision's MD files and public evidence are mirrored there.
+
+![Live shared Stock mix](assets/stock-mix-2026-10-10/live-stock-mix.jpg)

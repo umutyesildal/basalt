@@ -1,0 +1,106 @@
+{
+  "id": "dpl_HRjf3RYgJqmmjbby9c91jJRdYgwp",
+  "url": "basalt-4gppeubhn-yesildaladams-projects.vercel.app",
+  "readyState": "READY",
+  "sourceSha": "b145e324062f6a82d612959a06ee27f4a214a983",
+  "gitCommitSha": "b145e324062f6a82d612959a06ee27f4a214a983",
+  "sourceCommit": "b145e324062f6a82d612959a06ee27f4a214a983",
+  "localValidation": {
+    "nodeTests": 333,
+    "vitestTests": 57,
+    "typecheck": true,
+    "productionBuild": true,
+    "responsiveWidths": [
+      375,
+      768,
+      1280
+    ],
+    "horizontalOverflow": false,
+    "temporaryViewportReset": true
+  },
+  "candidateChrome": {
+    "onchainStockMix": true,
+    "allFourStockLogosLoaded": true,
+    "actualWeightsBps": [
+      2500,
+      2500,
+      2500,
+      2500
+    ],
+    "devnetUsdInvented": false,
+    "directCreateMode": true,
+    "baseUiButtonWarnings": false,
+    "existingPhantomAdapterWarning": true,
+    "publicRpc429Observed": true,
+    "manualRetryUsedOnce": true
+  },
+  "backendSourceUnchanged": "307053da1310331c658c0401d0107f8405912199",
+  "rollbackDeployment": "dpl_9uNcxGVkAruWuyCjnLYKG7aFyhqQ",
+  "chainTransactionsSubmitted": false,
+  "newCreationEnabled": false,
+  "ci": {
+    "headSha": "b145e324062f6a82d612959a06ee27f4a214a983",
+    "status": "completed",
+    "conclusion": "success",
+    "url": "https://github.com/umutyesildal/basalt/actions/runs/38047179406",
+    "jobs": [
+      {
+        "name": "Secret scan",
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/umutyesildal/basalt/actions/runs/38047179406/job/114198948116"
+      },
+      {
+        "name": "Rust dependency reachability gate",
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/umutyesildal/basalt/actions/runs/38047179406/job/114198948199"
+      },
+      {
+        "name": "Rust workspace",
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/umutyesildal/basalt/actions/runs/38047179406/job/114198948231"
+      },
+      {
+        "name": "Dependency audit",
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/umutyesildal/basalt/actions/runs/38047179406/job/114198948248"
+      },
+      {
+        "name": "Node workspace",
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/umutyesildal/basalt/actions/runs/38047179406/job/114198948252"
+      },
+      {
+        "name": "Backend Node 20 container",
+        "status": "completed",
+        "conclusion": "success",
+        "url": "https://github.com/umutyesildal/basalt/actions/runs/38047179406/job/114198948308"
+      }
+    ]
+  },
+  "live": {
+    "id": "dpl_HRjf3RYgJqmmjbby9c91jJRdYgwp",
+    "url": "basalt-4gppeubhn-yesildaladams-projects.vercel.app",
+    "readyState": "READY",
+    "sourceSha": "b145e324062f6a82d612959a06ee27f4a214a983",
+    "gitCommitSha": "b145e324062f6a82d612959a06ee27f4a214a983"
+  },
+  "liveChrome": {
+    "sharedStockMixConfirmed": true,
+    "allFourActualWeightsBps": [
+      2500,
+      2500,
+      2500,
+      2500
+    ],
+    "noMockUsd": true,
+    "testIdentityVisible": true,
+    "screenshot": "live-stock-mix.jpg",
+    "publicRpcRetryClearedError": true,
+    "creationGuardRetained": true
+  }
+}

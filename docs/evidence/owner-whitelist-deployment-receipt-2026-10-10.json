@@ -1,0 +1,62 @@
+{
+  "observedAt": "2026-10-10T11:06:45.591Z",
+  "readOnly": true,
+  "signature": "2aogwvpbLKDUDuJHnU7jc4BKd3VY6VtFhf4GgfMJNp3aKCbmLCvRqCiQCXRDgYEdewB9woWFfF65j7huVsnWGaGu",
+  "slot": 509261837,
+  "blockTime": 1791568730,
+  "blockTimeUtc": "2026-10-09T17:58:50.000Z",
+  "err": null,
+  "fee": 10000,
+  "signers": [
+    "8B2wktjNVETgnkoe92r2hTL9THw7umh4zF7iuidMt5H4",
+    "37UVmx2uysqkKibBcSP5EZMycUeKnWRmnXVpr967juKF"
+  ],
+  "instructions": [
+    {
+      "programId": "11111111111111111111111111111111",
+      "program": "system",
+      "parsed": {
+        "info": {
+          "lamports": 833120,
+          "newAccount": "37UVmx2uysqkKibBcSP5EZMycUeKnWRmnXVpr967juKF",
+          "owner": "BPFLoaderUpgradeab1e11111111111111111111111",
+          "source": "8B2wktjNVETgnkoe92r2hTL9THw7umh4zF7iuidMt5H4",
+          "space": 36
+        },
+        "type": "createAccount"
+      },
+      "accounts": null,
+      "data": null
+    },
+    {
+      "programId": "BPFLoaderUpgradeab1e11111111111111111111111",
+      "program": "bpf-upgradeable-loader",
+      "parsed": {
+        "info": {
+          "authority": "8B2wktjNVETgnkoe92r2hTL9THw7umh4zF7iuidMt5H4",
+          "bufferAccount": "EMso5LHPj9tixt1W4eRpKgtB7rFQNhmbPNJHXZEgDyxk",
+          "clockSysvar": "SysvarC1ock11111111111111111111111111111111",
+          "maxDataLen": 376224,
+          "payerAccount": "8B2wktjNVETgnkoe92r2hTL9THw7umh4zF7iuidMt5H4",
+          "programAccount": "37UVmx2uysqkKibBcSP5EZMycUeKnWRmnXVpr967juKF",
+          "programDataAccount": "BVU9c7KKhPbxEBt2CQpdttAXJPVQnb2LXCKYhJTUbBWj",
+          "rentSysvar": "SysvarRent111111111111111111111111111111111",
+          "systemProgram": "11111111111111111111111111111111"
+        },
+        "type": "deployWithMaxDataLen"
+      },
+      "accounts": null,
+      "data": null
+    }
+  ],
+  "logs": [
+    "Program 11111111111111111111111111111111 invoke [1]",
+    "Program 11111111111111111111111111111111 success",
+    "Program BPFLoaderUpgradeab1e11111111111111111111111 invoke [1]",
+    "Program 11111111111111111111111111111111 invoke [2]",
+    "Program 11111111111111111111111111111111 success",
+    "Deployed program 37UVmx2uysqkKibBcSP5EZMycUeKnWRmnXVpr967juKF",
+    "Program BPFLoaderUpgradeab1e11111111111111111111111 success"
+  ],
+  "ownerRoleAcceptanceInferred": false
+}
