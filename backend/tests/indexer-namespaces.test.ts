@@ -26,10 +26,12 @@ describe("closed durable namespace coordinator",()=>{
   it("validates injected registry collisions before constructing a poller",()=>{
     expect(()=>new EventIndexer(rpc,{...config,namespaces:[namespaceFixtures[0],namespaceFixtures[0]]},database)).toThrow(/identity/);
   });
-  it("uses the production closed registry for env startup and keeps creation disabled",()=>{
-    const roles=PROGRAM_NAMESPACES[0].programs;
-    const cfg=indexerConfigFromEnv({RPC_URL:"http://127.0.0.1:8899",PROGRAM_WHITELIST:roles.whitelist,PROGRAM_FACTORY:roles.factory,PROGRAM_BASKET:roles.basket});
-    expect(cfg?.programIds).toEqual(registeredProgramIds());expect(cfg?.namespaces).toBe(PROGRAM_NAMESPACES);
-    expect(PROGRAM_NAMESPACES.every(namespace=>namespace.creation.enabled===false)).toBe(true);
+  it("accepts either complete registered env trio while indexing six programs and preserving legacy creation disabled",()=>{
+    for (const {programs:roles} of PROGRAM_NAMESPACES) {
+      const cfg=indexerConfigFromEnv({RPC_URL:"http://127.0.0.1:8899",PROGRAM_WHITELIST:roles.whitelist,PROGRAM_FACTORY:roles.factory,PROGRAM_BASKET:roles.basket});
+      expect(cfg?.programIds).toEqual(registeredProgramIds());expect(cfg?.programIds).toHaveLength(6);expect(cfg?.namespaces).toBe(PROGRAM_NAMESPACES);
+    }
+    expect(PROGRAM_NAMESPACES.filter(namespace=>namespace.creation.enabled).map(namespace=>namespace.id)).toEqual(["devnet-owner-v1"]);
+    expect(PROGRAM_NAMESPACES[0].creation.enabled).toBe(false);
   });
 });

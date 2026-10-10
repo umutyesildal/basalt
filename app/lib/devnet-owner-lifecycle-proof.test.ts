@@ -11,7 +11,7 @@ import {
   assertPublicLifecycleJournal, quoteLifecycleBudget, main,
   verifyLifecycleFaucet, boundedLifecycleFetch, LIFECYCLE_RPC_URL, type LifecycleJournal, type LifecycleSnapshot, type SendRpc,
 } from "../../scripts/devnet-owner-lifecycle-proof";
-import { APP_NAMESPACE_ROUTING, DEVNET_GENESIS_HASH } from "./program-namespaces";
+import { APP_NAMESPACE_ROUTING, createNamespaceRouting, DEVNET_GENESIS_HASH } from "./program-namespaces";
 import { DEVNET_MOCK_TOKENS, DEVNET_FAUCET_CLAIM_RAW, DEVNET_FAUCET_PROGRAM_ID, deriveDevnetFaucetAuthority } from "./devnet-faucet";
 import { TOKEN_2022_PROGRAM_ID } from "./token-2022";
 import { pack } from "@solana/spl-token-metadata";
@@ -22,8 +22,11 @@ import { buildMintInKind, buildRedeemInKind, computeBudgetInstructions, deriveCr
 import { managementFeeWithRemainder, splitFeeBigInt } from "../../backend/src/workers/feeMath";
 import { checkGrossShares, entryFeeOf, computeRedeemPreview } from "../components/basket/basket-math";
 import policy from "../../backend/src/config/devnetOwnerPolicy.json";
+import { DEVNET_OWNER_NAMESPACE } from "../../backend/src/config/programNamespaces";
 import artifacts from "./devnet-owner-artifacts.json";
 
+// Pure offline packet/accounting fixtures do not invoke the archived operator or alter production routing.
+const proofRouting = () => createNamespaceRouting([{...DEVNET_OWNER_NAMESPACE, creation:{enabled:true, treasury:policy.treasury}}], DEVNET_OWNER_NAMESPACE.id);
 const creator = Keypair.fromSeed(new Uint8Array(32).fill(41)), investor = Keypair.fromSeed(new Uint8Array(32).fill(42));
 const blockhash = Keypair.fromSeed(new Uint8Array(32).fill(43)).publicKey.toBase58();
 function journal(): LifecycleJournal {
@@ -33,7 +36,7 @@ function journal(): LifecycleJournal {
     allocated: { bootstrap: 0, creator: 0, investor: 0 }, initialBootstrapBalance: 1_000_000_000, receipts: [], proofs: [] };
 }
 function basket(count: 3 | 4 = 3) {
-  const { args } = lifecycleBasketArgs(creator.publicKey, 7n, count), pda = deriveCreateBasketPdas(creator.publicKey.toBase58(), args, lifecycleRouting());
+  const { args } = lifecycleBasketArgs(creator.publicKey, 7n, count), pda = deriveCreateBasketPdas(creator.publicKey.toBase58(), args, proofRouting());
   const keys: BasketCoreKeys = { basket: pda.basket, factory: pda.factory, shareMint: pda.shareMint, creator: creator.publicKey,
     treasury: new PublicKey(policy.treasury!), user: investor.publicKey, constituents: args.constituents };
   return { args, pda, keys };
@@ -63,7 +66,7 @@ function after(stage: "mint" | "management" | "redeem", input?: bigint[] | bigin
 function sendHarness() {
   const record = journal(), events: string[] = [], receipts: LifecycleJournal[] = [];
   const { keys } = basket();
-  const instructions = buildMintInKind({ keys, amounts: [4n, 3n, 2n], vaultBalances: [4n, 3n, 2n] }, lifecycleRouting()).instructions;
+  const instructions = buildMintInKind({ keys, amounts: [4n, 3n, 2n], vaultBalances: [4n, 3n, 2n] }, proofRouting()).instructions;
   const transaction = new VersionedTransaction(new TransactionMessage({ payerKey: investor.publicKey, recentBlockhash: blockhash, instructions }).compileToV0Message());
   let sends = 0, fee: number | null = 15000, balance = 60_000_000, genesis = DEVNET_GENESIS_HASH, simulationError: unknown = null, sendError = false, statusError = false, pending = false;
   const rpc = {
@@ -88,13 +91,20 @@ function sendHarness() {
     set statusError(value: boolean) { statusError = value; }, set pending(value: boolean) { pending = value; } };
 }
 
-test("default plan is offline, fixed-policy and does not activate production routing", async () => {
-  const plan = lifecyclePlan("a".repeat(40)); assert.equal(plan.chainWrites, false); assert.equal(plan.publicCreationEnabled, false);
-  assert.equal(plan.namespace.id, "devnet-owner-v1"); assert.equal(plan.namespace.creation.treasury, policy.owner);
-  assert.throws(() => APP_NAMESPACE_ROUTING.creation(), /blocked/); assert.throws(() => lifecyclePlan("main"), /committed/);
-  const originalFetch = globalThis.fetch, originalLog = console.log; globalThis.fetch = async () => { throw new Error("Offline mode touched RPC"); }; console.log = () => {};
-  try { assert.equal((await main([]) as any).mode, "offline-owner-lifecycle-plan"); } finally { globalThis.fetch = originalFetch; console.log = originalLog; }
-  assert.throws(() => APP_NAMESPACE_ROUTING.creation(), /blocked/);
+test("archival lifecycle operator refuses planning and execution after activation before network or signer access", async () => {
+  assert.equal(APP_NAMESPACE_ROUTING.creation().id, "devnet-owner-v1");
+  assert.equal(proofRouting().creation().creation.treasury, policy.owner);
+  assert.throws(() => lifecycleRouting(), /pre-activation/);
+  assert.throws(() => lifecyclePlan("a".repeat(40)), /pre-activation/);
+  assert.throws(() => lifecyclePlan("main"), /committed/);
+  let requests = 0; const originalFetch = globalThis.fetch;
+  globalThis.fetch = async () => { requests++; throw new Error("Archived operator touched RPC"); };
+  try {
+    await assert.rejects(main([]), /pre-activation/);
+    await assert.rejects(main(["--execute", "--run-dir", "/does-not-exist/basalt-devnet-lifecycle-blocked", "--bootstrap-run-dir", "/does-not-exist/basalt-devnet-owner-blocked"]), /pre-activation/);
+  } finally { globalThis.fetch = originalFetch; }
+  assert.equal(requests, 0);
+  assert.equal(APP_NAMESPACE_ROUTING.creation().id, "devnet-owner-v1");
 });
 
 test("owner guards reject empty steps without genuine authority, factory and four admissions", () => {
@@ -114,7 +124,7 @@ test("actors reject owner/bootstrap aliases and identical keys", () => {
 
 test("three/four token metadata hashes, seeds, routing, mint/redeem identities are exact", () => {
   for (const count of [3, 4] as const) {
-    const { args, metadata } = lifecycleBasketArgs(creator.publicKey, 7n, count), { pda, keys } = basket(count), routing = lifecycleRouting();
+    const { args, metadata } = lifecycleBasketArgs(creator.publicKey, 7n, count), { pda, keys } = basket(count), routing = proofRouting();
     assert.equal(Buffer.from(args.metadataHash).toString("hex"), createHash("sha256").update(metadata).digest("hex"));
     assert.equal(JSON.parse(metadata).testTokens, true); assert.equal(args.weightsBps.reduce((sum, value) => sum + value), 10000);
     assert.deepEqual(args.seedAmounts, args.weightsBps.map(value => BigInt(value) * 1000n));
@@ -262,7 +272,7 @@ test("faucet evidence accepts exact two claims followed by zero remaining balanc
 test("all six exact three/four-token signed packet shapes fit with their reviewed lookup coverage", () => {
   const sizes: Record<string, number> = {};
   for (const count of [3, 4] as const) {
-    const { args, keys } = basket(count), routing = lifecycleRouting();
+    const { args, keys } = basket(count), routing = proofRouting();
     const createAddresses = deriveCreateBasketAltAddresses(creator.publicKey.toBase58(), args, routing), tradeAddresses = deriveMintRedeemAltAddresses(keys, routing);
     for (const kind of ["create", "mint", "redeem"] as const) {
       const signer = kind === "create" ? creator : investor;

@@ -4,7 +4,11 @@ import { pathToFileURL } from 'node:url';
 
 const COUNT_FIELDS = ['pendingSignatures', 'quarantinedSignatures', 'scansPending', 'indexedPrograms', 'missingCoverage', 'rebuildRequiredBaskets'];
 const GENESIS = 'EtWTRABZaYq6iMfeYKouRu166VU2xqa1wcaWoxPkrZBG';
-const PROGRAMS = ['FRavMcYQb2FVAHbbG6fGieQHdKk1UrQqgKsAAXTPRQeS','3hzoPep9JKgTmzLT6CNW5x3EN7WNYDevM6KHVM7pLgMF','6Q43vFh4aqGxzvtU2vQwJX9PmX3skfYsGWZdA3fwJB9k'].sort();
+// Exact activated source trust roots; never inferred from the remote response or environment.
+const PROGRAMS = [
+  'FRavMcYQb2FVAHbbG6fGieQHdKk1UrQqgKsAAXTPRQeS','3hzoPep9JKgTmzLT6CNW5x3EN7WNYDevM6KHVM7pLgMF','6Q43vFh4aqGxzvtU2vQwJX9PmX3skfYsGWZdA3fwJB9k',
+  '37UVmx2uysqkKibBcSP5EZMycUeKnWRmnXVpr967juKF','2xvJKG8DTmSZFu1zXpNVP3wvaCCCgGC2ufGGhYjzr4DH','8XPKfAYPaDSvUH95CeyjkgujTXAE5nFBJyFSqZvFvX7T',
+].sort();
 const samePrograms = ids => Array.isArray(ids) && JSON.stringify([...ids].sort()) === JSON.stringify(PROGRAMS);
 const CHECKS = ['network', 'database', 'schema', 'indexer', 'navEngine', 'userSnapshot', 'feeCrank'];
 export function evaluateRollout(ready, expectedSha, { allowIncompleteProjections = false } = {}) {
@@ -21,7 +25,7 @@ export function evaluateRollout(ready, expectedSha, { allowIncompleteProjections
   const coverage = history.finalizedThroughSlot;
   const freshDiscovery = Number.isSafeInteger(slot) && slot >= 0 && Number.isFinite(discoveryAge) && discoveryAge >= 0 && discoveryAge <= 300_000;
   const covered = typeof coverage === 'string' && /^(0|[1-9]\d*)$/.test(coverage) && freshDiscovery && BigInt(coverage) >= BigInt(slot);
-  const complete = history.indexedPrograms === 3 && samePrograms(history.programIds) && history.missingCoverage === 0 && covered && history.pendingSignatures === 0 && history.quarantinedSignatures === 0 && history.scansPending === 0 && history.rebuildRequiredBaskets === 0;
+  const complete = history.indexedPrograms === PROGRAMS.length && samePrograms(history.programIds) && history.missingCoverage === 0 && covered && history.pendingSignatures === 0 && history.quarantinedSignatures === 0 && history.scansPending === 0 && history.rebuildRequiredBaskets === 0;
   if (ready.projectionReady !== complete) throw new Error('Inconsistent projection readiness');
   if (!complete && !allowIncompleteProjections) throw new Error('Indexed projections remain incomplete; explicit --allow-incomplete-projections is required for a contained devnet release');
   return { sourceSha: expectedSha, serviceReady: true, projectionReady: complete, containedDevnetRelease: !complete,

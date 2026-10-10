@@ -43,6 +43,17 @@ export function validateNamespaceRegistry(entries: readonly ProgramNamespace[]):
   }));
 }
 
+/** Owner namespace activated only by the separately reviewed, finalized lifecycle release. */
+export const DEVNET_OWNER_NAMESPACE: ProgramNamespace = validateNamespaceRegistry([{
+  id: "devnet-owner-v1", genesisHash: DEVNET_GENESIS_HASH,
+  programs: {whitelist:ownerPolicy.programIds.whitelist,factory:ownerPolicy.programIds.basket_factory,basket:ownerPolicy.programIds.basket},
+  factoryConfig: derive("factory",ownerPolicy.programIds.basket_factory),
+  whitelistConfig: derive("config",ownerPolicy.programIds.whitelist),
+  creation: {enabled:true,treasury:ownerPolicy.treasury},
+}])[0];
+/** Only a separately reviewed source change may select an activated clean namespace. */
+export const CREATION_NAMESPACE_ID: string | null = "devnet-owner-v1";
+
 export const PROGRAM_NAMESPACES = validateNamespaceRegistry([{
   id: "devnet-legacy-v1", genesisHash: DEVNET_GENESIS_HASH,
   programs: {
@@ -53,17 +64,7 @@ export const PROGRAM_NAMESPACES = validateNamespaceRegistry([{
   factoryConfig: "CfxquMe4MAPksEEsVyw8XmcxYH5W7qftRWNySgHjLi6e",
   whitelistConfig: "ESRwG8qoKaLM17dLEM6MJDRpKVYtkd9M2zUmbud2uXZd",
   creation: {enabled:false,treasury:null},
-}]);
-/** Prepared actual identities; the active union only changes after finalized deployment evidence. */
-export const DEVNET_OWNER_NAMESPACE: ProgramNamespace = validateNamespaceRegistry([{
-  id: "devnet-owner-v1", genesisHash: DEVNET_GENESIS_HASH,
-  programs: {whitelist:ownerPolicy.programIds.whitelist,factory:ownerPolicy.programIds.basket_factory,basket:ownerPolicy.programIds.basket},
-  factoryConfig: derive("factory",ownerPolicy.programIds.basket_factory),
-  whitelistConfig: derive("config",ownerPolicy.programIds.whitelist),
-  creation: {enabled:false,treasury:ownerPolicy.treasury},
-}])[0];
-/** Only a separately reviewed source change may select an activated clean namespace. */
-export const CREATION_NAMESPACE_ID: string | null = null;
+}, DEVNET_OWNER_NAMESPACE]);
 export const namespaceProgramIds = (entry: ProgramNamespace): string[] => roles.map(role=>entry.programs[role]).sort();
 export const registeredProgramIds = (entries: readonly ProgramNamespace[] = PROGRAM_NAMESPACES): string[] => entries.flatMap(namespaceProgramIds).sort();
 export const namespaceForFactory = (factory: string, entries: readonly ProgramNamespace[] = PROGRAM_NAMESPACES): ProgramNamespace | undefined => entries.find(entry=>entry.factoryConfig===factory);

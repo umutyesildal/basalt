@@ -1,11 +1,20 @@
 import {describe,it,expect} from "vitest";
 import {PublicKey} from "@solana/web3.js";
-import {PROGRAM_NAMESPACES,creationNamespace,namespaceForFactory,namespaceForProgram,namespaceForPrograms,namespaceProgramIds,registeredProgramIds,validateNamespaceRegistry,namespaceSqlValues} from "../src/config/programNamespaces";
+import {PROGRAM_NAMESPACES,DEVNET_OWNER_NAMESPACE,CREATION_NAMESPACE_ID,creationNamespace,namespaceForFactory,namespaceForProgram,namespaceForPrograms,namespaceProgramIds,registeredProgramIds,validateNamespaceRegistry,namespaceSqlValues} from "../src/config/programNamespaces";
 import {namespaceFixtures,namespaceRecoveryPrograms} from "./fixtures/program-namespaces";
+import ownerPolicy from "../src/config/devnetOwnerPolicy.json";
 
 describe("closed devnet namespace trust roots",()=>{
- it("keeps the deployed legacy singleton readable and creation disabled",()=>{
-  expect(PROGRAM_NAMESPACES).toHaveLength(1);expect(creationNamespace()).toBeUndefined();
+ it("registers exactly owner plus legacy, enabling only the selected owner with pinned treasury",()=>{
+  expect(PROGRAM_NAMESPACES).toHaveLength(2);
+  expect(CREATION_NAMESPACE_ID).toBe("devnet-owner-v1");
+  expect(creationNamespace()).toEqual(DEVNET_OWNER_NAMESPACE);
+  expect(DEVNET_OWNER_NAMESPACE.creation).toEqual({enabled:true,treasury:ownerPolicy.treasury});
+  expect(PROGRAM_NAMESPACES[0].creation).toEqual({enabled:false,treasury:null});
+  expect(creationNamespace(PROGRAM_NAMESPACES,PROGRAM_NAMESPACES[0].id)).toBeUndefined();
+  expect(registeredProgramIds()).toHaveLength(6);
+  expect(new Set(registeredProgramIds()).size).toBe(6);
+  expect(creationNamespace([PROGRAM_NAMESPACES[0]],null)).toBeUndefined();
   expect(namespaceForFactory(PROGRAM_NAMESPACES[0].factoryConfig)?.id).toBe("devnet-legacy-v1");
   expect(Object.isFrozen(PROGRAM_NAMESPACES[0].programs)).toBe(true);
  });
@@ -47,7 +56,7 @@ describe("closed devnet namespace trust roots",()=>{
   expect(creationNamespace(namespaceFixtures,namespaceFixtures[1].id)).toBeUndefined();
   const b={...namespaceFixtures[1],creation:{enabled:true,treasury:namespaceFixtures[0].factoryConfig}};
   const entries=validateNamespaceRegistry([namespaceFixtures[0],b]);
-  expect(creationNamespace(entries)).toBeUndefined();
+  expect(creationNamespace(entries,null)).toBeUndefined();
   expect(creationNamespace(entries,b.id)?.id).toBe(b.id);
  });
  it("validates source SQL bindings before interpolation",()=>{

@@ -540,6 +540,8 @@ export async function main(args = process.argv.slice(2)): Promise<unknown> {
     "run-dir": { type: "string" }, "bootstrap-run-dir": { type: "string" }, help: { type: "boolean" } } });
   assert(!(values.execute && values.reconcile), "Choose execution or read-only reconciliation");
   if (values.help) { console.log("Default offline. Run with tsx --tsconfig app/tsconfig.json scripts/devnet-owner-lifecycle-proof.ts. Explicit later --execute --run-dir <NEW basalt-devnet-lifecycle-* outside Git> --bootstrap-run-dir <owned0700 basalt-devnet-owner-*> requires complete genuinely owner-signed finalized setup. Funds two fresh actors at most 0.15 devnet SOL, bootstrap outflow cap 0.16 SOL, reserve 0.10 SOL. Proves three/four mock-token create/mint/fees/redeem. Never loads owner/issuer keys, changes programs/admissions, or enables creation. Any ambiguous send stops permanently; --reconcile --run-dir <existing> reads public receipts only and never resends. Existing execution directories are always refused."); return; }
+  // Reject archival planning/execution before git, RPC, run-directory or signer access once activated.
+  if (!values.reconcile) lifecycleRouting();
   const sourceCommit = execFileSync("git", ["rev-parse", "HEAD"], { cwd: ROOT, encoding: "utf8" }).trim();
   if (!values.execute && !values.reconcile) { const plan = lifecyclePlan(sourceCommit); console.log(json(plan)); return plan; }
   verifyOwnerHandoffSourceBinding(artifacts.sourceCommit, ROOT);

@@ -104,7 +104,13 @@ describe("candidate-only recovery operator",()=>{
 
   it("defaults to bounded read-only inspect, does not use application DATABASE_URL or RPC",async()=>{
     const {db,calls,state}=fakeDatabase();const deps=dependencies(db);
-    expect(await runRecoveryOperator(inspectArgs(),env,deps)).toMatchObject({schemaReady:true,activeProjectionChanged:false});
+    const result = await runRecoveryOperator(inspectArgs(),env,deps);
+    expect(result).toMatchObject({schemaReady:true,activeProjectionChanged:false,collectionPrograms:registeredProgramIds()});
+    expect(registeredProgramIds()).toHaveLength(6);
+    expect(candidateProgramSet(manifest).ids).toHaveLength(3);
+    for (const {sql,values} of calls.filter(({sql})=>sql.includes("FROM public.indexer_program_state") || sql.includes("FROM public.indexer_signature_queue"))) {
+      expect(values?.[0]).toEqual(registeredProgramIds());
+    }
     expect(deps.connect.mock.calls[0][0].databaseUrl).toBe(env.CANDIDATE_DATABASE_URL);
     expect(deps.rpc).not.toHaveBeenCalled();expect(deps.activate).not.toHaveBeenCalled();
     expect(calls.some(({sql})=>sql.includes("REPEATABLE READ, READ ONLY"))).toBe(true);

@@ -1,4 +1,4 @@
-import { describe,it,expect } from "vitest";
+import { describe,it,expect,vi } from "vitest";
 import { createHash } from "node:crypto";
 import { mkdtemp,chmod,rm,realpath } from "node:fs/promises";
 import { join } from "node:path";
@@ -10,15 +10,17 @@ import bs58 from "bs58";
 import { DEVNET_OWNER_NAMESPACE,DEVNET_GENESIS_HASH } from "../src/config/programNamespaces";
 import { DEVNET_MOCK_TOKENS,DEVNET_FAUCET_PROGRAM_ID,DEVNET_FAUCET_CLAIM_RAW,deriveDevnetFaucetAuthority,deriveDevnetFaucetVault } from "../../app/lib/devnet-faucet";
 import { fixtureMetadata } from "../../scripts/xstocks-devnet/profile";
-import { createBootstrapPlan as closedBootstrapPlan,validateDeploymentProof,buildBootstrapInstruction,programData,verifyDeployedBytes,verifyFaucetMocks,executeBootstrap,openPrivateRun,LOADER,MAX_SPEND_LAMPORTS,
+import { DEVNET_OWNER_POLICY } from "../../scripts/security/devnet-owner-bootstrap.mjs";
+import { createBootstrapPlan as closedBootstrapPlan,validateDeploymentProof,buildBootstrapInstruction,programData,verifyDeployedBytes,verifyFaucetMocks,executeBootstrap,openPrivateRun,main as bootstrapMain,LOADER,MAX_SPEND_LAMPORTS,
   type OwnerManifest,type DeploymentProof,type BootstrapRpc,type Journal,type JournalStore } from "../../scripts/devnet-owner-bootstrap";
 const sha=(v:Uint8Array)=>createHash("sha256").update(v).digest("hex");
 const disc=(name:string)=>createHash("sha256").update(`account:${name}`).digest().subarray(0,8);
 const signer=Keypair.fromSeed(Buffer.alloc(32,81)),owner=Keypair.fromSeed(Buffer.alloc(32,82)).publicKey;
 const manifest=():OwnerManifest=>({version:1,mode:"devnet-owner-bootstrap-preparation",cluster:"devnet",genesisHash:DEVNET_GENESIS_HASH,owner:owner.toBase58(),treasury:owner.toBase58(),bootstrapAuthority:signer.publicKey.toBase58(),programIds:{whitelist:DEVNET_OWNER_NAMESPACE.programs.whitelist,basket_factory:DEVNET_OWNER_NAMESPACE.programs.factory,basket:DEVNET_OWNER_NAMESPACE.programs.basket},ownerRoleAcceptance:"accepted",governance:{kind:"single-owner-devnet-only",multisig:false,productionApproval:false},deploymentExecuted:false,sourceCommit:"a".repeat(40),releaseTag:"devnet-owner-test",treasuryAcceptance:"accepted",ownerAcceptanceReference:"test-review:owner-and-treasury"});
 const source="a".repeat(40);
-// Synthetic signer policy is explicitly injected only into isolated tests, never the CLI.
-const createBootstrapPlan=(record:unknown,commit:string)=>closedBootstrapPlan(record,commit,{policy:manifest()});
+// Historical bootstrap fixtures explicitly keep their isolated namespace closed. Production stays activated.
+const closedOwnerNamespace={...DEVNET_OWNER_NAMESPACE,creation:{...DEVNET_OWNER_NAMESPACE.creation,enabled:false}};
+const createBootstrapPlan=(record:unknown,commit:string)=>closedBootstrapPlan(record,commit,{policy:manifest(),namespaces:[closedOwnerNamespace]});
 const plan=()=>createBootstrapPlan(manifest(),source);
 function elf(){const b=Buffer.alloc(1024);b.set([127,69,76,70,2,1,1]);b.writeUInt16LE(3,16);b.writeUInt16LE(263,18);b.writeBigUInt64LE(512n,24);b.writeBigUInt64LE(64n,32);b.writeUInt16LE(56,54);b.writeUInt16LE(1,56);b.writeUInt32LE(1,64);b.writeUInt32LE(1,68);b.writeBigUInt64LE(512n,72);b.writeBigUInt64LE(512n,80);b.writeBigUInt64LE(128n,96);b.writeBigUInt64LE(128n,104);return b;}
 function proof():DeploymentProof{return {version:1,mode:"devnet-owner-deployment-proof",cluster:"devnet",genesisHash:DEVNET_GENESIS_HASH,sourceCommit:source,feature:"owner-devnet",bootstrapAuthority:signer.publicKey.toBase58(),owner:owner.toBase58(),programs:Object.fromEntries(Object.entries(manifest().programIds).map(([role,id])=>[role,{programId:id,programData:programData(new PublicKey(id)).toBase58(),elfSha256:sha(elf()),elfBytes:1024,deployedSlot:"10"}])) as DeploymentProof["programs"]};}
@@ -48,6 +50,16 @@ function harness(){let stored:Journal|null=null,step=0,loads=0,sends=0,writes=0;
 }
 
 describe("devnet-owner bootstrap boundary",()=>{
+ it("rejects production bootstrap after activation before RPC, proof or signer access",async()=>{
+  expect(DEVNET_OWNER_NAMESPACE.creation.enabled).toBe(true);
+  expect(()=>closedBootstrapPlan(DEVNET_OWNER_POLICY,source)).toThrow(/creation to remain disabled/);
+  const fetch=vi.spyOn(globalThis,"fetch").mockRejectedValue(new Error("No RPC permitted"));
+  try{
+   await expect(bootstrapMain([])).rejects.toThrow(/creation to remain disabled/);
+   await expect(bootstrapMain(["--execute","--deployment-proof","/does-not-exist.json","--run-dir","/does-not-exist/basalt-devnet-owner-blocked"])).rejects.toThrow(/creation to remain disabled/);
+   expect(fetch).not.toHaveBeenCalled();
+  }finally{fetch.mockRestore();}
+ });
  it("plans a pending owner manifest offline and refuses execution before RPC/key access",async()=>{const h=harness(),pending={...manifest(),treasury:null,ownerRoleAcceptance:"pending" as const,treasuryAcceptance:"pending" as const};const p=createBootstrapPlan(pending,source);expect(p.blocked).toHaveLength(3);await expect(executeBootstrap({plan:p,proof:proof(),...h})).rejects.toThrow(/acceptance/);expect(h.loads).toBe(0);expect(h.sends).toBe(0);});
  it.each(["genesis","role","treasury","private","governance"])("rejects forged %s manifest",kind=>{const m:any=manifest();if(kind==="genesis")m.genesisHash="mainnet";if(kind==="role")m.programIds.basket=m.programIds.whitelist;if(kind==="treasury")m.treasury=PublicKey.default.toBase58();if(kind==="private")m.secretKey=[1,2,3];if(kind==="governance")m.governance.productionApproval=true;expect(()=>createBootstrapPlan(m,source)).toThrow();});
  it("pins default production owner/bootstrap and refuses substituted roles or incomplete public acceptance",()=>{

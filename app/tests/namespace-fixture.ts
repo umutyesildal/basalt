@@ -15,7 +15,7 @@ export const TEST_NAMESPACE: ProgramNamespace = {
   whitelistConfig: PublicKey.findProgramAddressSync([Buffer.from("config")], new PublicKey(programs.whitelist))[0].toBase58(),
   creation: { enabled: true, treasury: TEST_TREASURY.toBase58() },
 };
-export const TEST_ROUTING = createNamespaceRouting([...PROGRAM_NAMESPACES, TEST_NAMESPACE], TEST_NAMESPACE.id);
+export const TEST_ROUTING = createNamespaceRouting([PROGRAM_NAMESPACES[0], TEST_NAMESPACE], TEST_NAMESPACE.id);
 export function routedBasketFixture(options: { namespace?: ProgramNamespace; nonce?: bigint; user?: PublicKey; creator?: PublicKey; treasury?: PublicKey; constituents?: string[] } = {}) {
   const namespace = options.namespace ?? PROGRAM_NAMESPACES[0], p = namespacePrograms(namespace);
   const creator = options.creator ?? new PublicKey(Buffer.alloc(32, 8)), user = options.user ?? new PublicKey(Buffer.alloc(32, 7)), treasury = options.treasury ?? TEST_TREASURY;

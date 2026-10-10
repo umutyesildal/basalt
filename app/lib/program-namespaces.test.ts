@@ -17,16 +17,43 @@ const rpcFor = (fixture: ReturnType<typeof routedBasketFixture>) => ({
   getMultipleAccountsInfo: async (addresses: PublicKey[]) => addresses.map(address => fixture.accounts.get(address.toBase58()) ?? null),
 } as unknown as Connection);
 
-test("production registry preserves legacy reads and disables every creation path before RPC or wallet preparation", async () => {
+test("an explicitly closed registry disables every creation path before RPC or wallet preparation", async () => {
+  const closed = createNamespaceRouting([PROGRAM_NAMESPACES[0]], null);
   const legacy = routedBasketFixture(); let calls = 0;
   const connection = new Proxy({}, { get: () => () => { calls++; throw new Error("No preparation permitted"); } }) as Connection;
   assert.equal(APP_NAMESPACE_ROUTING.forFactory(legacy.keys.factory.toBase58()).id, "devnet-legacy-v1");
-  assert.throws(() => deriveCreateBasketPdas(legacy.keys.creator.toBase58(), args), /no reviewed creation namespace/);
-  assert.throws(() => buildCreateBasketInstruction(legacy.keys.creator.toBase58(), args), /no reviewed creation namespace/);
-  await assert.rejects(assertSafeCreateBasketFactory(connection), /no reviewed creation namespace/);
-  await assert.rejects(buildCreateBasketTransaction({connection, creator: legacy.keys.creator.toBase58(), args}), /no reviewed creation namespace/);
-  await assert.rejects(ensureCreateBasketAlt({connection, creator: legacy.keys.creator.toBase58(), args, sendTransaction: async () => {calls++; return "never";}}), /no reviewed creation namespace/);
+  assert.throws(() => deriveCreateBasketPdas(legacy.keys.creator.toBase58(), args, closed), /no reviewed creation namespace/);
+  assert.throws(() => buildCreateBasketInstruction(legacy.keys.creator.toBase58(), args, closed), /no reviewed creation namespace/);
+  await assert.rejects(assertSafeCreateBasketFactory(connection, closed), /no reviewed creation namespace/);
+  await assert.rejects(buildCreateBasketTransaction({connection, creator: legacy.keys.creator.toBase58(), args, routing: closed}), /no reviewed creation namespace/);
+  await assert.rejects(ensureCreateBasketAlt({connection, creator: legacy.keys.creator.toBase58(), args, routing: closed, sendTransaction: async () => {calls++; return "never";}}), /no reviewed creation namespace/);
   assert.equal(calls, 0);
+});
+
+
+test("production creates only in the pinned owner namespace with the same instruction as isolated reviewed routing", async () => {
+  const owner = APP_NAMESPACE_ROUTING.creation();
+  assert.equal(owner.id, "devnet-owner-v1");
+  const f = routedBasketFixture({namespace:owner, treasury:new PublicKey(owner.creation.treasury!)});
+  const isolated = createNamespaceRouting([owner], owner.id);
+  assert.equal((await assertSafeCreateBasketFactory(rpcFor(f))).id, owner.id);
+  const pda = deriveCreateBasketPdas(f.keys.creator.toBase58(), args);
+  assert.equal(pda.factory.toBase58(), owner.factoryConfig);
+  assert.equal(pda.basket.toBase58(), f.keys.basket.toBase58());
+  assert.equal(pda.shareMint.toBase58(), f.keys.shareMint.toBase58());
+  const actual = buildCreateBasketInstruction(f.keys.creator.toBase58(), args);
+  const proven = buildCreateBasketInstruction(f.keys.creator.toBase58(), args, isolated);
+  assert.equal(actual.programId.toBase58(), owner.programs.factory);
+  assert.equal(actual.keys[9].pubkey.toBase58(), owner.programs.basket);
+  assert.deepEqual(actual.data, proven.data);
+  assert.deepEqual(actual.keys, proven.keys);
+  const [admission] = PublicKey.findProgramAddressSync([Buffer.from("mint"), new PublicKey(args.constituents[0]).toBuffer()], new PublicKey(owner.programs.whitelist));
+  assert(actual.keys[10].pubkey.equals(admission));
+  for (const built of [buildMintInKind({keys:f.keys, amounts:[1n,1n], vaultBalances:[1n,1n]}), buildRedeemInKind({keys:f.keys, sharesToBurn:1n, vaultBalances:[1n,1n]})]) {
+    assert.equal(built.instructions[0].programId.toBase58(), owner.programs.basket);
+  }
+  f.accounts.get(f.keys.factory.toBase58())!.data[40] ^= 1;
+  await assert.rejects(assertSafeCreateBasketFactory(rpcFor(f)), /blocked/);
 });
 
 test("same creator, nonce and assets produce isolated factory, basket, share, vault and whitelist addresses", () => {

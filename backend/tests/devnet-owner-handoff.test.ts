@@ -7,7 +7,7 @@ import { tmpdir } from "node:os";
 import { Keypair, PublicKey, SystemProgram, Transaction, SystemInstruction, type AccountInfo } from "@solana/web3.js";
 import { DEVNET_GENESIS_HASH, DEVNET_OWNER_NAMESPACE } from "../src/config/programNamespaces";
 import { DEVNET_OWNER_POLICY } from "../../scripts/security/devnet-owner-bootstrap.mjs";
-import { programData, LOADER, ROLES, MAX_FEE_LAMPORTS, type OwnerManifest, type DeploymentProof } from "../../scripts/devnet-owner-bootstrap";
+import { createBootstrapPlan, programData, LOADER, ROLES, MAX_FEE_LAMPORTS, type OwnerManifest, type DeploymentProof } from "../../scripts/devnet-owner-bootstrap";
 import {
   createOwnerHandoffPlan, readOwnerHandoffState, prepareOwnerHandoff,
   writeOwnerHandoffPackage, verifyOwnerHandoffSourceBinding, main, type HandoffReadRpc,
@@ -25,6 +25,16 @@ function policy(): OwnerManifest {
     programIds: { whitelist: DEVNET_OWNER_NAMESPACE.programs.whitelist, basket_factory: DEVNET_OWNER_NAMESPACE.programs.factory, basket: DEVNET_OWNER_NAMESPACE.programs.basket },
     ownerRoleAcceptance: "pending", governance: { kind: "single-owner-devnet-only", multisig: false, productionApproval: false }, deploymentExecuted: false };
 }
+// Only synthetic historical policy uses the isolated closed namespace. Default production calls retain the active guard.
+const closedOwnerNamespace = {...DEVNET_OWNER_NAMESPACE, creation:{...DEVNET_OWNER_NAMESPACE.creation, enabled:false}};
+vi.mock("../../scripts/devnet-owner-bootstrap", async importOriginal => {
+  const actual = await importOriginal<typeof import("../../scripts/devnet-owner-bootstrap")>();
+  return {...actual, createBootstrapPlan: (...args: Parameters<typeof actual.createBootstrapPlan>) => {
+    const [record, commit, internal = {}] = args;
+    return actual.createBootstrapPlan(record, commit, internal.policy?.owner === owner.publicKey.toBase58()
+      ? {...internal, namespaces:[closedOwnerNamespace]} : internal);
+  }};
+});
 const internal = () => ({ policy: policy() });
 const plan = () => createOwnerHandoffPlan(source, internal());
 function elf(): Buffer {
@@ -74,18 +84,19 @@ function harness() {
 const prepare = (h: ReturnType<typeof harness>, overrides: Record<string, unknown> = {}) => prepareOwnerHandoff({ sourceCommit: source, deploymentProof: proof(), nonceAccount: nonce.toBase58(), rpc: h.rpc, loadSigner: h.loadSigner, internal: internal(), ...overrides });
 
 describe("durable devnet owner handoff preparation", () => {
-  it("defaults to an offline public plan without reading a signer, proof or RPC", async () => {
+  it("rejects archived production planning and preparation after activation before proof, signer or RPC access", async () => {
     const fetch = vi.spyOn(globalThis, "fetch").mockRejectedValue(new Error("No RPC permitted"));
     const log = vi.spyOn(console, "log").mockImplementation(() => {});
     try {
-      const result = await main(["--deployment-proof", "/does-not-exist.json", "--run-dir", "/does-not-exist"]);
-      expect(result).toMatchObject({ mode: "offline-owner-handoff-plan", cluster: "devnet", chainWrites: false, partialSignaturePrepared: false });
+      await expect(main(["--deployment-proof", "/does-not-exist.json", "--run-dir", "/does-not-exist"])).rejects.toThrow(/creation to remain disabled/);
+      await expect(main(["--prepare", "--deployment-proof", "/does-not-exist.json", "--nonce-account", nonce.toBase58(), "--run-dir", "/does-not-exist/basalt-devnet-owner-blocked", "--output", "/does-not-exist/package.json"])).rejects.toThrow(/creation to remain disabled/);
       expect(fetch).not.toHaveBeenCalled();
       await expect(main(["--execute"])).rejects.toThrow(/never executes/);
     } finally { fetch.mockRestore(); log.mockRestore(); }
   });
   it("pins production owner/bootstrap/trio and keeps acceptance pending until a genuine wallet signature", () => {
-    const pinned = createOwnerHandoffPlan(source);
+    expect(() => createOwnerHandoffPlan(source)).toThrow(/creation to remain disabled/);
+    const pinned = createBootstrapPlan(DEVNET_OWNER_POLICY, source, {namespaces:[closedOwnerNamespace]});
     expect(pinned.manifest.owner).toBe(DEVNET_OWNER_POLICY.owner);
     expect(pinned.manifest.bootstrapAuthority).toBe(DEVNET_OWNER_POLICY.bootstrapAuthority);
     expect(pinned.manifest.programIds).toEqual(DEVNET_OWNER_POLICY.programIds);

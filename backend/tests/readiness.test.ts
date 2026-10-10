@@ -8,7 +8,7 @@ const good = () => ({ ts: "2026-10-09T12:00:00Z", version: "0.1.0",
     indexer: { enabled: true, running: true, discovery: { programIds: DEVNET_PROGRAMS, genesisHash: DEVNET_GENESIS, finalizedSlot: 12, completedAt: "2026-10-09T11:59:00Z" } }, navEngine: { enabled: true, running: true },
     userSnapshot: { enabled: true, running: true }, feeCrank: { enabled: false, running: false } },
   db: { connected: true, basketCount: 9, currentValuations: 0,
-    history: { indexedPrograms: 3, programIds: DEVNET_PROGRAMS, finalizedThroughSlot: "12", missingCoverage: 0, pendingSignatures: 0, quarantinedSignatures: 0,
+    history: { indexedPrograms: DEVNET_PROGRAMS.length, programIds: DEVNET_PROGRAMS, finalizedThroughSlot: "12", missingCoverage: 0, pendingSignatures: 0, quarantinedSignatures: 0,
       scansPending: 0, rebuildRequiredBaskets: 0, automaticActivationEnabled: false } } });
 const payload = (data: unknown) => readinessReport(data, "a".repeat(40)).payload as any;
 describe("release readiness", () => {

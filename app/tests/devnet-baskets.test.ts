@@ -264,9 +264,12 @@ test("registered namespace discovery separates identical mock tokens and their a
   assert.equal(list.find(s => s.detail.pubkey === clean.basket.toBase58())!.whitelistStatuses[0], "PausedNewMints");
   assert.notEqual(list[0].vaultAuthority, list[1].vaultAuthority);
   assert.ok(list.every(s => s.detail.nav === null));
-  const legacyOnly = await listDevnetBaskets(rpc);
-  assert.equal(legacyOnly.length, 1); assert.equal(legacyOnly[0].detail.factory, legacy.factory.toBase58());
-  assert.equal(queries.length, 3); // Registry-specific list caches do not cross.
+  const productionList = await listDevnetBaskets(rpc);
+  assert.equal(productionList.length, 1); assert.equal(productionList[0].detail.factory, legacy.factory.toBase58());
+  assert.deepEqual(queries.slice(TEST_ROUTING.registry.length), APP_NAMESPACE_ROUTING.registry.map(n => n.programs.basket));
+  const count = queries.length;
+  await listDevnetBaskets(rpc);
+  assert.equal(queries.length, count); // Registry-specific list caches do not cross.
 });
 
 test("missing whitelist admission remains unavailable for mint while legacy raw withdrawal data stays readable", async () => {

@@ -64,6 +64,8 @@ trap 'status=$?; if (( status != 0 )); then printf "prepare-candidate: failed du
 database_name="basalt_candidate_$candidate_id"
 backup_file='foliox.dump'
 genesis_hash='EtWTRABZaYq6iMfeYKouRu166VU2xqa1wcaWoxPkrZBG'
+# Candidate recovery proofs remain scoped to the unchanged legacy role trio.
+# The exact candidate backend source independently discovers/inspects the full reviewed six-program union.
 program_ids='{"basket":"6Q43vFh4aqGxzvtU2vQwJX9PmX3skfYsGWZdA3fwJB9k","factory":"3hzoPep9JKgTmzLT6CNW5x3EN7WNYDevM6KHVM7pLgMF","whitelist":"FRavMcYQb2FVAHbbG6fGieQHdKk1UrQqgKsAAXTPRQeS"}'
 # Compose must resolve the retained deploy/.env, never inherited alternate files.
 unset POSTGRES_PASSWORD API_DOMAIN DATABASE_URL CANDIDATE_DATABASE_URL

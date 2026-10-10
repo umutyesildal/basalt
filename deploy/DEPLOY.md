@@ -299,7 +299,7 @@ DB dump, source, Compose config and image throughout the release.
 
 `/api/v1/health` remains liveness. `/api/v1/ready` returns 503 for failed DB/schema,
 required workers or unverified current devnet identity, and always uses `no-store`.
-Its `projectionReady` additionally requires the exact three program histories,
+Its `projectionReady` additionally requires the exact registered six program histories,
 non-null finalized coverage, a fresh completed discovery, empty pending/quarantine
 queues and no unresolved legacy rebuilds. NAV coverage is reported separately;
 missing prices never become fabricated valuations.

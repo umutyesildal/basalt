@@ -697,7 +697,7 @@ describe(".env.devnet.example — tracked profile parses with the exact env name
     }
   });
 
-  it("indexerConfigFromEnv picks up all three devnet programs from the profile", () => {
+  it("indexerConfigFromEnv accepts the legacy profile and collects all six registered devnet programs", () => {
     const cfg = indexerConfigFromEnv(parsed as NodeJS.ProcessEnv);
     expect(cfg).not.toBeNull();
     expect(cfg?.rpcUrl).toBe("https://api.devnet.solana.com");
@@ -705,7 +705,13 @@ describe(".env.devnet.example — tracked profile parses with the exact env name
       "FRavMcYQb2FVAHbbG6fGieQHdKk1UrQqgKsAAXTPRQeS",
       "3hzoPep9JKgTmzLT6CNW5x3EN7WNYDevM6KHVM7pLgMF",
       "6Q43vFh4aqGxzvtU2vQwJX9PmX3skfYsGWZdA3fwJB9k",
+      "37UVmx2uysqkKibBcSP5EZMycUeKnWRmnXVpr967juKF",
+      "2xvJKG8DTmSZFu1zXpNVP3wvaCCCgGC2ufGGhYjzr4DH",
+      "8XPKfAYPaDSvUH95CeyjkgujTXAE5nFBJyFSqZvFvX7T",
     ].sort());
+    expect(cfg?.factoryProgramId).toBe(parsed.PROGRAM_FACTORY);
+    expect(cfg?.basketProgramId).toBe(parsed.PROGRAM_BASKET);
+    expect(cfg?.whitelistProgramId).toBe(parsed.PROGRAM_WHITELIST);
     // Devnet pacing (shared public RPC): 30s poll, 20 sigs, 60s holdings pass.
     expect(cfg?.pollIntervalMs).toBe(30000);
     expect(cfg?.signaturesPerPoll).toBe(20);

@@ -2,9 +2,12 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { evaluateRollout, readBoundedJson, verifyBackendRollout } from '../verify-backend-rollout.mjs';
 const sha = 'a'.repeat(40);
-const ids = ['FRavMcYQb2FVAHbbG6fGieQHdKk1UrQqgKsAAXTPRQeS','3hzoPep9JKgTmzLT6CNW5x3EN7WNYDevM6KHVM7pLgMF','6Q43vFh4aqGxzvtU2vQwJX9PmX3skfYsGWZdA3fwJB9k'];
+const ids = [
+  'FRavMcYQb2FVAHbbG6fGieQHdKk1UrQqgKsAAXTPRQeS','3hzoPep9JKgTmzLT6CNW5x3EN7WNYDevM6KHVM7pLgMF','6Q43vFh4aqGxzvtU2vQwJX9PmX3skfYsGWZdA3fwJB9k',
+  '37UVmx2uysqkKibBcSP5EZMycUeKnWRmnXVpr967juKF','2xvJKG8DTmSZFu1zXpNVP3wvaCCCgGC2ufGGhYjzr4DH','8XPKfAYPaDSvUH95CeyjkgujTXAE5nFBJyFSqZvFvX7T',
+];
 const fixture = () => ({ ok: true, ready: true, ts: new Date().toISOString(), sourceSha: sha, network: { cluster: 'devnet', genesisHash: 'EtWTRABZaYq6iMfeYKouRu166VU2xqa1wcaWoxPkrZBG', programIds: ids }, discovery: { finalizedSlot: 12, completedAt: new Date(Date.now()-1000).toISOString(), fresh: true }, checks: Object.fromEntries(['network','database','schema','indexer','navEngine','userSnapshot','feeCrank'].map(key => [key, true])), projectionReady: true,
-  data: { basketCount: 9, currentValuations: 0, history: { indexedPrograms: 3, programIds: ids, finalizedThroughSlot: "12", missingCoverage: 0, pendingSignatures: 0, quarantinedSignatures: 0, scansPending: 0, rebuildRequiredBaskets: 0, automaticActivationEnabled: false } } });
+  data: { basketCount: 9, currentValuations: 0, history: { indexedPrograms: ids.length, programIds: ids, finalizedThroughSlot: "12", missingCoverage: 0, pendingSignatures: 0, quarantinedSignatures: 0, scansPending: 0, rebuildRequiredBaskets: 0, automaticActivationEnabled: false } } });
 test('accepts exact release with honest incomplete valuation coverage', () => { const result = evaluateRollout(fixture(), sha); assert.equal(result.serviceReady, true); assert.equal(result.currentValuations, 0); assert.equal(result.containedDevnetRelease, false); });
 test('rejects wrong release, failed/missing checks and unverified automatic activation', () => {
   for (const field of ['network','database','schema','indexer','navEngine','userSnapshot','feeCrank']) { const data = fixture(); data.checks[field] = false; assert.throws(() => evaluateRollout(data, sha)); }
@@ -39,5 +42,25 @@ test('rejects stale/future or wrong-network evidence and requires fresh canonica
   for (const update of [{ finalizedSlot: null }, { completedAt: null }, { completedAt: new Date(Date.now()-301_000).toISOString() }]) {
     const data=fixture(); Object.assign(data.discovery, update); assert.throws(() => evaluateRollout(data, sha), /Inconsistent/);
     data.projectionReady=false; assert.equal(evaluateRollout(data, sha, { allowIncompleteProjections:true }).containedDevnetRelease, true);
+  }
+});
+
+
+test('requires exactly the six reviewed programs, rejecting legacy-only, missing, extra, duplicate and mixed identities', () => {
+  assert.equal(ids.length, 6); assert.equal(new Set(ids).size, 6);
+  for (const programs of [ids.slice(0, 3), ids.slice(1), [...ids, ids[0]], [...ids.slice(0, 5), ids[0]], [...ids.slice(0, 5), '11111111111111111111111111111111']]) {
+    const data = fixture(); data.network.programIds = programs;
+    assert.throws(() => evaluateRollout(data, sha, { allowIncompleteProjections: true }), /network\/program identity/);
+  }
+  const reordered = fixture(); reordered.network.programIds = [...ids].reverse();
+  assert.equal(evaluateRollout(reordered, sha).projectionReady, true);
+});
+
+test('six-program discovery cannot certify only three histories, including under incomplete-projection acknowledgement', () => {
+  for (const update of [{ indexedPrograms: 3 }, { programIds: ids.slice(0, 3) }, { programIds: [...ids.slice(0, 5), ids[0]] }]) {
+    const data = fixture(); Object.assign(data.data.history, update);
+    assert.throws(() => evaluateRollout(data, sha, { allowIncompleteProjections: true }), /Inconsistent/);
+    data.projectionReady = false;
+    assert.equal(evaluateRollout(data, sha, { allowIncompleteProjections: true }).projectionReady, false);
   }
 });

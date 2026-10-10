@@ -1,0 +1,563 @@
+{
+  "version": 1,
+  "checkedAt": "2026-10-10T17:14:03.686Z",
+  "mode": "independent-read-only-complete-run03-review",
+  "sourceSha": "5c9bdb5c8f92226d2eabd2f396315747219f1225",
+  "publicJournalSha256": "7ab86a7377379de15533362e8a19bfeaa80a38fe9d701a290f32a628d0a454d4",
+  "rpc": "https://api.devnet.solana.com",
+  "genesisHash": "EtWTRABZaYq6iMfeYKouRu166VU2xqa1wcaWoxPkrZBG",
+  "runCompleted": true,
+  "lifecycleAccountingComplete": true,
+  "publicCreationActivatedByThisReview": false,
+  "finalizedReceiptCount": 19,
+  "verifiedReceipts": [
+    {
+      "label": "fund-fresh-actors",
+      "signature": "2ryUhbGdhNDoXpPJbzZEr3cbQ8BvdrLAn1fNtteBEh5fkXH87eK7rHehsvKDE8KDwYebUavHc5cCEmJXG6yAftMH",
+      "finalizedSlot": 509611099,
+      "soleActor": "8B2wktjNVETgnkoe92r2hTL9THw7umh4zF7iuidMt5H4",
+      "signatureVerified": true,
+      "messageHashVerified": true,
+      "wireHashVerified": true,
+      "feeLamports": 15000,
+      "unitsConsumed": 600,
+      "wireBytes": 318,
+      "lookupTables": [],
+      "coreTokenAccountingVerified": false
+    },
+    {
+      "label": "claim-creator",
+      "signature": "2wcK1w5cb66coPQHPf23BABU8BRomafTsETEygGShk5d4qqVxNx58p4N92WrkhZ6ftpv6wfCV4tpXS4iPg9R1YsV",
+      "finalizedSlot": 509611130,
+      "soleActor": "3cAk1UdANNeawRu61hibd6cf3f5hmu2tbWAfUs1tx3um",
+      "signatureVerified": true,
+      "messageHashVerified": true,
+      "wireHashVerified": true,
+      "feeLamports": 15000,
+      "unitsConsumed": 141493,
+      "wireBytes": 825,
+      "lookupTables": [],
+      "coreTokenAccountingVerified": false
+    },
+    {
+      "label": "claim-investor",
+      "signature": "49TEbzaZzwMm8kQeyLZWMN69GADtTMrgHhJ6EnwJ1oAppe8wqbLM6SagTFThy6k6KsUkJoPVRZhQhgQ3eAgQVcrC",
+      "finalizedSlot": 509611163,
+      "soleActor": "F2KBourLwDSsdDk1ej8g9ZBYtHnQWm8Jn3Xu549VRgW7",
+      "signatureVerified": true,
+      "messageHashVerified": true,
+      "wireHashVerified": true,
+      "feeLamports": 15000,
+      "unitsConsumed": 142993,
+      "wireBytes": 825,
+      "lookupTables": [],
+      "coreTokenAccountingVerified": false
+    },
+    {
+      "label": "create-3",
+      "signature": "5C7wsBEjVp3jCcoWM7ta7nLYi8yUFdGtRsPcVv97anVzZtcZrAd4z5cGzbByrcjrWTeCS7qCwUKnw3k83XpEyXiP",
+      "finalizedSlot": 509611211,
+      "soleActor": "3cAk1UdANNeawRu61hibd6cf3f5hmu2tbWAfUs1tx3um",
+      "signatureVerified": true,
+      "messageHashVerified": true,
+      "wireHashVerified": true,
+      "feeLamports": 15000,
+      "unitsConsumed": 255426,
+      "wireBytes": 1110,
+      "lookupTables": [],
+      "coreTokenAccountingVerified": true
+    },
+    {
+      "label": "mint-3",
+      "signature": "63KqwJK4NaLPFS8NiNfVYRSJLyhzb9fgD3opT9XUiRwD9rDkzYPjYSBPhiP523DyEmkG6fNYtdRNTjeB2673BjqD",
+      "finalizedSlot": 509611252,
+      "soleActor": "F2KBourLwDSsdDk1ej8g9ZBYtHnQWm8Jn3Xu549VRgW7",
+      "signatureVerified": true,
+      "messageHashVerified": true,
+      "wireHashVerified": true,
+      "feeLamports": 15000,
+      "unitsConsumed": 187843,
+      "wireBytes": 1047,
+      "lookupTables": [],
+      "coreTokenAccountingVerified": true
+    },
+    {
+      "label": "management-3",
+      "signature": "3BpKB4YwQfHADGgR3pu7wURLmZfto6g4iEqYKy5pbADuvHpEiLARSrV2PcR174LBeg4Q2rDDWS4BuoPnYUpxr2U7",
+      "finalizedSlot": 509611342,
+      "soleActor": "F2KBourLwDSsdDk1ej8g9ZBYtHnQWm8Jn3Xu549VRgW7",
+      "signatureVerified": true,
+      "messageHashVerified": true,
+      "wireHashVerified": true,
+      "feeLamports": 15000,
+      "unitsConsumed": 63902,
+      "wireBytes": 562,
+      "lookupTables": [],
+      "coreTokenAccountingVerified": true
+    },
+    {
+      "label": "redeem-3-partial",
+      "signature": "8oPJUqP2JQLKZeLf9URst8YytKzq5UJFAuUKHBY6KdxHggazm7pczNLqkfMYRAN2ucwbThJPvK6iHNqRFHrz1xN",
+      "finalizedSlot": 509611380,
+      "soleActor": "F2KBourLwDSsdDk1ej8g9ZBYtHnQWm8Jn3Xu549VRgW7",
+      "signatureVerified": true,
+      "messageHashVerified": true,
+      "wireHashVerified": true,
+      "feeLamports": 15000,
+      "unitsConsumed": 180155,
+      "wireBytes": 928,
+      "lookupTables": [],
+      "coreTokenAccountingVerified": true
+    },
+    {
+      "label": "redeem-3-remaining",
+      "signature": "37VmNGSpM1Wp8fYTwXS3YX82hToHX1iX7BgHHwGHLoRvgphEsxu9uFt9y431uJNQwsTkYLK4ndE68ShSfZ6UCPG5",
+      "finalizedSlot": 509611417,
+      "soleActor": "F2KBourLwDSsdDk1ej8g9ZBYtHnQWm8Jn3Xu549VRgW7",
+      "signatureVerified": true,
+      "messageHashVerified": true,
+      "wireHashVerified": true,
+      "feeLamports": 15000,
+      "unitsConsumed": 180167,
+      "wireBytes": 928,
+      "lookupTables": [],
+      "coreTokenAccountingVerified": true
+    },
+    {
+      "label": "create-4-alt-create",
+      "signature": "3QcUEKVGwpSc6wfQvSq8YN4FQeb76jsxFbR7GsWMfnW66U9pXPxgbySyBtBxRspRn3soMk3JMKAryyv3bEta7HMc",
+      "finalizedSlot": 509611462,
+      "soleActor": "3cAk1UdANNeawRu61hibd6cf3f5hmu2tbWAfUs1tx3um",
+      "signatureVerified": true,
+      "messageHashVerified": true,
+      "wireHashVerified": true,
+      "feeLamports": 15000,
+      "unitsConsumed": 10766,
+      "wireBytes": 304,
+      "lookupTables": [],
+      "coreTokenAccountingVerified": false
+    },
+    {
+      "label": "create-4-alt-extend-0",
+      "signature": "4coyVmCCoZkbjuY7i9aF5VMSrtDAk7HqEkYUqzYhBrBao8DK6UqQYsnGnG1FEmAAF3hAXQqKcAqXQpKiUBfJtmcd",
+      "finalizedSlot": 509611490,
+      "soleActor": "3cAk1UdANNeawRu61hibd6cf3f5hmu2tbWAfUs1tx3um",
+      "signatureVerified": true,
+      "messageHashVerified": true,
+      "wireHashVerified": true,
+      "feeLamports": 15000,
+      "unitsConsumed": 11957,
+      "wireBytes": 944,
+      "lookupTables": [],
+      "coreTokenAccountingVerified": false
+    },
+    {
+      "label": "create-4-alt-extend-20",
+      "signature": "2TXp3mPU7eXvScqsYL2o2dsZuZXjQqFKJn4zro966ikRn98eeUN8Jppm6WJjSkD2KPhdT7DgNo8DMc1tCgd24w6C",
+      "finalizedSlot": 509611520,
+      "soleActor": "3cAk1UdANNeawRu61hibd6cf3f5hmu2tbWAfUs1tx3um",
+      "signatureVerified": true,
+      "messageHashVerified": true,
+      "wireHashVerified": true,
+      "feeLamports": 15000,
+      "unitsConsumed": 8430,
+      "wireBytes": 560,
+      "lookupTables": [],
+      "coreTokenAccountingVerified": false
+    },
+    {
+      "label": "create-4",
+      "signature": "65iRszv1WJzkDTMMyK3hXgSrVCAHdUiQqyAGb1v5XmvFG4MnsDW48DEjdtq8cgJkuDsYqqj868TuZiSuP36Vjeyz",
+      "finalizedSlot": 509611558,
+      "soleActor": "3cAk1UdANNeawRu61hibd6cf3f5hmu2tbWAfUs1tx3um",
+      "signatureVerified": true,
+      "messageHashVerified": true,
+      "wireHashVerified": true,
+      "feeLamports": 15000,
+      "unitsConsumed": 314114,
+      "wireBytes": 543,
+      "lookupTables": [
+        "9AAGsW5RFjW5LN5iBfERBjjNJamm9avdKjpJFGjBciZ3"
+      ],
+      "coreTokenAccountingVerified": true
+    },
+    {
+      "label": "trade-4-alt-create",
+      "signature": "4soyjuLWu1m16LrPnpXpWtn8trDmpvuFMFWdbgxfraf25fWRPSNQu7hatceRHESKnEfEiB5PdF1MwEUMurkX3fiS",
+      "finalizedSlot": 509611595,
+      "soleActor": "F2KBourLwDSsdDk1ej8g9ZBYtHnQWm8Jn3Xu549VRgW7",
+      "signatureVerified": true,
+      "messageHashVerified": true,
+      "wireHashVerified": true,
+      "feeLamports": 15000,
+      "unitsConsumed": 10787,
+      "wireBytes": 304,
+      "lookupTables": [],
+      "coreTokenAccountingVerified": false
+    },
+    {
+      "label": "trade-4-alt-extend-0",
+      "signature": "2ASjCtUBMxLyJrqNbKY9SsvTyBhWAKAd4u9RExRiKvLo6oi2RHrgD2tY4r3J4Wao7UGZfRe16SJT9zsRF6ic3kGv",
+      "finalizedSlot": 509611621,
+      "soleActor": "F2KBourLwDSsdDk1ej8g9ZBYtHnQWm8Jn3Xu549VRgW7",
+      "signatureVerified": true,
+      "messageHashVerified": true,
+      "wireHashVerified": true,
+      "feeLamports": 15000,
+      "unitsConsumed": 11957,
+      "wireBytes": 944,
+      "lookupTables": [],
+      "coreTokenAccountingVerified": false
+    },
+    {
+      "label": "trade-4-alt-extend-20",
+      "signature": "4K2Hm65cLbmQiziVLPqd2G1BwdMv2WiUvKhWNC5o1FCsACV1peMRK9n6Q9SbxC9Nr1xy4R54yCqh4RVWUKotisCq",
+      "finalizedSlot": 509611649,
+      "soleActor": "F2KBourLwDSsdDk1ej8g9ZBYtHnQWm8Jn3Xu549VRgW7",
+      "signatureVerified": true,
+      "messageHashVerified": true,
+      "wireHashVerified": true,
+      "feeLamports": 15000,
+      "unitsConsumed": 8724,
+      "wireBytes": 592,
+      "lookupTables": [],
+      "coreTokenAccountingVerified": false
+    },
+    {
+      "label": "mint-4",
+      "signature": "4EKjPNJuefXYpTmzYFYeJCRjH27Q1JCKGkVyNNwVbQ98SphwyVaJs6ctLftQNqqFUWtphc4Fn8hWSc3WgK7qk3Z3",
+      "finalizedSlot": 509611690,
+      "soleActor": "F2KBourLwDSsdDk1ej8g9ZBYtHnQWm8Jn3Xu549VRgW7",
+      "signatureVerified": true,
+      "messageHashVerified": true,
+      "wireHashVerified": true,
+      "feeLamports": 15000,
+      "unitsConsumed": 227093,
+      "wireBytes": 392,
+      "lookupTables": [
+        "AiStNnkQExFkbH6m68Rc9cyb2Hh27XwHCLkBkMtBwaPf"
+      ],
+      "coreTokenAccountingVerified": true
+    },
+    {
+      "label": "management-4",
+      "signature": "3ak3juorUjd4XjcaSY3MFWM6LXNHZAyjGmW1FAGnwfgwy6bozECGcomHiXpNFfTomu93sXw8bttRMQ68Sjnarwez",
+      "finalizedSlot": 509611772,
+      "soleActor": "F2KBourLwDSsdDk1ej8g9ZBYtHnQWm8Jn3Xu549VRgW7",
+      "signatureVerified": true,
+      "messageHashVerified": true,
+      "wireHashVerified": true,
+      "feeLamports": 15000,
+      "unitsConsumed": 66902,
+      "wireBytes": 562,
+      "lookupTables": [],
+      "coreTokenAccountingVerified": true
+    },
+    {
+      "label": "redeem-4-partial",
+      "signature": "64PnoRB4eCrMHyQ88ojeve4so2VbXqhwZ8uxpCvUCjBTgHTH7hqwiYiB4JkoNA1L44GgkE5AQvkZA6cLCSB2AMtv",
+      "finalizedSlot": 509611811,
+      "soleActor": "F2KBourLwDSsdDk1ej8g9ZBYtHnQWm8Jn3Xu549VRgW7",
+      "signatureVerified": true,
+      "messageHashVerified": true,
+      "wireHashVerified": true,
+      "feeLamports": 15000,
+      "unitsConsumed": 203417,
+      "wireBytes": 356,
+      "lookupTables": [
+        "AiStNnkQExFkbH6m68Rc9cyb2Hh27XwHCLkBkMtBwaPf"
+      ],
+      "coreTokenAccountingVerified": true
+    },
+    {
+      "label": "redeem-4-remaining",
+      "signature": "595saB3FW4ozUyPL4HSBWreUqawbL6bTeGo21MgPhL5c6PUx3JScZGULR6nyiEjfEgKLxURhtHbdqsrQqGa1Pubo",
+      "finalizedSlot": 509611849,
+      "soleActor": "F2KBourLwDSsdDk1ej8g9ZBYtHnQWm8Jn3Xu549VRgW7",
+      "signatureVerified": true,
+      "messageHashVerified": true,
+      "wireHashVerified": true,
+      "feeLamports": 15000,
+      "unitsConsumed": 203465,
+      "wireBytes": 356,
+      "lookupTables": [
+        "AiStNnkQExFkbH6m68Rc9cyb2Hh27XwHCLkBkMtBwaPf"
+      ],
+      "coreTokenAccountingVerified": true
+    }
+  ],
+  "independentBigIntAccounting": [
+    {
+      "label": "mint-3",
+      "count": 3,
+      "managementFee": "0",
+      "managementRemainder": "2000000000",
+      "actionFee": "10000000",
+      "creatorFeeShares": "9000000",
+      "treasuryFeeShares": "1000000",
+      "supply": "1001000000",
+      "investorShares": "990000000",
+      "rawDeposits": [
+        "4000000000",
+        "3200000000",
+        "2800000000"
+      ],
+      "redeemedShares": "0",
+      "finalVaults": [
+        "4004000000",
+        "3203200000",
+        "2802800000"
+      ],
+      "finalInvestorAssets": [
+        "96000000000",
+        "96800000000",
+        "97200000000"
+      ]
+    },
+    {
+      "label": "management-3",
+      "count": 3,
+      "managementFee": "13",
+      "managementRemainder": "106520000000",
+      "actionFee": "0",
+      "creatorFeeShares": "11",
+      "treasuryFeeShares": "2",
+      "supply": "1001000013",
+      "investorShares": "990000000",
+      "rawDeposits": null,
+      "redeemedShares": "0",
+      "finalVaults": [
+        "4004000000",
+        "3203200000",
+        "2802800000"
+      ],
+      "finalInvestorAssets": [
+        "96000000000",
+        "96800000000",
+        "97200000000"
+      ]
+    },
+    {
+      "label": "redeem-3-partial",
+      "count": 3,
+      "managementFee": "6",
+      "managementRemainder": "16160023400",
+      "actionFee": "1650000",
+      "creatorFeeShares": "1485005",
+      "treasuryFeeShares": "165001",
+      "supply": "672650019",
+      "investorShares": "660000000",
+      "rawDeposits": null,
+      "redeemedShares": "330000000",
+      "finalVaults": [
+        "2690600025",
+        "2152480020",
+        "1883420018"
+      ],
+      "finalInvestorAssets": [
+        "97313399975",
+        "97850719980",
+        "98119379982"
+      ]
+    },
+    {
+      "label": "redeem-3-remaining",
+      "count": 3,
+      "managementFee": "3",
+      "managementRemainder": "280850057600",
+      "actionFee": "3300000",
+      "creatorFeeShares": "2970002",
+      "treasuryFeeShares": "330001",
+      "supply": "15950022",
+      "investorShares": "0",
+      "rawDeposits": null,
+      "redeemedShares": "660000000",
+      "finalVaults": [
+        "63800087",
+        "51040070",
+        "44660061"
+      ],
+      "finalInvestorAssets": [
+        "99940199913",
+        "99952159930",
+        "99958139939"
+      ]
+    },
+    {
+      "label": "mint-4",
+      "count": 4,
+      "managementFee": "0",
+      "managementRemainder": "6600000000",
+      "actionFee": "10000000",
+      "creatorFeeShares": "9000000",
+      "treasuryFeeShares": "1000000",
+      "supply": "1001000000",
+      "investorShares": "990000000",
+      "rawDeposits": [
+        "3000000000",
+        "2700000000",
+        "2300000000",
+        "2000000000"
+      ],
+      "redeemedShares": "0",
+      "finalVaults": [
+        "3003000000",
+        "2702700000",
+        "2302300000",
+        "2002000000"
+      ],
+      "finalInvestorAssets": [
+        "96940199913",
+        "97252159930",
+        "97658139939",
+        "98000000000"
+      ]
+    },
+    {
+      "label": "management-4",
+      "count": 4,
+      "managementFee": "12",
+      "managementRemainder": "226280000000",
+      "actionFee": "0",
+      "creatorFeeShares": "10",
+      "treasuryFeeShares": "2",
+      "supply": "1001000012",
+      "investorShares": "990000000",
+      "rawDeposits": null,
+      "redeemedShares": "0",
+      "finalVaults": [
+        "3003000000",
+        "2702700000",
+        "2302300000",
+        "2002000000"
+      ],
+      "finalInvestorAssets": [
+        "96940199913",
+        "97252159930",
+        "97658139939",
+        "98000000000"
+      ]
+    },
+    {
+      "label": "redeem-4-partial",
+      "count": 4,
+      "managementFee": "7",
+      "managementRemainder": "20760024000",
+      "actionFee": "1650000",
+      "creatorFeeShares": "1485006",
+      "treasuryFeeShares": "165001",
+      "supply": "672650019",
+      "investorShares": "660000000",
+      "rawDeposits": null,
+      "redeemedShares": "330000000",
+      "finalVaults": [
+        "2017950019",
+        "1816155017",
+        "1547095015",
+        "1345300013"
+      ],
+      "finalInvestorAssets": [
+        "97925249894",
+        "98138704913",
+        "98413344924",
+        "98656699987"
+      ]
+    },
+    {
+      "label": "redeem-4-remaining",
+      "count": 4,
+      "managementFee": "3",
+      "managementRemainder": "285450058200",
+      "actionFee": "3300000",
+      "creatorFeeShares": "2970002",
+      "treasuryFeeShares": "330001",
+      "supply": "15950022",
+      "investorShares": "0",
+      "rawDeposits": null,
+      "redeemedShares": "660000000",
+      "finalVaults": [
+        "47850065",
+        "43065059",
+        "36685050",
+        "31900044"
+      ],
+      "finalInvestorAssets": [
+        "99895349848",
+        "99911794871",
+        "99923754889",
+        "99970099956"
+      ]
+    }
+  ],
+  "finalAccountChecks": [
+    {
+      "count": 3,
+      "basket": "GatK6Dut1yjRJbwnxqPSTrWRov47xkDfZaTPieLEw9sP",
+      "shareMint": "HSs65RhrLQRJkh4YCeTnhKg7ZKFT6h5SSxp7gdfJBfHJ",
+      "contextSlot": 509612215,
+      "supply": "15950022",
+      "investorShares": "0",
+      "allCurrentAccountHashesVerified": true,
+      "laterSharedActorAssetChangesAccountedFor": true
+    },
+    {
+      "count": 4,
+      "basket": "8GWauztbdTHXy3N8uGppQXtB1HYXQJGSgz9J4VeFvWFV",
+      "shareMint": "7iVdhKHBNak4ncA4g8rmEEMLe5HrbFuZkQE4aJ49R1KY",
+      "contextSlot": 509612219,
+      "supply": "15950022",
+      "investorShares": "0",
+      "allCurrentAccountHashesVerified": true,
+      "laterSharedActorAssetChangesAccountedFor": false
+    }
+  ],
+  "lookupTables": [
+    {
+      "label": "create-4-alt-create",
+      "address": "9AAGsW5RFjW5LN5iBfERBjjNJamm9avdKjpJFGjBciZ3",
+      "authority": "3cAk1UdANNeawRu61hibd6cf3f5hmu2tbWAfUs1tx3um",
+      "keyCount": 28,
+      "contextSlot": 509612224,
+      "exactFinalCoverageVerified": true
+    },
+    {
+      "label": "trade-4-alt-create",
+      "address": "AiStNnkQExFkbH6m68Rc9cyb2Hh27XwHCLkBkMtBwaPf",
+      "authority": "F2KBourLwDSsdDk1ej8g9ZBYtHnQWm8Jn3Xu549VRgW7",
+      "keyCount": 29,
+      "contextSlot": 509612229,
+      "exactFinalCoverageVerified": true
+    }
+  ],
+  "factoryCounter": "3",
+  "factoryCounterContextSlot": 509612233,
+  "nativeBalances": {
+    "bootstrap": 5178953720,
+    "creator": 51129280,
+    "investor": 41222120
+  },
+  "allocated": {
+    "bootstrap": 150015000,
+    "creator": 55802360,
+    "investor": 24934840
+  },
+  "ownerState": {
+    "contextSlot": 509612239,
+    "loaderAuthority": "owner",
+    "whitelist": "owner",
+    "factoryInitialized": true,
+    "admitted": [
+      "BSTESTA",
+      "BSTESTB",
+      "BSTESTC",
+      "BSTESTD"
+    ],
+    "steps": [],
+    "ownerBalanceLamports": 13919341612
+  },
+  "testsUseProjectIssuedMockTokens": true,
+  "marketValueOrIssuerBackingNotInferred": true,
+  "noResend": true,
+  "usedPrivateKeys": false,
+  "broadcast": false
+}
