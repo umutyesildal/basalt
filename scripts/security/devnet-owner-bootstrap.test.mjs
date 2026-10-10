@@ -21,13 +21,13 @@ function accepted() {
   return record;
 }
 
-test('shared public policy keeps owner/treasury pending and never invents hardware/multisig approval', () => {
-  assert.equal(DEVNET_OWNER_POLICY.treasury, null); assert.equal(DEVNET_OWNER_POLICY.ownerRoleAcceptance, 'pending');
+test('shared public policy pins the selected treasury and keeps acceptance pending without inventing hardware/multisig approval', () => {
+  assert.equal(DEVNET_OWNER_POLICY.treasury, DEVNET_OWNER_POLICY.owner); assert.equal(DEVNET_OWNER_POLICY.ownerRoleAcceptance, 'pending');
   assert(Object.isFrozen(DEVNET_OWNER_POLICY)); assert(Object.isFrozen(DEVNET_OWNER_POLICY.programIds));
   const record = publicOwnerInputTemplate(commit), report = createDevnetOwnerBootstrapPlan(record, {sourceCommit:commit});
   assert.deepEqual(record.programIds, DEVNET_OWNER_POLICY.programIds);
   assert.equal(report.declaredOwnerAcceptance, false); assert.equal(report.declaredTreasuryAcceptance, false);
-  assert(report.missingInputs.includes('treasury')); assert(report.missingInputs.includes('ownerRoleAcceptance'));
+  assert(!report.missingInputs.includes('treasury')); assert(report.missingInputs.includes('ownerRoleAcceptance'));
   for (const flag of ['executionAuthorized', 'deployable', 'creationReady', 'mainnetApproved', 'multisigApproved', 'ownerControlVerified']) assert.equal(report[flag], false);
   assert.equal(report.governance.timelock, false); assert.equal(report.governance.multisig, false);
   assert.equal(report.legacyNamespace.writesAllowed, false); assert.equal(report.legacyNamespace.historicalRecoveryActivationAllowed, false);
@@ -80,7 +80,7 @@ test('isolated fixture policy injection is explicit and cannot be supplied in a 
 
 test('pending generated policy is useful without role acceptance or source-release claims', () => {
   const validation=validateDevnetOwnerBootstrapRecord(copy(DEVNET_OWNER_POLICY));
-  for(const field of ['treasury','sourceCommit','releaseTag','ownerRoleAcceptance','treasuryAcceptance']) assert(validation.missingInputs.includes(field));
+  for(const field of ['sourceCommit','releaseTag','ownerRoleAcceptance','treasuryAcceptance']) assert(validation.missingInputs.includes(field));
   const report=createDevnetOwnerBootstrapPlan(copy(DEVNET_OWNER_POLICY),{sourceCommit:commit});
   assert.equal(report.executionAuthorized,false); assert.equal(report.declaredOwnerAcceptance,false);
 });
@@ -147,7 +147,7 @@ test('CLI is unsigned/nonzero, uses explicit record mode and never prints reject
   const script=join(root,'scripts/security/devnet-owner-bootstrap.mjs'),dir=mkdtempSync(join(tmpdir(),'owner-policy-'));
   const run=(...args)=>spawnSync(process.execPath,[script,...args],{encoding:'utf8'});
   try {
-    const template=run('--template'); assert.equal(template.status,0);assert.equal(JSON.parse(template.stdout).treasury,null);
+    const template=run('--template'); assert.equal(template.status,0);assert.equal(JSON.parse(template.stdout).treasury,DEVNET_OWNER_POLICY.owner);
     const report=run();assert.equal(report.status,2);assert.equal(JSON.parse(report.stdout).executionAuthorized,false);
     const path=join(dir,'public.json');writeFileSync(path,JSON.stringify(copy(DEVNET_OWNER_POLICY)));
     const pending=run('--record',path);assert.equal(pending.status,2);assert.equal(JSON.parse(pending.stdout).declaredOwnerAcceptance,false);

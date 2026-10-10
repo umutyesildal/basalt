@@ -1,0 +1,18 @@
+{
+  "version": 1,
+  "cluster": "devnet",
+  "genesisHash": "EtWTRABZaYq6iMfeYKouRu166VU2xqa1wcaWoxPkrZBG",
+  "checkedAt": "2026-10-10T11:28:21.057Z",
+  "slot": 509525631,
+  "sourceCommit": "cdc2e8b978470d12335d2186d7eaafdf52abc8a0",
+  "role": "basket_factory",
+  "programId": "2xvJKG8DTmSZFu1zXpNVP3wvaCCCgGC2ufGGhYjzr4DH",
+  "programData": "rdV4eezquLj3DK893VHqTppXdqmTwc5Uxts9vEdJct7",
+  "bootstrapAuthority": "8B2wktjNVETgnkoe92r2hTL9THw7umh4zF7iuidMt5H4",
+  "buffer": "52BLGqiPd9kWTictpBPaHWjHU3q63GsnVqT6ivuydy2s",
+  "elfBytes": 441944,
+  "elfSha256": "10cba51806f5c1c5c3f0bd3b189911d219393a7a9668a49aa245f889d9fdbe91",
+  "balanceLamports": 10085145120,
+  "retainedRentLamports": 2246787480,
+  "peakRequirementIncludingFeeAllowanceLamports": 4502701200
+}

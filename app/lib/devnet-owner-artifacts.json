@@ -1,0 +1,26 @@
+{
+  "sourceCommit": "cdc2e8b978470d12335d2186d7eaafdf52abc8a0",
+  "programs": {
+    "whitelist": {
+      "programId": "37UVmx2uysqkKibBcSP5EZMycUeKnWRmnXVpr967juKF",
+      "elfBytes": 343456,
+      "elfSha256": "381398e9a6f51f0555990b696d8a81f7a225f44f0ef3897a44a575a07ca16d01",
+      "programData": "BVU9c7KKhPbxEBt2CQpdttAXJPVQnb2LXCKYhJTUbBWj",
+      "deployedSlot": "509261837"
+    },
+    "basket_factory": {
+      "programId": "2xvJKG8DTmSZFu1zXpNVP3wvaCCCgGC2ufGGhYjzr4DH",
+      "elfBytes": 441944,
+      "elfSha256": "10cba51806f5c1c5c3f0bd3b189911d219393a7a9668a49aa245f889d9fdbe91",
+      "programData": "rdV4eezquLj3DK893VHqTppXdqmTwc5Uxts9vEdJct7",
+      "deployedSlot": "509526877"
+    },
+    "basket": {
+      "programId": "8XPKfAYPaDSvUH95CeyjkgujTXAE5nFBJyFSqZvFvX7T",
+      "elfBytes": 433504,
+      "elfSha256": "b005928bda9cafa7ba3609af1a9774fb2e241055e708aef7d8d08672b4169154",
+      "programData": "Dh1MT7pftdbrPj8KpiNHUsp43m9Rzm7tpDBQwWt8NsjS",
+      "deployedSlot": "509527303"
+    }
+  }
+}

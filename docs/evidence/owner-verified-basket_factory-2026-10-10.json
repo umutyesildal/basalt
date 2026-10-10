@@ -1,0 +1,24 @@
+{
+  "proof": {
+    "version": 1,
+    "mode": "devnet-owner-deployment-proof",
+    "cluster": "devnet",
+    "genesisHash": "EtWTRABZaYq6iMfeYKouRu166VU2xqa1wcaWoxPkrZBG",
+    "sourceCommit": "cdc2e8b978470d12335d2186d7eaafdf52abc8a0",
+    "feature": "owner-devnet",
+    "bootstrapAuthority": "8B2wktjNVETgnkoe92r2hTL9THw7umh4zF7iuidMt5H4",
+    "owner": "TcAgGWYnr5uVQGRiU67C1ynpH5JDKCmwWaCA6V2ANea",
+    "programs": {
+      "basket_factory": {
+        "programId": "2xvJKG8DTmSZFu1zXpNVP3wvaCCCgGC2ufGGhYjzr4DH",
+        "elfBytes": 441944,
+        "elfSha256": "10cba51806f5c1c5c3f0bd3b189911d219393a7a9668a49aa245f889d9fdbe91",
+        "programData": "rdV4eezquLj3DK893VHqTppXdqmTwc5Uxts9vEdJct7",
+        "deployedSlot": "509526877"
+      }
+    }
+  },
+  "checkedAt": "2026-10-10T11:34:24.288Z",
+  "slot": 509527157,
+  "balanceLamports": 7836152640
+}

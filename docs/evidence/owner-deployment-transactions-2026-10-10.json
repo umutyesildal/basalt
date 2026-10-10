@@ -1,0 +1,32 @@
+{
+  "checkedAt": "2026-10-10T11:44:49.655Z",
+  "cluster": "devnet",
+  "deployments": [
+    {
+      "role": "basket_factory",
+      "programId": "2xvJKG8DTmSZFu1zXpNVP3wvaCCCgGC2ufGGhYjzr4DH",
+      "slot": 509526877,
+      "signature": "JRsMWZ4mLQ7VMcNTqhWzrHtshs4JTkx5FjKxcUDMuGAuQ8GmaemADZruLhypyo96XgkcF5kErxhrw35b9d4cd4e",
+      "blockTime": 1791631997,
+      "feeLamports": 10000,
+      "signers": [
+        "8B2wktjNVETgnkoe92r2hTL9THw7umh4zF7iuidMt5H4",
+        "2xvJKG8DTmSZFu1zXpNVP3wvaCCCgGC2ufGGhYjzr4DH"
+      ],
+      "explorer": "https://explorer.solana.com/tx/JRsMWZ4mLQ7VMcNTqhWzrHtshs4JTkx5FjKxcUDMuGAuQ8GmaemADZruLhypyo96XgkcF5kErxhrw35b9d4cd4e?cluster=devnet"
+    },
+    {
+      "role": "basket",
+      "programId": "8XPKfAYPaDSvUH95CeyjkgujTXAE5nFBJyFSqZvFvX7T",
+      "slot": 509527303,
+      "signature": "44qCpGz5Ere2PbwdDLRdhRuBy4FKQgEGs6foHsCVeACnWG4MkxSJiHmuXrixGBLzWrjyGtr4KHk7ges54HErkbNH",
+      "blockTime": 1791632098,
+      "feeLamports": 10000,
+      "signers": [
+        "8B2wktjNVETgnkoe92r2hTL9THw7umh4zF7iuidMt5H4",
+        "8XPKfAYPaDSvUH95CeyjkgujTXAE5nFBJyFSqZvFvX7T"
+      ],
+      "explorer": "https://explorer.solana.com/tx/44qCpGz5Ere2PbwdDLRdhRuBy4FKQgEGs6foHsCVeACnWG4MkxSJiHmuXrixGBLzWrjyGtr4KHk7ges54HErkbNH?cluster=devnet"
+    }
+  ]
+}

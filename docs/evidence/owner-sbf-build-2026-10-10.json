@@ -1,0 +1,80 @@
+{
+  "schemaVersion": 1,
+  "status": "two-fresh-directory-builds-passed-byte-identical",
+  "sourceCommit": "cdc2e8b978470d12335d2186d7eaafdf52abc8a0",
+  "inputCount": 228,
+  "inputManifestSha256": "1280522f5ae2367d8907ed82eb19334a0f9a65a41e12b6f730659cf0720f8a16",
+  "features": [
+    "owner-devnet"
+  ],
+  "offline": true,
+  "firstBuildFinishedAt": "2026-10-10T11:20:54.738258+00:00",
+  "lockfileGraphUnchangedAfterBuild": true,
+  "sourceInputsUnchangedAfterBuild": true,
+  "artifacts": [
+    {
+      "name": "whitelist",
+      "bytes": 342288,
+      "sha256": "6de3059ac194d457ee8803e15d623b317b43211e0630661f8b8dd8b909981c35",
+      "elfType": 3,
+      "elfMachine": 247,
+      "elfEntry": "0x10778",
+      "entrypointDynamicSymbol": [
+        "0000000000010778 g    DF .text\t00000000000001b8 entrypoint"
+      ],
+      "priorPreparationSha256": "381398e9a6f51f0555990b696d8a81f7a225f44f0ef3897a44a575a07ca16d01",
+      "matchesPriorPreparation": false,
+      "reproductionSha256": "6de3059ac194d457ee8803e15d623b317b43211e0630661f8b8dd8b909981c35",
+      "freshDirectoryReproductionMatches": true
+    },
+    {
+      "name": "basket",
+      "bytes": 433504,
+      "sha256": "b005928bda9cafa7ba3609af1a9774fb2e241055e708aef7d8d08672b4169154",
+      "elfType": 3,
+      "elfMachine": 247,
+      "elfEntry": "0x28020",
+      "entrypointDynamicSymbol": [
+        "0000000000028020 g    DF .text\t00000000000001b8 entrypoint"
+      ],
+      "priorPreparationSha256": "2d77954816021814fc8eaa5a7173bd535d9dbf6dce619de3800e6f56c0c5e71a",
+      "matchesPriorPreparation": false,
+      "reproductionSha256": "b005928bda9cafa7ba3609af1a9774fb2e241055e708aef7d8d08672b4169154",
+      "freshDirectoryReproductionMatches": true
+    },
+    {
+      "name": "basket_factory",
+      "bytes": 441944,
+      "sha256": "10cba51806f5c1c5c3f0bd3b189911d219393a7a9668a49aa245f889d9fdbe91",
+      "elfType": 3,
+      "elfMachine": 247,
+      "elfEntry": "0x18618",
+      "entrypointDynamicSymbol": [
+        "0000000000018618 g    DF .text\t00000000000001b8 entrypoint"
+      ],
+      "priorPreparationSha256": "6edb669bd32afd6016f5eed3b9652144ee153ea874a871f1881fc1238779057c",
+      "matchesPriorPreparation": false,
+      "reproductionSha256": "10cba51806f5c1c5c3f0bd3b189911d219393a7a9668a49aa245f889d9fdbe91",
+      "freshDirectoryReproductionMatches": true
+    }
+  ],
+  "scope": "Local SBF compilation; no deployed-byte proof or transaction execution",
+  "warnings": "cargo-build-sbf reports known Solana syscall symbols as undefined/not in cached known-syscall list; preserved in build.log. Runtime verification remains separate.",
+  "reproductionFinishedAt": "2026-10-10T11:23:39.894209+00:00",
+  "allArtifactsReproducedByteIdentically": true,
+  "priorCommittedInputs": {
+    "commit": "ef31b239a6887715f6a2fee59fed4d079035ee76",
+    "sameTrackedInputTree": true,
+    "comparedPaths": [
+      "Cargo.toml",
+      "Cargo.lock",
+      "programs",
+      "crates",
+      "vendor/rust",
+      "scripts/build-v0-sbf.sh"
+    ],
+    "binaryDifferenceCause": "Unresolved: tracked inputs and all eight prior rehearsal-listed source/lock hashes match exactly; current toolchain reproduces current trio in two fresh directories. Earlier full compiler/environment provenance and ELF files were unavailable. No source-change inference is made."
+  },
+  "existingWhitelistDecision": "Parent will retain the already deployed, source-bound and byte-attested whitelist at prior sha381398e9\u2026; no new whitelist upgrade is justified solely by this rebuild difference. Remaining new programs may use these freshly reproduced, explicitly hashed artifacts.",
+  "parentHandoffAt": "2026-10-10T11:25:25.725787+00:00"
+}

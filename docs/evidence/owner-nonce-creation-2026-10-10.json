@@ -1,0 +1,17 @@
+{
+  "version": 1,
+  "cluster": "devnet",
+  "genesisHash": "EtWTRABZaYq6iMfeYKouRu166VU2xqa1wcaWoxPkrZBG",
+  "nonceAccount": "HukBBAeFXaLvdckE5ktdbNXJEHsiZDgHMeKm6U8Crzso",
+  "authority": "8B2wktjNVETgnkoe92r2hTL9THw7umh4zF7iuidMt5H4",
+  "rentLamports": 1056640,
+  "feeLamports": 10000,
+  "signature": "4yivqQaYt51ixFUnmtCFga5jcfKT6iFwZQvAr38hEYqfnzFkp3x7qbZGBToymUUz7WL3KsnLMAUafQ327SHrYH8D",
+  "blockhash": "8vBzrK12ACY4ai6y6PSkryLsFCra9zRmePzFASMwQncS",
+  "lastValidBlockHeight": 496758940,
+  "status": "finalized",
+  "preparedAt": "2026-10-10T11:37:46.220Z",
+  "nonceValue": "H7QHnYbP4Qo4RjMLuHWrfRpmegZDKAbk1zCqZGew9LNU",
+  "finalizedSlot": 509528012,
+  "checkedAt": "2026-10-10T11:37:49.575Z"
+}

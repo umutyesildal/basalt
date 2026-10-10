@@ -1,0 +1,18 @@
+{
+  "version": 1,
+  "cluster": "devnet",
+  "genesisHash": "EtWTRABZaYq6iMfeYKouRu166VU2xqa1wcaWoxPkrZBG",
+  "checkedAt": "2026-10-10T11:34:24.733Z",
+  "slot": 509527159,
+  "sourceCommit": "cdc2e8b978470d12335d2186d7eaafdf52abc8a0",
+  "role": "basket",
+  "programId": "8XPKfAYPaDSvUH95CeyjkgujTXAE5nFBJyFSqZvFvX7T",
+  "programData": "Dh1MT7pftdbrPj8KpiNHUsp43m9Rzm7tpDBQwWt8NsjS",
+  "bootstrapAuthority": "8B2wktjNVETgnkoe92r2hTL9THw7umh4zF7iuidMt5H4",
+  "buffer": "BVcwBmL2Yzk7DTXq62oUMPhCsLzzQsvjmCe3qrzgZXBB",
+  "elfBytes": 433504,
+  "elfSha256": "b005928bda9cafa7ba3609af1a9774fb2e241055e708aef7d8d08672b4169154",
+  "balanceLamports": 7836152640,
+  "retainedRentLamports": 2203912280,
+  "peakRequirementIncludingFeeAllowanceLamports": 4416950800
+}
