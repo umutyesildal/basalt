@@ -1,0 +1,75 @@
+# Bounded owner devnet lifecycle operator
+
+Prepared 2026-10-10. This is source and offline test preparation. No lifecycle transaction or creation activation was performed while implementing it. Genuine owner initialization remains a live prerequisite, verified from finalized chain state rather than policy declaration flags.
+
+## Files
+
+- `scripts/devnet-owner-lifecycle-proof.ts`: default offline plan, explicit bounded execution, and read-only receipt reconciliation.
+- `app/lib/devnet-owner-lifecycle-proof.test.ts`: focused Node tests with synthetic actors and mock RPC. The normal app Node test command discovers this file.
+- [Independent review checklist and outcome](./devnet-owner-lifecycle-review-2026-10-10.md).
+- [Lifecycle and activation plan](./devnet-owner-lifecycle-plan-2026-10-10.md): required owner setup and separate later production registry activation.
+
+The operator imports the actual app instruction/transaction builders through an explicit fixed internal owner-namespace routing. Production `APP_NAMESPACE_ROUTING` remains creation-disabled. It does not change the registry, deploy programs, initialize owner configuration, change admission/issuer state, or use an owner/issuer private key.
+
+## Offline verification
+
+From the canonical repository root:
+
+```bash
+npx tsx --tsconfig app/tsconfig.json scripts/devnet-owner-lifecycle-proof.ts
+npx tsx --tsconfig app/tsconfig.test.json --test app/lib/devnet-owner-lifecycle-proof.test.ts
+npm run typecheck --workspace app
+```
+
+Default mode contacts no RPC, opens no private signer, and writes no files. App path aliases require the explicit app tsconfig. The focused tests cover real owner routing and manual Anchor encoding, exact metadata hashing, raw post-accrual accounting, fee splits/remainders, unchanged underlying configuration, strict owner/actor/budget guards, persistence failure, transport ambiguity, replay rejection, fresh private file permissions, faucet exhaustion after exactly two legitimate claims, and full packet sizes.
+
+Full signed wire sizes measured offline, including the compute-budget pair and signature-count prefix:
+
+| Transaction | Three tokens, no ALT | Four tokens, complete ALT |
+| --- | ---: | ---: |
+| Create | 1,110 bytes | 543 bytes |
+| Mint | 1,047 bytes | 392 bytes |
+| Redeem | 928 bytes | 356 bytes |
+
+All six are within Solana's 1,232-byte packet limit. These measurements prove encoding/packet shape, not onchain execution success.
+
+## Later reviewed execution
+
+Do not run execution merely because SOL is funded or loader authority has transferred. It first requires a complete genuine owner-signed whitelist, factory, and four exact admissions. `devnetOwnerSetup.inspect` verifies all three finalized deployed artifacts, loader authorities, exact singleton roles/treasury/caps, admission identities and fixed multipliers. Empty setup steps alone are insufficient: authority, whitelist owner, initialized factory and all four unique admissions must also match.
+
+Execution requires a clean committed checkout whose program/build inputs match the committed artifact build source. It accepts no RPC override or arbitrary program IDs. The fixed endpoint and genesis are official Solana devnet only.
+
+A future operator invocation has this form, after root review and genuine setup completion:
+
+```bash
+npx tsx --tsconfig app/tsconfig.json scripts/devnet-owner-lifecycle-proof.ts \
+  --execute \
+  --run-dir /absolute/private/parent/basalt-devnet-lifecycle-UNIQUE-RUN-ID \
+  --bootstrap-run-dir /absolute/private/parent/basalt-devnet-owner-EXISTING-RUN-ID
+```
+
+The lifecycle directory must be new, outside every Git checkout, and below a real parent directory. Existing execution directories are always refused. The operator creates fresh creator/investor keys there with directory mode 0700 and file mode 0600, fsyncs them, and never prints or exports their private bytes. It only opens the fixed bootstrap signer from the separately isolated bootstrap directory and holds that directory's existing exclusive operator lock.
+
+Funding targets are 0.09 devnet SOL for creator and 0.06 for investor. Bootstrap cumulative outflow is capped at 0.16 devnet SOL with at least 0.10 devnet SOL reserve; actors retain at least 0.001 devnet SOL. Current exact rent quotes and network fee quotes must fit those ceilings before signing. Account sizes are conservative and derived from the actual fixed mint profiles. There are no automatic topups or refunds.
+
+Each fresh actor claims the existing public mock-token faucet once. The operator creates a three-token and four-token basket, mints proportional in-kind shares, accrues an observable management fee, then performs partial and remaining investor redemption. The four-token path uses its own durable single-send lookup-table setup, with exact authority/coverage and finalized activation checks. It deliberately does not reuse the browser ALT transport retry loop.
+
+Raw assertions use existing BigInt gross/entry/redeem helpers and the canonical carried-management-fee/split helpers. Every transition compares actual before/after onchain fee checkpoints, post-accrual supply, raw balances, share conservation, immutable fields, unchanged underlying mint supply and configuration. No market prices, issuer backing or real xStocks performance are inferred from test tokens.
+
+## Durable transport and recovery
+
+Before every broadcast, including funding and ALT setup, the operator verifies the single actor signature, simulates the exact signed message, rechecks complete owner setup, and fsyncs an atomic public receipt containing signature, signed-wire/message hashes, blockhash lifetime, intent, pre-state, ALT identities, and fee/rent allocation. It attempts one broadcast with automatic retries disabled, then waits for finalized status. A failed persistence operation prevents the send. An uncertain send/confirmation or failed raw assertion stops the run; it never constructs a replacement economic message.
+
+Public receipts and proof snapshots are stored in `lifecycle-receipt.json` alongside the private actor files. Only that explicitly public JSON may be copied into repository evidence. Do not copy the directory or actor files.
+
+Read-only recovery:
+
+```bash
+npx tsx --tsconfig app/tsconfig.json scripts/devnet-owner-lifecycle-proof.ts \
+  --reconcile \
+  --run-dir /absolute/private/parent/basalt-devnet-lifecycle-EXISTING-RUN-ID
+```
+
+Reconciliation reads only the public bounded receipt and statuses for the same recorded signatures. It never loads a signer, resends, continues the economic run, or marks missing lifecycle accounting proofs complete. A finalized transaction status alone does not replace the stage's finalized accounting evidence. Any interrupted run needs explicit human/root review before a separate fresh proof is considered.
+
+Successful proof execution also leaves public creation disabled. Registering the owner namespace alongside legacy, selecting its creation ID, rebuilding both app/backend, preserving legacy redemption, and verifying indexer history readiness are a separate reviewed release described in the activation plan.
