@@ -22,3 +22,8 @@ Latest public ready check at 12:22:50 UTC reported source 307053da1310331c658c04
 Retained prior release material: /var/backups/basalt/sharelinks_20261010_307053da, source archive /var/tmp/basalt-short-links-source.tar, build context /var/tmp/basalt-release-307053da and marker /opt/basalt/release-source-sha. Recorded prior image: sha256:8e7d0ab276307af13ad71d71da78aded59f82d3f249b93f31fd678d17c399f3a.
 
 Frontend deployment must use the same activated registry source. A Git push alone does not deploy. Build an isolated frozen source with production settings and skip-domain, verify hosted source/CI and Chrome, then promote that exact candidate. Verify owner baskets and legacy redemption after both releases; report truthful history readiness.
+
+
+## Prepared activation draft, still gated
+
+A patch based on `da7a9a0ed90dc687b8436fcd5d77eb3d7018bf34` is retained locally at `/private/tmp/basalt-owner-activation-after-proof-da7a9a0.patch`, SHA-256 `d3d7e2e99447a393d8b0b9773736f31e56a233277617bfece4cc40012d47dd34`. It covers the source-controlled owner-plus-legacy registry, exact six-program rollout verifier, explicit closed test fixtures and archival lifecycle execution guard. Its isolated draft validation passed 149 focused tests and app typecheck. It has not been applied, committed or deployed. Owner-signed setup and actual finalized lifecycle proof remain required; full release CI, builds and restore rehearsal follow application. The legacy-trio candidate recovery manifest remains separate from the six-program collection union.

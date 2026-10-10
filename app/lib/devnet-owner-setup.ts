@@ -261,7 +261,13 @@ export function createDevnetOwnerSetupClient(policy: Readonly<OwnerSetupPolicy> 
     requireThat(state.whitelist !== "waiting-proposal", "The bootstrap administrator must propose the existing whitelist handoff first.");
     if (state.steps.length === 0) return { state, steps: [] as string[], transaction: null, rentLamports: 0, feeLamports: 0 };
     const latest = await bounded(rpc.getLatestBlockhash("finalized"));
-    const transaction = new Transaction({ feePayer: owner, blockhash: latest.blockhash, lastValidBlockHeight: latest.lastValidBlockHeight });
+    // Phantom may add priority-fee instructions to unsigned app transactions.
+    // Prepare both explicitly so review, fee quote, simulation and signing cover
+    // the exact same bounded message. No priority fee is needed for this setup.
+    const transaction = new Transaction({ feePayer: owner, blockhash: latest.blockhash, lastValidBlockHeight: latest.lastValidBlockHeight }).add(
+      ComputeBudgetProgram.setComputeUnitLimit({ units: 200_000 }),
+      ComputeBudgetProgram.setComputeUnitPrice({ microLamports: 0 }),
+    );
     const steps: string[] = [];
     for (const step of state.steps) {
       const ix = instruction(step); transaction.add(ix);

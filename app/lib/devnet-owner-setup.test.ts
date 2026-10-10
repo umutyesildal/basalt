@@ -48,7 +48,7 @@ function fixture(initialAuthority: "bootstrap" | "owner" = "bootstrap") {
   let genesis = DEVNET_GENESIS_HASH, slot = 100, height = 100, fee = 5000, rent = 1_000_000, sends = 0, simulations = 0, reads = 0, walletSigns = 0;
   let ambiguous = false, noStatus = false, simulationError: unknown = null, beforeRead: (() => void) | undefined, beforeSimulation: (() => void) | undefined;
   let prepared: OwnerSetupReceipt | null = null;
-  const sent: Buffer[] = [], minimumSlots: number[] = [];
+  const sent: Buffer[] = [], quotedMessages: Buffer[] = [], simulatedMessages: Buffer[] = [], minimumSlots: number[] = [];
   const initializeWhitelist = (authority = owner.publicKey, pending: PublicKey | null = null, count = 0) => {
     const bytes = Buffer.alloc(78); discriminator("account:WhitelistConfig").copy(bytes); authority.toBuffer().copy(bytes, 8); bytes[40] = pending ? 1 : 0; pending?.toBuffer().copy(bytes, 41);
     const offset = pending ? 73 : 41; bytes.writeUInt32LE(count, offset); bytes[offset + 4] = configBump;
@@ -74,9 +74,9 @@ function fixture(initialAuthority: "bootstrap" | "owner" = "bootstrap") {
     },
     getLatestBlockhash: async () => ({ blockhash: nonceValue, lastValidBlockHeight: 200 }),
     getMinimumBalanceForRentExemption: async () => rent,
-    getFeeForMessage: async () => ({ context: { slot }, value: fee }),
+    getFeeForMessage: async (message: import("@solana/web3.js").Message) => { quotedMessages.push(Buffer.from(message.serialize())); return { context: { slot }, value: fee }; },
     simulateTransaction: async (transaction: import("@solana/web3.js").VersionedTransaction, options: { sigVerify: boolean; replaceRecentBlockhash: boolean }) => {
-      simulations++; beforeSimulation?.(); assert.equal(options.replaceRecentBlockhash, false);
+      simulations++; simulatedMessages.push(Buffer.from(transaction.message.serialize())); beforeSimulation?.(); assert.equal(options.replaceRecentBlockhash, false);
       if (options.sigVerify) assert.equal(Transaction.from(transaction.serialize()).verifySignatures(true), true);
       return { context: { slot }, value: { err: simulationError } };
     },
@@ -88,6 +88,11 @@ function fixture(initialAuthority: "bootstrap" | "owner" = "bootstrap") {
         loaderBytes.forEach(bytes => owner.publicKey.toBuffer().copy(bytes, 13)); nonceBytes[40] ^= 1;
       } else {
         for (const ix of tx.instructions) {
+          if (ix.programId.equals(ComputeBudgetProgram.programId)) {
+            assert.equal(ix.keys.length, 0);
+            assert.ok(["02400d0300", "030000000000000000"].includes(ix.data.toString("hex")), "only the prepared setup budget is allowed");
+            continue;
+          }
           const disc = ix.data.subarray(0, 8);
           if (disc.equals(discriminator("global:init_config"))) initializeWhitelist();
           else if (disc.equals(discriminator("global:init_factory"))) initializeFactory();
@@ -107,7 +112,7 @@ function fixture(initialAuthority: "bootstrap" | "owner" = "bootstrap") {
     signTransaction: async tx => { walletSigns++; tx.partialSign(owner); return tx; },
     onPrepared: receipt => { prepared = receipt; },
   };
-  return { rpc, options, accounts, programBytes, loaderBytes, nonceBytes, initializeWhitelist, initializeFactory, admit, sent, minimumSlots,
+  return { rpc, options, accounts, programBytes, loaderBytes, nonceBytes, initializeWhitelist, initializeFactory, admit, sent, quotedMessages, simulatedMessages, minimumSlots,
     counts: () => ({ sends, simulations, reads, walletSigns }), receipt: () => prepared,
     changeIntent: (value: Partial<OwnerSetupIntent>) => { current = { ...current, ...value }; },
     setGenesis: (value: string) => { genesis = value; }, setSlot: (value: number) => { slot = value; }, setHeight: (value: number) => { height = value; }, setFee: (value: number) => { fee = value; }, setRent: (value: number) => { rent = value; },
@@ -217,7 +222,11 @@ test("owner-first six setup actions fit one bounded transaction with exact treas
   const f = fixture("owner"), review = await client.prepare(f.rpc, owner.publicKey);
   assert.deepEqual(review.steps, ["init-whitelist", "init-factory", "admit-BSTESTA", "admit-BSTESTB", "admit-BSTESTC", "admit-BSTESTD"]);
   assert.ok(review.transaction!.serialize({ requireAllSignatures: false }).length <= 1232); assert.equal(review.rentLamports, 6_000_000); assert.equal(review.feeLamports, 5000);
-  const factoryIx = review.transaction!.instructions[1]; assert.deepEqual(factoryIx.data.subarray(8, 40), owner.publicKey.toBuffer()); assert.equal(factoryIx.data.readUInt16LE(40), 9000);
+  assert.deepEqual(review.transaction!.instructions.slice(0, 2).map(ix => [ix.programId.toBase58(), ix.data.toString("hex"), ix.keys.length]), [
+    [ComputeBudgetProgram.programId.toBase58(), "02400d0300", 0],
+    [ComputeBudgetProgram.programId.toBase58(), "030000000000000000", 0],
+  ]);
+  const factoryIx = review.transaction!.instructions[3]; assert.deepEqual(factoryIx.data.subarray(8, 40), owner.publicKey.toBuffer()); assert.equal(factoryIx.data.readUInt16LE(40), 9000);
   assert.deepEqual(factoryIx.keys.map(key => key.pubkey.toBase58()), [factory, owner.publicKey, SystemProgram.programId, programs[1], ownerProgramData(programs[1])].map(String));
   const receipt = await client.submitSetup(f.rpc, review, f.options);
   assert.equal(receipt.status, "finalized"); assert.equal(receipt.lastValidBlockHeight, 200); assert.equal(receipt.blockhash, nonceValue);
@@ -228,7 +237,7 @@ test("existing proposed whitelist claim is retained and already completed steps 
   const f = fixture("owner"); f.initializeWhitelist(bootstrap.publicKey, owner.publicKey); f.initializeFactory(); f.admit(0);
   const review = await client.prepare(f.rpc, owner.publicKey);
   assert.deepEqual(review.steps, ["claim-whitelist", "admit-BSTESTB", "admit-BSTESTC", "admit-BSTESTD"]);
-  assert.equal(review.transaction!.instructions[0].data.toString("hex"), "de84b97b7f6b061f");
+  assert.equal(review.transaction!.instructions[2].data.toString("hex"), "de84b97b7f6b061f");
   await client.submitSetup(f.rpc, review, f.options); assert.deepEqual((await client.inspect(f.rpc)).steps, []);
 });
 test("no owner factory init before checked loader handoff, and no arbitrary pending authority claim", async () => {
@@ -399,12 +408,12 @@ for (const [name, result] of Object.entries({
 });
 
 for (const [name, mutate, reason] of [
-  ["compute limit", (tx: Transaction) => tx.add(ComputeBudgetProgram.setComputeUnitLimit({ units: 500000 })), /compute budget/],
-  ["priority fee", (tx: Transaction) => tx.add(ComputeBudgetProgram.setComputeUnitPrice({ microLamports: 20000 })), /compute budget/],
+  ["compute limit", (tx: Transaction) => { tx.instructions.find(ix => ix.programId.equals(ComputeBudgetProgram.programId) && ix.data[0] === 2)!.data = ComputeBudgetProgram.setComputeUnitLimit({ units: 500000 }).data; }, /compute budget/],
+  ["priority fee", (tx: Transaction) => { tx.instructions.find(ix => ix.programId.equals(ComputeBudgetProgram.programId) && ix.data[0] === 3)!.data = ComputeBudgetProgram.setComputeUnitPrice({ microLamports: 20000 }).data; }, /compute budget/],
   ["blockhash", (tx: Transaction) => { tx.recentBlockhash = nonce.toBase58(); }, /blockhash/],
   ["fee payer", (tx: Transaction) => { tx.feePayer = bootstrap.publicKey; }, /fee payer/],
-  ["program accounts", (tx: Transaction) => { tx.instructions[0].keys[0].pubkey = nonce; }, /transaction accounts/],
-  ["factory fee split", (tx: Transaction) => { tx.instructions[1].data.writeUInt16LE(8000, 40); }, /program instructions/],
+  ["program accounts", (tx: Transaction) => { tx.instructions.find(ix => ix.programId.equals(programs[0]))!.keys[0].pubkey = nonce; }, /transaction accounts/],
+  ["factory fee split", (tx: Transaction) => { tx.instructions.find(ix => ix.programId.equals(programs[1]))!.data.writeUInt16LE(8000, 40); }, /program instructions/],
 ] as const) test(`wallet normalization rejects genuinely altered ${name} with a fixed public reason`, async () => {
   const f = fixture("owner"), review = await client.prepare(f.rpc, owner.publicKey);
   f.options.signTransaction = async tx => {
@@ -434,9 +443,58 @@ test("returning exact signed wire cannot hide mutation of the original reviewed 
   const f = fixture("owner"), review = await client.prepare(f.rpc, owner.publicKey);
   f.options.signTransaction = async tx => {
     const copy = walletCopy(tx); copy.partialSign(owner);
-    tx.instructions[1].data.writeUInt16LE(8000, 40);
+    tx.instructions.find(ix => ix.programId.equals(programs[1]))!.data.writeUInt16LE(8000, 40);
     return foreignWire(copy.serialize());
   };
   await assert.rejects(client.submitSetup(f.rpc, review, f.options), /mutated the reviewed transaction/);
   assert.equal(f.counts().sends, 0); assert.equal(f.counts().simulations, 1);
+});
+
+// Model Phantom's documented auto-priority behavior without calling a wallet or
+// broadcasting: unsigned, no budget, and enough room for the added instructions.
+function phantomPriorityCopy(transaction: Transaction) {
+  const copy = walletCopy(transaction);
+  const hasSignature = copy.signatures.some(pair => pair.signature !== null);
+  const hasBudget = copy.instructions.some(ix => ix.programId.equals(ComputeBudgetProgram.programId));
+  if (!hasSignature && !hasBudget) {
+    const candidate = walletCopy(copy);
+    candidate.instructions.unshift(
+      ComputeBudgetProgram.setComputeUnitLimit({ units: 200_000 }),
+      ComputeBudgetProgram.setComputeUnitPrice({ microLamports: 1_000 }),
+    );
+    if (candidate.serialize({ requireAllSignatures: false, verifySignatures: false }).length <= 1_232) return { transaction: candidate, enhanced: true };
+  }
+  return { transaction: copy, enhanced: false };
+}
+
+test("explicit setup budget keeps documented Phantom priority enhancement out of the reviewed message", async () => {
+  const f = fixture("owner"), review = await client.prepare(f.rpc, owner.publicKey);
+  const withoutBudget = walletCopy(review.transaction!); withoutBudget.instructions.splice(0, 2);
+  assert.equal(phantomPriorityCopy(withoutBudget).enhanced, true, "the previous unsigned setup satisfies Phantom's enhancement conditions");
+  let reviewedMessage: Buffer | undefined;
+  f.options.signTransaction = async transaction => {
+    reviewedMessage = Buffer.from(transaction.serializeMessage());
+    const candidate = phantomPriorityCopy(transaction);
+    assert.equal(candidate.enhanced, false);
+    candidate.transaction.partialSign(owner); return candidate.transaction;
+  };
+  const receipt = await client.submitSetup(f.rpc, review, f.options);
+  assert.equal(receipt.status, "finalized"); assert.equal(f.counts().sends, 1);
+  assert.deepEqual(Transaction.from(f.sent[0]).serializeMessage(), reviewedMessage);
+  assert.deepEqual(f.quotedMessages.at(-1), reviewedMessage);
+  assert.deepEqual(f.simulatedMessages, [reviewedMessage, reviewedMessage]);
+  assert.equal(receipt.lastValidBlockHeight, 200); assert.equal(receipt.blockhash, nonceValue);
+});
+
+test("partially signed owner handoff remains unchanged by the documented priority rule", async () => {
+  const f = fixture(), pkg = packageFixture();
+  f.options.signTransaction = async transaction => {
+    const candidate = phantomPriorityCopy(transaction);
+    assert.equal(candidate.enhanced, false);
+    assert.equal(candidate.transaction.instructions.some(ix => ix.programId.equals(ComputeBudgetProgram.programId)), false);
+    candidate.transaction.partialSign(owner); return candidate.transaction;
+  };
+  const receipt = await client.submitHandoff(f.rpc, pkg, f.options);
+  assert.equal(receipt.status, "finalized"); assert.equal(f.counts().sends, 1);
+  assert.deepEqual(Transaction.from(f.sent[0]).serializeMessage(), Transaction.from(Buffer.from(pkg.transactionBase64, "base64")).serializeMessage());
 });

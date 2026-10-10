@@ -1,0 +1,140 @@
+{
+  "version": 1,
+  "sourceBase": "da7a9a0ed90dc687b8436fcd5d77eb3d7018bf34",
+  "liveFrontendSourceBeforeFix": "d137a895071917c4b9389ae8a4f7ef35125b76a5",
+  "ownerFeedback": "No error displayed; transaction does not complete. Previous live error was lost after reload.",
+  "observedFinalizedState": {
+    "version": 1,
+    "checkedAt": "2026-10-10T16:35:10.429Z",
+    "cluster": "devnet",
+    "genesisHash": "EtWTRABZaYq6iMfeYKouRu166VU2xqa1wcaWoxPkrZBG",
+    "handoff": {
+      "signature": "2aHjrLcbZQ8oogQQmpCZKVetb5wX9v34c5aDyao7eeX7jVvLHZ681pJLUyixKKmcctnMvvguSYW67SLAFwjv4JAC",
+      "slot": 509531529,
+      "blockTime": 1791633116,
+      "feeLamports": 10000,
+      "signers": [
+        "8B2wktjNVETgnkoe92r2hTL9THw7umh4zF7iuidMt5H4",
+        "TcAgGWYnr5uVQGRiU67C1ynpH5JDKCmwWaCA6V2ANea"
+      ],
+      "allSignaturesVerified": true,
+      "exactPreparedMessage": true,
+      "messageSha256": "ef763c8a45254d8bc9e08cf12e209e07425750879809fbe3eedb7de4a9bb3fbf"
+    },
+    "state": {
+      "contextSlot": 509602524,
+      "loaderAuthority": "owner",
+      "whitelist": "absent",
+      "factoryInitialized": false,
+      "admitted": [],
+      "steps": [
+        "init-whitelist",
+        "init-factory",
+        "admit-BSTESTA",
+        "admit-BSTESTB",
+        "admit-BSTESTC",
+        "admit-BSTESTD"
+      ],
+      "ownerBalanceLamports": 13926514492
+    },
+    "creationActive": false
+  },
+  "documentedCompatibilityIssue": {
+    "source": "https://docs.phantom.com/developer-powertools/solana-priority-fees",
+    "conditions": [
+      "unsigned transaction",
+      "no explicit compute fee instructions",
+      "augmented transaction fits 1232 bytes"
+    ],
+    "oldSetupMatchedConditions": true,
+    "exactLatestLiveCauseProven": false,
+    "correction": "Prepare explicit 200000 compute-unit limit and zero micro-lamport price before review, quote, simulation and wallet signing. Preserve exact message verification."
+  },
+  "unsignedSimulation": {
+    "version": 1,
+    "checkedAt": "2026-10-10T16:38:14.069Z",
+    "mode": "read-only-unsigned-runtime-simulation",
+    "cluster": "devnet",
+    "owner": "TcAgGWYnr5uVQGRiU67C1ynpH5JDKCmwWaCA6V2ANea",
+    "steps": [
+      "init-whitelist",
+      "init-factory",
+      "admit-BSTESTA",
+      "admit-BSTESTB",
+      "admit-BSTESTC",
+      "admit-BSTESTD"
+    ],
+    "contextSlot": 509603285,
+    "rentLamports": 7167880,
+    "feeLamports": 5000,
+    "packetBytes": 864,
+    "simulation": {
+      "err": null,
+      "unitsConsumed": 98956,
+      "logs": [
+        "Program ComputeBudget111111111111111111111111111111 invoke [1]",
+        "Program ComputeBudget111111111111111111111111111111 success",
+        "Program ComputeBudget111111111111111111111111111111 invoke [1]",
+        "Program ComputeBudget111111111111111111111111111111 success",
+        "Program 37UVmx2uysqkKibBcSP5EZMycUeKnWRmnXVpr967juKF invoke [1]",
+        "Program log: Instruction: InitConfig",
+        "Program 11111111111111111111111111111111 invoke [2]",
+        "Program 11111111111111111111111111111111 success",
+        "Program 37UVmx2uysqkKibBcSP5EZMycUeKnWRmnXVpr967juKF consumed 14167 of 199700 compute units",
+        "Program 37UVmx2uysqkKibBcSP5EZMycUeKnWRmnXVpr967juKF success",
+        "Program 2xvJKG8DTmSZFu1zXpNVP3wvaCCCgGC2ufGGhYjzr4DH invoke [1]",
+        "Program log: Instruction: InitFactory",
+        "Program 11111111111111111111111111111111 invoke [2]",
+        "Program 11111111111111111111111111111111 success",
+        "Program 2xvJKG8DTmSZFu1zXpNVP3wvaCCCgGC2ufGGhYjzr4DH consumed 19457 of 185533 compute units",
+        "Program 2xvJKG8DTmSZFu1zXpNVP3wvaCCCgGC2ufGGhYjzr4DH success",
+        "Program 37UVmx2uysqkKibBcSP5EZMycUeKnWRmnXVpr967juKF invoke [1]",
+        "Program log: Instruction: AddMint",
+        "Program 11111111111111111111111111111111 invoke [2]",
+        "Program 11111111111111111111111111111111 success",
+        "Program 37UVmx2uysqkKibBcSP5EZMycUeKnWRmnXVpr967juKF consumed 15508 of 166076 compute units",
+        "Program 37UVmx2uysqkKibBcSP5EZMycUeKnWRmnXVpr967juKF success",
+        "Program 37UVmx2uysqkKibBcSP5EZMycUeKnWRmnXVpr967juKF invoke [1]",
+        "Program log: Instruction: AddMint",
+        "Program 11111111111111111111111111111111 invoke [2]",
+        "Program 11111111111111111111111111111111 success",
+        "Program 37UVmx2uysqkKibBcSP5EZMycUeKnWRmnXVpr967juKF consumed 17008 of 150568 compute units",
+        "Program 37UVmx2uysqkKibBcSP5EZMycUeKnWRmnXVpr967juKF success",
+        "Program 37UVmx2uysqkKibBcSP5EZMycUeKnWRmnXVpr967juKF invoke [1]",
+        "Program log: Instruction: AddMint",
+        "Program 11111111111111111111111111111111 invoke [2]",
+        "Program 11111111111111111111111111111111 success",
+        "Program 37UVmx2uysqkKibBcSP5EZMycUeKnWRmnXVpr967juKF consumed 15508 of 133560 compute units",
+        "Program 37UVmx2uysqkKibBcSP5EZMycUeKnWRmnXVpr967juKF success",
+        "Program 37UVmx2uysqkKibBcSP5EZMycUeKnWRmnXVpr967juKF invoke [1]",
+        "Program log: Instruction: AddMint",
+        "Program 11111111111111111111111111111111 invoke [2]",
+        "Program 11111111111111111111111111111111 success",
+        "Program 37UVmx2uysqkKibBcSP5EZMycUeKnWRmnXVpr967juKF consumed 17008 of 118052 compute units",
+        "Program 37UVmx2uysqkKibBcSP5EZMycUeKnWRmnXVpr967juKF success"
+      ]
+    },
+    "signed": false,
+    "broadcast": false,
+    "ownerInitializationExecuted": false
+  },
+  "ownerSetupFinalized": false,
+  "runtimeLifecycleExecuted": false,
+  "creationActivated": false,
+  "backendChanged": false,
+  "validatedSourceFiles": {
+    "app/lib/devnet-owner-setup.ts": "9198d085250d67f87dbe26ed4ac40e626937d989127f2c7339ea00bef849fbad",
+    "app/lib/devnet-owner-setup.test.ts": "88f3bf388103ab6e3b35d72f59cf6ad1390b431b75f63ce31038d1e4c34aafd6",
+    "app/lib/devnet-owner-setup-diagnostics.ts": "51d04f3413b740092970fc12948fb2a1be78e58a23dd891bae2feafd2aa8a733",
+    "app/lib/devnet-owner-setup-diagnostics.test.ts": "d6bf21e57b8a4f9d94570a309b2dbb9abe2da591d1b89c375dbb966732320d7d",
+    "app/components/devnet/devnet-owner-setup.tsx": "73cd3b067bb49c980e61027d8c28898350c854f63a32f2912e9b22f78fbc2cde"
+  },
+  "offlineValidation": {
+    "setupTestsPassed": 70,
+    "diagnosticTestsPassed": 13,
+    "independentCombinedTestsPassed": 83,
+    "appTypecheckPassed": true,
+    "diffCheckPassed": true,
+    "independentReview": "No remaining blockers. Historical failed/expired receipts cannot mask a newer pre-broadcast diagnostic. Actual extension signing remains unverified."
+  }
+}

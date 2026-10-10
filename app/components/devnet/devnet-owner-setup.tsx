@@ -8,8 +8,11 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/com
 import { WalletButton } from "@/components/shell/wallet-button";
 import { DEVNET_OWNER_SETUP_POLICY as policy, devnetOwnerSetup, describeDevnetOwnerSetupError, type OwnerSetupProgress, type OwnerHandoffPackage, type OwnerSetupState, type OwnerSetupReceipt } from "@/lib/devnet-owner-setup";
 
+import { createOwnerSetupDiagnostic, readOwnerSetupDiagnostic, saveOwnerSetupDiagnostic, clearOwnerSetupDiagnostic, ownerSetupDiagnosticStorageKey, ownerSetupDiagnosticMessage, OWNER_SETUP_PENDING_MESSAGE, type OwnerSetupDiagnostic, type OwnerSetupAttemptKind, type OwnerSetupAttemptStatus } from "@/lib/devnet-owner-setup-diagnostics";
+
 type Receipts = Partial<Record<"handoff" | "setup", OwnerSetupReceipt>>;
 const storageKey = `basalt:devnet-owner-setup:v1:${policy.owner}`;
+const diagnosticStorageKey = ownerSetupDiagnosticStorageKey(policy.owner);
 const stateReviewKey = (state: OwnerSetupState | null) => state ? JSON.stringify([state.loaderAuthority, state.whitelist, state.factoryInitialized, state.admitted, state.steps]) : "pending";
 const actionLabel = (step: string) => step === "init-whitelist" ? "Initialize the owner's test-token whitelist" : step === "claim-whitelist" ? "Accept the proposed whitelist ownership" : step === "init-factory" ? "Initialize the owner's basket factory" : `Admit ${step.replace("admit-", "")} to this whitelist`;
 const sol = (lamports: number) => `${(lamports / 1e9).toLocaleString("en-US", { maximumFractionDigits: 6 })} SOL`;
@@ -20,6 +23,8 @@ export default function DevnetOwnerSetup() {
   const [observation, setObservation] = useState<OwnerSetupState | null>(null);
   const [handoff, setHandoff] = useState<Readonly<OwnerHandoffPackage> | null>(null);
   const [receipts, setReceipts] = useState<Receipts>({});
+  const [diagnostic, setDiagnostic] = useState<OwnerSetupDiagnostic | null>(null);
+  const diagnosticRef = useRef<OwnerSetupDiagnostic | null>(null);
   const [preview, setPreview] = useState<Awaited<ReturnType<typeof devnetOwnerSetup.prepare>> | null>(null);
   const [checking, setChecking] = useState(false), [busy, setBusy] = useState(false), [loadingPackage, setLoadingPackage] = useState(false);
   const [acceptedKey, setAcceptedKey] = useState<string | null>(null);
@@ -35,12 +40,22 @@ export default function DevnetOwnerSetup() {
   current.current = { connection, wallet: connected ? publicKey?.toBase58() ?? null : null, accepted, reviewKey };
   const previewCurrent = preview && `setup:${stateReviewKey(preview.state)}` === reviewKey;
 
+  const dismissDiagnostic = useCallback(() => {
+    try { clearOwnerSetupDiagnostic(window.localStorage, diagnosticStorageKey); } catch { /* A blocked store must not affect receipts or signing. */ }
+    diagnosticRef.current = null; setDiagnostic(null);
+  }, []);
+  const recordDiagnostic = useCallback((kind: OwnerSetupAttemptKind, stage: OwnerSetupProgress, status: OwnerSetupAttemptStatus, message?: string) => {
+    const next = createOwnerSetupDiagnostic(kind, stage, status, message);
+    try { saveOwnerSetupDiagnostic(window.localStorage, diagnosticStorageKey, next); } catch { /* Keep the safe note visible even when this store is unavailable. */ }
+    diagnosticRef.current = next; setDiagnostic(next);
+  }, []);
   const saveReceipt = useCallback((receipt: OwnerSetupReceipt) => {
     const next = { ...receiptRef.current, [receipt.kind]: receipt };
     // Public signature/status only. Storage failure aborts before any broadcast.
     window.localStorage.setItem(storageKey, JSON.stringify(next));
     receiptRef.current = next; setReceipts(next);
-  }, []);
+    if (receipt.status === "finalized" && diagnosticRef.current?.kind === receipt.kind) dismissDiagnostic();
+  }, [dismissDiagnostic]);
   const refresh = useCallback(async () => {
     const generation = ++reads.current;
     setChecking(true); setNotice(null);
@@ -69,6 +84,10 @@ export default function DevnetOwnerSetup() {
         if (receipt?.version === 1 && receipt.owner === policy.owner && receipt.kind === kind && typeof receipt.signature === "string" && ["prepared", "finalized", "failed", "expired"].includes(receipt.status) && Array.isArray(receipt.steps)) valid[kind] = receipt;
       }
       receiptRef.current = valid; setReceipts(valid);
+      const previous = readOwnerSetupDiagnostic(window.localStorage, diagnosticStorageKey);
+      if (previous && valid[previous.kind]?.status !== "finalized") {
+        diagnosticRef.current = previous; setDiagnostic(previous);
+      } else if (previous) clearOwnerSetupDiagnostic(window.localStorage, diagnosticStorageKey);
     } catch { setNotice("Browser storage is unavailable. Enable local storage before signing setup transactions."); }
     return () => { mounted.current = false; reads.current++; };
   }, []);
@@ -136,6 +155,8 @@ export default function DevnetOwnerSetup() {
       current: () => ({ ...current.current, active: mounted.current }), reviewKey, onPrepared: saveReceipt,
       onProgress: (status: "checking" | "simulating" | "signing" | "confirming") => {
         stoppedAt = status;
+        // Record the wallet step before its promise, so a stalled request or reload stays diagnosable.
+        if (mounted.current) recordDiagnostic(kind, status, "in-progress");
         const labels = { checking: "Checking finalized accounts…", simulating: "Simulating the reviewed transaction…", signing: "Confirm in your owner wallet.", confirming: "Waiting for finalized confirmation…" };
         if (mounted.current) setProgress(labels[status]);
       },
@@ -144,13 +165,16 @@ export default function DevnetOwnerSetup() {
       const receipt = kind === "handoff" ? await devnetOwnerSetup.submitHandoff(connection, handoff!, options) : await devnetOwnerSetup.submitSetup(connection, preview!, options);
       saveReceipt(receipt); setAcceptedKey(null); setPreview(null);
       if (receipt.status === "prepared") setNotice("The transaction is saved for reconciliation. Refresh its status before signing anything else.");
-      else if (receipt.status === "failed") setNotice("The transaction finalized with an error. Refresh and review the remaining actions.");
+      else if (receipt.status === "failed") recordDiagnostic(kind, "confirming", "failed", "The transaction finalized with an error. Refresh and review the remaining actions.");
       await refresh();
     } catch (error) {
       setAcceptedKey(null);
-      setNotice(receiptRef.current[kind]?.status === "prepared" ? "A transaction may have been submitted. Refresh its saved signature; no automatic resend will occur." : describeDevnetOwnerSetupError(error, stoppedAt));
+      const message = receiptRef.current[kind]?.status === "prepared" ? OWNER_SETUP_PENDING_MESSAGE : describeDevnetOwnerSetupError(error, stoppedAt);
+      if (mounted.current) recordDiagnostic(kind, stoppedAt, "failed", message);
     } finally { inFlight.current = false; if (mounted.current) { setBusy(false); setProgress(null); } }
   };
+
+  const diagnosticMessage = diagnostic ? ownerSetupDiagnosticMessage(diagnostic, receipts[diagnostic.kind]) : null;
 
   return <main className="mx-auto max-w-2xl space-y-5 px-4 py-10">
     <Link href="/devnet" className="inline-flex min-h-10 items-center text-sm text-muted-foreground underline underline-offset-4 focus-visible:ring-2 focus-visible:ring-ring">Back to devnet baskets</Link>
@@ -164,6 +188,11 @@ export default function DevnetOwnerSetup() {
         <div role="status" aria-live="polite" className="rounded-md border border-border p-4 text-sm" data-testid="owner-claim-status">
           {progress ?? (checking ? "Checking finalized devnet state…" : complete ? "Owner setup verified on devnet." : owned ? observation.whitelist === "waiting-proposal" ? "Waiting for the bootstrap administrator to propose the existing whitelist handoff." : "Program ownership verified. Review initialization next." : observation ? "The reviewed programs are ready for owner acceptance." : "Waiting for finalized program verification.")}
         </div>
+        {diagnostic && diagnosticMessage ? <div role="status" aria-live="polite" className="space-y-2 rounded-md border border-border p-4 text-sm" data-testid="owner-setup-last-attempt">
+          <div className="flex items-center justify-between gap-3"><p className="font-medium">{diagnostic.status === "failed" ? "Last attempt stopped" : "Last recorded attempt"}</p><Button variant="ghost" size="sm" onClick={dismissDiagnostic} disabled={busy}>Dismiss note</Button></div>
+          <p>{diagnosticMessage}</p>
+          <p className="text-xs text-muted-foreground">{diagnostic.kind === "handoff" ? "Ownership" : "Initialization"} · {({ checking: "Account verification", simulating: "Simulation", signing: "Wallet signature", confirming: "Transaction status" })[diagnostic.stage]} · <time dateTime={diagnostic.at}>{new Date(diagnostic.at).toLocaleString("en-US", { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" })}</time></p>
+        </div> : null}
         {!isOwner ? <p className="text-sm text-muted-foreground">Connect the designated owner wallet to continue.</p> : null}
         {!owned && !complete ? <section className="space-y-4" aria-labelledby="handoff-heading">
           <h2 id="handoff-heading" className="font-medium">1. Accept program ownership</h2>
