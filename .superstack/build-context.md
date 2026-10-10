@@ -76,3 +76,8 @@ A valid foreign installed web3 constructor reproduces the overly strict instance
 ## Owner wire release live, 2026-10-10
 
 d137a895071917c4b9389ae8a4f7ef35125b76a5 / dpl_56PFB4tLJYW33Rq81yJQg9gjciF9 verified live with all six CI jobs, hosted build and Chrome program verification. Genuine initialization remains pending; no runtime/creation claim. VPS unchanged healthy, actual image sha256:8e7d0ab276307af13ad71d71da78aded59f82d3f249b93f31fd678d17c399f3a.
+
+
+## Owner setup fee compatibility checkpoint, 2026-10-10
+
+Live UI source `b5fecf67c10915b0e17e4db1059f3fdd6635a753` explicitly prepares setup compute limit 200,000 and zero priority price before review/quote/simulation/signing, matching documented Phantom augmentation conditions without accepting mutated messages. Persistent fixed public diagnostics survive reload. 83 focused tests, independent review, six CI jobs and hosted/Chrome program verification passed. Actual unsigned devnet simulation: 864 bytes, 98,956 CU, rent 7,167,880 and fee 5,000 lamports. Read-only exact submit path reaches signing with wallet and sender disabled. Actual owner initialization, finalized lifecycle proof, registry activation and backend/frontend activation release remain pending. Backend unchanged. Latest diagnostic cause for the repeated no-error stall is not proven.

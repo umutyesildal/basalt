@@ -1,0 +1,100 @@
+{
+  "version": 1,
+  "checkedAt": "2026-10-10T16:50:21.293834+00:00",
+  "sourceCommit": "b5fecf67c10915b0e17e4db1059f3fdd6635a753",
+  "deploymentId": "dpl_9dt51ubjeVGozeJYMWWaaiFgUuQn",
+  "deploymentUrl": "basalt-nl8qjqjj4-yesildaladams-projects.vercel.app",
+  "liveDomain": "basalt.markets",
+  "state": "READY",
+  "ci": {
+    "version": 1,
+    "checkedAt": "2026-10-10T16:48:42.242Z",
+    "expectedSourceSha": "b5fecf67c10915b0e17e4db1059f3fdd6635a753",
+    "exactSourceShaVerified": true,
+    "expectedJobSetVerified": true,
+    "allSixJobsSuccessful": true,
+    "run": {
+      "databaseId": 38068796564,
+      "url": "https://github.com/umutyesildal/basalt/actions/runs/38068796564",
+      "headSha": "b5fecf67c10915b0e17e4db1059f3fdd6635a753",
+      "status": "completed",
+      "conclusion": "success",
+      "createdAt": "2026-10-10T16:43:10Z",
+      "updatedAt": "2026-10-10T16:47:34Z"
+    },
+    "jobs": [
+      {
+        "databaseId": 114261792872,
+        "name": "Secret scan",
+        "status": "completed",
+        "conclusion": "success",
+        "startedAt": "2026-10-10T16:43:13Z",
+        "completedAt": "2026-10-10T16:43:46Z",
+        "url": "https://github.com/umutyesildal/basalt/actions/runs/38068796564/job/114261792872"
+      },
+      {
+        "databaseId": 114261792960,
+        "name": "Dependency audit",
+        "status": "completed",
+        "conclusion": "success",
+        "startedAt": "2026-10-10T16:43:13Z",
+        "completedAt": "2026-10-10T16:43:25Z",
+        "url": "https://github.com/umutyesildal/basalt/actions/runs/38068796564/job/114261792960"
+      },
+      {
+        "databaseId": 114261792992,
+        "name": "Node workspace",
+        "status": "completed",
+        "conclusion": "success",
+        "startedAt": "2026-10-10T16:43:13Z",
+        "completedAt": "2026-10-10T16:47:34Z",
+        "url": "https://github.com/umutyesildal/basalt/actions/runs/38068796564/job/114261792992"
+      },
+      {
+        "databaseId": 114261793020,
+        "name": "Backend Node 20 container",
+        "status": "completed",
+        "conclusion": "success",
+        "startedAt": "2026-10-10T16:43:13Z",
+        "completedAt": "2026-10-10T16:43:38Z",
+        "url": "https://github.com/umutyesildal/basalt/actions/runs/38068796564/job/114261793020"
+      },
+      {
+        "databaseId": 114261793084,
+        "name": "Rust workspace",
+        "status": "completed",
+        "conclusion": "success",
+        "startedAt": "2026-10-10T16:43:13Z",
+        "completedAt": "2026-10-10T16:44:54Z",
+        "url": "https://github.com/umutyesildal/basalt/actions/runs/38068796564/job/114261793084"
+      },
+      {
+        "databaseId": 114261793147,
+        "name": "Rust dependency reachability gate",
+        "status": "completed",
+        "conclusion": "success",
+        "startedAt": "2026-10-10T16:43:13Z",
+        "completedAt": "2026-10-10T16:44:54Z",
+        "url": "https://github.com/umutyesildal/basalt/actions/runs/38068796564/job/114261793147"
+      }
+    ]
+  },
+  "focusedTests": 83,
+  "backendSourceUnchanged": "307053da1310331c658c0401d0107f8405912199",
+  "chromeCandidateProgramVerificationPassed": true,
+  "chromeLiveProgramVerificationPassed": true,
+  "chromeErrorCount": 0,
+  "readOnlyPrewalletCheck": {
+    "progress": [
+      "checking",
+      "simulating",
+      "signing"
+    ],
+    "error": "REACHED_OWNER_WALLET_NO_SIGNATURE_REQUESTED",
+    "signed": false,
+    "broadcast": false
+  },
+  "creationEnabled": false,
+  "ownerInitializationVerified": false,
+  "runtimeLifecycleExecuted": false
+}

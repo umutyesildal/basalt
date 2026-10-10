@@ -1,3 +1,7 @@
+## Current owner setup release, October 10, 2026
+
+Explicit setup fee preparation and persistent public stage/error diagnostics are live from `b5fecf67c10915b0e17e4db1059f3fdd6635a753` at https://basalt.markets, deployment `dpl_9dt51ubjeVGozeJYMWWaaiFgUuQn`. All six CI jobs and 83 focused tests passed. Owner initialization and runtime lifecycle proof are still pending; creation remains disabled, backend stays at `307053d`. Earlier checkpoints below are historical. [Current debug and release record](devnet-owner-ui-debug-2026-10-10.md), [bounded proof operator](devnet-owner-lifecycle-operator-2026-10-10.md), [gated activation draft](devnet-owner-activation-audit-2026-10-10.md).
+
 - [Owner setup diagnostics and live release](devnet-owner-ui-debug-2026-10-10.md): observed signing guard and current unresolved boundary.
 - [Bounded lifecycle operator](devnet-owner-lifecycle-operator-2026-10-10.md) and [independent review](devnet-owner-lifecycle-review-2026-10-10.md): prepared source and offline checks, not runtime completion.
 

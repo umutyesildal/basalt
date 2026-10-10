@@ -1,5 +1,9 @@
 ## Current owner setup release, October 10, 2026
 
+Explicit setup fee preparation and persistent public stage/error diagnostics are live from `b5fecf67c10915b0e17e4db1059f3fdd6635a753` at https://basalt.markets, deployment `dpl_9dt51ubjeVGozeJYMWWaaiFgUuQn`. All six CI jobs and 83 focused tests passed. Owner initialization and runtime lifecycle proof are still pending; creation remains disabled, backend stays at `307053d`. Earlier checkpoints below are historical. [Current debug and release record](docs/devnet-owner-ui-debug-2026-10-10.md), [bounded proof operator](docs/devnet-owner-lifecycle-operator-2026-10-10.md), [gated activation draft](docs/devnet-owner-activation-audit-2026-10-10.md).
+
+## Current owner setup release, October 10, 2026
+
 Strict signed-wire compatibility is live from `d137a895071917c4b9389ae8a4f7ef35125b76a5` at https://basalt.markets, deployment `dpl_56PFB4tLJYW33Rq81yJQg9gjciF9`, after six CI checks and 68 setup tests. Genuine owner initialization and runtime lifecycle proof are still pending; creation remains disabled. Backend stays unchanged and healthy. [Debug/release record](docs/devnet-owner-ui-debug-2026-10-10.md), [bounded proof operator](docs/devnet-owner-lifecycle-operator-2026-10-10.md), [activation audit](docs/devnet-owner-activation-audit-2026-10-10.md). Earlier checkpoints below are historical.
 
 ## Current owner setup diagnostic, October 10, 2026
