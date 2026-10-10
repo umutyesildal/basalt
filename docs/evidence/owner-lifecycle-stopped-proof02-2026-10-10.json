@@ -1,0 +1,723 @@
+{
+  "version": 1,
+  "mode": "devnet-owner-lifecycle-proof",
+  "sourceCommit": "097127b746e2a41c976b60dbacaf93383c3afc1a",
+  "buildSourceCommit": "cdc2e8b978470d12335d2186d7eaafdf52abc8a0",
+  "genesisHash": "EtWTRABZaYq6iMfeYKouRu166VU2xqa1wcaWoxPkrZBG",
+  "owner": "TcAgGWYnr5uVQGRiU67C1ynpH5JDKCmwWaCA6V2ANea",
+  "treasury": "TcAgGWYnr5uVQGRiU67C1ynpH5JDKCmwWaCA6V2ANea",
+  "bootstrapAuthority": "8B2wktjNVETgnkoe92r2hTL9THw7umh4zF7iuidMt5H4",
+  "creator": "6zW7S8Tu9gkJHXwAAkjGTGN5mb2zSNPtqYbxgEmnvXSj",
+  "investor": "FmNvmCc9dF9YyE74MK95H1sTUwKRpCM7JMR3GnWNyHj4",
+  "startedAt": "2026-10-10T17:04:07.722Z",
+  "completed": false,
+  "allocated": {
+    "bootstrap": 150015000,
+    "creator": 30118840,
+    "investor": 16108200
+  },
+  "initialBootstrapBalance": 5478983720,
+  "receipts": [
+    {
+      "label": "fund-fresh-actors",
+      "actor": "bootstrap",
+      "signature": "3nARPzhEBQg7Tft9jDV97hnMqP5qKEbRjdBy7MGRQ6U9cK1kirLLFyEbtG3GxeXK6YXskZXYjFCqKR8QvZGt2E9d",
+      "wireSha256": "750100316d6edebc2470b568616d8bd700224fbadf8097270090ad6b43efed7b",
+      "messageSha256": "7570c189bef8c58afeb6caeba31a2e00f2ea6f31ba459caf6a31b39d3bef2bb6",
+      "blockhash": "GQesHKFtcnyn13gqiH2SBFn2uLRUVH9GD34C2uviMFy8",
+      "lastValidBlockHeight": 496840134,
+      "preSlot": 509609757,
+      "feeLamports": 15000,
+      "rentLamports": 150000000,
+      "status": "finalized",
+      "preState": {
+        "creator": "6zW7S8Tu9gkJHXwAAkjGTGN5mb2zSNPtqYbxgEmnvXSj",
+        "investor": "FmNvmCc9dF9YyE74MK95H1sTUwKRpCM7JMR3GnWNyHj4",
+        "initialBootstrapBalance": 5478983720
+      },
+      "lookupTables": [],
+      "finalizedSlot": 509609780
+    },
+    {
+      "label": "claim-creator",
+      "actor": "creator",
+      "signature": "2MDN2NPsmyvVSkurnSRVNNgWdbFm8DwBBUBsk7sZRBPcJWw5FrZnqLQwbSFCzeXF6Rs3MhKG6pusEp8U9p79NLvQ",
+      "wireSha256": "f0e9a77ef733f3811030f7d9410c5ad7f135dfc38f2f7040b95fee4780d7ea67",
+      "messageSha256": "286f3acb09fed1a5279e532312a27976f95442d8e623e4930e84767f0e5a2a5e",
+      "blockhash": "3EHYuAdidGuLL8ZtwaPvFqCGrJZtVqdU32HZxDa79iS6",
+      "lastValidBlockHeight": 496840166,
+      "preSlot": 509609791,
+      "feeLamports": 15000,
+      "rentLamports": 13050520,
+      "status": "finalized",
+      "preState": {
+        "slot": 509609791,
+        "claimed": false,
+        "assets": [
+          "0",
+          "0",
+          "0",
+          "0"
+        ],
+        "vaults": [
+          "9400000000000",
+          "9400000000000",
+          "9400000000000",
+          "9400000000000"
+        ],
+        "supplies": [
+          "1000000000000000",
+          "1000000000000000",
+          "1000000000000000",
+          "1000000000000000"
+        ],
+        "mintConfigHashes": [
+          "f04e7bbd1712c7a152bb30582b2211dff3f7e45dee7dcddfa84230fee5eba26f",
+          "875d3371cb0f5943fdf569fec73c67e7718247b59e5bec37b36d0c79e71e9eca",
+          "fb5e7552b3307e6455e7a36ad242bccb79b03ce76e963a1dc0156f11b3c443a4",
+          "24254f7f4fe2e0566fca238312baf3316781fcd12e2cd4221319ce25c05b8e62"
+        ],
+        "accountSizes": [
+          482,
+          482,
+          482,
+          482
+        ],
+        "hashes": {
+          "2GBfjd9jPKLoqNXdX7GDN9MHRKwzwXbHk65xQVf9HAcf": "b305a4204fab2d1818078043699d7b00f0303cf6b026e0151f27ba5371002856",
+          "4ZECvZcUzurcpBDZ8wTTC45rQjTJHkw8pWCLxNTvCbmA": null,
+          "CrjoC7fq5XAbdej5zjinKNGXVqo8E8qCmh8XSiu2QViQ": "018fd17396e657728bf370d959d384b6bb06bc132be714d66ae5a36aebf74327",
+          "EpH2swtxW2rCuFg2o2ukD5Qw5Xv3toaug1M3mbcB4hab": "691399fdb4f4d153c6edab7a7ce6f62c1c589e662596396c1581226a8a3c644c",
+          "5G1hMSqs2nWKaFQt737FTxwnruPgeQqQWZ2FRoqxvehA": "eb8e662ff33869d16611e976427232758c95180eb53bd7b3642fec373616496b",
+          "8W2hrfJPPrXEBjs5gDgpVZcs8HsELeHkBaqSjnUvgJUq": "ca4e8a8aebfe5c51af2695ea42dc80cecc2e238ec10a4977eb6eb1550278675a",
+          "DMxJLcFNx3CMrNsHyPFcxCZLCY7jtZ6z5QcWHxNBcGqB": "bdf78c7b0d0aff73fa00beffe24d41f57c101a48fc90af58653174e8ee51a594",
+          "8X6wHi2bDgWQ1BKm8ELxLPibQ3xr5vLHjSAtg2z43GBP": "93fa09b45e7e5b990fb43566924b3738a985ed7bc1a8b1d2f0cc3ea9b4233a2d",
+          "BuVPHqcjYf5c8NBjvUYe7gbQfrzoqGxnCQxhCo61oR6a": "b8fbe25bf3128be78269bcf9f8faeb97c64d35c7188cf13d6f5bdd6ca5ccb883",
+          "6M2ZHa75ZScJNCEar3iPduyeoqptKSWVNkgFMbBd7cUe": "764cbcc04fca2bb20c6ef905aad517f039315e8959bd5e441d66bbaff47adffc",
+          "5iddkRemnzRkUvpzvBc82WxihwhyeG4kAMf6ZtCdiZuE": null,
+          "AJyuW183N547R2akEr9pGSywXmKaEtGUdXZcu1J9opo6": null,
+          "CCx15tajA9Vf3BrhuFEkFBa48Ap5cPijXSe2WtrW5whZ": null,
+          "7BVrbWkPJ8jjxvr993u1inQDG9CrCdDvMr2dXSFXfDUa": null
+        }
+      },
+      "lookupTables": [],
+      "finalizedSlot": 509609812
+    },
+    {
+      "label": "claim-investor",
+      "actor": "investor",
+      "signature": "3bbK9i8Y41pkD9YHk5ZEcCsZpCs5E8WdTSpJ1MxNc3Rk9XU9VmHJJUk6y6ZoUwVxJGuZVngQnpQSJgfW5nrCL1RB",
+      "wireSha256": "8d6af63d46af503b4303328b7e68e562bd31d38d517284c2807d6fd38011acd0",
+      "messageSha256": "d8282c119c353443d155ed89af4b37ffd35845b8ef08104e445375bccd68985d",
+      "blockhash": "8FUYSxjsXXbDDP9RYa1MygbjpbQSvScPG1ELFnmDzgAf",
+      "lastValidBlockHeight": 496840201,
+      "preSlot": 509609825,
+      "feeLamports": 15000,
+      "rentLamports": 13050520,
+      "status": "finalized",
+      "preState": {
+        "slot": 509609825,
+        "claimed": false,
+        "assets": [
+          "0",
+          "0",
+          "0",
+          "0"
+        ],
+        "vaults": [
+          "9300000000000",
+          "9300000000000",
+          "9300000000000",
+          "9300000000000"
+        ],
+        "supplies": [
+          "1000000000000000",
+          "1000000000000000",
+          "1000000000000000",
+          "1000000000000000"
+        ],
+        "mintConfigHashes": [
+          "f04e7bbd1712c7a152bb30582b2211dff3f7e45dee7dcddfa84230fee5eba26f",
+          "875d3371cb0f5943fdf569fec73c67e7718247b59e5bec37b36d0c79e71e9eca",
+          "fb5e7552b3307e6455e7a36ad242bccb79b03ce76e963a1dc0156f11b3c443a4",
+          "24254f7f4fe2e0566fca238312baf3316781fcd12e2cd4221319ce25c05b8e62"
+        ],
+        "accountSizes": [
+          482,
+          482,
+          482,
+          482
+        ],
+        "hashes": {
+          "2GBfjd9jPKLoqNXdX7GDN9MHRKwzwXbHk65xQVf9HAcf": "b305a4204fab2d1818078043699d7b00f0303cf6b026e0151f27ba5371002856",
+          "HzGTdYcFhDQft48FqmYencMdQwpUivG1ozgsU5F6Wdwp": null,
+          "CrjoC7fq5XAbdej5zjinKNGXVqo8E8qCmh8XSiu2QViQ": "018fd17396e657728bf370d959d384b6bb06bc132be714d66ae5a36aebf74327",
+          "EpH2swtxW2rCuFg2o2ukD5Qw5Xv3toaug1M3mbcB4hab": "691399fdb4f4d153c6edab7a7ce6f62c1c589e662596396c1581226a8a3c644c",
+          "5G1hMSqs2nWKaFQt737FTxwnruPgeQqQWZ2FRoqxvehA": "eb8e662ff33869d16611e976427232758c95180eb53bd7b3642fec373616496b",
+          "8W2hrfJPPrXEBjs5gDgpVZcs8HsELeHkBaqSjnUvgJUq": "ca4e8a8aebfe5c51af2695ea42dc80cecc2e238ec10a4977eb6eb1550278675a",
+          "DMxJLcFNx3CMrNsHyPFcxCZLCY7jtZ6z5QcWHxNBcGqB": "bee4603516cb5dfebec492b43672011bfb0efc5010797826fbb889256cfe7dea",
+          "8X6wHi2bDgWQ1BKm8ELxLPibQ3xr5vLHjSAtg2z43GBP": "bb6e3df332945cfe654d626a6c645480a71f287435b13ff7fd5b6f3e84473ee5",
+          "BuVPHqcjYf5c8NBjvUYe7gbQfrzoqGxnCQxhCo61oR6a": "dd072be8fea90d6913d795c66e5e4aedcab2651b600c493e4e98f4c52d1ddd40",
+          "6M2ZHa75ZScJNCEar3iPduyeoqptKSWVNkgFMbBd7cUe": "2100f76579e7ccbd897296be49f3b5b98cf312843dc81d28f80b7671ee49d223",
+          "DFerjtFNhgG7ScGut1dNsDRcdYQLbhJQ5DLRrgV7EBh7": null,
+          "GGVJhXGFqsjSwccHVgDoe6F8Co4GMXmW66EkA8Vp99K6": null,
+          "GyDHQceCvJDjd23Hd2fJJHMSvyxWFufrHyQ9fCj6rbSE": null,
+          "2SfpvXHWmAwLCH9kAQgyJQod54JYQmFMqYUkYs6YNXob": null
+        }
+      },
+      "lookupTables": [],
+      "finalizedSlot": 509609846
+    },
+    {
+      "label": "create-3",
+      "actor": "creator",
+      "signature": "546pnR5DytgweKyEYQ5bs6cvqfUL1JjAT5jNa6ft4TY4Cy5KzovDJgj1XEXn2mZBbc3N8rfzMjyBWgXyhcrQuxwV",
+      "wireSha256": "242a90c2c7fa3d9850c4991cd53d4e3d57e8512486309c10abbdf556b584e48e",
+      "messageSha256": "2cd1887f51e4c30229d2cec6f4ea44c4ef55dfc882eb708a1ffd5d93d87f256e",
+      "blockhash": "AbRLsXhxovrw1dGVohuZCAGjZxnSAMyJ5YqwE2eBNwTW",
+      "lastValidBlockHeight": 496840246,
+      "preSlot": 509609868,
+      "feeLamports": 15000,
+      "rentLamports": 17038320,
+      "status": "finalized",
+      "preState": {
+        "metadata": "{\"version\":1,\"cluster\":\"devnet\",\"testTokens\":true,\"name\":\"Devnet lifecycle proof 3\",\"description\":\"3 project-issued test tokens. No market value.\",\"creator\":\"6zW7S8Tu9gkJHXwAAkjGTGN5mb2zSNPtqYbxgEmnvXSj\",\"constituents\":[\"CrjoC7fq5XAbdej5zjinKNGXVqo8E8qCmh8XSiu2QViQ\",\"EpH2swtxW2rCuFg2o2ukD5Qw5Xv3toaug1M3mbcB4hab\",\"5G1hMSqs2nWKaFQt737FTxwnruPgeQqQWZ2FRoqxvehA\"],\"weightsBps\":[4000,3200,2800]}",
+        "args": {
+          "nonce": 0,
+          "constituents": [
+            "CrjoC7fq5XAbdej5zjinKNGXVqo8E8qCmh8XSiu2QViQ",
+            "EpH2swtxW2rCuFg2o2ukD5Qw5Xv3toaug1M3mbcB4hab",
+            "5G1hMSqs2nWKaFQt737FTxwnruPgeQqQWZ2FRoqxvehA"
+          ],
+          "weightsBps": [
+            4000,
+            3200,
+            2800
+          ],
+          "seedAmounts": [
+            "4000000",
+            "3200000",
+            "2800000"
+          ],
+          "entryFeeBps": 100,
+          "exitFeeBps": 50,
+          "managementFeeBps": 200,
+          "metadataHash": "f727b08c010039a7980f43df0242768635acef85f68df615e31b2bee54f1e558"
+        },
+        "creatorAssets": [
+          "100000000000",
+          "100000000000",
+          "100000000000",
+          "100000000000"
+        ]
+      },
+      "lookupTables": [],
+      "finalizedSlot": 509609904
+    },
+    {
+      "label": "mint-3",
+      "actor": "investor",
+      "signature": "3SQ6cYYwLgqoUun58DBmVz3iPz9V2bAtUoULj7ZmbCHQB4a913pmrAP6wNC8AD5KdBEB3891mR2Gd5bNUGxK7zi9",
+      "wireSha256": "245e55aefd83e7649e4e52b6ce6946115ba5699f0037c178fb538ef1ec21d395",
+      "messageSha256": "d7845b9b5ed3fd9ed8582203b6f663cee14d2dfecc0e2b440ed334a1d6f97204",
+      "blockhash": "FPxxXM2JVE5V8WStM2gRdSKqWJNywioMtbV6fYi3ifyy",
+      "lastValidBlockHeight": 496840293,
+      "preSlot": 509609917,
+      "feeLamports": 15000,
+      "rentLamports": 3027680,
+      "status": "finalized",
+      "preState": {
+        "slot": 509609917,
+        "supply": "1000000",
+        "creator": "1000000",
+        "investor": "0",
+        "treasury": "0",
+        "vaults": [
+          "4000000",
+          "3200000",
+          "2800000"
+        ],
+        "investorAssets": [
+          "100000000000",
+          "100000000000",
+          "100000000000"
+        ],
+        "creatorAssets": [
+          "99996000000",
+          "99996800000",
+          "99997200000"
+        ],
+        "underlyingSupplies": [
+          "1000000000000000",
+          "1000000000000000",
+          "1000000000000000"
+        ],
+        "lastAccrual": "1791651881",
+        "remainder": "0",
+        "underlyingConfigHashes": [
+          "f04e7bbd1712c7a152bb30582b2211dff3f7e45dee7dcddfa84230fee5eba26f",
+          "875d3371cb0f5943fdf569fec73c67e7718247b59e5bec37b36d0c79e71e9eca",
+          "fb5e7552b3307e6455e7a36ad242bccb79b03ce76e963a1dc0156f11b3c443a4"
+        ],
+        "immutableHash": "11a40a0ca778075afb4d8a8b7505c623429c5ff7c47b4b8bc6154f777e2fe4f6",
+        "accountHashes": {
+          "FXrZC5FP6cxwDZNeaThdHTZqi5eTD6vLpcxoyi4QZDEF": "19b92f41f7e88704bb0458b8d2a099096fc540a1cfaa32a9132e3e7a5e74ec70",
+          "3RoZ18Lh3mXVA3qbx6EyYqekimLv7YU5GTnxMqmbiLzM": "2a8c611579d744c4f3f8b602321876d163cb0345124f2030bc56d0e43177cead",
+          "2Aa4QvUzf56FsXRwTMCRGyP7HEgudsA4EpQLL6oEu66V": "2ad74a4c93096e566e5fa82d22feedde3a4ee80a0ca9f50dcfb1ce5b4c9b44d8",
+          "F3amvaHosQu8cWLEWEu9xCjpbFNceA3VLedcow83cZ72": null,
+          "6D9PS3MkqjPoPxDScarCtNECA1uUHxeeo4ZKTUbo7My9": null,
+          "AY6k8x1qBaceSKGp6RQbapVKJ1CMgB7WBg1WRitmpjzP": "661df96ace3654614c73e4dd4df558c0fa17be5f9d3e4af1a4ee17f38f17865f",
+          "EDbRUBrZDDdHRNaBNpAek77qef8E5Sm7qWM9kLanUESU": "cbfb98abb43448060554881b455e2c8eda68314decf42b969e8a6c5f9ca239de",
+          "86Z9wnVr2URdQhvf9qfWMErpSAqeoHX33bp3VvZox5PC": "a8816be455ce0d5d99255d3302377d481b7b3413dc3b9f95bc9d9cc5d52a8dea",
+          "DFerjtFNhgG7ScGut1dNsDRcdYQLbhJQ5DLRrgV7EBh7": "63ec1d8adca971b83c604b4b6934d0db4bb50642176cdce62ff61979f3865899",
+          "GGVJhXGFqsjSwccHVgDoe6F8Co4GMXmW66EkA8Vp99K6": "2fdd1cd2e65dc23fbf7fc53cdf72c75a47cbfe485d9f1217c8bfbf7a909d0992",
+          "GyDHQceCvJDjd23Hd2fJJHMSvyxWFufrHyQ9fCj6rbSE": "f6d79ffe01add3cfb350535fd59dcd50ea8f658557335205d1ce2cc61a3b3ddc",
+          "5iddkRemnzRkUvpzvBc82WxihwhyeG4kAMf6ZtCdiZuE": "7472722530e200bc8cbb8f7e31fd62d81b6a49d886fad5cda564dc52430a83a9",
+          "AJyuW183N547R2akEr9pGSywXmKaEtGUdXZcu1J9opo6": "dcd0f553e998bce5c2c10778b51a7bba6635d02830b7e7624019b125e6098d8f",
+          "CCx15tajA9Vf3BrhuFEkFBa48Ap5cPijXSe2WtrW5whZ": "cd29b63c413fccd5b667743d65f92c8c968616dfc1e3edcdd59ab10715d0fcca",
+          "CrjoC7fq5XAbdej5zjinKNGXVqo8E8qCmh8XSiu2QViQ": "018fd17396e657728bf370d959d384b6bb06bc132be714d66ae5a36aebf74327",
+          "EpH2swtxW2rCuFg2o2ukD5Qw5Xv3toaug1M3mbcB4hab": "691399fdb4f4d153c6edab7a7ce6f62c1c589e662596396c1581226a8a3c644c",
+          "5G1hMSqs2nWKaFQt737FTxwnruPgeQqQWZ2FRoqxvehA": "eb8e662ff33869d16611e976427232758c95180eb53bd7b3642fec373616496b"
+        }
+      },
+      "lookupTables": [],
+      "finalizedSlot": 509609943
+    }
+  ],
+  "proofs": [
+    {
+      "kind": "finalized-prerequisites",
+      "state": {
+        "contextSlot": 509609757,
+        "loaderAuthority": "owner",
+        "whitelist": "owner",
+        "factoryInitialized": true,
+        "admitted": [
+          "BSTESTA",
+          "BSTESTB",
+          "BSTESTC",
+          "BSTESTD"
+        ],
+        "steps": [],
+        "ownerBalanceLamports": 13919341612
+      },
+      "rentBudget": {
+        "creator": 56512360,
+        "investor": 25954840,
+        "underlying": [
+          3098800,
+          3098800,
+          3098800,
+          3098800
+        ],
+        "basket": 5161280,
+        "mint": 1066800,
+        "share": 1513840,
+        "claim": 655320,
+        "createAlt": 5486400,
+        "tradeAlt": 5648960
+      }
+    },
+    {
+      "kind": "bounded-native-funding",
+      "creatorLamports": 90000000,
+      "investorLamports": 60000000,
+      "bootstrapMaximumOutflow": 160000000,
+      "bootstrapReserve": 100000000,
+      "slot": 509609789
+    },
+    {
+      "kind": "claim-creator",
+      "before": {
+        "slot": 509609791,
+        "claimed": false,
+        "assets": [
+          "0",
+          "0",
+          "0",
+          "0"
+        ],
+        "vaults": [
+          "9400000000000",
+          "9400000000000",
+          "9400000000000",
+          "9400000000000"
+        ],
+        "supplies": [
+          "1000000000000000",
+          "1000000000000000",
+          "1000000000000000",
+          "1000000000000000"
+        ],
+        "mintConfigHashes": [
+          "f04e7bbd1712c7a152bb30582b2211dff3f7e45dee7dcddfa84230fee5eba26f",
+          "875d3371cb0f5943fdf569fec73c67e7718247b59e5bec37b36d0c79e71e9eca",
+          "fb5e7552b3307e6455e7a36ad242bccb79b03ce76e963a1dc0156f11b3c443a4",
+          "24254f7f4fe2e0566fca238312baf3316781fcd12e2cd4221319ce25c05b8e62"
+        ],
+        "accountSizes": [
+          482,
+          482,
+          482,
+          482
+        ],
+        "hashes": {
+          "2GBfjd9jPKLoqNXdX7GDN9MHRKwzwXbHk65xQVf9HAcf": "b305a4204fab2d1818078043699d7b00f0303cf6b026e0151f27ba5371002856",
+          "4ZECvZcUzurcpBDZ8wTTC45rQjTJHkw8pWCLxNTvCbmA": null,
+          "CrjoC7fq5XAbdej5zjinKNGXVqo8E8qCmh8XSiu2QViQ": "018fd17396e657728bf370d959d384b6bb06bc132be714d66ae5a36aebf74327",
+          "EpH2swtxW2rCuFg2o2ukD5Qw5Xv3toaug1M3mbcB4hab": "691399fdb4f4d153c6edab7a7ce6f62c1c589e662596396c1581226a8a3c644c",
+          "5G1hMSqs2nWKaFQt737FTxwnruPgeQqQWZ2FRoqxvehA": "eb8e662ff33869d16611e976427232758c95180eb53bd7b3642fec373616496b",
+          "8W2hrfJPPrXEBjs5gDgpVZcs8HsELeHkBaqSjnUvgJUq": "ca4e8a8aebfe5c51af2695ea42dc80cecc2e238ec10a4977eb6eb1550278675a",
+          "DMxJLcFNx3CMrNsHyPFcxCZLCY7jtZ6z5QcWHxNBcGqB": "bdf78c7b0d0aff73fa00beffe24d41f57c101a48fc90af58653174e8ee51a594",
+          "8X6wHi2bDgWQ1BKm8ELxLPibQ3xr5vLHjSAtg2z43GBP": "93fa09b45e7e5b990fb43566924b3738a985ed7bc1a8b1d2f0cc3ea9b4233a2d",
+          "BuVPHqcjYf5c8NBjvUYe7gbQfrzoqGxnCQxhCo61oR6a": "b8fbe25bf3128be78269bcf9f8faeb97c64d35c7188cf13d6f5bdd6ca5ccb883",
+          "6M2ZHa75ZScJNCEar3iPduyeoqptKSWVNkgFMbBd7cUe": "764cbcc04fca2bb20c6ef905aad517f039315e8959bd5e441d66bbaff47adffc",
+          "5iddkRemnzRkUvpzvBc82WxihwhyeG4kAMf6ZtCdiZuE": null,
+          "AJyuW183N547R2akEr9pGSywXmKaEtGUdXZcu1J9opo6": null,
+          "CCx15tajA9Vf3BrhuFEkFBa48Ap5cPijXSe2WtrW5whZ": null,
+          "7BVrbWkPJ8jjxvr993u1inQDG9CrCdDvMr2dXSFXfDUa": null
+        }
+      },
+      "after": {
+        "slot": 509609824,
+        "claimed": true,
+        "assets": [
+          "100000000000",
+          "100000000000",
+          "100000000000",
+          "100000000000"
+        ],
+        "vaults": [
+          "9300000000000",
+          "9300000000000",
+          "9300000000000",
+          "9300000000000"
+        ],
+        "supplies": [
+          "1000000000000000",
+          "1000000000000000",
+          "1000000000000000",
+          "1000000000000000"
+        ],
+        "mintConfigHashes": [
+          "f04e7bbd1712c7a152bb30582b2211dff3f7e45dee7dcddfa84230fee5eba26f",
+          "875d3371cb0f5943fdf569fec73c67e7718247b59e5bec37b36d0c79e71e9eca",
+          "fb5e7552b3307e6455e7a36ad242bccb79b03ce76e963a1dc0156f11b3c443a4",
+          "24254f7f4fe2e0566fca238312baf3316781fcd12e2cd4221319ce25c05b8e62"
+        ],
+        "accountSizes": [
+          482,
+          482,
+          482,
+          482
+        ],
+        "hashes": {
+          "2GBfjd9jPKLoqNXdX7GDN9MHRKwzwXbHk65xQVf9HAcf": "b305a4204fab2d1818078043699d7b00f0303cf6b026e0151f27ba5371002856",
+          "4ZECvZcUzurcpBDZ8wTTC45rQjTJHkw8pWCLxNTvCbmA": "d0887ad35424d283fc7aabee2fdc5703ab20f3556e1a4b334beb9a4211379e2b",
+          "CrjoC7fq5XAbdej5zjinKNGXVqo8E8qCmh8XSiu2QViQ": "018fd17396e657728bf370d959d384b6bb06bc132be714d66ae5a36aebf74327",
+          "EpH2swtxW2rCuFg2o2ukD5Qw5Xv3toaug1M3mbcB4hab": "691399fdb4f4d153c6edab7a7ce6f62c1c589e662596396c1581226a8a3c644c",
+          "5G1hMSqs2nWKaFQt737FTxwnruPgeQqQWZ2FRoqxvehA": "eb8e662ff33869d16611e976427232758c95180eb53bd7b3642fec373616496b",
+          "8W2hrfJPPrXEBjs5gDgpVZcs8HsELeHkBaqSjnUvgJUq": "ca4e8a8aebfe5c51af2695ea42dc80cecc2e238ec10a4977eb6eb1550278675a",
+          "DMxJLcFNx3CMrNsHyPFcxCZLCY7jtZ6z5QcWHxNBcGqB": "bee4603516cb5dfebec492b43672011bfb0efc5010797826fbb889256cfe7dea",
+          "8X6wHi2bDgWQ1BKm8ELxLPibQ3xr5vLHjSAtg2z43GBP": "bb6e3df332945cfe654d626a6c645480a71f287435b13ff7fd5b6f3e84473ee5",
+          "BuVPHqcjYf5c8NBjvUYe7gbQfrzoqGxnCQxhCo61oR6a": "dd072be8fea90d6913d795c66e5e4aedcab2651b600c493e4e98f4c52d1ddd40",
+          "6M2ZHa75ZScJNCEar3iPduyeoqptKSWVNkgFMbBd7cUe": "2100f76579e7ccbd897296be49f3b5b98cf312843dc81d28f80b7671ee49d223",
+          "5iddkRemnzRkUvpzvBc82WxihwhyeG4kAMf6ZtCdiZuE": "d5f73563ecbf57b8489008e3872a4ce8bcd6bb5987d64519d2c38bef16da9e74",
+          "AJyuW183N547R2akEr9pGSywXmKaEtGUdXZcu1J9opo6": "28fa65e5b65de9eb4085f3e309941b85508c2e99cc6b13059667c56e6b2191ca",
+          "CCx15tajA9Vf3BrhuFEkFBa48Ap5cPijXSe2WtrW5whZ": "9c7f8cb49766f78fb71e503835639ada36ce4d8b8b09b9ed8fb3885e8293755d",
+          "7BVrbWkPJ8jjxvr993u1inQDG9CrCdDvMr2dXSFXfDUa": "911d4d7e8addb2b51d365ce44c5eaacb1e1d9b265b3d09d7fc9c66d172a1aa4c"
+        }
+      }
+    },
+    {
+      "kind": "claim-investor",
+      "before": {
+        "slot": 509609825,
+        "claimed": false,
+        "assets": [
+          "0",
+          "0",
+          "0",
+          "0"
+        ],
+        "vaults": [
+          "9300000000000",
+          "9300000000000",
+          "9300000000000",
+          "9300000000000"
+        ],
+        "supplies": [
+          "1000000000000000",
+          "1000000000000000",
+          "1000000000000000",
+          "1000000000000000"
+        ],
+        "mintConfigHashes": [
+          "f04e7bbd1712c7a152bb30582b2211dff3f7e45dee7dcddfa84230fee5eba26f",
+          "875d3371cb0f5943fdf569fec73c67e7718247b59e5bec37b36d0c79e71e9eca",
+          "fb5e7552b3307e6455e7a36ad242bccb79b03ce76e963a1dc0156f11b3c443a4",
+          "24254f7f4fe2e0566fca238312baf3316781fcd12e2cd4221319ce25c05b8e62"
+        ],
+        "accountSizes": [
+          482,
+          482,
+          482,
+          482
+        ],
+        "hashes": {
+          "2GBfjd9jPKLoqNXdX7GDN9MHRKwzwXbHk65xQVf9HAcf": "b305a4204fab2d1818078043699d7b00f0303cf6b026e0151f27ba5371002856",
+          "HzGTdYcFhDQft48FqmYencMdQwpUivG1ozgsU5F6Wdwp": null,
+          "CrjoC7fq5XAbdej5zjinKNGXVqo8E8qCmh8XSiu2QViQ": "018fd17396e657728bf370d959d384b6bb06bc132be714d66ae5a36aebf74327",
+          "EpH2swtxW2rCuFg2o2ukD5Qw5Xv3toaug1M3mbcB4hab": "691399fdb4f4d153c6edab7a7ce6f62c1c589e662596396c1581226a8a3c644c",
+          "5G1hMSqs2nWKaFQt737FTxwnruPgeQqQWZ2FRoqxvehA": "eb8e662ff33869d16611e976427232758c95180eb53bd7b3642fec373616496b",
+          "8W2hrfJPPrXEBjs5gDgpVZcs8HsELeHkBaqSjnUvgJUq": "ca4e8a8aebfe5c51af2695ea42dc80cecc2e238ec10a4977eb6eb1550278675a",
+          "DMxJLcFNx3CMrNsHyPFcxCZLCY7jtZ6z5QcWHxNBcGqB": "bee4603516cb5dfebec492b43672011bfb0efc5010797826fbb889256cfe7dea",
+          "8X6wHi2bDgWQ1BKm8ELxLPibQ3xr5vLHjSAtg2z43GBP": "bb6e3df332945cfe654d626a6c645480a71f287435b13ff7fd5b6f3e84473ee5",
+          "BuVPHqcjYf5c8NBjvUYe7gbQfrzoqGxnCQxhCo61oR6a": "dd072be8fea90d6913d795c66e5e4aedcab2651b600c493e4e98f4c52d1ddd40",
+          "6M2ZHa75ZScJNCEar3iPduyeoqptKSWVNkgFMbBd7cUe": "2100f76579e7ccbd897296be49f3b5b98cf312843dc81d28f80b7671ee49d223",
+          "DFerjtFNhgG7ScGut1dNsDRcdYQLbhJQ5DLRrgV7EBh7": null,
+          "GGVJhXGFqsjSwccHVgDoe6F8Co4GMXmW66EkA8Vp99K6": null,
+          "GyDHQceCvJDjd23Hd2fJJHMSvyxWFufrHyQ9fCj6rbSE": null,
+          "2SfpvXHWmAwLCH9kAQgyJQod54JYQmFMqYUkYs6YNXob": null
+        }
+      },
+      "after": {
+        "slot": 509609857,
+        "claimed": true,
+        "assets": [
+          "100000000000",
+          "100000000000",
+          "100000000000",
+          "100000000000"
+        ],
+        "vaults": [
+          "9200000000000",
+          "9200000000000",
+          "9200000000000",
+          "9200000000000"
+        ],
+        "supplies": [
+          "1000000000000000",
+          "1000000000000000",
+          "1000000000000000",
+          "1000000000000000"
+        ],
+        "mintConfigHashes": [
+          "f04e7bbd1712c7a152bb30582b2211dff3f7e45dee7dcddfa84230fee5eba26f",
+          "875d3371cb0f5943fdf569fec73c67e7718247b59e5bec37b36d0c79e71e9eca",
+          "fb5e7552b3307e6455e7a36ad242bccb79b03ce76e963a1dc0156f11b3c443a4",
+          "24254f7f4fe2e0566fca238312baf3316781fcd12e2cd4221319ce25c05b8e62"
+        ],
+        "accountSizes": [
+          482,
+          482,
+          482,
+          482
+        ],
+        "hashes": {
+          "2GBfjd9jPKLoqNXdX7GDN9MHRKwzwXbHk65xQVf9HAcf": "b305a4204fab2d1818078043699d7b00f0303cf6b026e0151f27ba5371002856",
+          "HzGTdYcFhDQft48FqmYencMdQwpUivG1ozgsU5F6Wdwp": "d0887ad35424d283fc7aabee2fdc5703ab20f3556e1a4b334beb9a4211379e2b",
+          "CrjoC7fq5XAbdej5zjinKNGXVqo8E8qCmh8XSiu2QViQ": "018fd17396e657728bf370d959d384b6bb06bc132be714d66ae5a36aebf74327",
+          "EpH2swtxW2rCuFg2o2ukD5Qw5Xv3toaug1M3mbcB4hab": "691399fdb4f4d153c6edab7a7ce6f62c1c589e662596396c1581226a8a3c644c",
+          "5G1hMSqs2nWKaFQt737FTxwnruPgeQqQWZ2FRoqxvehA": "eb8e662ff33869d16611e976427232758c95180eb53bd7b3642fec373616496b",
+          "8W2hrfJPPrXEBjs5gDgpVZcs8HsELeHkBaqSjnUvgJUq": "ca4e8a8aebfe5c51af2695ea42dc80cecc2e238ec10a4977eb6eb1550278675a",
+          "DMxJLcFNx3CMrNsHyPFcxCZLCY7jtZ6z5QcWHxNBcGqB": "f5de9923e93867c7fcb1103f96b5f7bc3b87c590f9efa4374c003da5f93b7ad7",
+          "8X6wHi2bDgWQ1BKm8ELxLPibQ3xr5vLHjSAtg2z43GBP": "d47a0a6d9c03bb7f1f8fef9c8e75e462bda8c19726d31b23d9a2c2410eb94707",
+          "BuVPHqcjYf5c8NBjvUYe7gbQfrzoqGxnCQxhCo61oR6a": "cccb8a839f3388c80323940502ba76c0e837e6e4e43b2a5d3c6e13eedb674b3a",
+          "6M2ZHa75ZScJNCEar3iPduyeoqptKSWVNkgFMbBd7cUe": "2ce9700ef0e03babab5e07e16704041327128eb9da065c007a8a56146a1de296",
+          "DFerjtFNhgG7ScGut1dNsDRcdYQLbhJQ5DLRrgV7EBh7": "63ec1d8adca971b83c604b4b6934d0db4bb50642176cdce62ff61979f3865899",
+          "GGVJhXGFqsjSwccHVgDoe6F8Co4GMXmW66EkA8Vp99K6": "2fdd1cd2e65dc23fbf7fc53cdf72c75a47cbfe485d9f1217c8bfbf7a909d0992",
+          "GyDHQceCvJDjd23Hd2fJJHMSvyxWFufrHyQ9fCj6rbSE": "f6d79ffe01add3cfb350535fd59dcd50ea8f658557335205d1ce2cc61a3b3ddc",
+          "2SfpvXHWmAwLCH9kAQgyJQod54JYQmFMqYUkYs6YNXob": "2ca2774179a622d67381cda4dee4963c033235cdee62b296a38bf8493a8aafb6"
+        }
+      }
+    },
+    {
+      "kind": "factory-3",
+      "beforeSlot": 509609864,
+      "afterSlot": 509609915,
+      "beforeCounter": "0",
+      "afterCounter": "1",
+      "beforeHash": "0a573bd18e5ea67c0ad948245d0608cb40301364a96e687b25110933b6025be6",
+      "afterHash": "f30f8084452a60f52c75525024acb2f2701a205f3cb1fc870d77cf691904bf71"
+    },
+    {
+      "kind": "create-3",
+      "basket": "FXrZC5FP6cxwDZNeaThdHTZqi5eTD6vLpcxoyi4QZDEF",
+      "shareMint": "3RoZ18Lh3mXVA3qbx6EyYqekimLv7YU5GTnxMqmbiLzM",
+      "metadata": "{\"version\":1,\"cluster\":\"devnet\",\"testTokens\":true,\"name\":\"Devnet lifecycle proof 3\",\"description\":\"3 project-issued test tokens. No market value.\",\"creator\":\"6zW7S8Tu9gkJHXwAAkjGTGN5mb2zSNPtqYbxgEmnvXSj\",\"constituents\":[\"CrjoC7fq5XAbdej5zjinKNGXVqo8E8qCmh8XSiu2QViQ\",\"EpH2swtxW2rCuFg2o2ukD5Qw5Xv3toaug1M3mbcB4hab\",\"5G1hMSqs2nWKaFQt737FTxwnruPgeQqQWZ2FRoqxvehA\"],\"weightsBps\":[4000,3200,2800]}",
+      "snapshot": {
+        "slot": 509609913,
+        "supply": "1000000",
+        "creator": "1000000",
+        "investor": "0",
+        "treasury": "0",
+        "vaults": [
+          "4000000",
+          "3200000",
+          "2800000"
+        ],
+        "investorAssets": [
+          "100000000000",
+          "100000000000",
+          "100000000000"
+        ],
+        "creatorAssets": [
+          "99996000000",
+          "99996800000",
+          "99997200000"
+        ],
+        "underlyingSupplies": [
+          "1000000000000000",
+          "1000000000000000",
+          "1000000000000000"
+        ],
+        "lastAccrual": "1791651881",
+        "remainder": "0",
+        "underlyingConfigHashes": [
+          "f04e7bbd1712c7a152bb30582b2211dff3f7e45dee7dcddfa84230fee5eba26f",
+          "875d3371cb0f5943fdf569fec73c67e7718247b59e5bec37b36d0c79e71e9eca",
+          "fb5e7552b3307e6455e7a36ad242bccb79b03ce76e963a1dc0156f11b3c443a4"
+        ],
+        "immutableHash": "11a40a0ca778075afb4d8a8b7505c623429c5ff7c47b4b8bc6154f777e2fe4f6",
+        "accountHashes": {
+          "FXrZC5FP6cxwDZNeaThdHTZqi5eTD6vLpcxoyi4QZDEF": "19b92f41f7e88704bb0458b8d2a099096fc540a1cfaa32a9132e3e7a5e74ec70",
+          "3RoZ18Lh3mXVA3qbx6EyYqekimLv7YU5GTnxMqmbiLzM": "2a8c611579d744c4f3f8b602321876d163cb0345124f2030bc56d0e43177cead",
+          "2Aa4QvUzf56FsXRwTMCRGyP7HEgudsA4EpQLL6oEu66V": "2ad74a4c93096e566e5fa82d22feedde3a4ee80a0ca9f50dcfb1ce5b4c9b44d8",
+          "F3amvaHosQu8cWLEWEu9xCjpbFNceA3VLedcow83cZ72": null,
+          "6D9PS3MkqjPoPxDScarCtNECA1uUHxeeo4ZKTUbo7My9": null,
+          "AY6k8x1qBaceSKGp6RQbapVKJ1CMgB7WBg1WRitmpjzP": "661df96ace3654614c73e4dd4df558c0fa17be5f9d3e4af1a4ee17f38f17865f",
+          "EDbRUBrZDDdHRNaBNpAek77qef8E5Sm7qWM9kLanUESU": "cbfb98abb43448060554881b455e2c8eda68314decf42b969e8a6c5f9ca239de",
+          "86Z9wnVr2URdQhvf9qfWMErpSAqeoHX33bp3VvZox5PC": "a8816be455ce0d5d99255d3302377d481b7b3413dc3b9f95bc9d9cc5d52a8dea",
+          "DFerjtFNhgG7ScGut1dNsDRcdYQLbhJQ5DLRrgV7EBh7": "63ec1d8adca971b83c604b4b6934d0db4bb50642176cdce62ff61979f3865899",
+          "GGVJhXGFqsjSwccHVgDoe6F8Co4GMXmW66EkA8Vp99K6": "2fdd1cd2e65dc23fbf7fc53cdf72c75a47cbfe485d9f1217c8bfbf7a909d0992",
+          "GyDHQceCvJDjd23Hd2fJJHMSvyxWFufrHyQ9fCj6rbSE": "f6d79ffe01add3cfb350535fd59dcd50ea8f658557335205d1ce2cc61a3b3ddc",
+          "5iddkRemnzRkUvpzvBc82WxihwhyeG4kAMf6ZtCdiZuE": "7472722530e200bc8cbb8f7e31fd62d81b6a49d886fad5cda564dc52430a83a9",
+          "AJyuW183N547R2akEr9pGSywXmKaEtGUdXZcu1J9opo6": "dcd0f553e998bce5c2c10778b51a7bba6635d02830b7e7624019b125e6098d8f",
+          "CCx15tajA9Vf3BrhuFEkFBa48Ap5cPijXSe2WtrW5whZ": "cd29b63c413fccd5b667743d65f92c8c968616dfc1e3edcdd59ab10715d0fcca",
+          "CrjoC7fq5XAbdej5zjinKNGXVqo8E8qCmh8XSiu2QViQ": "018fd17396e657728bf370d959d384b6bb06bc132be714d66ae5a36aebf74327",
+          "EpH2swtxW2rCuFg2o2ukD5Qw5Xv3toaug1M3mbcB4hab": "691399fdb4f4d153c6edab7a7ce6f62c1c589e662596396c1581226a8a3c644c",
+          "5G1hMSqs2nWKaFQt737FTxwnruPgeQqQWZ2FRoqxvehA": "eb8e662ff33869d16611e976427232758c95180eb53bd7b3642fec373616496b"
+        }
+      },
+      "wireBytes": 1110
+    },
+    {
+      "stage": "mint",
+      "managementFee": "0",
+      "managementRemainder": "2000000000",
+      "actionFee": "10000000",
+      "supply": "1001000000",
+      "count": 3,
+      "before": {
+        "slot": 509609917,
+        "supply": "1000000",
+        "creator": "1000000",
+        "investor": "0",
+        "treasury": "0",
+        "vaults": [
+          "4000000",
+          "3200000",
+          "2800000"
+        ],
+        "investorAssets": [
+          "100000000000",
+          "100000000000",
+          "100000000000"
+        ],
+        "creatorAssets": [
+          "99996000000",
+          "99996800000",
+          "99997200000"
+        ],
+        "underlyingSupplies": [
+          "1000000000000000",
+          "1000000000000000",
+          "1000000000000000"
+        ],
+        "lastAccrual": "1791651881",
+        "remainder": "0",
+        "underlyingConfigHashes": [
+          "f04e7bbd1712c7a152bb30582b2211dff3f7e45dee7dcddfa84230fee5eba26f",
+          "875d3371cb0f5943fdf569fec73c67e7718247b59e5bec37b36d0c79e71e9eca",
+          "fb5e7552b3307e6455e7a36ad242bccb79b03ce76e963a1dc0156f11b3c443a4"
+        ],
+        "immutableHash": "11a40a0ca778075afb4d8a8b7505c623429c5ff7c47b4b8bc6154f777e2fe4f6",
+        "accountHashes": {
+          "FXrZC5FP6cxwDZNeaThdHTZqi5eTD6vLpcxoyi4QZDEF": "19b92f41f7e88704bb0458b8d2a099096fc540a1cfaa32a9132e3e7a5e74ec70",
+          "3RoZ18Lh3mXVA3qbx6EyYqekimLv7YU5GTnxMqmbiLzM": "2a8c611579d744c4f3f8b602321876d163cb0345124f2030bc56d0e43177cead",
+          "2Aa4QvUzf56FsXRwTMCRGyP7HEgudsA4EpQLL6oEu66V": "2ad74a4c93096e566e5fa82d22feedde3a4ee80a0ca9f50dcfb1ce5b4c9b44d8",
+          "F3amvaHosQu8cWLEWEu9xCjpbFNceA3VLedcow83cZ72": null,
+          "6D9PS3MkqjPoPxDScarCtNECA1uUHxeeo4ZKTUbo7My9": null,
+          "AY6k8x1qBaceSKGp6RQbapVKJ1CMgB7WBg1WRitmpjzP": "661df96ace3654614c73e4dd4df558c0fa17be5f9d3e4af1a4ee17f38f17865f",
+          "EDbRUBrZDDdHRNaBNpAek77qef8E5Sm7qWM9kLanUESU": "cbfb98abb43448060554881b455e2c8eda68314decf42b969e8a6c5f9ca239de",
+          "86Z9wnVr2URdQhvf9qfWMErpSAqeoHX33bp3VvZox5PC": "a8816be455ce0d5d99255d3302377d481b7b3413dc3b9f95bc9d9cc5d52a8dea",
+          "DFerjtFNhgG7ScGut1dNsDRcdYQLbhJQ5DLRrgV7EBh7": "63ec1d8adca971b83c604b4b6934d0db4bb50642176cdce62ff61979f3865899",
+          "GGVJhXGFqsjSwccHVgDoe6F8Co4GMXmW66EkA8Vp99K6": "2fdd1cd2e65dc23fbf7fc53cdf72c75a47cbfe485d9f1217c8bfbf7a909d0992",
+          "GyDHQceCvJDjd23Hd2fJJHMSvyxWFufrHyQ9fCj6rbSE": "f6d79ffe01add3cfb350535fd59dcd50ea8f658557335205d1ce2cc61a3b3ddc",
+          "5iddkRemnzRkUvpzvBc82WxihwhyeG4kAMf6ZtCdiZuE": "7472722530e200bc8cbb8f7e31fd62d81b6a49d886fad5cda564dc52430a83a9",
+          "AJyuW183N547R2akEr9pGSywXmKaEtGUdXZcu1J9opo6": "dcd0f553e998bce5c2c10778b51a7bba6635d02830b7e7624019b125e6098d8f",
+          "CCx15tajA9Vf3BrhuFEkFBa48Ap5cPijXSe2WtrW5whZ": "cd29b63c413fccd5b667743d65f92c8c968616dfc1e3edcdd59ab10715d0fcca",
+          "CrjoC7fq5XAbdej5zjinKNGXVqo8E8qCmh8XSiu2QViQ": "018fd17396e657728bf370d959d384b6bb06bc132be714d66ae5a36aebf74327",
+          "EpH2swtxW2rCuFg2o2ukD5Qw5Xv3toaug1M3mbcB4hab": "691399fdb4f4d153c6edab7a7ce6f62c1c589e662596396c1581226a8a3c644c",
+          "5G1hMSqs2nWKaFQt737FTxwnruPgeQqQWZ2FRoqxvehA": "eb8e662ff33869d16611e976427232758c95180eb53bd7b3642fec373616496b"
+        }
+      },
+      "after": {
+        "slot": 509609953,
+        "supply": "1001000000",
+        "creator": "10000000",
+        "investor": "990000000",
+        "treasury": "1000000",
+        "vaults": [
+          "4004000000",
+          "3203200000",
+          "2802800000"
+        ],
+        "investorAssets": [
+          "96000000000",
+          "96800000000",
+          "97200000000"
+        ],
+        "creatorAssets": [
+          "99996000000",
+          "99996800000",
+          "99997200000"
+        ],
+        "underlyingSupplies": [
+          "1000000000000000",
+          "1000000000000000",
+          "1000000000000000"
+        ],
+        "lastAccrual": "1791651891",
+        "remainder": "2000000000",
+        "underlyingConfigHashes": [
+          "f04e7bbd1712c7a152bb30582b2211dff3f7e45dee7dcddfa84230fee5eba26f",
+          "875d3371cb0f5943fdf569fec73c67e7718247b59e5bec37b36d0c79e71e9eca",
+          "fb5e7552b3307e6455e7a36ad242bccb79b03ce76e963a1dc0156f11b3c443a4"
+        ],
+        "immutableHash": "11a40a0ca778075afb4d8a8b7505c623429c5ff7c47b4b8bc6154f777e2fe4f6",
+        "accountHashes": {
+          "FXrZC5FP6cxwDZNeaThdHTZqi5eTD6vLpcxoyi4QZDEF": "fdfa166b59b94eea89cfcc85f39cbdf5e9af4495151a27c7fe3f68932a9909cf",
+          "3RoZ18Lh3mXVA3qbx6EyYqekimLv7YU5GTnxMqmbiLzM": "6e7bbabbf9308080f1df39f026efef610d2e0ed084d031eb92062c43fd6d8a7d",
+          "2Aa4QvUzf56FsXRwTMCRGyP7HEgudsA4EpQLL6oEu66V": "1dc58266877024c0999267dd595d3689ee577e3c785048583a98b39e8fe5aafd",
+          "F3amvaHosQu8cWLEWEu9xCjpbFNceA3VLedcow83cZ72": "26808a84c7e245352682ecc1e0cc30d1f8431431f7ebc41fd1b6595c6c36f87a",
+          "6D9PS3MkqjPoPxDScarCtNECA1uUHxeeo4ZKTUbo7My9": "69de4b3303132653e5e779acd8371326fac9eb9b3a8053b41707d3010ce7a056",
+          "AY6k8x1qBaceSKGp6RQbapVKJ1CMgB7WBg1WRitmpjzP": "64c9460dfd00d9334f22e3fa1c535ec825249dc113a906fc8687747940c1271f",
+          "EDbRUBrZDDdHRNaBNpAek77qef8E5Sm7qWM9kLanUESU": "ebb7900432edb72efe4847c17b313c9bc8e90ef4660ce6d3eda29e4e43021bfe",
+          "86Z9wnVr2URdQhvf9qfWMErpSAqeoHX33bp3VvZox5PC": "00175965123d0db5636b96f31b74e64a25ccf5b3b0f1a48e2b7bccc74b15afe2",
+          "DFerjtFNhgG7ScGut1dNsDRcdYQLbhJQ5DLRrgV7EBh7": "17a3998fb948ed0fa4f7a53dfbc3a7705ba1701dfd326fad2ed16c8ddfaf9231",
+          "GGVJhXGFqsjSwccHVgDoe6F8Co4GMXmW66EkA8Vp99K6": "5b4bc953df7cfe12e0f9f63613eacc3bf49fbc9ae06761b5d96319bca1c0005d",
+          "GyDHQceCvJDjd23Hd2fJJHMSvyxWFufrHyQ9fCj6rbSE": "0e1453b7cae20318f13402d9eede17036b52880b9a35116b2fe35916dce0e033",
+          "5iddkRemnzRkUvpzvBc82WxihwhyeG4kAMf6ZtCdiZuE": "7472722530e200bc8cbb8f7e31fd62d81b6a49d886fad5cda564dc52430a83a9",
+          "AJyuW183N547R2akEr9pGSywXmKaEtGUdXZcu1J9opo6": "dcd0f553e998bce5c2c10778b51a7bba6635d02830b7e7624019b125e6098d8f",
+          "CCx15tajA9Vf3BrhuFEkFBa48Ap5cPijXSe2WtrW5whZ": "cd29b63c413fccd5b667743d65f92c8c968616dfc1e3edcdd59ab10715d0fcca",
+          "CrjoC7fq5XAbdej5zjinKNGXVqo8E8qCmh8XSiu2QViQ": "018fd17396e657728bf370d959d384b6bb06bc132be714d66ae5a36aebf74327",
+          "EpH2swtxW2rCuFg2o2ukD5Qw5Xv3toaug1M3mbcB4hab": "691399fdb4f4d153c6edab7a7ce6f62c1c589e662596396c1581226a8a3c644c",
+          "5G1hMSqs2nWKaFQt737FTxwnruPgeQqQWZ2FRoqxvehA": "eb8e662ff33869d16611e976427232758c95180eb53bd7b3642fec373616496b"
+        }
+      },
+      "wireBytes": 1047
+    }
+  ]
+}

@@ -1,0 +1,150 @@
+{
+  "version": 1,
+  "checkedAt": "2026-10-10T17:08:36.813Z",
+  "mode": "independent-read-only-interrupted-run02-review",
+  "sourceSha": "097127b746e2a41c976b60dbacaf93383c3afc1a",
+  "publicJournalSha256": "8d1f2767ee85ec171a9fdd2597d4de9918fbf3f856b144542923225f0ca95bd5",
+  "rpc": "https://api.devnet.solana.com",
+  "genesisHash": "EtWTRABZaYq6iMfeYKouRu166VU2xqa1wcaWoxPkrZBG",
+  "runCompleted": false,
+  "lifecycleAccountingComplete": false,
+  "creationActivationEligible": false,
+  "actualFinalizedReceiptCount": 5,
+  "verifiedReceipts": [
+    {
+      "label": "fund-fresh-actors",
+      "signature": "3nARPzhEBQg7Tft9jDV97hnMqP5qKEbRjdBy7MGRQ6U9cK1kirLLFyEbtG3GxeXK6YXskZXYjFCqKR8QvZGt2E9d",
+      "finalizedSlot": 509609780,
+      "soleActor": "8B2wktjNVETgnkoe92r2hTL9THw7umh4zF7iuidMt5H4",
+      "signatureVerified": true,
+      "messageHashVerified": true,
+      "wireHashVerified": true,
+      "feeLamports": 15000,
+      "unitsConsumed": 600,
+      "wireBytes": 318
+    },
+    {
+      "label": "claim-creator",
+      "signature": "2MDN2NPsmyvVSkurnSRVNNgWdbFm8DwBBUBsk7sZRBPcJWw5FrZnqLQwbSFCzeXF6Rs3MhKG6pusEp8U9p79NLvQ",
+      "finalizedSlot": 509609812,
+      "soleActor": "6zW7S8Tu9gkJHXwAAkjGTGN5mb2zSNPtqYbxgEmnvXSj",
+      "signatureVerified": true,
+      "messageHashVerified": true,
+      "wireHashVerified": true,
+      "feeLamports": 15000,
+      "unitsConsumed": 138493,
+      "wireBytes": 825
+    },
+    {
+      "label": "claim-investor",
+      "signature": "3bbK9i8Y41pkD9YHk5ZEcCsZpCs5E8WdTSpJ1MxNc3Rk9XU9VmHJJUk6y6ZoUwVxJGuZVngQnpQSJgfW5nrCL1RB",
+      "finalizedSlot": 509609846,
+      "soleActor": "FmNvmCc9dF9YyE74MK95H1sTUwKRpCM7JMR3GnWNyHj4",
+      "signatureVerified": true,
+      "messageHashVerified": true,
+      "wireHashVerified": true,
+      "feeLamports": 15000,
+      "unitsConsumed": 142993,
+      "wireBytes": 825
+    },
+    {
+      "label": "create-3",
+      "signature": "546pnR5DytgweKyEYQ5bs6cvqfUL1JjAT5jNa6ft4TY4Cy5KzovDJgj1XEXn2mZBbc3N8rfzMjyBWgXyhcrQuxwV",
+      "finalizedSlot": 509609904,
+      "soleActor": "6zW7S8Tu9gkJHXwAAkjGTGN5mb2zSNPtqYbxgEmnvXSj",
+      "signatureVerified": true,
+      "messageHashVerified": true,
+      "wireHashVerified": true,
+      "feeLamports": 15000,
+      "unitsConsumed": 282517,
+      "wireBytes": 1110
+    },
+    {
+      "label": "mint-3",
+      "signature": "3SQ6cYYwLgqoUun58DBmVz3iPz9V2bAtUoULj7ZmbCHQB4a913pmrAP6wNC8AD5KdBEB3891mR2Gd5bNUGxK7zi9",
+      "finalizedSlot": 509609943,
+      "soleActor": "FmNvmCc9dF9YyE74MK95H1sTUwKRpCM7JMR3GnWNyHj4",
+      "signatureVerified": true,
+      "messageHashVerified": true,
+      "wireHashVerified": true,
+      "feeLamports": 15000,
+      "unitsConsumed": 184843,
+      "wireBytes": 1047
+    }
+  ],
+  "create": {
+    "basket": "FXrZC5FP6cxwDZNeaThdHTZqi5eTD6vLpcxoyi4QZDEF",
+    "shareMint": "3RoZ18Lh3mXVA3qbx6EyYqekimLv7YU5GTnxMqmbiLzM",
+    "genesisShares": "1000000",
+    "vaultSeeds": [
+      "4000000",
+      "3200000",
+      "2800000"
+    ],
+    "weightsBps": [
+      4000,
+      3200,
+      2800
+    ],
+    "metadataHashVerified": true
+  },
+  "mint": {
+    "rawDeposits": [
+      "4000000000",
+      "3200000000",
+      "2800000000"
+    ],
+    "grossShares": "1000000000",
+    "entryFee": "10000000",
+    "managementFee": "0",
+    "managementRemainder": "2000000000",
+    "creatorFeeShares": "9000000",
+    "treasuryFeeShares": "1000000",
+    "finalSupply": "1001000000",
+    "creatorShares": "10000000",
+    "investorShares": "990000000",
+    "treasuryShares": "1000000",
+    "vaults": [
+      "4004000000",
+      "3203200000",
+      "2802800000"
+    ],
+    "investorAssets": [
+      "96000000000",
+      "96800000000",
+      "97200000000"
+    ],
+    "independentBigIntAccountingVerified": true,
+    "actualTransactionTokenBalancesVerified": true
+  },
+  "finalizedAccountsContextSlot": 509610873,
+  "allFinalAccountHashesMatchMintSnapshot": true,
+  "factoryCounter": "1",
+  "factoryCounterContextSlot": 509610877,
+  "managementTransactionBroadcast": false,
+  "managementProofExists": false,
+  "redeemProofExists": false,
+  "fourTokenProofExists": false,
+  "nativeBalances": {
+    "bootstrap": 5328968720,
+    "creator": 70655840,
+    "investor": 50048760
+  },
+  "ownerState": {
+    "contextSlot": 509610882,
+    "loaderAuthority": "owner",
+    "whitelist": "owner",
+    "factoryInitialized": true,
+    "admitted": [
+      "BSTESTA",
+      "BSTESTB",
+      "BSTESTC",
+      "BSTESTD"
+    ],
+    "steps": [],
+    "ownerBalanceLamports": 13919341612
+  },
+  "noResend": true,
+  "usedPrivateKeys": false,
+  "broadcast": false
+}

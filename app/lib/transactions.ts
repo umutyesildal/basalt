@@ -502,7 +502,8 @@ export function buildAccrueManagementFee(keys: Omit<BasketCoreKeys, "user"> & { 
   instructions: TransactionInstruction[];
   expectedAccounts: ExpectedAccount[];
 } {
-  const accounts = coreAccounts(keys, routing).map((a) =>
+  // AccrueFee has no user share account. Its vault authority immediately follows payer.
+  const accounts = coreAccounts(keys, routing).filter(a => a.label !== "user_share_ata").map((a) =>
     a.label === "user"
       ? {
           ...a,

@@ -1,0 +1,42 @@
+{
+  "checkedAt": "2026-10-10T17:06:36.525Z",
+  "kind": "unsigned-management-builder-diagnosis",
+  "chainWrites": false,
+  "signaturesRequested": false,
+  "accountLabels": [
+    "basket",
+    "share_mint",
+    "payer",
+    "user_share_ata",
+    "vault_authority",
+    "creator",
+    "creator_share_ata",
+    "treasury",
+    "treasury_share_ata",
+    "token_program",
+    "associated_token_program",
+    "system_program"
+  ],
+  "accountCount": 12,
+  "contextSlot": 509610380,
+  "err": {
+    "InstructionError": [
+      2,
+      {
+        "Custom": 3008
+      }
+    ]
+  },
+  "logs": [
+    "Program ComputeBudget111111111111111111111111111111 invoke [1]",
+    "Program ComputeBudget111111111111111111111111111111 success",
+    "Program ComputeBudget111111111111111111111111111111 invoke [1]",
+    "Program ComputeBudget111111111111111111111111111111 success",
+    "Program 8XPKfAYPaDSvUH95CeyjkgujTXAE5nFBJyFSqZvFvX7T invoke [1]",
+    "Program log: Instruction: AccrueManagementFee",
+    "Program log: AnchorError caused by account: token_program. Error Code: InvalidProgramId. Error Number: 3008. Error Message: Program ID was not as expected.",
+    "Program 8XPKfAYPaDSvUH95CeyjkgujTXAE5nFBJyFSqZvFvX7T consumed 25200 of 499700 compute units",
+    "Program 8XPKfAYPaDSvUH95CeyjkgujTXAE5nFBJyFSqZvFvX7T failed: custom program error: 0xbc0"
+  ],
+  "unitsConsumed": 25500
+}
