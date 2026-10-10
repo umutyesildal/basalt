@@ -1,3 +1,5 @@
+> **Onchain gallery, 2026-10-10:** Missing devnet identities use stable decorative basket names and varied local collage covers. Render illustrated token marks with actual weights, and local line portraits for missing creator avatars. Use real public profile names when available; do not invent creator identities, asset backing or returns. Preserve exact mint identity in the detailed view. [Implementation and release record](docs/onchain-basket-identities-2026-10-10.md).
+
 # Brand — Basalt
 
 Basalt helps people create, explore and share stock-basket ideas. The calm centered opening names stock baskets directly and leads into the gallery; conditional future management fees belong in the lower creator section. Public investing and fee revenue remain unavailable. The wallet-free builder keeps both journeys easy to explore. Public onchain creation uses project mock tokens on Solana devnet. The wallet workspace presents one action at a time, with a single submit button and inline preparation, wallet approval and confirmation. [Current flow](docs/devnet-single-pipeline-2026-10-03.md).

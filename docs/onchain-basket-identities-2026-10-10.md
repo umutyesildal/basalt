@@ -1,6 +1,6 @@
 # Onchain basket identities, 2026-10-10
 
-Status: implementation and local validation complete; publication evidence follows below.
+Status: live at https://basalt.markets/explore. Source pushed, all six exact-source CI jobs passed, hosted build verified and Chrome live checks complete.
 
 This supersedes the neutral address/placeholder direction in [the earlier gallery pass](onchain-basket-gallery-2026-10-10.md). The owner explicitly requested more inviting basket names, short descriptions, varied artwork, token illustrations and Notionists-style creator portraits.
 
@@ -31,4 +31,12 @@ Creator fallbacks are static SVGs fetched from the official [DiceBear Notionists
 
 ## Publication
 
-Pending source commit, exact-source CI, hosted build, Chrome verification and promotion. No VPS rollout or onchain transaction is required.
+- Application source `091f42a50ccc92c1038190ba2155b2b6eca7d0aa` pushed to public `origin/main`.
+- All six exact-source CI jobs succeeded: [release CI](https://github.com/umutyesildal/basalt/actions/runs/38045923068). Node workspace, dependency audit, backend container, Rust reachability, Rust workspace and secret scan passed.
+- Vercel hosted build completed. Deployment `dpl_9uNcxGVkAruWuyCjnLYKG7aFyhqQ` is `READY` and its `sourceSha` and `gitCommitSha` match the application source. Immutable URL: https://basalt-ovmtsq9mi-yesildaladams-projects.vercel.app .
+- Chrome verified ten named/artwork cards, complete visible token and avatar images, no horizontal overflow and the real public name “yesildal” on the hosted candidate. This exact deployment was promoted after CI passed; inspecting https://basalt.markets resolved to the same deployment ID.
+- Live Chrome checks confirmed all ten titles and no broken loaded card images. The result remains open in Chrome; audit/candidate tabs were closed and the temporary viewport override was reset. [Sanitized release evidence](assets/onchain-identities-2026-10-10/release-checks.json).
+- Frontend rollback deployment: `dpl_2YCPYFKdZh8e7ZETYMTKJKnkMTyQ`. The VPS remains at `307053da1310331c658c0401d0107f8405912199`; no backend rollout, chain transaction or authority action occurred.
+- Later documentation-only commits do not alter deployed application bytes. The older dirty UI/pitch checkout is preserved; only this refinement's documentation and public screenshot evidence are mirrored there.
+
+![Live onchain basket identities](assets/onchain-identities-2026-10-10/live-gallery.png)

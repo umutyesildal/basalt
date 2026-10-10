@@ -1,0 +1,42 @@
+{
+  "sourceSha": "091f42a50ccc92c1038190ba2155b2b6eca7d0aa",
+  "deploymentId": "dpl_9uNcxGVkAruWuyCjnLYKG7aFyhqQ",
+  "deploymentState": "READY",
+  "exactSourceCi": "https://github.com/umutyesildal/basalt/actions/runs/38045923068",
+  "ciJobsPassed": 6,
+  "liveUrl": "https://basalt.markets/explore",
+  "chrome": {
+    "cards": 10,
+    "titles": [
+      "First Move",
+      "Four Corners",
+      "Threefold",
+      "Mainframe",
+      "Open Circuit",
+      "Core Three",
+      "Wide Lens",
+      "New Chapter",
+      "Triple Play",
+      "Even Steven"
+    ],
+    "horizontalOverflow": false,
+    "missingLoadedImages": 0,
+    "displayNameSearchPassed": true,
+    "detailIdentityPassed": true,
+    "responsiveWidthsChecked": [
+      375,
+      768,
+      1280
+    ],
+    "viewportReset": true
+  },
+  "localChecks": {
+    "nodeTests": 331,
+    "vitestTests": 57,
+    "conceptIntegrity": "passed",
+    "typecheck": "passed",
+    "productionBuild": "passed"
+  },
+  "backendSource": "307053da1310331c658c0401d0107f8405912199",
+  "onchainChanges": false
+}
