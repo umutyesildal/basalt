@@ -149,7 +149,7 @@ export default function BasketDetailClient({
       const [perfRes, spyRes, tickersRes] = await Promise.allSettled([
         fetchBasketPerformance(pubkey, controller.signal),
         fetchSpy24h(controller.signal),
-        fetchMintTickers(controller.signal),
+        detail ? fetchMintTickers(controller.signal, detail.factory) : Promise.resolve(new Map<string, string>()),
       ]);
       if (perfRes.status === "fulfilled") setChange24h(perfRes.value.change24hPct);
       if (spyRes.status === "fulfilled") setSpy24h(spyRes.value);
@@ -160,7 +160,7 @@ export default function BasketDetailClient({
       // Aborts racing unmount — optional panels keep their defaults.
     });
     return () => controller.abort();
-  }, [pubkey, reloadKey]);
+  }, [pubkey, detail?.factory, reloadKey]);
 
   const retry = useCallback(() => setReloadKey((k) => k + 1), []);
 

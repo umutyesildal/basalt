@@ -4,7 +4,7 @@ import { createHash } from "node:crypto";
 import { Buffer } from "buffer";
 import bs58 from "bs58";
 import { Keypair, PublicKey, SystemProgram, Transaction, TransactionInstruction, type AccountInfo } from "@solana/web3.js";
-import { createDevnetOwnerSetupClient, DEVNET_OWNER_SETUP_POLICY, ownerProgramData, type OwnerSetupArtifacts, type OwnerSetupIntent, type OwnerSetupPolicy, type OwnerSetupReceipt, type OwnerSetupRpc, type OwnerSetupSubmission } from "./devnet-owner-setup";
+import { createDevnetOwnerSetupClient, DEVNET_OWNER_SETUP_POLICY, DevnetOwnerSetupError, describeDevnetOwnerSetupError, ownerProgramData, type OwnerSetupArtifacts, type OwnerSetupIntent, type OwnerSetupPolicy, type OwnerSetupReceipt, type OwnerSetupRpc, type OwnerSetupSubmission } from "./devnet-owner-setup";
 import { UPGRADEABLE_LOADER } from "./devnet-owner-claim";
 import { DEVNET_GENESIS_HASH } from "./program-namespaces";
 import { DEVNET_MOCK_TOKENS } from "./devnet-faucet";
@@ -306,4 +306,28 @@ test("processed signature-status context cannot block finalized expiry recovery"
   f.rpc.getSignatureStatuses = (async () => ({ context: { slot: 132 }, value: [null] })) as typeof f.rpc.getSignatureStatuses;
   assert.equal((await client.reconcile(f.rpc, receipt)).status, "expired");
   assert.equal(f.minimumSlots.at(-1), 100); assert.equal(f.counts().sends, 1); assert.equal(f.counts().walletSigns, 1);
+});
+
+
+test("setup errors expose reviewed public reasons and hide arbitrary wallet/RPC payloads", () => {
+  const known = new DevnetOwnerSetupError("The wallet changed the reviewed transaction. Nothing was broadcast.");
+  assert.equal(describeDevnetOwnerSetupError(known, "signing"), known.message);
+  const sensitive = "opaque-rpc-payload containing an access token";
+  const unknown = describeDevnetOwnerSetupError(new Error(sensitive), "signing");
+  assert.match(unknown, /requesting your wallet signature/); assert.ok(!unknown.includes(sensitive));
+  assert.match(describeDevnetOwnerSetupError(new Error("Blockhash not found / expired")), /expired/);
+  assert.match(describeDevnetOwnerSetupError(new Error("429 rate limit")), /Devnet is busy/);
+  assert.match(describeDevnetOwnerSetupError(new Error("User rejected request")), /declined/);
+  assert.match(describeDevnetOwnerSetupError(new Error("Failed to fetch")), /connection did not respond/);
+});
+
+test("setup accepts the standard-wallet serialized transaction roundtrip", async () => {
+  const f = fixture("owner"), review = await client.prepare(f.rpc, owner.publicKey);
+  f.options.signTransaction = async tx => {
+    const decoded = Transaction.from(tx.serialize({ requireAllSignatures: false, verifySignatures: false }));
+    decoded.partialSign(owner);
+    return Transaction.from(decoded.serialize({ requireAllSignatures: true, verifySignatures: true }));
+  };
+  const receipt = await client.submitSetup(f.rpc, review, f.options);
+  assert.equal(receipt.status, "finalized"); assert.equal(f.counts().sends, 1);
 });

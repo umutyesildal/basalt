@@ -1,6 +1,8 @@
 "use client";
 
 import Link from "next/link";
+import DevnetWorkspace from "@/components/devnet/devnet-workspace";
+import { supportsDevnetWorkspace } from "@/lib/devnet-ui-flow";
 import { use, useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { EmptyState, ErrorState, FreshnessBadge, Skeleton } from "@/components/states";
@@ -16,6 +18,7 @@ import {
   type BasketDetail,
 } from "@/components/basket/basket-api";
 import { truncateAddress, formatBpsAsPercent } from "@/lib/format";
+import { CLUSTER } from "@/lib/wallet";
 
 type Tab = "inkind" | "zap";
 
@@ -102,20 +105,23 @@ export default function BuyPage({ params }: { params: Promise<{ pubkey: string }
   // Optional ticker context for the composition line — degrades to truncated mints.
   useEffect(() => {
     const controller = new AbortController();
-    fetchMintTickers(controller.signal)
+    if (!detail) { setMintTickers(new Map()); return; }
+    fetchMintTickers(controller.signal, detail.factory)
       .then(setMintTickers)
       .catch(() => setMintTickers(new Map()));
     return () => controller.abort();
-  }, [reloadKey]);
+  }, [detail?.factory, reloadKey]);
 
   // Price-source context for the Zap gate — degrades to "unknown" (map empty).
   useEffect(() => {
     const controller = new AbortController();
-    fetchMintPriceSources(controller.signal)
+    setPriceSources(new Map());
+    if (!detail) return;
+    fetchMintPriceSources(controller.signal, detail.factory)
       .then(setPriceSources)
       .catch(() => setPriceSources(new Map()));
     return () => controller.abort();
-  }, [reloadKey]);
+  }, [detail?.factory, reloadKey]);
 
   // Zap USDC honesty gate: Jupiter can never quote `mock:*` devnet mints, so
   // the zap path is disabled up-front (via the API's price_source field)
@@ -161,6 +167,10 @@ export default function BuyPage({ params }: { params: Promise<{ pubkey: string }
       : shown;
   }, [detail, mintTickers]);
   const headline = name ?? composition ?? truncateAddress(pubkey, 6, 6);
+
+  if (status === "ready" && detail && supportsDevnetWorkspace(detail, CLUSTER)) {
+    return <DevnetWorkspace key={`${pubkey}-mint`} initialBasketAddress={pubkey} initialTradeMode="mint" />;
+  }
 
   return (
     <div className="space-y-6">

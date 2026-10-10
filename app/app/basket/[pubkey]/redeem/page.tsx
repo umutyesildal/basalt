@@ -3,6 +3,8 @@
 import { assertBasketCoreKeysOnChain } from "@/lib/basket-account-security";
 
 import Link from "next/link";
+import DevnetWorkspace from "@/components/devnet/devnet-workspace";
+import { supportsDevnetWorkspace } from "@/lib/devnet-ui-flow";
 import { use, useCallback, useEffect, useMemo, useState } from "react";
 import { PublicKey } from "@solana/web3.js";
 import { useConnection, useWallet } from "@solana/wallet-adapter-react";
@@ -121,11 +123,12 @@ export default function RedeemPage({ params }: { params: Promise<{ pubkey: strin
   // Optional ticker context for the composition line — degrades to truncated mints.
   useEffect(() => {
     const controller = new AbortController();
-    fetchMintTickers(controller.signal)
+    if (!detail) { setMintTickers(new Map()); return; }
+    fetchMintTickers(controller.signal, detail.factory)
       .then(setMintTickers)
       .catch(() => setMintTickers(new Map()));
     return () => controller.abort();
-  }, [reloadKey]);
+  }, [detail?.factory, reloadKey]);
 
   const refreshShareBalance = useCallback(async () => {
     if (!publicKey || !detail) {
@@ -241,7 +244,7 @@ export default function RedeemPage({ params }: { params: Promise<{ pubkey: strin
   // basket, so a trade is a single approval and redeem reuses it.
   const coreKeys: BasketCoreKeys | null = useMemo(
     () =>
-      publicKey && detail
+      publicKey && detail && !supportsDevnetWorkspace(detail, CLUSTER)
         ? parseBasketCoreKeys(detail, publicKey)
         : null,
     [detail, publicKey],
@@ -322,6 +325,10 @@ export default function RedeemPage({ params }: { params: Promise<{ pubkey: strin
     const byMint = new Map(detail.holdings.map((h) => [h.mint, h]));
     return detail.constituents.map((mint) => byMint.get(mint) ?? null);
   }, [detail]);
+
+  if (status === "ready" && detail && supportsDevnetWorkspace(detail, CLUSTER)) {
+    return <DevnetWorkspace key={`${pubkey}-redeem`} initialBasketAddress={pubkey} initialTradeMode="redeem" />;
+  }
 
   return (
     <div className="space-y-6">

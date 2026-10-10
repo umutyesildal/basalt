@@ -10,6 +10,7 @@ import { LegalReviewTag } from "@/components/create";
 import { PortfolioPositionCard } from "@/components/portfolio/position-card";
 import { formatUsd, prettyTicker, truncateAddress } from "@/lib/format";
 import { apiFetch } from "@/lib/api-client";
+import { fetchMintTickers } from "@/components/basket/basket-api";
 import { parsePortfolioData, portfolioCoverageMessage, portfolioEmptyState, type PortfolioData, type PortfolioPosition } from "@/lib/portfolio-data";
 
 type Numeric = string | number | null | undefined;
@@ -226,27 +227,8 @@ export default function PortfolioPage() {
 
     async function loadTickers() {
       try {
-        const res = await apiFetch("/api/v1/whitelist", {
-          signal: controller.signal,
-          cache: "no-store",
-          headers: { accept: "application/json" },
-        });
-        if (!res.ok) return;
-        const payload = (await res.json()) as {
-          data?: { mint?: string; ticker?: string; price_source?: string }[];
-        };
-        const map = new Map<string, string>();
-        for (const row of payload.data ?? []) {
-          if (typeof row.mint !== "string" || !row.mint) continue;
-          const fromField = typeof row.ticker === "string" ? row.ticker.trim() : "";
-          const fromSource =
-            typeof row.price_source === "string"
-              ? row.price_source.split(":").pop() ?? ""
-              : "";
-          const ticker = prettyTicker(fromField || fromSource);
-          if (ticker) map.set(row.mint, ticker);
-        }
-        setMintTickers(map);
+        const map = await fetchMintTickers(controller.signal);
+        if (!controller.signal.aborted) setMintTickers(map);
       } catch {
         // composition falls back to metadata name / mint fragments
       }

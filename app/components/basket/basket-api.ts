@@ -10,6 +10,7 @@
 
 import { prettyTicker } from "@/lib/format";
 import { API_BASE, apiFetch } from "@/lib/api-client";
+import { APP_NAMESPACE_ROUTING, type NamespaceRouting } from "@/lib/program-namespaces";
 
 export { API_BASE };
 
@@ -205,15 +206,36 @@ export async function fetchBasketPerformance(
   return { change24hPct: typeof pct === "number" && Number.isFinite(pct) ? pct : null };
 }
 
-/** GET /whitelist — mint → ticker map for holdings/composition labels. */
+type WhitelistContextRow = { mint?: string; ticker?: string; price_source?: string | null };
+
+/** Basket context is scoped by the registered factory, never the API's first-namespace default. */
+async function fetchWhitelistContext(signal: AbortSignal, factory?: string, routing: NamespaceRouting = APP_NAMESPACE_ROUTING): Promise<WhitelistContextRow[]> {
+  const namespaces = factory ? [routing.forFactory(factory)] : routing.registry;
+  const load = async (namespace: (typeof namespaces)[number]) => {
+    const payload = await getJson<{
+      data?: WhitelistContextRow[];
+      namespace?: { id?: string; factory?: string; whitelistProgram?: string };
+    }>(`/api/v1/whitelist?namespace=${encodeURIComponent(namespace.id)}`, signal);
+    if (payload.namespace?.id !== namespace.id || payload.namespace.factory !== namespace.factoryConfig || payload.namespace.whitelistProgram !== namespace.programs.whitelist) {
+      throw new ApiError("Whitelist context does not match this basket's registered namespace.", 0);
+    }
+    return payload.data ?? [];
+  };
+  if (factory) return load(namespaces[0]);
+  // Mixed discovery views can still label a healthy namespace if another read fails.
+  const results = await Promise.allSettled(namespaces.map(load));
+  return results.flatMap(result => result.status === "fulfilled" ? result.value : []);
+}
+
+/** GET /whitelist?namespace — mint → ticker context for one basket or registered discovery namespaces. */
 export async function fetchMintTickers(
   signal: AbortSignal,
+  factory?: string,
+  routing: NamespaceRouting = APP_NAMESPACE_ROUTING,
 ): Promise<Map<string, string>> {
-  const payload = await getJson<{
-    data?: { mint?: string; ticker?: string; price_source?: string }[];
-  }>("/api/v1/whitelist", signal);
+  const rows = await fetchWhitelistContext(signal, factory, routing);
   const map = new Map<string, string>();
-  for (const row of payload.data ?? []) {
+  for (const row of rows) {
     if (typeof row.mint !== "string" || !row.mint) continue;
     const fromField = typeof row.ticker === "string" ? row.ticker.trim() : "";
     const fromSource =
@@ -224,23 +246,16 @@ export async function fetchMintTickers(
   return map;
 }
 
-/**
- * GET /whitelist — mint → raw price_source map ("mock:tsla", "jupiter:TSLAx",
- * …). This is the honest signal for Jupiter-path availability: `mock:*` mints
- * are repo-issued devnet tokens that Jupiter can NEVER quote, so the Zap USDC
- * tab is disabled instead of letting every leg fail.
- */
+/** Price-source context belongs to the basket's own admission namespace. */
 export async function fetchMintPriceSources(
   signal: AbortSignal,
+  factory: string,
+  routing: NamespaceRouting = APP_NAMESPACE_ROUTING,
 ): Promise<Map<string, string>> {
-  const payload = await getJson<{
-    data?: { mint?: string; price_source?: string | null }[];
-  }>("/api/v1/whitelist", signal);
+  const rows = await fetchWhitelistContext(signal, factory, routing);
   const map = new Map<string, string>();
-  for (const row of payload.data ?? []) {
-    if (typeof row.mint === "string" && typeof row.price_source === "string") {
-      map.set(row.mint, row.price_source);
-    }
+  for (const row of rows) {
+    if (typeof row.mint === "string" && typeof row.price_source === "string") map.set(row.mint, row.price_source);
   }
   return map;
 }

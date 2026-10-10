@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from "react";
 import { useSearchParams } from "next/navigation";
+import Link from "next/link";
 import { PublicKey, type VersionedTransaction } from "@solana/web3.js";
 import { useConnection, useWallet } from "@solana/wallet-adapter-react";
 
@@ -31,6 +32,7 @@ import { signAndSendLocal } from "@/lib/sign-and-send-local";
 import { CLUSTER, RPC_ENDPOINT, describeRpcError } from "@/lib/wallet";
 import { truncateAddress } from "@/lib/format";
 import { onchainBasketDisplay } from "@/lib/onchain-basket-display";
+import { devnetCloneDraft } from "@/lib/devnet-ui-flow";
 import { budgetDeposits, formatTokenUnitsInput, maximumBudget, parseTokenUnits, percentBps, tokenUnits, U64_MAX, weightedSeed } from "./amounts";
 
 type WalletSnapshot = Awaited<ReturnType<typeof readDevnetWallet>>;
@@ -93,7 +95,7 @@ function friendlyError(error: unknown): string {
 }
 
 /** A wallet-signed devnet workspace. No indexer, database, or server signer is required. */
-export default function DevnetWorkspace({ initialMode = "trade" }: { initialMode?: "create" | "trade" }) {
+export default function DevnetWorkspace({ initialMode = "trade", initialBasketAddress, initialTradeMode }: { initialMode?: "create" | "trade"; initialBasketAddress?: string; initialTradeMode?: "mint" | "redeem" }) {
   const { connection } = useConnection();
   const { publicKey, connected, signTransaction } = useWallet();
   const params = useSearchParams();
@@ -109,11 +111,14 @@ export default function DevnetWorkspace({ initialMode = "trade" }: { initialMode
   const [legal, setLegal] = useState(false);
   const [factoryCheck, setFactoryCheck] = useState<{ connection: typeof connection; status: CreateAvailability } | null>(null);
   const factoryCheckGeneration = useRef(0);
-  const [workspaceMode, setWorkspaceMode] = useState<"create" | "trade">(() => params.get("name") ? "create" : initialMode);
-  const [tradeMode, setTradeMode] = useState<"mint" | "redeem">("mint");
+  const [workspaceMode, setWorkspaceMode] = useState<"create" | "trade">(() => initialBasketAddress ? "trade" : params.get("name") ? "create" : initialMode);
+  const [tradeMode, setTradeMode] = useState<"mint" | "redeem">(() => initialTradeMode ?? (params.get("action") === "redeem" ? "redeem" : "mint"));
   const [mintBudget, setMintBudget] = useState("100");
   const [redeemShares, setRedeemShares] = useState("0.1");
-  const [basketAddress, setBasketAddress] = useState(() => params.get("basket") ?? "");
+  const [basketAddress, setBasketAddress] = useState(() => initialBasketAddress ?? params.get("basket") ?? "");
+  const cloneAddress = initialBasketAddress ? null : params.get("clone");
+  const [cloneState, setCloneState] = useState<{ address: string; error: string | null } | null>(null);
+  const [cloneReload, setCloneReload] = useState(0);
   const [selected, setSelected] = useState<RawDevnetSnapshot | null>(null);
   const [baskets, setBaskets] = useState<RawDevnetSnapshot[]>([]);
   const [wallet, setWallet] = useState<WalletSnapshot | null>(null);
@@ -158,6 +163,24 @@ export default function DevnetWorkspace({ initialMode = "trade" }: { initialMode
     void refreshCreateAvailability();
     return () => { factoryCheckGeneration.current += 1; };
   }, [refreshCreateAvailability]);
+
+  useEffect(() => {
+    if (!cloneAddress || !networkCorrect) return;
+    let current = true;
+    setCloneState(null);
+    void readDevnetBasket(connection, cloneAddress).then(snapshot => {
+      const draft = devnetCloneDraft(snapshot.detail);
+      if (!current) return;
+      setName(draft.name); setThesis(draft.thesis); setCoverId(draft.coverId);
+      setWeights(draft.weights); setManagement(draft.management); setLegal(false);
+      setCloneState({ address: cloneAddress, error: null });
+    }).catch(error => {
+      if (current) setCloneState({ address: cloneAddress, error: friendlyError(error) });
+    });
+    return () => { current = false; };
+  }, [cloneAddress, cloneReload, connection, networkCorrect]);
+  const clonePending = !!cloneAddress && cloneState?.address !== cloneAddress;
+  const cloneError = cloneState?.address === cloneAddress ? cloneState.error : null;
 
   const refresh = useCallback(async () => {
     if (!networkCorrect || walletKey !== currentWalletRef.current) return;
@@ -224,7 +247,7 @@ export default function DevnetWorkspace({ initialMode = "trade" }: { initialMode
   const managementBps = percentBps(management);
   const seedRaw = parseTokenUnits(seedBudget, 8);
   const seedAmounts = validWeights && seedRaw !== null ? weightedSeed(seedRaw, parsedWeights as number[]) : null;
-  const validCreate = !!name.trim() && isBasketCoverId(coverId) && validWeights && managementBps !== null && managementBps <= 300 && seedAmounts !== null && seedAmounts.every((amount) => amount > 0n) && legal;
+  const validCreate = !clonePending && !cloneError && !!name.trim() && isBasketCoverId(coverId) && validWeights && managementBps !== null && managementBps <= 300 && seedAmounts !== null && seedAmounts.every((amount) => amount > 0n) && legal;
   const createShortfall = !!wallet && !!seedAmounts && DEVNET_MOCKS.some((mock, i) => BigInt(wallet.walletBalances.find((item) => item.mint === mock.mint)?.rawAmount ?? "0") < seedAmounts[i]);
   const hasSol = wallet !== null && wallet.solBalance >= 5_000_000;
   const canTransact = connected && publicKey !== null && !!signTransaction && networkCorrect && wallet !== null && hasSol && !busy && !loading && !loadingBasket;
@@ -574,22 +597,24 @@ export default function DevnetWorkspace({ initialMode = "trade" }: { initialMode
     {workspaceMode === "create" ? <Card>
       <CardHeader><CardTitle>Create your basket</CardTitle><CardDescription>Set your mix. We prepare everything else.</CardDescription></CardHeader>
       <CardContent>
+        {clonePending ? <p role="status" className="mb-5 text-sm text-muted-foreground">Loading the basket you’re copying…</p> : null}
+        {cloneError ? <div className="mb-5"><Alert>{cloneError}<div className="mt-3 flex flex-wrap gap-2"><Button type="button" variant="outline" className="min-h-10" disabled={busy} onClick={() => setCloneReload(value => value + 1)}>Retry</Button><Button nativeButton={false} variant="outline" className="min-h-10" render={<Link href="/create/onchain" />}>Start a new basket</Button></div></Alert></div> : null}
         {createAvailability !== "ready" ? <div className="mb-5 rounded-xl border border-border bg-muted/20 p-4 text-sm" role="status" data-testid="devnet-create-availability">
           <p>{createAvailability === "checking" ? "Checking whether new devnet baskets are available…" : CREATE_UNAVAILABLE_NOTICE}</p>
           {createAvailability === "unavailable" ? <Button type="button" variant="outline" className="mt-3 min-h-10" onClick={() => void refreshCreateAvailability()} disabled={busy}>Check availability</Button> : null}
         </div> : null}
-        <form onSubmit={(event) => void submitCreate(event)} className="space-y-5" aria-busy={busy}>
-          <Field id="devnet-name" label="Basket name" value={name} onChange={setName} maxLength={64} disabled={busy} />
-          <Field id="devnet-thesis" label="Your thesis" value={thesis} onChange={setThesis} maxLength={400} disabled={busy} />
-          <CoverPicker value={coverId} onChange={setCoverId} disabled={busy} />
+        <form onSubmit={(event) => void submitCreate(event)} className="space-y-5" aria-busy={busy || clonePending}>
+          <Field id="devnet-name" label="Basket name" value={name} onChange={setName} maxLength={64} disabled={busy || clonePending || !!cloneError} />
+          <Field id="devnet-thesis" label="Your thesis" value={thesis} onChange={setThesis} maxLength={400} disabled={busy || clonePending || !!cloneError} />
+          <CoverPicker value={coverId} onChange={setCoverId} disabled={busy || clonePending || !!cloneError} />
           {!coverId && <p className="text-xs text-muted-foreground">Select a basket image to continue.</p>}
-          <fieldset className="space-y-3" disabled={busy}><legend className="pb-2 text-xs font-medium text-muted-foreground">Mix (%)</legend><div className="grid grid-cols-2 gap-3">{DEVNET_MOCKS.map((mock, i) => <Field key={mock.mint} id={`devnet-weight-${i}`} label={mock.symbol} value={weights[i]} decimal decimalPlaces={2} onChange={(value) => setWeights((old) => old.map((weight, index) => index === i ? value : weight))} />)}</div><div className="flex items-center justify-between gap-3 text-xs"><span className={validWeights ? "text-muted-foreground" : "text-destructive"}>{parsedWeights.reduce<number>((sum, weight) => sum + (weight ?? 0), 0) / 100}% total{!validWeights ? " · Use positive weights adding to 100%" : ""}</span><Button type="button" variant="ghost" className="min-h-10" onClick={() => setWeights(["25", "25", "25", "25"])}>Equal weights</Button></div></fieldset>
-          <div className="grid gap-4 sm:grid-cols-2"><Field id="devnet-seed" label="Starting test tokens" value={seedBudget} decimal onChange={setSeedBudget} disabled={busy} hint="Total unscaled tokens, split across your mix." /><Field id="devnet-management" label="Annual management fee (%)" value={management} decimal decimalPlaces={2} onChange={setManagement} disabled={busy} hint="2% recommended · 3% maximum" /></div>
+          <fieldset className="space-y-3" disabled={busy || clonePending || !!cloneError}><legend className="pb-2 text-xs font-medium text-muted-foreground">Mix (%)</legend><div className="grid grid-cols-2 gap-3">{DEVNET_MOCKS.map((mock, i) => <Field key={mock.mint} id={`devnet-weight-${i}`} label={mock.symbol} value={weights[i]} decimal decimalPlaces={2} onChange={(value) => setWeights((old) => old.map((weight, index) => index === i ? value : weight))} />)}</div><div className="flex items-center justify-between gap-3 text-xs"><span className={validWeights ? "text-muted-foreground" : "text-destructive"}>{parsedWeights.reduce<number>((sum, weight) => sum + (weight ?? 0), 0) / 100}% total{!validWeights ? " · Use positive weights adding to 100%" : ""}</span><Button type="button" variant="ghost" className="min-h-10" onClick={() => setWeights(["25", "25", "25", "25"])}>Equal weights</Button></div></fieldset>
+          <div className="grid gap-4 sm:grid-cols-2"><Field id="devnet-seed" label="Starting test tokens" value={seedBudget} decimal onChange={setSeedBudget} disabled={busy || clonePending || !!cloneError} hint="Total unscaled tokens, split across your mix." /><Field id="devnet-management" label="Annual management fee (%)" value={management} decimal decimalPlaces={2} onChange={setManagement} disabled={busy || clonePending || !!cloneError} hint="2% recommended · 3% maximum" /></div>
           {managementBps === null || managementBps > 300 ? <p className="text-xs text-destructive">Choose a fee from 0% to 3%.</p> : null}
           {seedRaw === null || seedRaw <= 0n ? <p className="text-xs text-destructive">Enter a positive starting amount.</p> : null}
           <div className="flex flex-wrap items-center gap-5 rounded-xl bg-muted/20 p-4"><CreatePreviewDonut slices={slices} size={112} /><div className="min-w-0 flex-1 space-y-2 text-xs">{DEVNET_MOCKS.map((mock, i) => <div key={mock.mint} className="flex justify-between gap-3"><span>{mock.symbol}</span><span className="font-mono tabular-nums">{seedAmounts ? `${grouped(tokenUnits(seedAmounts[i], mock.decimals))} unscaled` : "--"}</span></div>)}</div></div>
           <p className="text-xs text-muted-foreground">You receive 1 basket share. Entry and exit fees are 0%.</p>
-          <label className="flex min-h-11 cursor-pointer items-start gap-3 text-xs leading-5"><input type="checkbox" className="mt-1 size-4 accent-primary focus-visible:ring-2 focus-visible:ring-ring" checked={legal} onChange={(event) => setLegal(event.target.checked)} disabled={busy} /><span>I understand this is a test basket. Weights, fees, thesis and image are fixed. Management fees mint shares and dilute holders. LEGAL_REVIEW_REQUIRED.</span></label>
+          <label className="flex min-h-11 cursor-pointer items-start gap-3 text-xs leading-5"><input type="checkbox" className="mt-1 size-4 accent-primary focus-visible:ring-2 focus-visible:ring-ring" checked={legal} onChange={(event) => setLegal(event.target.checked)} disabled={busy || clonePending || !!cloneError} /><span>I understand this is a test basket. Weights, fees, thesis and image are fixed. Management fees mint shares and dilute holders. LEGAL_REVIEW_REQUIRED.</span></label>
           {createShortfall ? <p className="text-xs text-destructive">Get test tokens or lower the starting amount.</p> : null}
           {formError ? <Alert>{formError}</Alert> : null}
           <Button type="submit" className="min-h-11 w-full" disabled={createAvailability !== "ready" || !canTransact || !validCreate || createShortfall} data-testid="devnet-create">{activeAction === "create" && busy ? pipeline.label : "Create basket"}</Button>

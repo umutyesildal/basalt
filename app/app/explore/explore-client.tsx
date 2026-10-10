@@ -12,6 +12,7 @@ import { SkeletonShimmer } from "@/components/ui/skeleton-shimmer";
 import { BasketCard, type BasketCardCompare } from "@/components/cards/basket-card";
 import { prettyTicker, truncateAddress } from "@/lib/format";
 import { apiFetch } from "@/lib/api-client";
+import { fetchMintTickers } from "@/components/basket/basket-api";
 import { categoryOf, compareBasketCategories } from "@/lib/categories";
 import { CLUSTER } from "@/lib/wallet";
 import { cn } from "@/lib/utils";
@@ -364,24 +365,8 @@ export default function ExploreClient() {
 
     async function loadTickers() {
       try {
-        const res = await apiFetch("/api/v1/whitelist", {
-          signal: controller.signal,
-          cache: "no-store",
-          headers: { accept: "application/json" },
-        });
-        if (!res.ok) return;
-        const payload = (await res.json()) as {
-          data?: { mint?: string; ticker?: string; price_source?: string }[];
-        };
-        const map = new Map<string, string>();
-        for (const row of payload.data ?? []) {
-          if (typeof row.mint !== "string" || !row.mint) continue;
-          const fromField = typeof row.ticker === "string" ? row.ticker.trim() : "";
-          const fromSource = typeof row.price_source === "string" ? row.price_source.split(":").pop() ?? "" : "";
-          const ticker = prettyTicker(fromField || fromSource);
-          if (ticker) map.set(row.mint, ticker);
-        }
-        setMintTickers(map);
+        const map = await fetchMintTickers(controller.signal);
+        if (!controller.signal.aborted) setMintTickers(map);
       } catch {
         // composition falls back to metadata name / mint fragments
       }

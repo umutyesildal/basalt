@@ -6,7 +6,7 @@ import { useConnection, useWallet } from "@solana/wallet-adapter-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { WalletButton } from "@/components/shell/wallet-button";
-import { DEVNET_OWNER_SETUP_POLICY as policy, devnetOwnerSetup, type OwnerHandoffPackage, type OwnerSetupState, type OwnerSetupReceipt } from "@/lib/devnet-owner-setup";
+import { DEVNET_OWNER_SETUP_POLICY as policy, devnetOwnerSetup, describeDevnetOwnerSetupError, type OwnerSetupProgress, type OwnerHandoffPackage, type OwnerSetupState, type OwnerSetupReceipt } from "@/lib/devnet-owner-setup";
 
 type Receipts = Partial<Record<"handoff" | "setup", OwnerSetupReceipt>>;
 const storageKey = `basalt:devnet-owner-setup:v1:${policy.owner}`;
@@ -130,10 +130,12 @@ export default function DevnetOwnerSetup() {
     const kind = owned ? "setup" : "handoff";
     if (kind === "handoff" && !handoff || kind === "setup" && !previewCurrent) return;
     inFlight.current = true; setBusy(true); setNotice(null);
+    let stoppedAt: OwnerSetupProgress = "checking";
     const options = {
       wallet: publicKey, signTransaction: (transaction: import("@solana/web3.js").Transaction) => signTransaction(transaction),
       current: () => ({ ...current.current, active: mounted.current }), reviewKey, onPrepared: saveReceipt,
       onProgress: (status: "checking" | "simulating" | "signing" | "confirming") => {
+        stoppedAt = status;
         const labels = { checking: "Checking finalized accounts…", simulating: "Simulating the reviewed transaction…", signing: "Confirm in your owner wallet.", confirming: "Waiting for finalized confirmation…" };
         if (mounted.current) setProgress(labels[status]);
       },
@@ -144,9 +146,9 @@ export default function DevnetOwnerSetup() {
       if (receipt.status === "prepared") setNotice("The transaction is saved for reconciliation. Refresh its status before signing anything else.");
       else if (receipt.status === "failed") setNotice("The transaction finalized with an error. Refresh and review the remaining actions.");
       await refresh();
-    } catch {
+    } catch (error) {
       setAcceptedKey(null);
-      setNotice(receiptRef.current[kind]?.status === "prepared" ? "A transaction may have been submitted. Refresh its saved signature; no automatic resend will occur." : "Setup stopped before broadcast. Refresh and review the current wallet and devnet state.");
+      setNotice(receiptRef.current[kind]?.status === "prepared" ? "A transaction may have been submitted. Refresh its saved signature; no automatic resend will occur." : describeDevnetOwnerSetupError(error, stoppedAt));
     } finally { inFlight.current = false; if (mounted.current) { setBusy(false); setProgress(null); } }
   };
 

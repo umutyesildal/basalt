@@ -54,3 +54,10 @@
 - `defi.emergency_pause`: protocol whitelist pause blocks new minting only; redemption has no policy/oracle/backend pause gate. Underlying issuer powers can still stop a Token-2022 transfer.
 - Current management-fee remainder and raw pro-rata behavior passed current-program runtime tests in newly created baskets. Historic pre-upgrade basket state was preserved, not exercised or reset.
 - Authority remains the existing single devnet key; multisig/timelock rollout and mainnet remain outside this task.
+
+## Debug session, 2026-10-10
+
+- `debug.last_debug_session`: 2026-10-10T12:07:16Z.
+- `debug.current_issue`: owner initialization stops before broadcast after reported wallet signing; finalized singleton/admission accounts remain absent.
+- `debug.evidence`: actual six-instruction unsigned devnet simulation passes; exact submit path reaches the wallet callback; serialized standard-wallet roundtrip regression passes.
+- `debug.status`: cause pending improved sanitized live diagnostics. No automatic economic retry; no setup execution claimed. See `docs/devnet-owner-ui-debug-2026-10-10.md`.

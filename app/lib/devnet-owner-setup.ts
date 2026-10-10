@@ -52,7 +52,22 @@ const DISCS = {
   whitelist: Buffer.from("3a330ca6266d12ff", "hex"), factory: Buffer.from("1dc5ffe81680431a", "hex"), mint: Buffer.from("6883dd77df010112", "hex"),
 };
 const MAX_FEE = 100_000, MAX_SETUP_SPEND = 20_000_000, RESERVE = 1_000_000;
-const fail = (message = "The devnet setup does not match the reviewed public identities."): never => { throw new Error(message); };
+export type OwnerSetupProgress = "checking" | "simulating" | "signing" | "confirming";
+/** Only internally generated public messages may be rendered verbatim. */
+export class DevnetOwnerSetupError extends Error {
+  constructor(message: string) { super(message); this.name = "DevnetOwnerSetupError"; }
+}
+export function describeDevnetOwnerSetupError(error: unknown, stage: OwnerSetupProgress = "checking"): string {
+  if (error instanceof DevnetOwnerSetupError) return error.message;
+  const message = error instanceof Error ? error.message.toLowerCase() : "";
+  if (/blockhash|expired/.test(message)) return "The setup transaction expired before it was sent. Review the current setup to prepare a fresh transaction.";
+  if (/429|rate.?limit/.test(message)) return "Devnet is busy. The setup was not sent. Refresh the finalized status before reviewing again.";
+  if (/reject|declin|cancel|denied/.test(message)) return "The wallet request was declined. The setup was not sent.";
+  if (/network|failed to fetch|timed? out/.test(message)) return "The devnet connection did not respond. The setup was not sent.";
+  const action = { checking: "verifying finalized accounts", simulating: "simulating the transaction", signing: "requesting your wallet signature", confirming: "preparing the broadcast" }[stage];
+  return `Setup stopped while ${action}. Nothing was broadcast. Refresh and review the current setup.`;
+}
+const fail = (message = "The devnet setup does not match the reviewed public identities."): never => { throw new DevnetOwnerSetupError(message); };
 function requireThat(value: unknown, message?: string): asserts value { if (!value) fail(message); }
 const meta = (pubkey: PublicKey, isWritable = false, isSigner = false) => ({ pubkey, isWritable, isSigner });
 const canonical = (value: unknown): PublicKey => {
@@ -65,7 +80,7 @@ const derive = (seed: string, program: PublicKey) => PublicKey.findProgramAddres
 export const ownerProgramData = (program: PublicKey) => PublicKey.findProgramAddressSync([program.toBuffer()], UPGRADEABLE_LOADER)[0];
 async function bounded<T>(promise: Promise<T>): Promise<T> {
   let timer: ReturnType<typeof setTimeout> | undefined;
-  try { return await Promise.race([promise, new Promise<never>((_, reject) => { timer = setTimeout(() => reject(new Error("Devnet verification timed out. Refresh the finalized status.")), 15_000); })]); }
+  try { return await Promise.race([promise, new Promise<never>((_, reject) => { timer = setTimeout(() => reject(new DevnetOwnerSetupError("Devnet verification timed out. Refresh the finalized status.")), 15_000); })]); }
   finally { clearTimeout(timer); }
 }
 function vacant(value: AccountInfo<Buffer> | null) {
@@ -269,6 +284,7 @@ export function createDevnetOwnerSetupClient(policy: Readonly<OwnerSetupPolicy> 
   }
   async function simulate(rpc: OwnerSetupRpc, transaction: Transaction, slot: number, signed: boolean) {
     const result = await bounded(rpc.simulateTransaction(versioned(transaction), { commitment: "finalized", minContextSlot: slot, sigVerify: signed, replaceRecentBlockhash: false }));
+    if (result.value.err === "BlockhashNotFound") fail("The setup transaction expired before it was sent. Review the current setup to prepare a fresh transaction.");
     requireThat(result.value.err === null, "The reviewed devnet transaction did not pass simulation. No transaction was sent.");
   }
   function verifyOwnerSigned(unsigned: Transaction, signed: Transaction, originalMessage: Buffer, originalBootstrap?: Buffer) {
