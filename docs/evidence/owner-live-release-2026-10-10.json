@@ -1,0 +1,107 @@
+{
+  "version": 1,
+  "checkedAt": "2026-10-10T17:39:14.758548+00:00",
+  "sourceSha": "6cacb49f2b1a1fecd7398174c189c9bb65cec895",
+  "publicOrigin": "https://basalt.markets",
+  "createUrl": "https://basalt.markets/create/onchain",
+  "frontend": {
+    "deploymentId": "dpl_Adt1AnMKW2Y1TDsE9mCpicsruaDu",
+    "url": "https://basalt-jil9vknvp-yesildaladams-projects.vercel.app",
+    "readyState": "READY",
+    "sourceSha": "6cacb49f2b1a1fecd7398174c189c9bb65cec895",
+    "liveAliasVerified": true
+  },
+  "backend": {
+    "origin": "https://basalt.178.104.34.252.sslip.io",
+    "sourceSha": "6cacb49f2b1a1fecd7398174c189c9bb65cec895",
+    "imageId": "sha256:73349768e70e6104296ed613e4cffb8233ce38ef5e6828ea9544f41fa7aeca73",
+    "serviceReady": true,
+    "projectionReady": false,
+    "containedDevnetRelease": true,
+    "exactProgramCount": 6,
+    "configAndFourVolumesPreserved": true,
+    "otherServiceContainersUnchanged": true,
+    "stoppedWriterBackupVerified": true
+  },
+  "ci": {
+    "runUrl": "https://github.com/umutyesildal/basalt/actions/runs/38071804667",
+    "allSixSucceeded": true,
+    "backendPassed": 1575,
+    "postgresqlCases": 294,
+    "appNodePassed": 463,
+    "appVitestPassed": 58,
+    "rustNormalPassed": 249,
+    "rustOwnerPassed": 250,
+    "securityPassed": 71
+  },
+  "browser": {
+    "browser": "Chrome",
+    "createModeSelected": true,
+    "factoryCheckCompleted": true,
+    "temporaryUnavailabilityNoticeAbsent": true,
+    "testTokenIdentityVisible": true,
+    "walletWasNotSignedByAgent": true,
+    "freshHumanCreationFlowExecuted": false,
+    "screenshotSha256": "7701a3fed39dfe0e44599a85f04cf6240903ff018d68256f3544bb75d33e28e7",
+    "legacyRedemptionRoute": {
+      "basket": "38VG85nUbemsfKzozHtnr3oaf4VKFdAk1ySPCt4LDM4S",
+      "factory": "CfxquMe4MAPksEEsVyw8XmcxYH5W7qftRWNySgHjLi6e",
+      "url": "https://basalt.markets/basket/38VG85nUbemsfKzozHtnr3oaf4VKFdAk1ySPCt4LDM4S/redeem",
+      "selectedBasketVisible": "First Move",
+      "withdrawModeSelected": true,
+      "shareAmountVisible": "0.1",
+      "feeSummaryVisible": "0% entry \u00b7 0% exit \u00b7 2%/yr management",
+      "walletDisconnectedNoTransactionSent": true,
+      "screenshotSha256": "6313d54273e3894efbe4f83af92921ad1835a1efed4d0980d789a7f239c2ea73"
+    }
+  },
+  "guardedContinuation": {
+    "initialStop": "Missing /opt/basalt/scripts caught before source synchronization or new-image startup",
+    "scriptSha256": "c3fd6e8984a07e1abe915acdc6453c158928934e373930080b7561959d4b58a5",
+    "preparedImageConfigStoppedContainerAndBackupReverified": true,
+    "onlyMissingFixedDirectoryCreated": true,
+    "unmodifiedSourceSyncAndReleaseChecksPassed": true,
+    "originalBackupAndFailureLogsPreserved": true
+  },
+  "limits": {
+    "projectIssuedMocksOnly": true,
+    "mainnetApproved": false,
+    "singleOwnerDevnetGovernance": true,
+    "historicalFinancialRecoveryAutomaticallyActivated": false,
+    "history": {
+      "pendingSignatures": 111,
+      "pendingEvidence": 0,
+      "collectedPendingEffects": 111,
+      "projectionBlockedSignatures": 2,
+      "quarantinedTransactions": 2,
+      "oldestPendingAt": "2026-10-09T13:33:48.165Z",
+      "oldestPendingChainAt": "2026-09-04T16:52:50.000Z",
+      "quarantinedSignatures": 4,
+      "scansPending": 0,
+      "indexedPrograms": 6,
+      "programIds": [
+        "2xvJKG8DTmSZFu1zXpNVP3wvaCCCgGC2ufGGhYjzr4DH",
+        "37UVmx2uysqkKibBcSP5EZMycUeKnWRmnXVpr967juKF",
+        "3hzoPep9JKgTmzLT6CNW5x3EN7WNYDevM6KHVM7pLgMF",
+        "6Q43vFh4aqGxzvtU2vQwJX9PmX3skfYsGWZdA3fwJB9k",
+        "8XPKfAYPaDSvUH95CeyjkgujTXAE5nFBJyFSqZvFvX7T",
+        "FRavMcYQb2FVAHbbG6fGieQHdKk1UrQqgKsAAXTPRQeS"
+      ],
+      "finalizedThroughSlot": "509617801",
+      "missingCoverage": 0,
+      "rebuildRequiredBaskets": 7,
+      "reconciliationWritesEnabled": true,
+      "reconciliationGuarded": true,
+      "automaticActivationEnabled": false,
+      "activatedRecoveryRuns": 0
+    },
+    "currentValuations": 0,
+    "basketCount": 13
+  },
+  "evidenceFiles": [
+    "owner-activation-ci-2026-10-10.json",
+    "owner-backend-rehearsal-2026-10-10.json",
+    "owner-backend-live-release-2026-10-10.json",
+    "owner-live-readiness-2026-10-10.json"
+  ]
+}

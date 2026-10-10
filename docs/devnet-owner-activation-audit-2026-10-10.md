@@ -27,3 +27,10 @@ Frontend deployment must use the same activated registry source. A Git push alon
 ## Prepared activation draft, still gated
 
 A patch based on `da7a9a0ed90dc687b8436fcd5d77eb3d7018bf34` is retained locally at `/private/tmp/basalt-owner-activation-after-proof-da7a9a0.patch`, SHA-256 `d3d7e2e99447a393d8b0b9773736f31e56a233277617bfece4cc40012d47dd34`. It covers the source-controlled owner-plus-legacy registry, exact six-program rollout verifier, explicit closed test fixtures and archival lifecycle execution guard. Its isolated draft validation passed 149 focused tests and app typecheck. It has not been applied, committed or deployed. Owner-signed setup and actual finalized lifecycle proof remain required; full release CI, builds and restore rehearsal follow application. The legacy-trio candidate recovery manifest remains separate from the six-program collection union.
+
+
+## Final live follow-through, 2026-10-10
+
+The separate activation release passed independent review, all six exact-source hosted CI jobs and coherent frontend/backend publication. New creation is owner-only with the approved treasury, while legacy reads and permissionless oracle-free redemption remain available. The initial failed hosted fixture revision was not shipped.
+
+Website and VPS backend are live from `6cacb49f2b1a1fecd7398174c189c9bb65cec895`. [Create on devnet](https://basalt.markets/create/onchain) is the normal user entry point. [Final release, owner setup, completed lifecycle and hosted evidence](devnet-owner-live-activation-2026-10-10.md) supersede earlier pending/disabled checkpoints in this record without deleting their history. The live release uses project-issued mocks; historical financial projection remains guarded, USD values remain unavailable, and no mainnet or fresh human UI creation transaction is claimed.

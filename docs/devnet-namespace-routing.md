@@ -23,3 +23,10 @@ Holdings, finalized current balances and reconciliation partition by canonical f
 ## Activation boundary
 
 The two-namespace tests use isolated synthetic public identities only. They are never added to production registration. Actual clean activation still requires owner-supplied public identities, consistently compiled new Rust/IDL/SBF bindings, source/deployed-byte evidence, approved governance and the real signer ceremony, plus clean and legacy runtime verification. Refer to [the unsigned bootstrap plan](clean-devnet-bootstrap-plan.md). Existing deployment evidence continues to refer to the actual legacy trio; a registry entry alone is not deployment or recovery activation approval.
+
+
+## Final live follow-through, 2026-10-10
+
+The registered runtime now includes the owner and unchanged legacy namespaces. Only the owner namespace permits new creation; each existing basket keeps its authenticated factory/program trio for reads and redemption. Global collection/readiness verifies the exact six-program union, while per-basket snapshots and legacy financial recovery manifests retain their own three-program namespace. No retired treasury bypass or environment-supplied trust root was introduced.
+
+Website and VPS backend are live from `6cacb49f2b1a1fecd7398174c189c9bb65cec895`. [Create on devnet](https://basalt.markets/create/onchain) is the normal user entry point. [Final release, owner setup, completed lifecycle and hosted evidence](devnet-owner-live-activation-2026-10-10.md) supersede earlier pending/disabled checkpoints in this record without deleting their history. The live release uses project-issued mocks; historical financial projection remains guarded, USD values remain unavailable, and no mainnet or fresh human UI creation transaction is claimed.

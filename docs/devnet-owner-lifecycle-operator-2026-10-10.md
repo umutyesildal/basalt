@@ -94,3 +94,10 @@ An ABI regression compares the actual Rust `AccrueFee` field order with the buil
 
 
 Independent review confirmed all five run-02 actual actor signatures, message/wire hashes, finalized transaction effects and 17 current account hashes. Factory count is one. Mint gross shares were 1,000,000,000 raw; entry fee 10,000,000 split 9,000,000/1,000,000; total supply 1,001,000,000 with creator/investor/treasury 10,000,000/990,000,000/1,000,000. Native reserves remain intact. [Independent evidence](./evidence/owner-lifecycle-stopped-proof02-independent-2026-10-10.json). Full app verification after the ABI fix passed 462 Node tests, 57 Vitest tests, concept integrity checks and typecheck. Independent ABI/routing review passed 20 tests with no remaining blocker.
+
+
+## Final live follow-through, 2026-10-10
+
+The bounded operator completed fresh run 03 once, with all 19 transactions finalized and independently audited. Runs 01 and 02 remain stopped and separately reconciled; their economic messages were not replayed. After source-controlled owner activation, the preparation/bootstrap/handoff/lifecycle execution paths reject before RPC, signer access or economic execution. Public-receipt reconciliation remains read-only. Do not rerun or resume the archived lifecycle to test the live UI.
+
+Website and VPS backend are live from `6cacb49f2b1a1fecd7398174c189c9bb65cec895`. [Create on devnet](https://basalt.markets/create/onchain) is the normal user entry point. [Final release, owner setup, completed lifecycle and hosted evidence](devnet-owner-live-activation-2026-10-10.md) supersede earlier pending/disabled checkpoints in this record without deleting their history. The live release uses project-issued mocks; historical financial projection remains guarded, USD values remain unavailable, and no mainnet or fresh human UI creation transaction is claimed.

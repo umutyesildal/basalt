@@ -1,0 +1,17 @@
+{
+  "archiveSha256": "345b344f6a79d19d5a0e6bdb34b7de2f81998c54f30e2939cd154b5227ee4b4d",
+  "backupSha256": "ff417e4cf4f74d531239499cc919fdee7d0804ec40a3245be66b55166b43e402",
+  "candidateQuarantinedRowsSha256": "a2de47127cd310ab9b39b4530890faf3935354d48f3239d45d53a27cd05191e4",
+  "counts": {
+    "pendingSignatures": 116,
+    "programCount": 6,
+    "quarantinedSignatures": 4
+  },
+  "imageId": "sha256:73349768e70e6104296ed613e4cffb8233ce38ef5e6828ea9544f41fa7aeca73",
+  "previousImageId": "sha256:8e7d0ab276307af13ad71d71da78aded59f82d3f249b93f31fd678d17c399f3a",
+  "previousSourceSha": "307053da1310331c658c0401d0107f8405912199",
+  "replayExitCode": 1,
+  "schemaRehearsed": true,
+  "sourceSha": "6cacb49f2b1a1fecd7398174c189c9bb65cec895",
+  "version": 1
+}

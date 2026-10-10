@@ -53,3 +53,10 @@ Source `b5fecf67c10915b0e17e4db1059f3fdd6635a753` passed all six exact-source CI
 ## Genuine initialization finalized, 16:53 UTC
 
 Human owner transaction `5XkjbrtExkx719PoyVsZUxc2AAnDCLma2CvwGGCpCVRe1ETPv7ENFX37wQuq3FGNCvryUuAerosZPkuUfJRfFNhy` finalized at slot `509606852`, with no instruction error. Independent verification authenticated the actual owner signature and exact eight-instruction message, 864-byte packet, 200,000-unit limit, zero compute-unit price, 5,000-lamport fee and 98,956 consumed units. Owner whitelist, factory treasury `TcAg…ANea`, 90/10 split, caps 300/100/300 and all four active fixed mock admissions match. No initialization actions remain. [Public proof](./evidence/owner-initialization-finalized-2026-10-10.json). Chrome displayed “Owner setup verified on devnet.” No further owner setup signature is required.
+
+
+## Final live follow-through, 2026-10-10
+
+The genuine owner-signed setup later finalized with the explicit 200,000 compute-unit limit and zero priority price. This confirms successful delivery after the compatibility fixes; it does not independently prove that Phantom mutation caused every earlier stall. Exact message/signature guards and persistent sanitized diagnostics remain intact.
+
+Website and VPS backend are live from `6cacb49f2b1a1fecd7398174c189c9bb65cec895`. [Create on devnet](https://basalt.markets/create/onchain) is the normal user entry point. [Final release, owner setup, completed lifecycle and hosted evidence](devnet-owner-live-activation-2026-10-10.md) supersede earlier pending/disabled checkpoints in this record without deleting their history. The live release uses project-issued mocks; historical financial projection remains guarded, USD values remain unavailable, and no mainnet or fresh human UI creation transaction is claimed.

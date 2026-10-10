@@ -79,3 +79,10 @@ Source `b075cbea25edcf3e4acbb4b03dc1e77abf535fb4` is live at https://basalt.mark
 Exact source `d137a895071917c4b9389ae8a4f7ef35125b76a5` passed all six CI jobs and is live at https://basalt.markets in Vercel `dpl_56PFB4tLJYW33Rq81yJQg9gjciF9`. The hosted build, pinned deployment metadata and Chrome program verification passed. Backend source remains `307053da1310331c658c0401d0107f8405912199`; read-only SSH inspection confirmed actual image `sha256:8e7d0ab276307af13ad71d71da78aded59f82d3f249b93f31fd678d17c399f3a`, healthy and zero restarts. No backend cutover was performed.
 
 The owner setup screen is prepared for a fresh human signature with strict canonical signed-wire verification. Owner initialization, lifecycle runtime and public creation remain unverified/disabled at this checkpoint. [Exact release evidence](evidence/owner-wallet-wire-live-release-2026-10-10.json).
+
+
+## Final live follow-through, 2026-10-10
+
+Owner setup, all four exact mock admissions and the complete three/four-token lifecycle are now finalized and independently verified. No further owner initialization signature is required. The setup transaction is public in the final release record.
+
+Website and VPS backend are live from `6cacb49f2b1a1fecd7398174c189c9bb65cec895`. [Create on devnet](https://basalt.markets/create/onchain) is the normal user entry point. [Final release, owner setup, completed lifecycle and hosted evidence](devnet-owner-live-activation-2026-10-10.md) supersede earlier pending/disabled checkpoints in this record without deleting their history. The live release uses project-issued mocks; historical financial projection remains guarded, USD values remain unavailable, and no mainnet or fresh human UI creation transaction is claimed.

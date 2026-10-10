@@ -69,3 +69,10 @@ The previously deployed whitelist is intentionally retained. Its private public 
 - `getFeeForMessage`: https://solana.com/docs/rpc/http/getfeeformessage
 - Pinned signature-status RPC explicitly selects the processed bank (lines 1313–1323): https://raw.githubusercontent.com/solana-labs/solana/v1.18.26/rpc/src/rpc.rs
 - Anchor 0.30.1 `generate_create_account` handles prefunded PDA targets with rent top-up, allocate and assign; verified in the locally cached primary crate source at `anchor-syn-0.30.1/src/codegen/accounts/constraints.rs`.
+
+
+## Final live follow-through, 2026-10-10
+
+The genuine owner initialization is finalized and the owner/treasury is `TcAgGWYnr5uVQGRiU67C1ynpH5JDKCmwWaCA6V2ANea`. The 90/10 split, 300/100/300-bps entry/exit/management caps and all four exact active mock admissions were authenticated. Earlier pending authority/setup checkpoints are historical. Single-owner devnet authority is not a multisig or mainnet governance approval.
+
+Website and VPS backend are live from `6cacb49f2b1a1fecd7398174c189c9bb65cec895`. [Create on devnet](https://basalt.markets/create/onchain) is the normal user entry point. [Final release, owner setup, completed lifecycle and hosted evidence](devnet-owner-live-activation-2026-10-10.md) supersede earlier pending/disabled checkpoints in this record without deleting their history. The live release uses project-issued mocks; historical financial projection remains guarded, USD values remain unavailable, and no mainnet or fresh human UI creation transaction is claimed.

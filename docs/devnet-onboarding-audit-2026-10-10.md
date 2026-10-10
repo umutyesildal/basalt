@@ -83,3 +83,10 @@ The actual successful whitelist deployment was then located through public final
 ## Owner wallet tooling boundary
 
 The current `/devnet/setup` page can only submit an owner-signed whitelist claim after an authenticated pending transfer. It cannot deploy the missing programs, initialize the factory for the owner or co-sign checked loader handoffs. The bootstrap operator likewise excludes deployment, owner signatures, loader handoff and activation. Checked loader handoff requires both the current bootstrap and the genuine owner; an address/treasury declaration does not supply that signature. If FactoryConfig must record the owner, prepare a reviewed owner-wallet initializer after its loader handoff rather than silently initializing under bootstrap. This is concrete remaining operational tooling, not another cosmetic Create-tab change.
+
+
+## Final live follow-through, 2026-10-10
+
+Live Chrome now selects Create on devnet, completes the factory check and no longer displays the temporary new-basket unavailability notice. Test-token identity remains visible. The existing legacy First Move withdrawal route also loads with its fee summary; its disconnected-wallet action remains disabled. Neither check sent a wallet transaction. The finalized lifecycle proof used fresh test actors, not a new human UI creation.
+
+Website and VPS backend are live from `6cacb49f2b1a1fecd7398174c189c9bb65cec895`. [Create on devnet](https://basalt.markets/create/onchain) is the normal user entry point. [Final release, owner setup, completed lifecycle and hosted evidence](devnet-owner-live-activation-2026-10-10.md) supersede earlier pending/disabled checkpoints in this record without deleting their history. The live release uses project-issued mocks; historical financial projection remains guarded, USD values remain unavailable, and no mainnet or fresh human UI creation transaction is claimed.

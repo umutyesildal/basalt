@@ -109,3 +109,10 @@ The current faucet claim is 100,000,000,000 raw units per mint; at 8 decimals th
 7. Smoke-test the genuine user wallet's UI flow: claim, create, invest and redeem, preserving wallet consent and immutable basket metadata. New onchain baskets must retain test-token identity even when stock logos/colors decorate the UI.
 
 The proof removes the need to activate public creation merely to test runtime. Genuine owner setup remains the prerequisite; a separate reviewed activation commit is the final application change after finalized proof evidence.
+
+
+## Final live follow-through, 2026-10-10
+
+Fresh run 03 completed all 19 transactions through finalized slot 509611849 on clean proof source `5c9bdb5c8f92226d2eabd2f396315747219f1225`. Three- and four-token create, mint, management accrual and partial/remaining investor redemption passed. Each investor ended with zero shares; creator/treasury shares and backed vault balances remain. Earlier stopped runs are retained, reconciled and never resumed.
+
+Website and VPS backend are live from `6cacb49f2b1a1fecd7398174c189c9bb65cec895`. [Create on devnet](https://basalt.markets/create/onchain) is the normal user entry point. [Final release, owner setup, completed lifecycle and hosted evidence](devnet-owner-live-activation-2026-10-10.md) supersede earlier pending/disabled checkpoints in this record without deleting their history. The live release uses project-issued mocks; historical financial projection remains guarded, USD values remain unavailable, and no mainnet or fresh human UI creation transaction is claimed.

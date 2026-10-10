@@ -1,0 +1,385 @@
+{
+  "version": 1,
+  "mode": "read-only-activation-ci-review",
+  "checkedAt": "2026-10-10T17:32:56.772395+00:00",
+  "sourceSha": "6cacb49f2b1a1fecd7398174c189c9bb65cec895",
+  "runId": "38071804667",
+  "runUrl": "https://github.com/umutyesildal/basalt/actions/runs/38071804667",
+  "status": "completed",
+  "conclusion": "success",
+  "exactSourceVerified": true,
+  "expectedJobCount": 6,
+  "observedJobCount": 6,
+  "allSixSucceeded": true,
+  "jobs": [
+    {
+      "name": "Secret scan",
+      "databaseId": 114270550299,
+      "url": "https://github.com/umutyesildal/basalt/actions/runs/38071804667/job/114270550299",
+      "status": "completed",
+      "conclusion": "success",
+      "startedAt": "2026-10-10T17:27:25Z",
+      "completedAt": "2026-10-10T17:27:54Z",
+      "steps": [
+        {
+          "name": "Run actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "Check historical Solana keypairs and permanent retirement inventory",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "Run gitleaks/gitleaks-action@e0c47f4f8be36e29cdc102c57e68cb5cbf0e8d1e",
+          "status": "completed",
+          "conclusion": "success"
+        }
+      ]
+    },
+    {
+      "name": "Rust workspace",
+      "databaseId": 114270550443,
+      "url": "https://github.com/umutyesildal/basalt/actions/runs/38071804667/job/114270550443",
+      "status": "completed",
+      "conclusion": "success",
+      "startedAt": "2026-10-10T17:27:26Z",
+      "completedAt": "2026-10-10T17:28:59Z",
+      "steps": [
+        {
+          "name": "Run actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "Install Rust toolchain",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "Check formatting",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "Check workspace",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "Run tests",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "Test isolated owner devnet identities",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "Run Clippy",
+          "status": "completed",
+          "conclusion": "success"
+        }
+      ]
+    },
+    {
+      "name": "Backend Node 20 container",
+      "databaseId": 114270550463,
+      "url": "https://github.com/umutyesildal/basalt/actions/runs/38071804667/job/114270550463",
+      "status": "completed",
+      "conclusion": "success",
+      "startedAt": "2026-10-10T17:27:25Z",
+      "completedAt": "2026-10-10T17:27:53Z",
+      "steps": [
+        {
+          "name": "Run actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "Build backend image from restricted repository context",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "Load production dependencies without network or application startup",
+          "status": "completed",
+          "conclusion": "success"
+        }
+      ]
+    },
+    {
+      "name": "Rust dependency reachability gate",
+      "databaseId": 114270550466,
+      "url": "https://github.com/umutyesildal/basalt/actions/runs/38071804667/job/114270550466",
+      "status": "completed",
+      "conclusion": "success",
+      "startedAt": "2026-10-10T17:27:25Z",
+      "completedAt": "2026-10-10T17:29:55Z",
+      "steps": [
+        {
+          "name": "Run actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "Run actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "Install pinned RustSec auditor",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "Block unknown, changed or expired RustSec findings",
+          "status": "completed",
+          "conclusion": "success"
+        }
+      ]
+    },
+    {
+      "name": "Node workspace",
+      "databaseId": 114270550479,
+      "url": "https://github.com/umutyesildal/basalt/actions/runs/38071804667/job/114270550479",
+      "status": "completed",
+      "conclusion": "success",
+      "startedAt": "2026-10-10T17:27:26Z",
+      "completedAt": "2026-10-10T17:31:43Z",
+      "steps": [
+        {
+          "name": "Initialize containers",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "Run actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "Run actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "Clean workspace install",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "Generate deployment manifest",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "Build backend",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "Test backend",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "Test security guards and dependency compatibility",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "Test app",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "Typecheck app",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "Build app",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "Check patch hygiene",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "Stop containers",
+          "status": "completed",
+          "conclusion": "success"
+        }
+      ]
+    },
+    {
+      "name": "Dependency audit",
+      "databaseId": 114270550498,
+      "url": "https://github.com/umutyesildal/basalt/actions/runs/38071804667/job/114270550498",
+      "status": "completed",
+      "conclusion": "success",
+      "startedAt": "2026-10-10T17:27:25Z",
+      "completedAt": "2026-10-10T17:27:37Z",
+      "steps": [
+        {
+          "name": "Run actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "Run actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "Block high workspace advisories",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "Block high app advisories",
+          "status": "completed",
+          "conclusion": "success"
+        },
+        {
+          "name": "Block high backend advisories",
+          "status": "completed",
+          "conclusion": "success"
+        }
+      ]
+    }
+  ],
+  "rustWorkspaceCountsByStep": {
+    "Run tests": {
+      "passed": 249,
+      "failed": 0,
+      "ignored": 0,
+      "resultGroups": 13
+    },
+    "Test isolated owner devnet identities": {
+      "passed": 250,
+      "failed": 0,
+      "ignored": 0,
+      "resultGroups": 13
+    }
+  },
+  "backend": {
+    "vitest": {
+      "files": {
+        "total": 67,
+        "passed": 67,
+        "failed": 0,
+        "skipped": 0
+      },
+      "cases": {
+        "total": 1575,
+        "passed": 1575,
+        "failed": 0,
+        "skipped": 0
+      }
+    },
+    "databaseService": "PostgreSQL 15 configured in exact-source CI; SQL tests executed rather than skipped",
+    "sqlTestFileCounts": [
+      {
+        "file": "tests/indexer-history.sql.test.ts",
+        "tests": 41,
+        "failed": 0
+      },
+      {
+        "file": "tests/position-recovery.sql.test.ts",
+        "tests": 65,
+        "failed": 0
+      },
+      {
+        "file": "tests/basket-returns.sql.test.ts",
+        "tests": 45,
+        "failed": 0
+      },
+      {
+        "file": "tests/position-events.sql.test.ts",
+        "tests": 32,
+        "failed": 0
+      },
+      {
+        "file": "tests/current-balance-snapshot.sql.test.ts",
+        "tests": 27,
+        "failed": 0
+      },
+      {
+        "file": "tests/namespace-state-workers.sql.test.ts",
+        "tests": 18,
+        "failed": 0
+      },
+      {
+        "file": "tests/positions-reconciliation.sql.test.ts",
+        "tests": 26,
+        "failed": 0
+      },
+      {
+        "file": "tests/position-barrier.sql.test.ts",
+        "tests": 10,
+        "failed": 0
+      },
+      {
+        "file": "tests/current-balances.api.sql.test.ts",
+        "tests": 18,
+        "failed": 0
+      },
+      {
+        "file": "tests/namespace-api.sql.test.ts",
+        "tests": 8,
+        "failed": 0
+      },
+      {
+        "file": "tests/basket-shares.sql.test.ts",
+        "tests": 4,
+        "failed": 0
+      }
+    ],
+    "sqlTestCaseTotal": 294
+  },
+  "app": {
+    "nodeRunnerCounts": [
+      {
+        "tests": 463,
+        "pass": 463,
+        "fail": 0,
+        "cancelled": 0,
+        "skipped": 0,
+        "todo": 0
+      }
+    ],
+    "vitest": {
+      "files": {
+        "total": 6,
+        "passed": 6,
+        "failed": 0,
+        "skipped": 0
+      },
+      "cases": {
+        "total": 58,
+        "passed": 58,
+        "failed": 0,
+        "skipped": 0
+      }
+    }
+  },
+  "security": {
+    "nodeRunnerCounts": [
+      {
+        "tests": 71,
+        "pass": 71,
+        "fail": 0,
+        "cancelled": 0,
+        "skipped": 0,
+        "todo": 0
+      }
+    ]
+  },
+  "scope": "Sanitized job/count evidence only. No raw logs, credentials, actor keys, job retries, canonical file edits, deployments or chain writes."
+}

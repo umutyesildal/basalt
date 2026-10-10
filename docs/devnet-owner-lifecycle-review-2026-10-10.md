@@ -76,3 +76,10 @@ Check the exact identity `M * denominator + R_after = S * 200 * d + R`. If the c
 Wrong genesis; changed artifact bytes/slot/padding; bootstrap or mixed loader ownership; missing/pending whitelist authority; altered treasury/split/caps/admissions/mint profile; public creation unexpectedly enabled; legacy routing; missing or aliased actors; stale/existing basket; unsafe nonce; malformed share mint/ATA; wrong raw balances/remainder; stale supply; omitted auto-accrual; exit fee incorrectly minted; wrong ALT coverage/authority/activation; oversized packet; excessive fee/rent/funding; journal failure; changed signed message/signature/lifetime; ambiguous funding, ALT or economic send; processed/finalized context mismatch; secret-bearing report fields.
 
 After finalized proof, public creation activation is a separate reviewed source change with its own tests, coherent frontend/backend deployment and truthful indexer readiness. Passing synthetic tests does not assert that the genuine owner has signed or that any lifecycle transaction has run.
+
+
+## Final live follow-through, 2026-10-10
+
+Independent read-only verification passed all 19 genuine actor signatures, exact messages and instruction arguments, raw/share accounting, fee split/remainder carry, immutable configuration, final accounts and lookup-table coverage. This is actual finalized proof, distinct from unsigned simulation and from a fresh human UI creation flow.
+
+Website and VPS backend are live from `6cacb49f2b1a1fecd7398174c189c9bb65cec895`. [Create on devnet](https://basalt.markets/create/onchain) is the normal user entry point. [Final release, owner setup, completed lifecycle and hosted evidence](devnet-owner-live-activation-2026-10-10.md) supersede earlier pending/disabled checkpoints in this record without deleting their history. The live release uses project-issued mocks; historical financial projection remains guarded, USD values remain unavailable, and no mainnet or fresh human UI creation transaction is claimed.
