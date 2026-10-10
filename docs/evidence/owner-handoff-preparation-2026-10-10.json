@@ -1,0 +1,16 @@
+{
+  "mode": "public-owner-handoff-package-prepared",
+  "buildSourceCommit": "cdc2e8b978470d12335d2186d7eaafdf52abc8a0",
+  "checkoutSourceCommit": "5ed2db1fa6e7b2b77d5bb209e47835b6229c59cd",
+  "programSourceMatches": true,
+  "commitment": "finalized",
+  "contextSlot": 509530087,
+  "sourceCommit": "cdc2e8b978470d12335d2186d7eaafdf52abc8a0",
+  "deploymentProofSha256": "20f8cc46ca59d7b60b8231cbe018672f6ecc6e2bff0325f498f1c85d702f161f",
+  "messageSha256": "ef763c8a45254d8bc9e08cf12e209e07425750879809fbe3eedb7de4a9bb3fbf",
+  "transactionSha256": "0e4c0044ac10ce2f8dfacefa3f6f840cfd395e630f8d68db8e5eacfafb49e4ff",
+  "feeLamports": 10000,
+  "maximumFeeLamports": 100000,
+  "chainWrites": false,
+  "ownerSigned": false
+}
