@@ -1,3 +1,7 @@
+## Current owner setup release, October 10, 2026
+
+Strict signed-wire compatibility is live from `d137a895071917c4b9389ae8a4f7ef35125b76a5` at https://basalt.markets, deployment `dpl_56PFB4tLJYW33Rq81yJQg9gjciF9`, after six CI checks and 68 setup tests. Genuine owner initialization and runtime lifecycle proof are still pending; creation remains disabled. Backend stays unchanged and healthy. [Debug/release record](docs/devnet-owner-ui-debug-2026-10-10.md), [bounded proof operator](docs/devnet-owner-lifecycle-operator-2026-10-10.md), [activation audit](docs/devnet-owner-activation-audit-2026-10-10.md). Earlier checkpoints below are historical.
+
 ## Current owner setup diagnostic, October 10, 2026
 
 Live application `b075cbea25edcf3e4acbb4b03dc1e77abf535fb4`, Vercel `dpl_9as2xcijMATprUxkJKg5BHfCJJbJ`, passed all six CI checks. The actual owner signed initialization, but the client stopped before broadcast at the combined constructor/message-integrity guard. No owner setup transaction is verified. Strict signed-wire compatibility is being investigated; creation remains disabled and backend unchanged. [Diagnostic record](docs/devnet-owner-ui-debug-2026-10-10.md). The bounded lifecycle operator is prepared and independently reviewed, with 32 offline tests; runtime execution awaits genuine complete setup. [Operator](docs/devnet-owner-lifecycle-operator-2026-10-10.md).

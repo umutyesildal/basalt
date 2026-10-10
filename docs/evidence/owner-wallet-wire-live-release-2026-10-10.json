@@ -1,0 +1,42 @@
+{
+  "version": 1,
+  "checkedAt": "2026-10-10T12:33:52.597Z",
+  "sourceCommit": "d137a895071917c4b9389ae8a4f7ef35125b76a5",
+  "deploymentId": "dpl_56PFB4tLJYW33Rq81yJQg9gjciF9",
+  "deploymentUrl": "basalt-95keixmwx-yesildaladams-projects.vercel.app",
+  "liveDomain": "basalt.markets",
+  "state": "READY",
+  "jobs": [
+    {
+      "name": "Backend Node 20 container",
+      "conclusion": "success"
+    },
+    {
+      "name": "Rust dependency reachability gate",
+      "conclusion": "success"
+    },
+    {
+      "name": "Dependency audit",
+      "conclusion": "success"
+    },
+    {
+      "name": "Node workspace",
+      "conclusion": "success"
+    },
+    {
+      "name": "Rust workspace",
+      "conclusion": "success"
+    },
+    {
+      "name": "Secret scan",
+      "conclusion": "success"
+    }
+  ],
+  "setupTests": 68,
+  "backendSourceUnchanged": "307053da1310331c658c0401d0107f8405912199",
+  "backendImage": "sha256:8e7d0ab276307af13ad71d71da78aded59f82d3f249b93f31fd678d17c399f3a",
+  "backendHealth": "healthy",
+  "backendRestarts": 0,
+  "creationEnabled": false,
+  "ownerInitializationVerified": false
+}

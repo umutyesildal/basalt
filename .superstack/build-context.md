@@ -71,3 +71,8 @@ Live b075cbea25edcf3e4acbb4b03dc1e77abf535fb4 passed six CI jobs. Genuine owner 
 ## Owner wallet wire compatibility patch, 2026-10-10
 
 A valid foreign installed web3 constructor reproduces the overly strict instanceof rejection offline. Replace constructor identity with bounded canonical legacy wire parsing, retaining exact message/signatures and all finalized state/budget/recovery guards. 68 setup tests and app typecheck pass; independent review has no blocker. Actual production constructor-only cause and initialization remain unverified until a fresh live owner signature.
+
+
+## Owner wire release live, 2026-10-10
+
+d137a895071917c4b9389ae8a4f7ef35125b76a5 / dpl_56PFB4tLJYW33Rq81yJQg9gjciF9 verified live with all six CI jobs, hosted build and Chrome program verification. Genuine initialization remains pending; no runtime/creation claim. VPS unchanged healthy, actual image sha256:8e7d0ab276307af13ad71d71da78aded59f82d3f249b93f31fd678d17c399f3a.

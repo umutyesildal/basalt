@@ -72,3 +72,10 @@ A read-only unsigned simulation of the actual six owner-setup instructions passe
 ## Live diagnostic observation
 
 Source `b075cbea25edcf3e4acbb4b03dc1e77abf535fb4` is live at https://basalt.markets in Vercel `dpl_9as2xcijMATprUxkJKg5BHfCJJbJ`. All six exact-source CI jobs passed. The actual owner signed again, and Chrome exposed the exact pre-broadcast guard: **The wallet changed the reviewed transaction. Nothing was broadcast.** This combined guard checks both local constructor identity and exact serialized message bytes, so this message alone does not establish that Phantom altered instructions. The next investigation separates cross-constructor wallet return objects from genuine wire-message changes. No changed instructions, compute budgets, fees or blockhash will be silently accepted. Creation is still disabled and the VPS backend is unchanged. See [release evidence](evidence/owner-diagnostics-live-release-2026-10-10.json).
+
+
+## Wire compatibility release live
+
+Exact source `d137a895071917c4b9389ae8a4f7ef35125b76a5` passed all six CI jobs and is live at https://basalt.markets in Vercel `dpl_56PFB4tLJYW33Rq81yJQg9gjciF9`. The hosted build, pinned deployment metadata and Chrome program verification passed. Backend source remains `307053da1310331c658c0401d0107f8405912199`; read-only SSH inspection confirmed actual image `sha256:8e7d0ab276307af13ad71d71da78aded59f82d3f249b93f31fd678d17c399f3a`, healthy and zero restarts. No backend cutover was performed.
+
+The owner setup screen is prepared for a fresh human signature with strict canonical signed-wire verification. Owner initialization, lifecycle runtime and public creation remain unverified/disabled at this checkpoint. [Exact release evidence](evidence/owner-wallet-wire-live-release-2026-10-10.json).
