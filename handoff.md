@@ -1,3 +1,7 @@
+## Current owner setup diagnostic, October 10, 2026
+
+Live application `b075cbea25edcf3e4acbb4b03dc1e77abf535fb4`, Vercel `dpl_9as2xcijMATprUxkJKg5BHfCJJbJ`, passed all six CI checks. The actual owner signed initialization, but the client stopped before broadcast at the combined constructor/message-integrity guard. No owner setup transaction is verified. Strict signed-wire compatibility is being investigated; creation remains disabled and backend unchanged. [Diagnostic record](docs/devnet-owner-ui-debug-2026-10-10.md). The bounded lifecycle operator is prepared and independently reviewed, with 32 offline tests; runtime execution awaits genuine complete setup. [Operator](docs/devnet-owner-lifecycle-operator-2026-10-10.md).
+
 ## Current owner-devnet status, October 10, 2026
 
 The live setup screen is https://basalt.markets/devnet/setup, application source `823126105562247228ec4d90f082367b3e1270f0`, Vercel `dpl_CfZ9bMCppy7dkYPydRKRDYZMvVUG`. All six exact-source CI jobs passed. Three isolated programs are deployed, byte-attested and genuinely accepted by owner `TcAg…ANea` at finalized slot 509531529. Owner-signed initialization and four test-token admissions are still pending; public creation remains disabled until setup and runtime proof pass. No further SOL is needed. Backend is unchanged.

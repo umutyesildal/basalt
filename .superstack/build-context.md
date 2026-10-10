@@ -61,3 +61,8 @@
 - `debug.current_issue`: owner initialization stops before broadcast after reported wallet signing; finalized singleton/admission accounts remain absent.
 - `debug.evidence`: actual six-instruction unsigned devnet simulation passes; exact submit path reaches the wallet callback; serialized standard-wallet roundtrip regression passes.
 - `debug.status`: cause pending improved sanitized live diagnostics. No automatic economic retry; no setup execution claimed. See `docs/devnet-owner-ui-debug-2026-10-10.md`.
+
+
+## Owner setup debug observation, 2026-10-10
+
+Live b075cbea25edcf3e4acbb4b03dc1e77abf535fb4 passed six CI jobs. Genuine owner signing returns before-broadcast constructor/message-integrity failure. Exact wire change versus cross-constructor return remains under investigation. Do not claim initialization, lifecycle or activation complete. Bounded lifecycle operator 2d814cd is committed, reviewed and offline-tested (32 tests); not executed.

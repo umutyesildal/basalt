@@ -67,3 +67,8 @@ At that snapshot the whitelist and factory were still absent and the four admiss
 ## Live program initialization preflight
 
 A read-only unsigned simulation of the actual six owner-setup instructions passed on finalized devnet context 509534003. The deployed programs successfully simulated whitelist initialization, factory initialization and all four exact mock admissions, using 98,656 compute units in an 812-byte transaction. Fresh quoted rent was 7,167,880 lamports and the network fee 5,000 lamports, total 0.007172880 devnet SOL. Signature verification was deliberately disabled for this unsigned preflight; no signature was created, no transaction was broadcast, and no state was persisted onchain. Genuine owner initialization remains pending. [Runtime simulation receipt](evidence/owner-setup-runtime-simulation-2026-10-10.json).
+
+
+## Live diagnostic observation
+
+Source `b075cbea25edcf3e4acbb4b03dc1e77abf535fb4` is live at https://basalt.markets in Vercel `dpl_9as2xcijMATprUxkJKg5BHfCJJbJ`. All six exact-source CI jobs passed. The actual owner signed again, and Chrome exposed the exact pre-broadcast guard: **The wallet changed the reviewed transaction. Nothing was broadcast.** This combined guard checks both local constructor identity and exact serialized message bytes, so this message alone does not establish that Phantom altered instructions. The next investigation separates cross-constructor wallet return objects from genuine wire-message changes. No changed instructions, compute budgets, fees or blockhash will be silently accepted. Creation is still disabled and the VPS backend is unchanged. See [release evidence](evidence/owner-diagnostics-live-release-2026-10-10.json).

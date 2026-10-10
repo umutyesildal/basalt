@@ -9,3 +9,8 @@ A parallel follow-through review fixed public Buy/Redeem for genuine 2–4-token
 Full four-token copying now preserves actual mint-aligned weights, management fee, name/thesis and cover. Unsupported token/entry/exit-fee copies stop visibly. Whitelist context requests explicitly bind the basket factory to its registered namespace and validate the returned namespace identity; mixed Explore/Portfolio labels read the registered union. Seven new flow/API regressions and the existing routing/direct-basket suites passed (44 total). Combined app typecheck passed.
 
 This source update does not prove owner initialization or any owner-namespace basket lifecycle. Creation remains disabled. The owner setup release is recorded separately in [completion](devnet-owner-completion-2026-10-10.md).
+
+
+## Live diagnostic observation
+
+Source `b075cbea25edcf3e4acbb4b03dc1e77abf535fb4` is live at https://basalt.markets in Vercel `dpl_9as2xcijMATprUxkJKg5BHfCJJbJ`. All six exact-source CI jobs passed. The actual owner signed again, and Chrome exposed the exact pre-broadcast guard: **The wallet changed the reviewed transaction. Nothing was broadcast.** This combined guard checks both local constructor identity and exact serialized message bytes, so this message alone does not establish that Phantom altered instructions. The next investigation separates cross-constructor wallet return objects from genuine wire-message changes. No changed instructions, compute budgets, fees or blockhash will be silently accepted. Creation is still disabled and the VPS backend is unchanged. See [release evidence](evidence/owner-diagnostics-live-release-2026-10-10.json).

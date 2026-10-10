@@ -1,0 +1,39 @@
+{
+  "version": 1,
+  "verifiedAt": "2026-10-10T12:24:06.375Z",
+  "sourceCommit": "b075cbea25edcf3e4acbb4b03dc1e77abf535fb4",
+  "deploymentId": "dpl_9as2xcijMATprUxkJKg5BHfCJJbJ",
+  "deploymentUrl": "basalt-2j5p0ytyq-yesildaladams-projects.vercel.app",
+  "liveDomain": "basalt.markets",
+  "state": "READY",
+  "jobs": [
+    {
+      "name": "Node workspace",
+      "conclusion": "success"
+    },
+    {
+      "name": "Dependency audit",
+      "conclusion": "success"
+    },
+    {
+      "name": "Rust dependency reachability gate",
+      "conclusion": "success"
+    },
+    {
+      "name": "Backend Node 20 container",
+      "conclusion": "success"
+    },
+    {
+      "name": "Secret scan",
+      "conclusion": "success"
+    },
+    {
+      "name": "Rust workspace",
+      "conclusion": "success"
+    }
+  ],
+  "backendSourceUnchanged": "307053da1310331c658c0401d0107f8405912199",
+  "creationEnabled": false,
+  "ownerInitializationVerified": false,
+  "observedFailure": "The wallet changed the reviewed transaction. Nothing was broadcast."
+}

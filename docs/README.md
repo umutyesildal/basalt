@@ -1,3 +1,6 @@
+- [Owner setup diagnostics and live release](devnet-owner-ui-debug-2026-10-10.md): observed signing guard and current unresolved boundary.
+- [Bounded lifecycle operator](devnet-owner-lifecycle-operator-2026-10-10.md) and [independent review](devnet-owner-lifecycle-review-2026-10-10.md): prepared source and offline checks, not runtime completion.
+
 - [Funded owner-devnet completion, 2026-10-10](devnet-owner-completion-2026-10-10.md): three byte-attested programs, public wallet handoff, tests and current activation boundary.
 - [Owner handoff review](devnet-owner-handoff-review-2026-10-10.md) and [post-acceptance lifecycle plan](devnet-owner-lifecycle-plan-2026-10-10.md): reviewed signing and the remaining runtime proof before creation activation.
 
