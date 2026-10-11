@@ -1,0 +1,105 @@
+{
+  "checkedAt": "2026-10-11T10:20:59.937314+00:00",
+  "sourceSha": "f8195cf4c386edeeee074ed3dc958b7aa5637b5f",
+  "ci": {
+    "url": "https://github.com/umutyesildal/basalt/actions/runs/38131084770",
+    "status": "success",
+    "jobs": [
+      {
+        "conclusion": "success",
+        "name": "Backend Node 20 container",
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Secret scan",
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Rust dependency reachability gate",
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Rust workspace",
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Dependency audit",
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Node workspace",
+        "status": "completed"
+      }
+    ],
+    "backendTests": 1600,
+    "appNodeTests": 468,
+    "appVitestTests": 58,
+    "securityTests": 71
+  },
+  "frontend": {
+    "deploymentId": "dpl_6kyeUmet1kcEeFmiUsqGzMZF6e1X",
+    "url": "https://basalt-285jwv7i9-yesildaladams-projects.vercel.app",
+    "productionUrl": "https://basalt.markets",
+    "status": "Ready",
+    "promoted": true
+  },
+  "backend": {
+    "origin": "https://basalt.178.104.34.252.sslip.io",
+    "image": "sha256:c8e68274998f6be0f715ebcb50caa3c1d9528838f6bf437f2bca1168874ef810",
+    "serviceReady": true,
+    "projectionReady": false,
+    "basketCount": 15,
+    "currentValuations": 0,
+    "history": {
+      "pendingSignatures": 115,
+      "pendingEvidence": 0,
+      "collectedPendingEffects": 115,
+      "projectionBlockedSignatures": 2,
+      "quarantinedTransactions": 2,
+      "oldestPendingAt": "2026-10-09T13:33:48.165Z",
+      "oldestPendingChainAt": "2026-09-04T16:52:50.000Z",
+      "quarantinedSignatures": 4,
+      "scansPending": 0,
+      "indexedPrograms": 6,
+      "programIds": [
+        "2xvJKG8DTmSZFu1zXpNVP3wvaCCCgGC2ufGGhYjzr4DH",
+        "37UVmx2uysqkKibBcSP5EZMycUeKnWRmnXVpr967juKF",
+        "3hzoPep9JKgTmzLT6CNW5x3EN7WNYDevM6KHVM7pLgMF",
+        "6Q43vFh4aqGxzvtU2vQwJX9PmX3skfYsGWZdA3fwJB9k",
+        "8XPKfAYPaDSvUH95CeyjkgujTXAE5nFBJyFSqZvFvX7T",
+        "FRavMcYQb2FVAHbbG6fGieQHdKk1UrQqgKsAAXTPRQeS"
+      ],
+      "finalizedThroughSlot": "509869311",
+      "missingCoverage": 0,
+      "rebuildRequiredBaskets": 7,
+      "reconciliationWritesEnabled": true,
+      "reconciliationGuarded": true,
+      "automaticActivationEnabled": false,
+      "activatedRecoveryRuns": 0
+    }
+  },
+  "metadata": {
+    "pubkey": "14dbVJmT5Ja9iLnAHETB4N17ukAYMjLsdPDx1hdiCXxx",
+    "creator": "HEEb58k3QhwVqghxWTHwD9HmmjCGrpqapyTfoQH1DuKr",
+    "hash": "0b8213980c923c11153872f7b481bffe547eff9836985c968a9bd3ec2b938194",
+    "originalBytesVerified": true,
+    "name": "Super Duper Big Guys",
+    "description": "These guys are awesome!",
+    "coverId": "home-team",
+    "recoveredFromCreatorBrowser": true,
+    "publicIndependentGetVerified": true
+  },
+  "migration": {
+    "isolatedRestoreBasketCount": 15,
+    "idempotent": true,
+    "chainCommitmentPreserved": true,
+    "privateConfigurationPreserved": true,
+    "onlyBackendRecreated": true
+  },
+  "scope": "Metadata and list refresh only. No new wallet signatures or chain transactions. Historical financial guards remain enabled."
+}
