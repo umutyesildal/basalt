@@ -58,6 +58,9 @@ CREATE TABLE IF NOT EXISTS whitelisted_mints (
 
 -- Admission is namespace-scoped. Global rows above remain legacy/intrinsic
 -- compatibility facts; they never authenticate membership in another namespace.
+-- Exact creator JSON bytes allow SHA-256 verification without JSONB reserialization.
+ALTER TABLE baskets ADD COLUMN IF NOT EXISTS metadata_document TEXT CHECK(octet_length(metadata_document) <= 16384);
+
 CREATE TABLE IF NOT EXISTS namespace_whitelist_state (
   namespace_id TEXT PRIMARY KEY,
   whitelist_program TEXT NOT NULL,

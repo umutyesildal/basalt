@@ -63,9 +63,10 @@ test("ten existing devnet baskets have stable, varied decorative identities only
   const seen = new Set<string>();
   for (const [pubkey, name, coverId] of identities) {
     const display = onchainBasketDisplay(null, pubkey, { devnet: true, assetCount: 4 });
-    assert.equal(display.name, name);
+    assert.ok(display.name.startsWith("Basket "));
+    assert.notEqual(display.name, name);
     assert.equal(display.coverId, coverId);
-    assert.equal(display.thesis, "Four tokens, one simple mix.");
+    assert.equal(display.thesis, null);
     assert.deepEqual(onchainBasketDisplay(null, pubkey, { devnet: true, assetCount: 4 }), display);
     assert.equal(onchainBasketDisplay(null, pubkey, { devnet: false }).coverId, null);
     seen.add(display.coverId!);
@@ -88,20 +89,14 @@ test("unknown future devnet addresses resolve deterministically without named st
   for (let index = 0; index < unknown.length; index += 1) {
     assert.deepEqual(onchainBasketDisplay(null, unknown[index], { devnet: true }), displays[index]);
     assert.ok(BASKET_COVERS.some((cover) => cover.id === displays[index].coverId));
-    assert.equal(displays[index].thesis, "A basket from the community.");
+    assert.equal(displays[index].thesis, null);
   }
 });
 
-test("composition descriptions use only valid actual counts and weights", () => {
-  const describe = (options: Parameters<typeof onchainBasketDisplay>[2]) => onchainBasketDisplay(null, address, { ...options, devnet: true }).thesis;
-  assert.equal(describe({ assetCount: 4, weightsBps: [2500, 2500, 2500, 2500] }), "Four tokens, evenly split.");
-  assert.equal(describe({ assetCount: 3, weightsBps: [4000, 3200, 2800] }), "Three tokens, one simple mix.");
-  assert.equal(describe({ assetCount: 6, weightsBps: [2500, 2000, 1500, 1500, 1250, 1250] }), "Six tokens in one basket.");
-  assert.equal(describe({ assetCount: 4, weightsBps: [4000, 3200, 2800] }), "Four tokens, one simple mix.");
-  assert.equal(describe({ assetCount: 3, weightsBps: [4000, 3200, 2799] }), "Three tokens, one simple mix.");
-  assert.equal(describe({ assetCount: -1, weightsBps: [NaN, Infinity, -1] }), "Three tokens, one simple mix.");
-  assert.equal(describe({ assetCount: 4, weightsBps: [1000, 1000, 1000, 1000] }), "Four tokens, one simple mix.");
-  assert.equal(describe({ assetCount: 20 }), "Twenty tokens in one basket.");
-  assert.equal(describe({ assetCount: NaN }), "A basket from the community.");
-  assert.deepEqual(onchainBasketDisplay(null, address, { assetCount: 4, weightsBps: [2500, 2500, 2500, 2500] }), fallback);
+test("missing creator content is never generated from token counts or weights", () => {
+  for (const assetCount of [2,3,4,6,20,NaN]) {
+    const display=onchainBasketDisplay(null,address,{devnet:true,assetCount,weightsBps:[2500,2500,2500,2500]});
+    assert.equal(display.name,fallback.name);
+    assert.equal(display.thesis,null);
+  }
 });

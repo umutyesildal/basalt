@@ -8,6 +8,7 @@
  * to FreshnessBadge.
  */
 
+import { hydrateBasketMetadata } from "@/lib/basket-metadata";
 import { prettyTicker } from "@/lib/format";
 import { API_BASE, apiFetch } from "@/lib/api-client";
 import { APP_NAMESPACE_ROUTING, type NamespaceRouting } from "@/lib/program-namespaces";
@@ -42,6 +43,7 @@ export interface BasketDetail {
   nonce: Numeric;
   created_at: string;
   metadata_hash?: string | null;
+  metadata_document?: string | null;
   metadata_json?: unknown;
   num_constituents: number;
   constituents: string[];
@@ -134,7 +136,7 @@ export async function fetchBasketDetail(
     `/api/v1/baskets/${encodeURIComponent(pubkey)}`,
     signal,
   );
-  return payload.data;
+  return hydrateBasketMetadata(payload.data);
 }
 
 /** GET /baskets/:pubkey/holdings — raw + multiplier + scaled + decimals. */

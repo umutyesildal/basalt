@@ -46,6 +46,9 @@ interface BasketRow {
   creator?: string | null;
   /** Off-chain name/description JSON from the indexer list feed (backend selects metadata_json). */
   metadata_json?: string | Record<string, unknown> | null;
+  metadata_hash?: string | null;
+  metadata_document?: string | null;
+  created_at?: string;
   /** Mint pubkeys (indexer feed, positional with weights_bps) or richer objects. */
   constituents?: (ConstituentLike | string)[] | null;
   weights_bps?: Numeric[] | null;
@@ -302,7 +305,6 @@ export default function ExploreClient() {
 
   useEffect(() => {
     const controller = new AbortController();
-    setStatus("loading");
     setErrorInfo(null);
 
     async function load() {
@@ -318,10 +320,13 @@ export default function ExploreClient() {
             message: payload?.error?.message ?? `API responded with HTTP ${res.status}`,
             code: payload?.error?.code,
           });
-          setStatus("error");
+          setStatus(previous => previous === "ready" ? previous : "error");
           return;
         }
-        setBaskets(payload.data ?? []);
+        const { hydrateBasketMetadata } = await import("@/lib/basket-metadata");
+        const rows = await Promise.all((payload.data ?? []).map(hydrateBasketMetadata));
+        if (controller.signal.aborted) return;
+        setBaskets(rows);
         setPayloadMeta({ asOf: payload.asOf ?? null });
         setStatus("ready");
       } catch (err) {
@@ -329,7 +334,7 @@ export default function ExploreClient() {
         setErrorInfo({
           message: err instanceof Error ? err.message : "Could not reach the basket API.",
         });
-        setStatus("error");
+        setStatus(previous => previous === "ready" ? previous : "error");
       }
     }
 
@@ -337,11 +342,23 @@ export default function ExploreClient() {
     return () => controller.abort();
   }, [reloadKey]);
 
+  // Refresh only visible pages; background failures retain the last useful list.
+  useEffect(() => {
+    const refresh = () => { if (document.visibilityState === "visible") setReloadKey(key => key + 1); };
+    const timer=window.setInterval(refresh,30_000);
+    window.addEventListener("focus",refresh);
+    window.addEventListener("basalt:baskets-updated",refresh);
+    document.addEventListener("visibilitychange",refresh);
+    return()=>{window.clearInterval(timer);window.removeEventListener("focus",refresh);window.removeEventListener("basalt:baskets-updated",refresh);document.removeEventListener("visibilitychange",refresh);};
+  }, []);
+
+  const creatorWallets = useMemo(() => [...new Set(baskets.map(b => b.creator).filter((wallet): wallet is string => !!wallet))].sort().join(","), [baskets]);
+
   // Optional public profile decoration never blocks the basket list.
   useEffect(() => {
     let active = true;
     const controller = new AbortController();
-    const wallets = [...new Set(baskets.map(b => b.creator).filter((wallet): wallet is string => !!wallet))];
+    const wallets = creatorWallets ? creatorWallets.split(",") : [];
     const timeout = window.setTimeout(() => controller.abort(), 8_000);
     void Promise.allSettled(wallets.map(async wallet => {
       const payload = await fetchProfile(wallet, controller.signal);
@@ -357,7 +374,7 @@ export default function ExploreClient() {
       setCreators(profiles);
     });
     return () => { active = false; window.clearTimeout(timeout); controller.abort(); };
-  }, [baskets]);
+  }, [creatorWallets]);
 
   // Whitelist mint→ticker map for card composition strings — fetched once, optional.
   useEffect(() => {
@@ -656,7 +673,7 @@ export default function ExploreClient() {
                       creatorAvatarUrl={b.creator ? creators.get(b.creator)?.avatarUrl : null}
                       holdings={holdingsOf(b, mintTickers)}
                       assetCount={assetCount}
-                      context={info?.category ?? null}
+                      context={null}
                       tickers={info?.tickers ?? []}
                       quality={parseBasketDataQuality(b.dataQuality, b.quality)}
                       price={sharePriceUsd(b.share_price)}

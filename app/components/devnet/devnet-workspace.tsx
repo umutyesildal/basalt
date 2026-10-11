@@ -1,5 +1,7 @@
 "use client";
 
+import { publishBasketMetadataWithRetry } from "@/lib/basket-metadata";
+
 import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
@@ -475,9 +477,15 @@ export default function DevnetWorkspace({ initialMode = "trade", initialBasketAd
         await checkWallet();
         assertReviewedWallet();
       },
-      describe: { kind: request.kind === "create" ? "create" : request.kind === "redeem" ? "redeem" : "buy", label: request.kind === "claim" ? "test-token claim" : request.kind === "create" ? "basket creation" : request.kind, successLine: request.kind === "create" ? "Basket created on devnet" : request.kind === "claim" ? "Test tokens received" : request.kind === "mint" ? "Basket shares minted" : "Basket shares redeemed", actionHref: "/devnet", actionLabel: "View test baskets" },
+      describe: { kind: request.kind === "create" ? "create" : request.kind === "redeem" ? "redeem" : "buy", label: request.kind === "claim" ? "test-token claim" : request.kind === "create" ? "basket creation" : request.kind, successLine: request.kind === "create" ? "Basket created on devnet" : request.kind === "claim" ? "Test tokens received" : request.kind === "mint" ? "Basket shares minted" : "Basket shares redeemed", actionHref: "/explore#onchain-baskets-title", actionLabel: "View baskets" },
     });
-    if (ok && request.kind === "create") clearDraftNonce(request.draftFingerprint);
+    if (ok && request.kind === "create") {
+      clearDraftNonce(request.draftFingerprint);
+      if(createdAddress) {
+        void publishBasketMetadataWithRetry({pubkey:createdAddress,metadata_hash:Array.from(request.args.metadataHash,byte=>byte.toString(16).padStart(2,"0")).join("")});
+        window.dispatchEvent(new Event("basalt:baskets-updated"));
+      }
+    }
     if (ok && currentWalletRef.current === request.owner) {
       if (createdAddress) {
         selectedAddressRef.current = createdAddress;

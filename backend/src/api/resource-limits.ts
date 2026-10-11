@@ -1,6 +1,6 @@
 import { performance } from "node:perf_hooks";
 
-export type ApiResourceAction = "auth-nonce" | "auth-verify" | "quote" | "share-create" | "share-read";
+export type ApiResourceAction = "auth-nonce" | "auth-verify" | "quote" | "share-create" | "share-read" | "metadata-create";
 export type AuthResourceAction = "auth-nonce" | "auth-verify";
 
 export class ApiResourceLimitError extends Error {
@@ -73,7 +73,7 @@ export class ApiResourceLimits {
     this.maxBasketShareWrites = positiveInteger(options.maxBasketShareWrites ?? 60, "maxBasketShareWrites");
     this.maxConcurrentQuotes = positiveInteger(options.maxConcurrentQuotes ?? 4, "maxConcurrentQuotes");
     this.maxQuoteUpstreamRequests = positiveInteger(options.maxQuoteUpstreamRequests ?? 120, "maxQuoteUpstreamRequests");
-    this.ipLimits = { "auth-nonce": 30, "auth-verify": 60, quote: 30, "share-create": 20, "share-read": 180, ...options.ipLimits };
+    this.ipLimits = { "auth-nonce": 30, "auth-verify": 60, quote: 30, "share-create": 20, "share-read": 180, "metadata-create": 30, ...options.ipLimits };
     this.walletLimits = { "auth-nonce": 5, "auth-verify": 10, ...options.walletLimits };
     for (const [action, limit] of Object.entries(this.ipLimits)) {
       positiveInteger(limit, `ipLimits.${action}`);

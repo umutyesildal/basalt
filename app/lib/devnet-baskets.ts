@@ -1,3 +1,5 @@
+import { rememberBasketMetadata, hydrateBasketMetadata } from "./basket-metadata";
+import { apiFetch } from "./api-client";
 import { Buffer } from "buffer";
 import { PublicKey, type AccountInfo, type Connection } from "@solana/web3.js";
 import {
@@ -368,6 +370,7 @@ export async function saveDevnetBasketMetadata(address: string | PublicKey, json
   if (typeof window === "undefined") fail("Basket metadata can be saved only in this browser.");
   const storageKey = metadataKey(address);
   sessionMetadata.set(storageKey, jsonText);
+  rememberBasketMetadata(new PublicKey(address).toBase58(), jsonText);
   try { window.localStorage.setItem(storageKey, jsonText); } catch { /* Session copy is still verified on read. */ }
 }
 /** Unverified, unavailable and tampered local metadata never supplies a display name. */
@@ -382,6 +385,18 @@ export async function loadDevnetBasketMetadata(address: string | PublicKey, expe
   } catch { return null; }
 }
 async function attachMetadata(snapshot: RawDevnetSnapshot): Promise<RawDevnetSnapshot> {
-  const metadata = await loadDevnetBasketMetadata(snapshot.detail.pubkey, snapshot.detail.metadata_hash ?? "");
-  return { ...snapshot, detail: { ...snapshot.detail, metadata_json: metadata } };
+  const address=snapshot.detail.pubkey;
+  const local=await loadDevnetBasketMetadata(address,snapshot.detail.metadata_hash??"");
+  let remote:{metadata_document?:unknown;metadata_hash?:string}|null=null;
+  // Shared presentation is optional. Direct chain reads and redemption never require the backend.
+  if(!local && typeof window!=="undefined") {
+    const controller=new AbortController(),timeout=setTimeout(()=>controller.abort(),5_000);
+    try {
+      const response=await apiFetch(`/api/v1/baskets/${encodeURIComponent(address)}`,{cache:"no-store",signal:controller.signal});
+      if(response.ok) remote=(await response.json()).data??null;
+    }catch{/* Keep authenticated chain state usable when the backend is unavailable. */}
+    finally{clearTimeout(timeout);}
+  }
+  const detail=await hydrateBasketMetadata({...snapshot.detail,metadata_document:typeof remote?.metadata_document === "string" ? remote.metadata_document : null});
+  return {...snapshot,detail};
 }

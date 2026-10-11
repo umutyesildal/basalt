@@ -37,6 +37,7 @@ import { navEligibilitySql, valuationQuality, currentNavEligibilitySql, position
 import { DEVNET_FLAGSHIP_BASKET, MOCK_XSTOCKS } from "../catalog/mockStocks.js";
 import { handleZapIn, handleZapOut, type QuoteContext } from "./quotes.js";
 import { tryHandleSocialRoute } from "./social.js";
+import { tryHandleBasketMetadataRoute, publicBasketMetadata } from "./basket-metadata.js";
 import { tryHandleBasketShareRoute } from "./basket-shares.js";
 import { socialAuthSecret, isValidWalletPubkey } from "./auth.js";
 import { JsonBodyError, readJsonBody } from "./json-body.js";
@@ -204,7 +205,7 @@ async function resolveDb(ctx: ApiContext): Promise<PgLike | null> {
 
 const BASKETS_LIST_SQL = `
   SELECT b.pubkey, b.creator, b.share_mint,
-         b.constituents, b.weights_bps, b.metadata_json,
+         b.constituents, b.weights_bps, b.metadata_json, b.metadata_hash, b.metadata_document, b.created_at,
          cur.nav::text AS nav, cur.supply::text AS supply,
          cur.share_price::text AS share_price,
          COALESCE(r.mint_count,0) AS mint_count, r.refreshed_at, cur.ts AS nav_as_of, cur.valuation_eligible, cur.valuation_status, vq.status AS current_status, vq.reason AS current_reason, vq.missing_price_mints, ${currentNavEligibilitySql("cur.basket", "cur")} AS current_eligible,
@@ -247,7 +248,7 @@ const BASKETS_LIST_SQL = `
 const BASKETS_LIST_WHERE = `
     WHERE ($1::text IS NULL OR b.creator = $1)
       AND ($2::numeric IS NULL OR (${BASKET_RETURN_CURRENT_SQL} AND cur.nav >= $2::numeric))
-      AND ($3::text IS NULL OR b.pubkey ILIKE '%' || $3 || '%' OR b.creator ILIKE '%' || $3 || '%' OR b.share_mint ILIKE '%' || $3 || '%')`;
+      AND ($3::text IS NULL OR b.pubkey ILIKE '%' || $3 || '%' OR b.creator ILIKE '%' || $3 || '%' OR b.share_mint ILIKE '%' || $3 || '%' OR b.metadata_json->>'name' ILIKE '%' || $3 || '%')`;
 
 /** Static SQL per allowlisted sort. All return fields stay fractional ratios. */
 const BASKETS_LIST_SQL_BY_SORT: Record<SortKey, string> = {
@@ -307,6 +308,7 @@ export async function listBaskets(
     const quality=valuationQuality({...row,ts:row.nav_as_of});
     return {
       ...row,
+      ...publicBasketMetadata(row),
       // Retained historical observations keep their asOf/quality; consumers
       // must not present them as current when eligible is false.
       source:"onchain-indexed",
@@ -332,7 +334,7 @@ export async function basketDetail(db: PgLike, pubkey: string): Promise<{ status
   assertPubkey(pubkey);
   const bRes = await db.query(
     `SELECT pubkey, factory, creator, treasury, share_mint, nonce, created_at,
-            metadata_hash, metadata_json, num_constituents, constituents,
+            metadata_hash, metadata_json, metadata_document, num_constituents, constituents,
             weights_bps, entry_fee_bps, exit_fee_bps, management_fee_bps,
             last_fee_accrual_ts,
             (SELECT status FROM basket_valuation_state WHERE basket=$1) AS current_status,
@@ -368,6 +370,7 @@ export async function basketDetail(db: PgLike, pubkey: string): Promise<{ status
     payload: {
       data: {
         ...basket,
+        ...publicBasketMetadata(basket),
         nav: navRow
           ? {
               value: navRow.nav,
@@ -689,7 +692,7 @@ export async function creatorDetail(db: PgLike, creator: string): Promise<{ stat
     [creator],
   );
   const basketsRes = await db.query(
-    `SELECT b.pubkey, b.share_mint, b.created_at, cur.nav::text AS nav, cur.ts AS nav_as_of,
+    `SELECT b.pubkey, b.share_mint, b.created_at, b.metadata_hash, b.metadata_document, cur.nav::text AS nav, cur.ts AS nav_as_of,
             cur.valuation_eligible, cur.valuation_status, vq.status AS current_status,
             vq.reason AS current_reason, ${currentNavEligibilitySql("cur.basket","cur")} AS current_eligible,
             r.refreshed_at
@@ -721,7 +724,7 @@ export async function creatorDetail(db: PgLike, creator: string): Promise<{ stat
         // Cached creator totals do not establish current valuation provenance.
         stats: stats ? { ...stats, source:"onchain-indexed", asOf:statsAsOf,
           quality:valuationQuality({ts:stats.updated_at,valuation_eligible:false,valuation_status:"aggregate-unverified"}) } : null,
-        baskets: baskets.map((b) => ({ ...b, source:"onchain-indexed", asOf:snapshotTime(b.nav_as_of),
+        baskets: baskets.map((b) => ({ ...b, ...publicBasketMetadata(b), source:"onchain-indexed", asOf:snapshotTime(b.nav_as_of),
           quality:valuationQuality({...b,ts:b.nav_as_of}) })),
         source: "onchain-indexed",
         asOf: observed.length ? new Date(Math.max(...observed)).toISOString() : statsAsOf,
@@ -995,6 +998,8 @@ export function createHandler(ctx: ApiContext = { db: null }) {
       }
       return body;
     };
+
+    if (await tryHandleBasketMetadataRoute({ getDb: () => resolveDb(ctx), limits }, req, res, url)) return;
 
     if (await tryHandleBasketShareRoute({ getDb: () => resolveDb(ctx), limits }, req, res, url)) return;
 
