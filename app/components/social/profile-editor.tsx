@@ -285,7 +285,7 @@ function ProfileEditorSession({
               ) : null}
 
               <div className="flex items-center justify-end gap-2 border-t border-border/60 pt-4">
-                <Button type="button" variant="outline" onClick={close}>
+                <Button type="button" variant="outline" className="min-h-10" onClick={close}>
                   Cancel
                 </Button>
                 <Button type="submit" className="min-h-10" disabled={!canSave}>

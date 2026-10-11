@@ -153,7 +153,7 @@ export function WalletButton({ className }: { className?: string }) {
               {wallet?.adapter.name ?? "Wallet"} · {cluster}
             </span>
           </p>
-          <Link role="menuitem" href={`/creator/${publicKey!.toBase58()}`} onClick={() => setOpen(false)} className={menuButtonClasses}>
+          <Link role="menuitem" href={`/creator/${publicKey!.toBase58()}`} onClick={() => setOpen(false)} className={cn("block", menuButtonClasses)}>
             My profile
           </Link>
           <button role="menuitem" type="button" onClick={handleCopy} className={menuButtonClasses}>

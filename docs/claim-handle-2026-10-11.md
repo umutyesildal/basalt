@@ -20,3 +20,7 @@ Handle claiming remains optional for basket creation, minting and redemption. Ex
 ## Validation
 
 Local app validation: 468 Node tests, 66 Vitest tests (including eight actual React interaction regressions), concept-preview integrity, typecheck and production build passed. Keyboard focus returns to the claim button after Escape. Tests use mocked public reads and wallet authentication, without publishing profiles or signing on behalf of a human. Release and live browser evidence are pending below.
+
+## Hosted browser verification
+
+The first staged artifact from `d3f1a28c9798f06e50c4eba67ccdd44a06bdced4` passed live Chrome checks: the previously broken nudge opens the one-field dialog; the existing profile handle loads without a signing request; Escape restores the nudge; the header opens a body-portaled dialog. A 390 × 844 viewport contains the entire form. A final polish increases the Cancel touch target to forty pixels and makes the wallet-menu profile link occupy the full row. No user profile was modified by the agent. The viewport override is reset after verification. Final exact-source release evidence will follow below.
