@@ -27,4 +27,14 @@ The first staged artifact from `d3f1a28c9798f06e50c4eba67ccdd44a06bdced4` passed
 
 ## Live profile focus follow-up
 
-The `ad00dbe7e4365f7d0296c02ecb877094bef17bf6` artifact was promoted after all six CI jobs passed. Public **My profile** correctly opens the existing registered account. A final public-route check exposed premature dismissal in the full editor during async focus handoff. The dialog now uses explicit dismissal only (Cancel, Close or Escape), preventing incidental focus/outside events from closing an opening form or a wallet-confirmation flow. A ninth React regression exercises a real closed-to-open full-editor transition with deferred profile loading and incidental focus/pointer events. This follow-up must pass exact-source CI and hosted Chrome verification before replacing the live artifact.
+The `ad00dbe7e4365f7d0296c02ecb877094bef17bf6` artifact was promoted after all six CI jobs passed. Public **My profile** correctly opens the existing registered account. A final public-route check exposed premature dismissal in the full editor during async focus handoff. The dialog now uses explicit dismissal only (Cancel, Close or Escape), preventing incidental focus/outside events from closing an opening form or a wallet-confirmation flow. A ninth React regression exercises a real closed-to-open full-editor transition with deferred profile loading and incidental focus/pointer events. This follow-up was prepared for exact-source CI and publication. The owner subsequently requested stopping further interactive checks and publishing the prepared fix; the final release evidence below records that scope.
+
+## Final publication
+
+Frontend runtime source: `b649a4a860e21b974317be2473512d4d07dec170`. Hosted deployment `dpl_DJptq9EDhna2ZWP8dmczANmW88nf` completed its production build and was successfully promoted to https://basalt.markets on 2026-10-11. [Exact-source CI run 38148680487](https://github.com/umutyesildal/basalt/actions/runs/38148680487) completed with all six jobs successful.
+
+Final local app validation includes 468 Node tests and 67 Vitest tests, including nine React interaction regressions. Typecheck and the hosted build passed. The previously recorded staged Chrome checks cover the one-field form and mobile layout; no further interactive browser checks were performed on the final artifact after the owner's stop instruction. Publication is verified by the successful Vercel promotion result. No profile was written and no human wallet signature was performed by the agent.
+
+The VPS backend remains at `f8195cf4c386edeeee074ed3dc958b7aa5637b5f`, image `sha256:c8e68274998f6be0f715ebcb50caa3c1d9528838f6bf437f2bca1168874ef810`. Its existing rollout verifier passed. This release does not change onchain programs, owner setup or basket financial eligibility.
+
+Documentation-only commits following the runtime source record release evidence; they do not require redeploying the runtime artifact. Older checkouts receive only documentation/public evidence mirrors, preserving their code and uncommitted work.

@@ -1,0 +1,59 @@
+{
+  "date": "2026-10-11",
+  "publicOrigin": "https://basalt.markets",
+  "frontend": {
+    "sourceSha": "b649a4a860e21b974317be2473512d4d07dec170",
+    "deploymentId": "dpl_DJptq9EDhna2ZWP8dmczANmW88nf",
+    "deploymentUrl": "https://basalt-fefqf2hy4-yesildaladams-projects.vercel.app",
+    "status": "promoted"
+  },
+  "ci": {
+    "runId": 38148680487,
+    "url": "https://github.com/umutyesildal/basalt/actions/runs/38148680487",
+    "conclusion": "success",
+    "jobs": [
+      {
+        "name": "Rust dependency reachability gate",
+        "conclusion": "success"
+      },
+      {
+        "name": "Node workspace",
+        "conclusion": "success"
+      },
+      {
+        "name": "Secret scan",
+        "conclusion": "success"
+      },
+      {
+        "name": "Rust workspace",
+        "conclusion": "success"
+      },
+      {
+        "name": "Dependency audit",
+        "conclusion": "success"
+      },
+      {
+        "name": "Backend Node 20 container",
+        "conclusion": "success"
+      }
+    ]
+  },
+  "localValidation": {
+    "nodeTests": 468,
+    "vitestTests": 67,
+    "reactInteractionRegressions": 9,
+    "typecheck": "passed"
+  },
+  "backend": {
+    "sourceSha": "f8195cf4c386edeeee074ed3dc958b7aa5637b5f",
+    "image": "sha256:c8e68274998f6be0f715ebcb50caa3c1d9528838f6bf437f2bca1168874ef810",
+    "changed": false,
+    "rolloutVerifier": "passed"
+  },
+  "browserVerification": {
+    "priorStagedArtifacts": "one-field claim, existing profile public read, keyboard dismissal and mobile layout checked",
+    "finalArtifact": "no additional interactive browser checks after owner requested publication"
+  },
+  "humanProfileSignaturePerformedByAgent": false,
+  "agentPublishedProfile": false
+}
