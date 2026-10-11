@@ -1,0 +1,54 @@
+{
+  "verifiedAt": "2026-10-11T10:37:04.456908+00:00",
+  "frontendSource": "042f63b87183db7e09b9b069544cce4dfe38fab0",
+  "backendSource": "f8195cf4c386edeeee074ed3dc958b7aa5637b5f",
+  "deploymentId": "dpl_DU1oaFtFaC3cx72W7vbasHHFoi3y",
+  "deploymentUrl": "https://basalt-5j759b10h-yesildaladams-projects.vercel.app",
+  "productionUrl": "https://basalt.markets/explore",
+  "ciUrl": "https://github.com/umutyesildal/basalt/actions/runs/38132236307",
+  "ci": {
+    "conclusion": "success",
+    "jobs": [
+      {
+        "conclusion": "success",
+        "name": "Rust workspace",
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Backend Node 20 container",
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Rust dependency reachability gate",
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Dependency audit",
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Node workspace",
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "name": "Secret scan",
+        "status": "completed"
+      }
+    ],
+    "status": "completed"
+  },
+  "chrome": {
+    "defaultUnchecked": true,
+    "defaultVisible": 2,
+    "showAllVisible": 15,
+    "uncheckedAgainVisible": 2,
+    "missingCreatorMetadataHidden": true,
+    "originalNamesDescriptionsAndImagesRetained": true
+  },
+  "scope": "Frontend only; no backend, onchain or wallet changes."
+}

@@ -46,3 +46,10 @@ No human wallet transaction, program deployment, token transfer or new owner sig
 The onchain gallery initially shows only baskets with a genuine creator name, nonempty description/thesis and an explicitly selected valid local cover. Address labels and generated placeholder artwork do not count as complete creator metadata. The unchecked **Show all** checkbox reveals incomplete baskets while preserving search, category and sorting filters. Its label is clickable, keyboard focus is visible, and no value is persisted, so a fresh page starts with incomplete records hidden. The sample stock basket gallery remains available above. No backend or onchain changes are required.
 
 Release verification for this follow-up is recorded below after publication.
+
+
+### Show all verified live release
+
+Frontend source `042f63b87183db7e09b9b069544cce4dfe38fab0` is published through production Vercel deployment `dpl_DU1oaFtFaC3cx72W7vbasHHFoi3y`. Backend remains the verified metadata release `f8195cf4c386edeeee074ed3dc958b7aa5637b5f`; this follow-up changes only the gallery UI. All six [exact-source CI jobs](https://github.com/umutyesildal/basalt/actions/runs/38132236307) and the hosted production build passed. TypeScript and 15 focused existing display/cover tests also passed.
+
+Chrome verified the unchecked default shows two complete creator baskets out of 15. Checking **Show all** reveals all 15; unchecking restores the two complete records. Original names, descriptions and selected images remain intact. The final production screenshot shows the checkbox and the default two creator cards. No new wallet transaction or backend deployment occurred. [Public release evidence](show-all-gallery-live-2026-10-11.json).
