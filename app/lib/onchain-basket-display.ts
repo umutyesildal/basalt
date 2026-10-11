@@ -66,3 +66,13 @@ export function onchainBasketDisplay(metadataJson: unknown, pubkey: string, opti
     coverId: isBasketCoverId(metadata?.coverId) ? metadata.coverId : decorative?.coverId ?? null,
   };
 }
+
+/** Only actual creator content counts; generated placeholder art is incomplete. */
+export function hasCompleteBasketMetadata(metadataJson: unknown): boolean {
+  const metadata = metadataRecord(metadataJson);
+  return Boolean(
+    displayText(metadata?.name, 64) &&
+    (displayText(metadata?.description, 400) || displayText(metadata?.thesis, 400)) &&
+    isBasketCoverId(metadata?.coverId)
+  );
+}

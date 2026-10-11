@@ -39,3 +39,10 @@ At `2026-10-11T10:18:04.786Z`, public readiness verified the exact source, datab
 Chrome opened the updated production Baskets page and automatically recovered the original creator browser records. The human basket now shows **Super Duper Big Guys**, **These guys are awesome!**, and cover **home-team**. Another retained creator basket now shows **Super good basket**, **They are super good**. Remaining baskets without original metadata use address labels and no invented thesis. A separate public API GET returned the human basket's exact JSON document, independently rehashed to `0b8213980c923c11153872f7b481bffe547eff9836985c968a9bd3ec2b938194`. The record is now shared by the backend rather than visible only in the creator browser. The live gallery screenshot verified both recovered cards and the absence of the previous generated names/descriptions.
 
 No human wallet transaction, program deployment, token transfer or new owner signature was requested or sent in this release. Browser-local records that have been lost cannot be reconstructed from hashes; retained original records recover when that browser opens the updated list or basket workspace. See [machine-readable public release evidence](basket-metadata-live-2026-10-11.json).
+
+
+## Show all gallery filter, 2026-10-11
+
+The onchain gallery initially shows only baskets with a genuine creator name, nonempty description/thesis and an explicitly selected valid local cover. Address labels and generated placeholder artwork do not count as complete creator metadata. The unchecked **Show all** checkbox reveals incomplete baskets while preserving search, category and sorting filters. Its label is clickable, keyboard focus is visible, and no value is persisted, so a fresh page starts with incomplete records hidden. The sample stock basket gallery remains available above. No backend or onchain changes are required.
+
+Release verification for this follow-up is recorded below after publication.

@@ -17,7 +17,7 @@ import { categoryOf, compareBasketCategories } from "@/lib/categories";
 import { CLUSTER } from "@/lib/wallet";
 import { cn } from "@/lib/utils";
 import { parseBasketDataQuality } from "@/lib/basket-data-quality";
-import { onchainBasketDisplay } from "@/lib/onchain-basket-display";
+import { hasCompleteBasketMetadata, onchainBasketDisplay } from "@/lib/onchain-basket-display";
 import { fetchProfile } from "@/lib/social-api";
 import { ConceptGallery } from "./concept-gallery";
 
@@ -302,6 +302,7 @@ export default function ExploreClient() {
   const [query, setQuery] = useState("");
   const [sortKey, setSortKey] = useState<SortKey>("popular");
   const [category, setCategory] = useState<string>("All");
+  const [showAll, setShowAll] = useState(false);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -475,6 +476,7 @@ export default function ExploreClient() {
   const visible = useMemo(() => {
     const q = query.trim().toLowerCase();
     let rows = baskets.filter((b) => {
+      if (!showAll && !hasCompleteBasketMetadata(b.metadata_json)) return false;
       if (category !== "All" && cardInfoByPubkey.get(b.pubkey)?.category !== category)
         return false;
       if (!q) return true;
@@ -507,7 +509,7 @@ export default function ExploreClient() {
       }
     });
     return rows;
-  }, [baskets, query, sortKey, bench, category, cardInfoByPubkey]);
+  }, [baskets, query, sortKey, bench, category, cardInfoByPubkey, showAll]);
 
   const hasBaskets = baskets.length > 0;
 
@@ -592,6 +594,15 @@ export default function ExploreClient() {
               className="h-9 max-md:h-10 w-full max-w-sm rounded-md border border-border bg-card px-3 text-sm text-foreground outline-none transition-colors placeholder:text-muted-foreground focus:border-ring"
             />
             <div className="flex flex-wrap items-end gap-3">
+              <label className="inline-flex min-h-10 cursor-pointer items-center gap-2 text-sm text-muted-foreground transition-colors hover:text-foreground">
+                <input
+                  type="checkbox"
+                  checked={showAll}
+                  onChange={(event) => setShowAll(event.target.checked)}
+                  className="size-4 cursor-pointer accent-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ring"
+                />
+                Show all
+              </label>
               <div className="flex flex-col gap-1">
                 <label htmlFor="explore-sort" className="text-xs font-medium text-muted-foreground">
                   Sort by
@@ -645,9 +656,9 @@ export default function ExploreClient() {
           {/* Match the stock basket gallery above at every breakpoint. */}
           {visible.length === 0 ? (
             <p className="text-sm text-muted-foreground">
-              {query.trim()
-                ? "No basket matches the current search."
-                : "No baskets in this category yet."}
+              {query.trim() || category !== "All"
+                ? "No baskets match these filters."
+                : "No complete baskets yet. Select Show all to see the rest."}
             </p>
           ) : (
             <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
