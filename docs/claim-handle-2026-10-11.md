@@ -24,3 +24,7 @@ Local app validation: 468 Node tests, 66 Vitest tests (including eight actual Re
 ## Hosted browser verification
 
 The first staged artifact from `d3f1a28c9798f06e50c4eba67ccdd44a06bdced4` passed live Chrome checks: the previously broken nudge opens the one-field dialog; the existing profile handle loads without a signing request; Escape restores the nudge; the header opens a body-portaled dialog. A 390 × 844 viewport contains the entire form. A final polish increases the Cancel touch target to forty pixels and makes the wallet-menu profile link occupy the full row. No user profile was modified by the agent. The viewport override is reset after verification. Final exact-source release evidence will follow below.
+
+## Live profile focus follow-up
+
+The `ad00dbe7e4365f7d0296c02ecb877094bef17bf6` artifact was promoted after all six CI jobs passed. Public **My profile** correctly opens the existing registered account. A final public-route check exposed premature dismissal in the full editor during async focus handoff. The dialog now uses explicit dismissal only (Cancel, Close or Escape), preventing incidental focus/outside events from closing an opening form or a wallet-confirmation flow. A ninth React regression exercises a real closed-to-open full-editor transition with deferred profile loading and incidental focus/pointer events. This follow-up must pass exact-source CI and hosted Chrome verification before replacing the live artifact.

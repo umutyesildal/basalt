@@ -152,7 +152,7 @@ function ProfileEditorSession({
   };
 
   return (
-    <Dialog.Root open={open} onOpenChange={(next) => { if (!next) close(); }} disablePointerDismissal={saving}>
+    <Dialog.Root open={open} onOpenChange={(next) => { if (!next) close(); }} disablePointerDismissal>
       <Dialog.Portal>
         <Dialog.Backdrop className="fixed inset-0 z-50 bg-background/80 backdrop-blur-[2px]" />
         <Dialog.Popup

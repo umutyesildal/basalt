@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import { useState } from "react";
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -133,6 +134,30 @@ describe("handle onboarding interaction", () => {
     fireEvent.keyDown(input, { key: "Escape" });
     await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
     await waitFor(() => expect(document.activeElement).toBe(trigger));
+  });
+
+  it("keeps the full editor open through async loading and focus handoff until explicit dismissal", async () => {
+    let resolveProfile!: (payload: { profile: typeof originalProfile }) => void;
+    mocks.fetchProfile.mockReturnValue(new Promise((resolve) => { resolveProfile = resolve; }));
+    function ProfilePage() {
+      const [open, setOpen] = useState(false);
+      return <><button onClick={() => setOpen(true)}>Edit profile</button><ProfileEditorModal open={open} onClose={() => setOpen(false)} /></>;
+    }
+    render(<ProfilePage />);
+    const trigger = screen.getByRole("button", { name: "Edit profile" });
+    trigger.focus();
+    fireEvent.click(trigger);
+    const dialog = await screen.findByRole("dialog");
+    expect(within(dialog).getByRole("status").textContent).toContain("Loading your profile");
+    fireEvent.focusOut(dialog, { relatedTarget: trigger });
+    fireEvent.pointerDown(trigger);
+    fireEvent.pointerUp(trigger);
+    await act(async () => resolveProfile({ profile: originalProfile }));
+    expect(screen.getByRole("dialog")).toBe(dialog);
+    expect(within(dialog).getByRole("textbox", { name: "Handle" }).getAttribute("value")).toBe("old_handle");
+    expect(mocks.ensureAuth).not.toHaveBeenCalled();
+    fireEvent.click(within(dialog).getByRole("button", { name: "Cancel" }));
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
   });
 
   it("keeps the full editor available and loads it without a signature", async () => {
