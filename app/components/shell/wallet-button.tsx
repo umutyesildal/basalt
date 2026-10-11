@@ -1,5 +1,7 @@
 "use client";
 
+import Link from "next/link";
+
 import { useEffect, useId, useRef, useState } from "react";
 import { useWallet } from "@solana/wallet-adapter-react";
 
@@ -151,6 +153,9 @@ export function WalletButton({ className }: { className?: string }) {
               {wallet?.adapter.name ?? "Wallet"} · {cluster}
             </span>
           </p>
+          <Link role="menuitem" href={`/creator/${publicKey!.toBase58()}`} onClick={() => setOpen(false)} className={menuButtonClasses}>
+            My profile
+          </Link>
           <button role="menuitem" type="button" onClick={handleCopy} className={menuButtonClasses}>
             {copied ? "Address copied" : "Copy address"}
           </button>

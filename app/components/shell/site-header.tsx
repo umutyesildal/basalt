@@ -109,6 +109,7 @@ function ClaimHandleChip() {
           if (wallet) writeHandleClaimed(wallet);
           setOpen(false);
         }}
+        mode="claim"
         title="Claim your handle"
         submitLabel="Claim handle"
       />
@@ -221,7 +222,7 @@ export function SiteHeader() {
             ))}
           </div>
 
-          {onchainRoute && !pathname.startsWith("/devnet") && !pathname.startsWith("/create/onchain") && <ClaimHandleChip />}
+          {!pathname.startsWith("/devnet") && !pathname.startsWith("/create/onchain") && <ClaimHandleChip />}
           {onchainRoute && <NetworkIndicator className="hidden sm:inline-flex" />}
           <WalletButton />
 

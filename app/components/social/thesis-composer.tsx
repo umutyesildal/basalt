@@ -210,6 +210,7 @@ export function ThesisComposerModal({
       <ProfileEditorModal
         open={profileEditorOpen}
         onClose={() => setProfileEditorOpen(false)}
+        mode="claim"
         title="Claim a handle"
         submitLabel="Claim handle"
         onSaved={() => {

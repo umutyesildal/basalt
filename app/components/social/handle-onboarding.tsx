@@ -150,13 +150,14 @@ export function HandleOnboarding() {
     if (wallet) writeHandleDismissed(wallet);
   };
 
-  if (!connected || !wallet || claimed || dismissed || modalOpen) return null;
+  if (!connected || !wallet || claimed || dismissed) return null;
 
   return (
     <>
       {/* max-lg:bottom-20 = lifted above the mobile bottom pill (~76px tall,
           <md only after the wave-4 md:hidden); unchanged at lg+. */}
       <aside
+        hidden={modalOpen}
         aria-label="Claim a handle"
         className="fixed bottom-4 max-lg:bottom-20 right-4 z-40 w-80 max-w-[calc(100vw-2rem)] rounded-xl border border-border bg-card p-4"
       >
@@ -167,7 +168,7 @@ export function HandleOnboarding() {
               Pick your username
             </p>
             <p className="mt-1 text-xs leading-5 text-muted-foreground">
-              Claim a handle so the feed and leaderboard show you properly.
+              Put your name on your baskets.
             </p>
           </div>
           <Button
@@ -194,6 +195,7 @@ export function HandleOnboarding() {
           if (wallet) writeHandleClaimed(wallet);
           setModalOpen(false);
         }}
+        mode="claim"
         title="Claim your handle"
         submitLabel="Claim handle"
       />

@@ -2,9 +2,12 @@
 
 import { useEffect, useRef, useState } from "react";
 
+import { Dialog } from "@base-ui/react/dialog";
+import { useWallet } from "@solana/wallet-adapter-react";
+
 import { Button } from "@/components/ui/button";
 import {
-  fetchMeProfile,
+  fetchProfile,
   putMeProfile,
   SocialApiError,
   type ProfilePatch,
@@ -23,22 +26,35 @@ const HANDLE_RE = /^[a-z0-9_]{3,20}$/;
  * Shared by the profile page ("Edit profile") and the thesis composer's
  * PROFILE_REQUIRED recovery ("Claim a handle first").
  */
-export function ProfileEditorModal({
+type ProfileEditorProps = {
+  open: boolean;
+  onClose: () => void;
+  onSaved?: (profile: SocialProfile) => void;
+  title?: string;
+  submitLabel?: string;
+  mode?: "profile" | "claim";
+};
+
+/** Wallet changes discard the previous wallet's form and pending callbacks. */
+export function ProfileEditorModal(props: ProfileEditorProps) {
+  const { publicKey } = useWallet();
+  return <ProfileEditorSession key={publicKey?.toBase58() ?? "disconnected"} {...props} />;
+}
+
+function ProfileEditorSession({
   open,
   onClose,
   onSaved,
   title = "Edit profile",
   submitLabel = "Save profile",
-}: {
-  open: boolean;
-  onClose: () => void;
-  /** Called with the saved profile after a successful PUT. */
-  onSaved?: (profile: SocialProfile) => void;
-  title?: string;
-  submitLabel?: string;
-}) {
+  mode = "profile",
+}: ProfileEditorProps) {
   const social = useSocialAuth();
-  const panelRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const attemptRef = useRef(0);
+  const [reloadVersion, setReloadVersion] = useState(0);
+  const [savePhase, setSavePhase] = useState("Saving…");
+  const claimOnly = mode === "claim";
 
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -53,67 +69,64 @@ export function ProfileEditorModal({
   const [isPublic, setIsPublic] = useState(true);
   const [hadProfile, setHadProfile] = useState(false);
 
-  // Load the caller's own profile (private fields included) when opened.
+  // Reading a profile is public. Opening this form never asks for a signature.
   useEffect(() => {
-    if (!open) return;
+    if (!open || !social.authWallet) return;
+    const controller = new AbortController();
     let cancelled = false;
+    const timeout = window.setTimeout(() => controller.abort(), 10_000);
     setLoading(true);
     setLoadError(null);
-    (async () => {
-      try {
-        const token = await social.ensureAuth();
-        const payload = await fetchMeProfile(token);
-        if (cancelled) return;
-        const p = payload.profile;
-        setHadProfile(p !== null);
-        setHandle(p?.handle ?? "");
-        setDisplayName(p?.displayName ?? "");
-        setAvatarUrl(p?.avatarUrl ?? "");
-        setBio(p?.bio ?? "");
-        setIsPublic(p?.isPublic ?? true);
-      } catch (err) {
-        if (!cancelled) {
-          setLoadError(
-            err instanceof Error ? err.message : "Could not load your profile.",
-          );
-        }
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    })();
+    setSaveError(null);
+    setHandleTaken(false);
+    fetchProfile(social.authWallet, controller.signal).then(({ profile: p }) => {
+      if (cancelled) return;
+      setHadProfile(p !== null);
+      setHandle(p?.handle ?? "");
+      setDisplayName(p?.displayName ?? "");
+      setAvatarUrl(p?.avatarUrl ?? "");
+      setBio(p?.bio ?? "");
+      setIsPublic(p?.isPublic ?? true);
+    }).catch(() => {
+      if (!cancelled) setLoadError("Could not load your profile. Try again.");
+    }).finally(() => {
+      window.clearTimeout(timeout);
+      if (!cancelled) setLoading(false);
+    });
     return () => {
       cancelled = true;
+      controller.abort();
+      window.clearTimeout(timeout);
+      attemptRef.current++;
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- social.ensureAuth is stable enough for open-toggled loads
-  }, [open]);
+  }, [open, social.authWallet, reloadVersion]);
 
-  // Escape closes; basic focus handoff like TxReviewModal.
   useEffect(() => {
-    if (!open) return;
-    const previous = document.activeElement as HTMLElement | null;
-    panelRef.current?.focus();
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") onClose();
-    };
-    document.addEventListener("keydown", onKeyDown);
-    return () => {
-      document.removeEventListener("keydown", onKeyDown);
-      previous?.focus();
-    };
-  }, [open, onClose]);
+    if (open && !loading && !loadError) inputRef.current?.focus();
+  }, [open, loading, loadError]);
 
-  if (!open) return null;
+  const close = () => {
+    // A late wallet signature after cancellation must not publish a profile.
+    attemptRef.current++;
+    setSaving(false);
+    onClose();
+  };
 
   const handleValid = HANDLE_RE.test(handle);
-  const canSave = handleValid && !saving && !loading;
+  const canSave = handleValid && !saving && !loading && !loadError && social.connected;
 
   const save = async () => {
+    if (!canSave) return;
+    const attempt = ++attemptRef.current;
     setSaving(true);
+    setSavePhase(social.isAuthed ? "Saving…" : "Confirm in your wallet…");
     setSaveError(null);
     setHandleTaken(false);
     try {
       const token = await social.ensureAuth();
-      const patch: ProfilePatch = {
+      if (attempt !== attemptRef.current) return;
+      setSavePhase("Saving…");
+      const patch: ProfilePatch = claimOnly ? { handle } : {
         handle: handle.trim() || null,
         displayName: displayName.trim() || null,
         avatarUrl: avatarUrl.trim() || null,
@@ -121,9 +134,11 @@ export function ProfileEditorModal({
         isPublic,
       };
       const { profile } = await putMeProfile(token, patch);
+      if (attempt !== attemptRef.current) return;
       onSaved?.(profile);
       onClose();
     } catch (err) {
+      if (attempt !== attemptRef.current) return;
       if (err instanceof SocialApiError && err.code === "HANDLE_TAKEN") {
         setHandleTaken(true);
       } else if (err instanceof Error) {
@@ -132,149 +147,156 @@ export function ProfileEditorModal({
         setSaveError("Saving the profile failed.");
       }
     } finally {
-      setSaving(false);
+      if (attempt === attemptRef.current) setSaving(false);
     }
   };
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-end justify-center bg-background/80 p-4 backdrop-blur-[2px] sm:items-center"
-      role="presentation"
-    >
-      <div
-        ref={panelRef}
-        role="dialog"
-        aria-modal="true"
-        aria-label={title}
-        tabIndex={-1}
-        className="max-h-[85vh] w-full max-w-lg overflow-y-auto rounded-xl border border-border bg-card p-5 outline-none"
-      >
-        <div className="flex items-start justify-between gap-3">
-          <div>
-            <h2 className="font-display text-base font-semibold">{title}</h2>
-            <p className="mt-1 text-xs leading-5 text-muted-foreground">
-              {hadProfile
-                ? "Shown on the feed, leaderboard and your profile page."
-                : "Claim a handle to post theses, follow traders and appear on the leaderboard."}
+    <Dialog.Root open={open} onOpenChange={(next) => { if (!next) close(); }} disablePointerDismissal={saving}>
+      <Dialog.Portal>
+        <Dialog.Backdrop className="fixed inset-0 z-50 bg-background/80 backdrop-blur-[2px]" />
+        <Dialog.Popup
+          initialFocus={inputRef}
+          className="fixed left-1/2 top-1/2 z-50 max-h-[85dvh] w-[calc(100%-2rem)] max-w-lg -translate-x-1/2 -translate-y-1/2 overflow-y-auto rounded-xl border border-border bg-card p-6 outline-none"
+        >
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <Dialog.Title className="font-display text-xl font-semibold">{title}</Dialog.Title>
+              <Dialog.Description className="mt-2 text-sm leading-5 text-muted-foreground">
+                {claimOnly ? "A name people can find you by." : hadProfile
+                  ? "Shown on the feed, leaderboard and your profile page."
+                  : "Add a name and a little about yourself."}
+              </Dialog.Description>
+            </div>
+            <Dialog.Close render={<Button variant="ghost" size="icon-sm" aria-label="Close" />}>
+              ×
+            </Dialog.Close>
+          </div>
+
+          {loading ? (
+            <p role="status" className="mt-4 text-sm text-muted-foreground">
+              Loading your profile…
             </p>
-          </div>
-          <Button variant="ghost" size="icon-sm" aria-label="Close" onClick={onClose}>
-            ×
-          </Button>
-        </div>
-
-        {loading ? (
-          <p role="status" className="mt-4 text-sm text-muted-foreground">
-            Loading your profile…
-          </p>
-        ) : loadError ? (
-          <div role="alert" className="mt-4 space-y-2">
-            <p className="text-sm text-foreground">{loadError}</p>
-            <Button variant="outline" size="sm" onClick={() => onClose()}>
-              Close
-            </Button>
-          </div>
-        ) : (
-          <form
-            className="mt-4 space-y-4"
-            onSubmit={(event) => {
-              event.preventDefault();
-              if (canSave) void save();
-            }}
-          >
-            <Field label="Handle" hint="3–20 characters: a-z, 0-9, underscore.">
-              <div className="flex items-center gap-2">
-                <span aria-hidden="true" className="font-mono text-sm text-muted-foreground">
-                  @
-                </span>
-                <input
-                  value={handle}
-                  onChange={(event) => {
-                    setHandle(event.target.value.toLowerCase());
-                    setHandleTaken(false);
-                  }}
-                  placeholder="neon_index"
-                  autoComplete="off"
-                  spellCheck={false}
-                  aria-invalid={handle.length > 0 && !handleValid ? true : undefined}
-                  className="h-9 w-full rounded-lg border border-border bg-background px-2.5 font-mono text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
-                />
-              </div>
-              {handleTaken ? (
-                <p role="alert" className="mt-1 text-xs text-destructive">
-                  That handle is taken — pick another.
-                </p>
-              ) : handle.length > 0 && !handleValid ? (
-                <p className="mt-1 text-xs text-muted-foreground">
-                  Use 3–20 characters from a-z, 0-9 and _.
-                </p>
-              ) : null}
-            </Field>
-
-            <Field label="Display name" hint="Optional — shown instead of the handle.">
-              <input
-                value={displayName}
-                onChange={(event) => setDisplayName(event.target.value)}
-                placeholder="satoshi"
-                maxLength={40}
-                className="h-9 w-full rounded-lg border border-border bg-background px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
-              />
-            </Field>
-
-            <Field label="Avatar URL" hint="Optional https image.">
-              <input
-                value={avatarUrl}
-                onChange={(event) => setAvatarUrl(event.target.value)}
-                placeholder="https://…"
-                type="url"
-                className="h-9 w-full rounded-lg border border-border bg-background px-2.5 font-mono text-xs outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
-              />
-            </Field>
-
-            <Field label="Bio" hint="Optional, ~200 characters.">
-              <textarea
-                value={bio}
-                onChange={(event) => setBio(event.target.value)}
-                maxLength={280}
-                rows={3}
-                className="w-full resize-y rounded-lg border border-border bg-background px-2.5 py-2 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
-              />
-            </Field>
-
-            <label className="flex items-start gap-2.5 rounded-xl border border-border bg-background p-3 text-sm">
-              <input
-                type="checkbox"
-                checked={!isPublic}
-                onChange={(event) => setIsPublic(!event.target.checked)}
-                className="mt-0.5 h-4 w-4 accent-[hsl(var(--primary))]"
-              />
-              <span>
-                Hide my trades from the public feed and leaderboard
-                <span className="mt-0.5 block text-xs leading-5 text-muted-foreground">
-                  Your profile page stays reachable by link; public surfaces stop showing your
-                  activity.
-                </span>
-              </span>
-            </label>
-
-            {saveError ? (
-              <p role="alert" className="text-sm text-foreground">
-                {saveError}
-              </p>
-            ) : null}
-
-            <div className="flex items-center justify-end gap-2 border-t border-border/60 pt-4">
-              <Button type="button" variant="outline" onClick={onClose}>
-                Cancel
-              </Button>
-              <Button type="submit" disabled={!canSave}>
-                {saving ? "Saving…" : submitLabel}
+          ) : loadError ? (
+            <div role="alert" className="mt-4 space-y-2">
+              <p className="text-sm text-foreground">{loadError}</p>
+              <Button variant="outline" size="sm" onClick={() => setReloadVersion((version) => version + 1)}>
+                Try again
               </Button>
             </div>
-          </form>
-        )}
-      </div>
-    </div>
+          ) : (
+            <form
+              className="mt-4 space-y-4"
+              onSubmit={(event) => {
+                event.preventDefault();
+                if (canSave) void save();
+              }}
+            >
+              <Field label="Handle" hint="3 to 20 letters, numbers or underscores.">
+                <div className="flex items-center gap-2">
+                  <span aria-hidden="true" className="font-mono text-sm text-muted-foreground">
+                    @
+                  </span>
+                  <input
+                    ref={inputRef}
+                    aria-label="Handle"
+                    maxLength={20}
+                    autoCapitalize="none"
+                    disabled={saving}
+                    value={handle}
+                    onChange={(event) => {
+                      setHandle(event.target.value.toLowerCase().replace(/^@/, "").trim());
+                      setHandleTaken(false);
+                    }}
+                    placeholder="your_name"
+                    autoComplete="off"
+                    spellCheck={false}
+                    aria-invalid={handle.length > 0 && !handleValid ? true : undefined}
+                    className="h-12 w-full rounded-lg border border-border bg-background px-3 font-mono text-base outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+                  />
+                </div>
+                {handleTaken ? (
+                  <p role="alert" className="mt-1 text-xs text-destructive">
+                    That handle is taken. Try another.
+                  </p>
+                ) : handle.length > 0 && !handleValid ? (
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    Use 3 to 20 letters, numbers or underscores.
+                  </p>
+                ) : null}
+              </Field>
+
+              {!claimOnly && <fieldset disabled={saving} className="space-y-4">
+                <Field label="Display name" hint="Optional. Shown instead of your handle.">
+                  <input
+                    value={displayName}
+                    onChange={(event) => setDisplayName(event.target.value)}
+                    placeholder="satoshi"
+                    maxLength={40}
+                    className="h-9 w-full rounded-lg border border-border bg-background px-2.5 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+                  />
+                </Field>
+
+                <Field label="Avatar URL" hint="Optional https image.">
+                  <input
+                    value={avatarUrl}
+                    onChange={(event) => setAvatarUrl(event.target.value)}
+                    placeholder="https://…"
+                    type="url"
+                    className="h-9 w-full rounded-lg border border-border bg-background px-2.5 font-mono text-xs outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+                  />
+                </Field>
+
+                <Field label="Bio" hint="Optional, ~200 characters.">
+                  <textarea
+                    value={bio}
+                    onChange={(event) => setBio(event.target.value)}
+                    maxLength={280}
+                    rows={3}
+                    className="w-full resize-y rounded-lg border border-border bg-background px-2.5 py-2 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+                  />
+                </Field>
+
+                <label className="flex items-start gap-2.5 rounded-xl border border-border bg-background p-3 text-sm">
+                  <input
+                    type="checkbox"
+                    checked={!isPublic}
+                    onChange={(event) => setIsPublic(!event.target.checked)}
+                    className="mt-0.5 h-4 w-4 accent-[hsl(var(--primary))]"
+                  />
+                  <span>
+                    Hide my trades from the public feed and leaderboard
+                    <span className="mt-0.5 block text-xs leading-5 text-muted-foreground">
+                      Your profile page stays reachable by link; public surfaces stop showing your
+                      activity.
+                    </span>
+                  </span>
+                </label>
+
+              </fieldset>}
+
+              {claimOnly && <p className="text-xs leading-5 text-muted-foreground">Confirm with a wallet signature. No transaction or fee.</p>}
+              {saving && <p role="status" aria-live="polite" className="text-sm text-muted-foreground">{savePhase}</p>}
+
+              {saveError ? (
+                <p role="alert" className="text-sm text-foreground">
+                  {saveError}
+                </p>
+              ) : null}
+
+              <div className="flex items-center justify-end gap-2 border-t border-border/60 pt-4">
+                <Button type="button" variant="outline" onClick={close}>
+                  Cancel
+                </Button>
+                <Button type="submit" className="min-h-10" disabled={!canSave}>
+                  {saving ? savePhase : submitLabel}
+                </Button>
+              </div>
+            </form>
+          )}
+        </Dialog.Popup>
+      </Dialog.Portal>
+    </Dialog.Root>
   );
 }
 
