@@ -1,164 +1,135 @@
-> **Claim handle live, 2026-10-11:** Claim entry points use a one-field dialog, read the existing profile without signing and request authentication only on save. Explicit Cancel, Close or Escape dismisses the form; the connected-wallet menu includes **My profile**. Handle claiming remains optional for basket creation, minting and redemption. Frontend runtime source: `b649a4a860e21b974317be2473512d4d07dec170`; Vercel: `dpl_DJptq9EDhna2ZWP8dmczANmW88nf`; all six exact-source CI jobs passed. Backend remains at `f8195cf4c386edeeee074ed3dc958b7aa5637b5f`. [Implementation and release record](https://github.com/umutyesildal/basalt/blob/main/docs/claim-handle-2026-10-11.md). Continue code/releases only from `/Users/umutyesildal/.codex/worktrees/basket-art-release/createyouretf`; preserve older dirty checkouts. Dated checkpoints below retain their historical meaning.
+# Basalt
 
-> **Show all filter live, 2026-10-11:** The Baskets gallery starts with incomplete creator records hidden. Check **Show all** to include baskets without a genuine name, description/thesis or selected image. Chrome verified 2 complete baskets by default, 15 when checked and 2 again when unchecked. Frontend source `042f63b87183db7e09b9b069544cce4dfe38fab0`; backend remains `f8195cf4c386edeeee074ed3dc958b7aa5637b5f`. All six exact-source CI jobs and the hosted build passed. [Implementation and live evidence](https://github.com/umutyesildal/basalt/blob/main/docs/basket-visibility-diagnosis-2026-10-11.md).
->
-> Continue code and releases only from `/Users/umutyesildal/.codex/worktrees/basket-art-release/createyouretf`. Older dirty checkouts retain their source; dated statuses below are preserved checkpoints.
+**Your stock picks deserve a basket.**
 
-> **Original basket metadata live, 2026-10-11:** Frontend and VPS run `f8195cf4c386edeeee074ed3dc958b7aa5637b5f`. Original creator names, theses and chosen covers are now hash-verified and published for everyone; visible Baskets lists refresh automatically. The human basket is **Super Duper Big Guys**, with **These guys are awesome!** and its original image. Invented onchain names/descriptions are removed. All six exact-source CI jobs passed (backend 1,600; app 468 Node + 58 Vitest; security 71). No new owner signature is needed. Historical financial projection guards remain unchanged. [Implementation and live evidence](https://github.com/umutyesildal/basalt/blob/main/docs/basket-visibility-diagnosis-2026-10-11.md).
->
-> Continue code and releases only from `/Users/umutyesildal/.codex/worktrees/basket-art-release/createyouretf`. Older dirty checkouts retain their source; dated statuses below are preserved checkpoints.
+Basalt lets creators turn a stock-market thesis into a basket people can discover, inspect, and share. Choose the assets, set the allocation, give it a name and a cover, and share the idea. The Solana protocol gives a deployed basket its own share token, backed by the tokens in its vaults.
 
-> **Current live owner-devnet release, 2026-10-10:** Website and VPS backend now run source `6cacb49f2b1a1fecd7398174c189c9bb65cec895`. The genuine owner initialization and independently verified 19-transaction three/four-token lifecycle are complete. New basket creation uses only the approved owner namespace and treasury; legacy baskets retain their read/redemption routes. Start at [Create on devnet](https://basalt.markets/create/onchain). No additional owner setup signature is required. See the [final release, exact identities and public evidence](docs/devnet-owner-live-activation-2026-10-10.md).
+[Explore baskets](https://basalt.markets/explore) · [Build a basket idea](https://basalt.markets/create) · [Try on devnet](https://basalt.markets/create/onchain) · [Follow Basalt](https://x.com/basalt_sol)
 
-> **Current limits:** This is a project-issued mock-token devnet release with single-owner governance. Chrome verified the live Create factory check and the existing legacy withdrawal screen without sending a transaction; no fresh human creation transaction is claimed. At 17:37:59 UTC, finalized discovery covered all six registered programs with zero pending scans or missing coverage, but 111 history signatures, four quarantine rows and seven basket rebuilds remained; USD valuations were unavailable. Historical financial recovery was not automatically activated. Earlier dated pending/disabled/backend-`307053d` statements below are preserved checkpoints, superseded by this release.
+## What you can do today
 
-> **Release checkout:** Continue implementation and releases from `/Users/umutyesildal/.codex/worktrees/basket-art-release/createyouretf`. Older dirty checkouts retain unrelated work and must not be reset or deployed. The [release record](docs/devnet-owner-live-activation-2026-10-10.md#guarded-vps-cutover-and-continuation) documents the stopped-writer backup and guarded manual continuation after a missing directory stopped the initial cutover.
+- **Discover a thesis.** Browse stock-basket ideas, their allocations, and creators.
+- **Build and share.** Create a wallet-free preview with chosen assets, weights, a thesis, and artwork. Share a short link or download a basket poster.
+- **Explore tokenized stocks.** Browse the official Solana xStocks catalog, token quotes, and asset-detail charts. Missing prices remain unavailable.
+- **Try the complete devnet flow.** Connect a wallet, claim project-issued test tokens, create an immutable basket, add tokens to mint shares, and redeem shares for proportional underlying tokens.
+- **Keep your basket identity.** Original creator names, theses, and selected covers are published only when the original document matches the immutable onchain metadata hash. The gallery hides incomplete creator records by default; **Show all** reveals them.
+- **Claim an optional handle.** Open the one-field dialog without signing; authenticate when saving. A handle is optional for creating, minting, or redeeming a basket.
 
-# Basalt — xStocks Strategy Baskets on Solana
+**Release boundary:** The transaction demo runs on Solana devnet with project-issued BSTESTA–D Token-2022 mocks. They have no market value. Official xStocks metadata and quotes are read-only integrations; funded official-xStocks investing and mainnet access are not available. Shared previews do not deploy vaults or earn fees. Model performance for sample ideas is separate from onchain basket returns; unavailable devnet USD values and incomplete historical projections remain guarded.
 
-> **Live devnet release, 2026-10-09:** The data-repair source `d2812bb` is now deployed to the existing website/backend; PR #10 passed all six CI checks and the hosted frozen Vercel build was promoted. Canonical evidence collection is progressing, while historical financial projections remain guarded (initially 108 pending rows/six rebuilds) and mock tokens retain unavailable USD valuations. The isolated three-program SBF build also passed; no program upgrade, authority change or live recovery activation occurred. See [exact deployment, backup, runtime and SBF evidence](docs/devnet-live-release-2026-10-09.md). Earlier pending-release notes below are dated checkpoints.
+## Try it
 
-> **Current devnet data repair, 2026-10-09:** The previous security/readiness website and backend release is already live. The newly tested `codex/devnet-data-repair` source separates canonical fact collection from financial application, bounds shared RPC reads, supports an optional verified holder provider and shows explicit position/price quality. This follow-up rollout and its hosted Vercel build proof remain pending; earlier rollout-pending statements below describe the previous checkpoint. No historical projection activation or chain change is claimed. See [current behavior, tests and remaining release gates](docs/devnet-data-repair-2026-10-09.md).
+### Build a basket idea
 
-> **Backend/devnet security continuation, 2026-10-09:** `codex/backend-devnet-security` implements fail-closed auth/resource controls, canonical event identity, atomic position effects, restart-safe finalized history, authenticated holdings/complete valuations and dependency gates from the 4 October audit. The explicitly approved recovery source now verifies finalized holders, preserves immutable backups and publishes positions atomically; production activation remains an independent operator action. Old records are retained and unresolved values excluded. Live key retirement, governance and rollout remain open. See [implementation, tests, evidence and operator steps](docs/backend-devnet-security-2026-10-09.md).
+Open [Create](https://basalt.markets/create), choose assets, set an allocation totaling 100%, add your thesis and cover, and share the preview. No wallet is required.
 
-> **GitHub and live release, 2026-10-03:** The owner authorized the full latest source checkpoint and updates to the existing Vercel frontend and VPS backend. The release includes the four-mock wallet workspace, production dependency remediation and persistent quote/history storage. Read [the release record](docs/github-live-release-2026-10-03.md) for exact source/deployment identities, backups, final live checks and remaining scoped limitations. Dated local-only notes below describe earlier checkpoints.
+### Create a basket on devnet
 
-> **Current devnet wallet UI, 2026-10-03:** `/devnet` and `/create/onchain` now expose wallet-signed test-token claim, atomic basket creation, in-kind mint and redemption. The same four project-issued eight-decimal Token-2022 mocks, BSTESTA–D, back every new test basket; each basket gets its own share mint. `/create` offers **Try on devnet** and a shared preview offers **Create on devnet**. The funded, once-per-wallet faucet is `2GBfjd9jPKLoqNXdX7GDN9MHRKwzwXbHk65xQVf9HAcf`. Verified basket, supply, vault and wallet reads use direct devnet RPC, without a database or backend signer. [The wallet-flow record](docs/devnet-ui-wallet-flow-2026-10-03.md) links the finalized claim and shipped UI-builder proof: **seven finalized transactions and 20 assertions**. Names and theses are browser-local, verified against the immutable onchain metadata hash. An owner extension-wallet signature was not performed; build and responsive checks are recorded separately. This supersedes earlier redirect-only and incomplete mock-UI statements. Official xStocks, mainnet and Managed V2 release boundaries remain unchanged. Source changes remain local and unpushed.
+1. Open [Create on devnet](https://basalt.markets/create/onchain) or the [wallet workspace](https://basalt.markets/devnet).
+2. Connect Phantom or Solflare on devnet and obtain devnet SOL for transaction fees and account rent.
+3. Choose **Get test tokens** to claim the fixed mock pack once per wallet.
+4. Review the test-token allocation, fees, seed amounts, and disclosures, then sign the basket creation transaction.
+5. Add constituent tokens to mint more basket shares, or redeem shares to withdraw proportional tokens.
 
-> **Current compact catalog and V0 admission update, 2026-10-03:** `/stocks` and `/etfs` use compact quote-only cards, with no per-card charts, 7D figures or history requests; the asset detail keeps its real exact-mint Bklit 7D/1M chart. [Catalog evidence](docs/compact-asset-cards-2026-10-03.md). V0 source now validates Plain, DisplayOnly and the complete observed eight-extension issuer profile through one shared byte validator; inactive hooks, unpaused state, initialized public deposit accounts and fully validated TLVs are required. [Admission decision](docs/xstocks-token-policy-decision-2026-10-03.md), [independent review and harness](docs/xstocks-devnet-basket-proof-2026-10-03.md). This supersedes earlier blanket extension-rejection claims for current V0 source only. Redeem has no new policy gate; issuer pause, freeze, hook and delegate powers remain limitations. Managed V2 and public investing availability are unchanged. **All three current V0 binaries are byte-attested on devnet at finalized slot 506820772; fresh 3/4-asset full-profile mock proof passed (54 transactions, 28 assertions):** [completed runtime record](docs/xstocks-devnet-runtime-2026-10-03.md). These are project-issued mocks, not funded official xStocks; mainnet AAPLx/SPYx fixtures establish parsing compatibility separately. Source changes remain local and unpushed.
+New creation uses the approved owner namespace. Existing legacy baskets retain their read and redemption routes. Owner initialization is complete; visitors do not need to initialize the factory. Governance remains single-owner and devnet-only.
 
-> **Earlier chart and contract follow-up, 2026-10-03; catalog and admission scope superseded above:** At that revision, Stocks/ETF cards and asset details used real exact-mint Solana history with historical issuer multipliers, 7D/1M windows and Bklit plots. Visible market/cache labels and the price-source wall are removed; internal NYSE spot-refresh gating remains. Read [the chart record](docs/xstocks-charts-2026-10-03.md) and [contract compatibility audit](docs/xstocks-contract-compatibility-2026-10-03.md). The pre-change source rejected official xStocks extensions; historical devnet mock success did not attest that source. The current admission decision and runtime record above govern the later change. Final validation: 779 backend tests (18 DB skips), 39 frontend checks, 214 Rust library tests and both builds. This work remains local.
+The [owner lifecycle record](docs/devnet-owner-live-activation-2026-10-10.md) contains the independently verified 19-transaction proof for three- and four-token baskets. It establishes mock-token contract behavior, not issuer-backed investing or returns.
 
-> **Current Create and price-cache follow-up, 2026-10-03:** Create opens directly on asset selection; fresh drafts recommend 2% annual management fees and sharing gives one-time success feedback. Public token quotes retain last-good provenance in a persisted cache. Refresh cadence is five minutes for the catalog and one minute for viewed assets, **only during the owner-selected NYSE cash session**. Outside it, retain last-known quotes internally and pause spot polling; the current UI omits market/cache labels. Read [the decisions, coverage and validation](docs/create-price-cache-2026-10-03.md). This work remains local; the prior landing push is `7a16c18`.
+## How the protocol works
 
-> **Current data integration, 2026-10-03:** Official Solana xStocks discovery now covers 1,271 issuer assets, with 69 verified ETF classifications and nullable Jupiter V3 token quotes. Read [the implementation and validation record](docs/xstocks-integration-2026-10-03.md) for metadata/price provenance, scaled units, mint-bearing shared links and remaining release gates. Landing commit `7a16c18` is pushed; these xStocks changes remain local. Public read-only data does not enable investing or whitelist admission.
-
-> **Latest landing revision, 2026-10-03, source and build verified:** Keep the calm stock-basket hero and four featured cards; use **Or create one that fits your needs.** Remove the home status and home-only methodology/source note, retaining card **Model price** labels. Gallery → six benefits → `#build` creator/fee visual → `#how-it-works` investor/manager journeys. The accepted landing revision was subsequently pushed as `7a16c18` to `origin/main`. Read [the landing scope](docs/landing-journeys-2026-10-03.md) and [3 October session](docs/session-updates-2026-10-03.md). The production build and recorded responsive/role checks passed; earlier records retain their dated scope.
-
-> **Previous accepted restoration, 2026-10-02; composition superseded by the 3 October scope:** The calm centered hero is restored: **“Find a stock basket / you believe in.”** The **Different takes.** gallery follows immediately. **Good stock picks can come from anyone.**, conditional future management fees and the annual-cap/90/10 fee-share visual now sit in the lower `#build` section. This supersedes the fee-first hero below. All ten unique covers and the Create catalog, weight-removal, focus and grouped-input improvements remain. Read [the final hero restoration](docs/home-hero-restoration-2026-10-02.md) and [cover refresh](docs/basket-cover-refresh-2026-10-02.md) for the final passing build, responsive browser checks and durable screenshots. The earlier 38-test run was not rerun; public investing and fee revenue remain unavailable.
-
-> **Previous fee-first interpretation, superseded for hero/layout, 2026-10-02:** At that revision, the opening said **“Create stock baskets. Earn management fees.”** and places the annual-rate cap and 90/10 fee-share visual beside the hero copy. The adjacent status states that investing and fees remain in development. The lower “Good stock picks” invitation stays compact. Public Create exposes all 41 catalog assets with an end-aware clickable fade, supports weight-row removal with exact positive 10,000-bps redistribution and a two-stock progression guard, and preserves focus and grouped amount editing. USD/count/percentage displays use shared comma grouping. Read [the current home/Create audit](docs/home-create-feedback-2026-10-02.md) for the five requests, precise fee meaning, final 38-test/build evidence and browser checks. That hero placement is superseded by the final owner correction above; the Create improvements and their dated verification remain valid.
-
-> **2026-10-02 performance update:** Model prices, seven-day returns and a ten-basket leaderboard now connect the public discovery flow. The broader audit also fixes indexed return calculations and Create usability. Read [the current audit and evidence](docs/product-performance-audit-2026-10-02.md). This is local uncommitted work; investing availability is unchanged.
-
-> **Previous visual-creation handoff, superseded by the owner-feedback audit, 2026-10-02:** The landing uses a calm hero and four named basket cards, followed by one visual creator invitation: stock picks become a basket others can back, with a compact future management-fee split and a direct create CTA. The repeated text steps and final CTA block are removed; xStocks and fee details remain in native disclosures. Native vertical scrolling replaces the earlier three full-screen demos. Feed pairs short viewpoints with visual basket cards; Managers pairs people with their baskets. Start with the [current design audit](docs/design-home-visual-creation-2026-10-02.md) and [session record](docs/session-updates-2026-10-02.md). Public Create shares basket ideas; investing remains in development. The visual follow-up passed production build, TypeScript and responsive browser checks; exact fee-chart geometry and screenshots are recorded in the audit. This is a working-tree UI update, not a new chain deployment.
-
-> **2026-09-25 handoff:** Managed Basket V2 code is merged into canonical `main` (`3eeb7be`). `/managed` is a simulated public explainer; `/managed/lab` is a loopback localnet transaction prototype. V2 is not publicly deployed, and creator fees, live xStocks, and extension-wallet signing remain unverified or unimplemented. Start with `AGENTS.md` and `handoff.md`, then `docs/managed-basket-v2-prototype-status.md` and `docs/managed-basket-v2-wallet-lab.md`. Earlier test counts below are dated V0/concept snapshots.
-
-> "Build your basket idea. Share your thesis." A wallet-free basket builder and discovery experience.
-> V0 spec: `docs/basalt-v0-spec.md` (normative product constraints). Documentation map: `docs/README.md`. Current backlog: `docs/implementation-backlog.md`. Brand: `brand.md`.
-> Current state: **The public first-run flow builds and shares a wallet-free basket idea, with an optional real devnet test.** `/devnet` and `/create/onchain` connect a wallet, claim the fixed BSTESTA–D mock pack, create a separately tokenized basket, mint additional shares and redeem through direct RPC. These are project-issued test assets with no market value; official xStocks investing and mainnet access remain unavailable. [The devnet wallet-flow record](docs/devnet-ui-wallet-flow-2026-10-03.md) distinguishes finalized UI-builder proof from browser and extension-wallet verification. The dated 2026-09-19 verification snapshot recorded 208 Rust + 596 backend tests and a 21-route build; the 2026-09-24 concept release built 23 routes and passed its app typecheck and concept integrity test. A 2026-09-19 RPC audit confirms that program upgrade and whitelist authorities remain one wallet; no multisig or time lock is active. Full snapshot: `docs/current-state-2026-09-18.md`; governance evidence: `docs/devnet-governance-audit-2026-09-19.md`.
-> **Won: Superteam Germany "Road to Colosseum" Ideathon (2026-09-14)** — top-10 of 38 submissions, $3k USDG pool. Submission: `docs/ideathon-submission-2026-09.md`. Live demo: https://basalt-coral.vercel.app/explore. Current implementation order: `docs/implementation-backlog.md`.
-
-## Try the devnet wallet flow
-
-Run the frontend with `NEXT_PUBLIC_CLUSTER=devnet` and a devnet RPC, then open `/devnet` or `/create/onchain`. Connect Phantom or Solflare, add devnet SOL for fees and account rent, and choose **Get test tokens** once per wallet. Set four positive allocations totaling 100%, create your test basket, then mint or redeem its shares. Create uses the four fixed BSTESTA–D mints; it does not acquire the stock assets in a shared concept preview. Names and theses remain in the browser and are displayed only after the saved JSON matches the onchain hash.
-
-The funded faucet and transaction workspace operate without the local indexer or PostgreSQL. A later read-only check can open the [finalized proof basket](https://explorer.solana.com/address/9PoTEPsCjew9NtYA9MLTjDapMsW1ZdW4dgokdGzmPimB?cluster=devnet). For the exact backing identities, tests, transaction evidence and remaining release boundaries, read [the wallet-flow record](docs/devnet-ui-wallet-flow-2026-10-03.md).
-
-## Verification commands
-
-```bash
-cargo test                                  # 208 Rust tests
-npm --prefix backend install                # once (backend has its own lockfile)
-npm --prefix backend run build              # strict NodeNext, no suppressions
-npm --prefix backend test -- --run          # 596 TS tests in the 2026-09-19 working tree
-(cd app && npx tsc --noEmit --incremental false)   # 0 errors
-npm --prefix app run build                  # passed on 2026-10-02; 25 static pages generated
-(cd app && npx tsx --test tests/*.test.ts) # concept preview and sample integrity
+```text
+Creator's constituent tokens → Basket vaults → Basket share token
+Investor's constituent tokens → Mint shares
+Redeem shares → Proportional constituent tokens
 ```
 
-## Devnet live (historical flow proof from 2026-09-04)
+- **Immutable V0 baskets:** constituents, target weights, creator, fee schedule, and metadata hash are fixed at deployment. Holdings can drift as asset values change; V0 does not actively rebalance.
+- **Atomic creation:** the factory seeds the vaults and mints genesis shares in one transaction. Genesis is 1,000,000 raw units at six decimals, displayed as one basket share.
+- **In-kind mint and redemption:** deposits mint shares against current vault ratios; redemption returns raw proportional holdings after disclosed share fees.
+- **Permissionless, oracle-free redemption:** the protocol does not gate redemption on the indexer, price providers, or whitelist pause. Token issuer controls can still constrain underlying transfers.
+- **Capped fees:** entry ≤3%, exit ≤1%, annual management ≤3%. Generated fee shares split 90% to the creator and 10% to the treasury, with rounding remainder to the treasury.
+- **Raw settlement, scaled display:** Token-2022 transfers use integer raw amounts. Display and valuation account for admitted Scaled UI Amount configurations.
+- **No backend custody:** the backend indexes and serves data and builds unsigned transactions; wallets sign asset movements.
 
-- Deployed at declared IDs: `whitelist` `FRavMcYQb2FVAHbbG6fGieQHdKk1UrQqgKsAAXTPRQeS`, `basket_factory` `3hzoPep9JKgTmzLT6CNW5x3EN7WNYDevM6KHVM7pLgMF`, `basket` `6Q43vFh4aqGxzvtU2vQwJX9PmX3skfYsGWZdA3fwJB9k`. A finalized read-only RPC audit on 2026-09-19 reconfirmed all three accounts and their shared single-key upgrade authority; see `docs/devnet-governance-audit-2026-09-19.md`.
-- Historical 2026-09-04 devnet evidence records 12 mock xStocks and one live basket (the then-deployed mocks used `ScaledUiAmountConfig` multiplier 1.0). That historical proof and the subsequent extension-free BAS-002 boundary predate the 2026-10-03 admission change. The new isolated setup reproduces all eight observed mint extensions with explicit project-issued devnet mocks; current deployment and runtime evidence are tracked separately in `docs/xstocks-devnet-runtime-2026-10-03.md`. The recorded basket lifecycle still reconciles exactly (38 confirmed transactions; see `docs/devnet-live-2026-09-04.md`).
-- Transaction-size limit (resolved): `create_basket` / `mint_in_kind` / `redeem_in_kind` compile offline to v0 messages ≤ 1232 B for n = 2..10 constituents; n ≥ 4 routes through one address-lookup table. Proof: `npm run proof:txsize` (`scripts/checkTxSize.ts`).
+V0 has no leverage, lending, derivatives, or active rebalancing. Managed Basket V2 is a separate localnet prototype, not a public deployment. Jupiter zap support is periphery and sequential; it is not a public official-xStocks investment flow.
 
-Run the backend against devnet:
+## Repository
+
+| Directory | Responsibility |
+| --- | --- |
+| [`programs/`](programs/) | Anchor programs: `whitelist`, `basket_factory`, and `basket`; separate Managed V2 prototype |
+| [`app/`](app/) | Next.js 15 / React 19 frontend, Bklit-derived charts, wallet adapters, basket creation and sharing |
+| [`backend/`](backend/) | Node.js / TypeScript API, PostgreSQL indexer, holdings and valuation workers, optional Redis cache |
+| [`scripts/`](scripts/) | SBF builds, transaction proofs, localnet workflows, and security checks |
+| [`docs/`](docs/README.md) | Protocol specification, decisions, dated release evidence, and operating guides |
+| [`brand/`](brand/) | Basalt brand and social assets |
+
+Program routing uses the shared [namespace registry](backend/src/config/programNamespaces.ts). New creation selects the owner namespace; each existing basket resolves its registered factory. Legacy compatibility IDs are not the current creation target.
+
+## Local development
+
+Use Node.js 20.17+ with npm 11.6.2. Rust and the Solana/Anchor toolchain are required for program work; PostgreSQL 15 is used for indexed data. Redis is optional.
 
 ```bash
-cp backend/.env.devnet.example backend/.env.devnet
-cd backend && set -a && . ./.env.devnet && set +a
-# Local-only opt-in: process-random auth secret, invalidated on restart.
-SOCIAL_AUTH_ALLOW_DEV_SECRET=1 npx tsx src/index.ts
+git clone https://github.com/umutyesildal/basalt.git
+cd basalt
+npm ci --legacy-peer-deps=false
+cp app/.env.example app/.env.local
+cp backend/.env.example backend/.env
 ```
 
-Full evidence pack — signature tables, address tables, reconciliation, reproduction steps: `docs/devnet-live-2026-09-04.md`.
+Configure `backend/.env` for your local PostgreSQL database and devnet RPC. Leave `REDIS_URL` empty to use the in-memory cache. The backend applies its schema at startup. The checked-in examples contain legacy defaults; consult the namespace registry and [deployment guide](deploy/DEPLOY.md) for registry configuration rather than substituting arbitrary program IDs.
 
-## Stack
+Start the backend in one terminal:
 
-- **Solana programs (Anchor 0.30, real Token-2022 CPI):** `whitelist` (exact Token-2022 ownership + decimals + shared fail-closed Plain/DisplayOnly/IssuerControlled validation), `basket_factory` (atomic seed transfers with exact raw deltas, genesis 1M with temp-mint-authority handoff), `basket` (real `transfer_checked`/`burn`/`mint_to`; `redeem_in_kind` permissionless + oracle-free, structurally tested)
-- **Backend:** Node 20 + TypeScript (strict) + PostgreSQL + optional Redis — real indexer (Anchor event decode), holdings sync with ScaledUiAmount multiplier, exact BigInt fixed-point NAV engine, REST API with `source`/`asOf` provenance on every row; backend never signs
-- **Frontend:** Next.js 15 + Tailwind 3.4 + **bklit UI** (registry provenance verified; Brush = documented local adapter) + wallet-adapter (Phantom/Solflare, full state machine) — brand per `brand.md` (monochrome base + BASALT MARK, Chakra Petch display — 2026-09-12 identity update)
-- **Token:** SPL Token-2022 — raw transfers on-chain, `scaled = raw × multiplier` for display/NAV
+```bash
+cd backend
+set -a
+. ./.env
+set +a
+SOCIAL_AUTH_ALLOW_DEV_SECRET=1 npm run dev
+```
 
-## Programs
+The opt-in above uses a process-random local authentication secret; restarting invalidates its tokens. Leave `SOCIAL_AUTH_SECRET` empty for this local mode. Production requires a generated secret and rejects the development fallback. Never commit private environment files or keys.
 
-| Program | ID (localnet/devnet) | State |
-|---------|----------------------|-------|
-| `whitelist` | `FRavMcYQb2FVAHbbG6fGieQHdKk1UrQqgKsAAXTPRQeS` | Current source verifies exact Token-2022 ownership, decimals and complete allowed extension profiles; deployment proof is tracked separately |
-| `basket_factory` | `3hzoPep9JKgTmzLT6CNW5x3EN7WNYDevM6KHVM7pLgMF` | Real; full §3.2 validations, atomic seed, genesis mint, real `vault_bump` |
-| `basket` | `6Q43vFh4aqGxzvtU2vQwJX9PmX3skfYsGWZdA3fwJB9k` | Real; `mint_in_kind` (4n remaining-accounts contract, pause-gated), `redeem_in_kind` (3n, never gated), `accrue_management_fee` |
+Start the frontend in another terminal:
 
-See `docs/basalt-v0-spec.md` §2-6 for account model, instruction args, mint/redeem math, fee math. Client instruction builders live in `app/lib/transactions.ts` + `app/lib/create-basket.ts` (mirrored from program source, discriminators cross-verified).
+```bash
+npm --prefix app run dev
+```
 
-## Token-2022 Accounting
+Open [localhost:3000](http://localhost:3000). The API defaults to port 3001; `/api/v1/health` reports liveness and `/api/v1/ready` reports subsystem readiness. Direct-RPC devnet wallet operations do not require the indexer; publishing/retrieving shared basket metadata and indexed/social features require the backend. Read-only mainnet quote data does not switch transaction signing away from devnet.
 
-- On-chain: **raw** (`transfer_checked` with decimals; `// RAW ONLY` on every CPI site)
-- Off-chain: `scaled = raw × multiplier` (the indexer is ScaledUiAmount-aware); the isolated new devnet mocks reproduce the observed issuer extension profile. Mainnet AAPLx/SPYx byte fixtures prove parsing compatibility, not live backing, whitelist admission or public investing. Amounts crossing module boundaries travel as decimal strings (BigInt-exact).
+## Verification
 
-## Backend (real)
+```bash
+cargo test --workspace
+cargo test --workspace --features owner-devnet --locked
+npm --prefix backend run build
+npm --prefix backend test
+npm --prefix app test
+npm --prefix app run typecheck
+npm --prefix app run build
+npm run test:security
+npm run proof:txsize
+```
 
-Indexer listens for `BasketCreated/Minted/Redeemed/FeeAccrued` (Borsh decoders), upserts `baskets`/`events`/`creator_stats`, syncs `vault_holdings` (raw + multiplier + scaled), NAV engine snapshots `nav_snapshots` + refreshes `basket_rankings`, fee crank emits **unsigned** `accrue_management_fee` transactions. REST `/api/v1` implements the spec §8-9 routes with honest empty/error states (`NOT_INDEXED`, `DB_UNAVAILABLE`, `QUOTE_UNAVAILABLE`) — no fabricated production-looking data. Zap quotes proxy Jupiter; provenance + sequential/non-atomic warning included.
+For deployable V0 artifacts, use `npm run build` with a supported `cargo-build-sbf` toolchain. The script builds each program separately and checks the SBF artifacts; a host `cargo build` is not a deployable program build. Build and tests do not deploy programs.
 
-## Frontend (current public experience and retained transaction surfaces)
+Test totals are dated evidence, not permanent claims. The [11 October metadata release](docs/basket-visibility-diagnosis-2026-10-11.md) records all six exact-source CI jobs passing, including 1,600 backend tests and 71 security checks. The subsequent [handle release](docs/claim-handle-2026-10-11.md) records 468 app Node tests, 67 Vitest tests, typecheck, and the hosted build. Those are previous release results, not checks rerun by this README update.
 
-Current route map, updated 2026-10-03:
+## Documentation and release evidence
 
-- `/` Home, accepted revision: centered stock-basket hero and four featured cards, six benefit cards, `#build` creator/future-fee visual, then `#how-it-works` investor and manager journeys. The home status and landing methodology/source note are removed; individual Model price labels and bottom issuer/fee disclosures remain.
-- `/stocks`: compact searchable official asset cards with real nullable token quotes. No inline chart or historical request. `/stock/[ticker]` keeps the real exact-mint Bklit 7D/1M chart.
-- `/etfs`: the same compact catalog filtered to verified ETF classifications, with search, pagination and clickable asset details.
-- `/explore` — always-available concept basket gallery above a separate indexed devnet basket section
-- `/create` — wallet-free basket idea builder: pick assets from an empty selection, set the mix, choose an illustrative $10/$100/$1,000 amount, review the 2% recommended annual management fee, and create a shareable preview
-- `/preview?d=...` — versioned, validated URL with only basket name, optional thesis, symbols, weights, example amount, and fees; no account or backend storage
-- `/create/onchain`: redirects to `/create`; the earlier transaction wizard remains retained source, not an exposed route.
-- `/basket/[pubkey]` + buy/redeem — transaction surfaces; `/portfolio`, `/creator/[pubkey]`, `/legal`
+- [V0 specification](docs/basalt-v0-spec.md): account model, instructions, accounting, and invariants.
+- [Owner devnet activation](docs/devnet-owner-live-activation-2026-10-10.md): finalized lifecycle, deployed identities, and legacy routing.
+- [Public basket metadata and gallery filter](docs/basket-visibility-diagnosis-2026-10-11.md): exact creator records, publication checks, and remaining data limits.
+- [Optional handle claiming](docs/claim-handle-2026-10-11.md): wallet authentication and final frontend release.
+- [Backend security](docs/backend-devnet-security-2026-10-09.md): authorization, canonical indexing, and recovery safeguards.
+- [Operations](deploy/DEPLOY.md) and [mainnet roadmap](docs/mainnet-readiness-roadmap.md): environment setup, release procedures, and remaining gates.
+- [Full documentation map](docs/README.md): additional product, protocol, and historical evidence.
 
-Design language: the **BASALT identity** — hexagonal-column mark, dark industrial canvas, disciplined electric-yellow accent, Chakra Petch display, and Geist Mono labels — with chart-only data colors. No site footer; `LEGAL_REVIEW_REQUIRED` remains in the create disclosure and `/legal` until counsel replaces placeholder copy. Charts use locally vendored Bklit-derived sources; Brush is a documented local adapter.
+The runtime recorded on 11 October is frontend `b649a4a860e21b974317be2473512d4d07dec170` and backend `f8195cf4c386edeeee074ed3dc958b7aa5637b5f`. Later documentation commits do not imply a runtime redeployment. Dated records retain their historical scope.
 
-## Basket sharing and social
+## Risk and legal status
 
-The basket gallery, feed, and manager discovery share one sample dataset. Repeated concept badges and the landing status were removed by owner decision; accurate action labels and scoped disclosures distinguish sharing from investment. Sample basket ideas and activity are illustrative, with no invented onchain trades, balances, or returns. Separate onchain sections use indexed devnet activity; wallet-authenticated following and social writes remain available there. Creator fee shares can accrue only for a separately deployed basket when protocol fees are generated (V0 split: 90% creator, 10% treasury). Concept previews and follows generate no fees. The underlying social backend also supports:
-
-- **Thesis posts** — trade-linked reasoning attached to a basket; the on-chain outcome stays attached for free
-- **Social profiles** — optional handle/avatar/bio over a wallet pubkey (`profiles`), follow/unfollow, per-wallet equity curve (`user_value_snapshots`, ~5m snapshotter)
-- **Privacy** — trades are public by default (the chain is public anyway); `is_public=false` hides a wallet from feed + leaderboard
-- **Auth** — wallet-signature only (SIWS-lite: `POST /auth/nonce` → sign → `/auth/verify` → bearer token); it gates **social writes only** — the backend remains read-only/non-custodial for everything else and still never signs transactions
-- **No auto-copy** (deliberate) — copying is "Clone this basket" into the create wizard (regulatory + latency reasons); feed refreshes by 30s polling
-
-## Security
-
-See spec §11, `docs/current-state-2026-09-18.md`, and `docs/security-hardening-plan.md`. Key invariants: `redeem_in_kind` is never gated (no whitelist/oracle/pauser account in its context; structural test), no `admin_withdraw`, RAW-only transfers, fee caps + canonical protocol-wide 90/10 split (creator floor, treasury remainder), and genesis 1M inflation-attack protection. Run `cargo test` plus independent security review before mainnet.
-
-## Legal Placeholders
-
-UI chips were removed at the owner's request (2026-09-03); the review items live in the backlog and the wizard's legal-checkbox step + `/legal` page remain. Never describe Basalt as an ETF/fund; voice rules in `brand.md`. Counsel review required before mainnet.
-
-## Local dev demo data
-
-For local (non-devnet) development, `demo-seed` seeds the local Postgres so pages render with content: 4 whitelisted mock xStocks (TSLAx/AAPLx/NVDAx/SPYx from `docs/providers.md`) and two demo baskets (**Tech Duo** 50/50 AAPLx-TSLAx, **Index Plus** 60/25/15 SPYx-NVDAx-AAPLx) with 30d NAV history (`demo-seed` source marker). Dev-only — drop or re-seed freely. When the backend runs against devnet instead, pages serve on-chain-indexed data (see "Devnet live" above) and the seed is unnecessary.
-
-## Current work
-
-Use the current scope/evidence links above for this revision, `docs/current-state-2026-09-18.md` for its historical snapshot and `docs/implementation-backlog.md` for implementation order. BAS-002 now has reviewed source support for fully validated allowed profiles, including the complete observed issuer profile with inactive hooks. Exact raw seed/mint deltas remain required. Current-SBF devnet deployment/runtime evidence is tracked separately and mainnet mint admission is not implied. BAS-003 Zap-in delta accounting and BAS-004 checked arithmetic are complete in the working tree. BAS-006 now has a canonical 2-of-3 target in `docs/upgrade-governance-policy.md`; the fresh 2026-09-19 RPC evidence confirms the current single-key blocker, while the real multisig/time-lock activation and authority transfer remain open. Instruction-level coverage under BAS-016, deployed-ELF attestation, data-truth, and legal gates also remain open before an independent audit and any mainnet decision. `plan.md` is retained as the historical implementation-wave log.
-
-## Scripts
-
-- `scripts/e2e.sh` — deterministic localnet flow (validator → whitelist → basket → mint/redeem → fee crank)
-- `scripts/rehearse-governance-localnet.sh` — loopback-only authority-transfer and rollback rehearsal; it is not evidence of a production multisig
-- Devnet E2E — the same four scripts (`scripts/createWhitelist.ts` → `createBasket.ts` → `mintAndRedeem.ts` → `accrueFee.ts`) run against devnet via `BASALT_E2E_*` env vars; state + logs + evidence collector in `scripts/.e2e-devnet/` (reproduction commands in `docs/devnet-live-2026-09-04.md` §8)
-
----
-
-Generated from the historically named `foliox_build_prompt.md` via solana.new superstack skills (`scaffold-project`, `build-defi-protocol`, `cso`, `brand-design`) + orchestrated implementation waves (2026-09-01).
+Basalt is an experimental strategy-basket product. Tokenized stocks are issuer-backed instruments, not direct ownership of company shares. Issuer controls, smart-contract risk, liquidity, and jurisdiction restrictions require review. Current single-owner governance is not a production multisig or timelock. `LEGAL_REVIEW_REQUIRED` remains in the product disclosures; legal review, security review, and the mainnet readiness gates must be completed before any mainnet launch. Nothing here is investment advice or a promise of returns.
