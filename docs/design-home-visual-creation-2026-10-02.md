@@ -1,6 +1,6 @@
 # Basalt visual creation section
 
-Date: 2026-10-02. Canonical checkout: `/Users/umutyesildal/orca/workspaces/createyouretf/createyouretf`.
+Date: 2026-10-02. Canonical checkout: `<repo>`.
 
 ## Owner direction
 

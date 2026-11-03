@@ -4,7 +4,7 @@
 
 The owner reported that the Create summary and shared preview used different colors for the same NVIDIA, Nasdaq, Walmart and Gold basket. They also requested an attractive image containing a basket's name, thesis and holdings, with Basalt branding, created directly from the preview page.
 
-The implementation now uses one stable allocation color across Create, `/preview` and the exported poster, and adds **Create image** followed by a preview dialog and **Download PNG**. This is local source work in the canonical checkout, `/Users/umutyesildal/orca/workspaces/createyouretf/createyouretf`. The existing dirty working tree is preserved. This update does not change program instructions, transaction signing, price calculations or investing availability.
+The implementation now uses one stable allocation color across Create, `/preview` and the exported poster, and adds **Create image** followed by a preview dialog and **Download PNG**. This is local source work in the canonical checkout, `<repo>`. The existing dirty working tree is preserved. This update does not change program instructions, transaction signing, price calculations or investing availability.
 
 **Final scoped verification:** 14 allocation/layout checks, six mocked logo-route security checks and app TypeScript checking passed. A real PNG export was exercised through the UI. Desktop checks, a centered 375 × 812 dialog without horizontal overflow, the 1280 × 900 maximum-content case with 20 holdings/60-character name/240-character thesis, and Escape returning focus to Create image passed. The final Next.js production build passed, generating 27 static pages and including the new logo API route. This verifies the local source; no remote deployment is claimed.
 

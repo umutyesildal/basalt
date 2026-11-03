@@ -6,6 +6,12 @@ Basalt lets creators turn a stock-market thesis into a basket people can discove
 
 [Explore baskets](https://basalt.markets/explore) · [Build a basket idea](https://basalt.markets/create) · [Try on devnet](https://basalt.markets/create/onchain) · [Follow Basalt](https://x.com/basalt_sol)
 
+**Road to Colosseum Germany Ideathon winner.** [Submission](https://superteam.fun/earn/listing/road-to-colosseum-hackathon-germany-ideathon)
+
+![Basalt share card](docs/assets/hero-share.jpg)
+
+**Status: devnet beta, unaudited.** No mainnet, no real funds, no custody. The transaction demo runs on Solana devnet with project-issued test tokens that have no market value. Official xStocks data is a read-only integration.
+
 ## What you can do today
 
 - **Discover a thesis.** Browse stock-basket ideas, their allocations, and creators.

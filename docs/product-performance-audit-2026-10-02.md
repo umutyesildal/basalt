@@ -6,7 +6,7 @@ The public discovery flow now connects visual basket cards, a ten-basket leaderb
 
 This pass also fixes indexed return integrity, UI unit conversion, malformed copy links, mobile creation controls and keyboard step navigation. It is a product and data-path audit of the current local prototype, not a new security attestation or production deployment.
 
-Canonical checkout: `/Users/umutyesildal/orca/workspaces/createyouretf/createyouretf`. Preserve the existing uncommitted governance, wallet, package, video and earlier design work. No commit, push or public deployment was performed.
+Canonical checkout: `<repo>`. Preserve the existing uncommitted governance, wallet, package, video and earlier design work. No commit, push or public deployment was performed.
 
 ## Product decisions
 

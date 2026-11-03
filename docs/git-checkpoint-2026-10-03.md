@@ -4,7 +4,7 @@ The owner requested a Git checkpoint of the accepted current version before cont
 
 ## Repository and boundary
 
-- Canonical checkout: `/Users/umutyesildal/orca/workspaces/createyouretf/createyouretf`.
+- Canonical checkout: `<repo>`.
 - Branch and intended push target: `main` to `origin/main`.
 - Remote: `https://github.com/umutyesildal/basalt.git`.
 - Pre-checkpoint local and remote head: `e18d6f429dbb657ef32b10bc8d83e27ae42b3c3b`, verified with `git ls-remote` on 2026-10-03.

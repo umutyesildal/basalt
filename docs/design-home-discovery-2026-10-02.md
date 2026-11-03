@@ -2,7 +2,7 @@
 
 > The lower landing composition and invitation copy below are superseded by the [visual creation revision](design-home-visual-creation-2026-10-02.md). The hero, galleries, artwork, Feed and Managers findings remain applicable.
 
-Date: 2026-10-02, second design revision. Current canonical working tree: `/Users/umutyesildal/orca/workspaces/createyouretf/createyouretf`. This supersedes the earlier chapter design. No commit, push, or remote deployment was performed.
+Date: 2026-10-02, second design revision. Current canonical working tree: `<repo>`. This supersedes the earlier chapter design. No commit, push, or remote deployment was performed.
 
 ## Decision
 

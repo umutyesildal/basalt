@@ -4,7 +4,7 @@ Generated with built-in image_gen. One original square image per prompt. All out
 
 ## Terminally Online
 
-Canonical file: `/Users/umutyesildal/orca/workspaces/createyouretf/createyouretf/app/public/images/baskets/terminally-online.png`
+Canonical file: `<repo>`
 
 ```text
 Use case: stylized-concept
@@ -19,7 +19,7 @@ Constraints: entirely original illustration; no readable text, no letters, no nu
 
 ## Touch Grass
 
-Canonical file: `/Users/umutyesildal/orca/workspaces/createyouretf/createyouretf/app/public/images/baskets/touch-grass.png`
+Canonical file: `<repo>`
 
 ```text
 Use case: stylized-concept
@@ -34,7 +34,7 @@ Constraints: entirely original illustration; no readable text, no letters, no nu
 
 ## No Hands
 
-Canonical file: `/Users/umutyesildal/orca/workspaces/createyouretf/createyouretf/app/public/images/baskets/no-hands.png`
+Canonical file: `<repo>`
 
 ```text
 Use case: stylized-concept
@@ -49,7 +49,7 @@ Constraints: entirely original illustration; no readable text, no letters, no nu
 
 ## Daily Ritual
 
-Canonical file: `/Users/umutyesildal/orca/workspaces/createyouretf/createyouretf/app/public/images/baskets/daily-ritual.png`
+Canonical file: `<repo>`
 
 ```text
 Use case: stylized-concept
@@ -68,7 +68,7 @@ Generated as new images with the built-in image_gen tool, one call per cover, wi
 
 ## Chip Happens
 
-Canonical file: `/Users/umutyesildal/orca/workspaces/createyouretf/createyouretf/app/public/images/baskets/chip-happens.png`
+Canonical file: `<repo>`
 
 ```text
 Use case: stylized-concept.
@@ -82,7 +82,7 @@ Primary request: One large square semiconductor microchip tipped slightly at an 
 
 ## After Hours
 
-Canonical file: `/Users/umutyesildal/orca/workspaces/createyouretf/createyouretf/app/public/images/baskets/after-hours.png`
+Canonical file: `<repo>`
 
 ```text
 Use case: stylized-concept.
@@ -96,7 +96,7 @@ Primary request: One oversized mirrored disco ball, built from black-and-cream h
 
 ## Payday
 
-Canonical file: `/Users/umutyesildal/orca/workspaces/createyouretf/createyouretf/app/public/images/baskets/payday.png`
+Canonical file: `<repo>`
 
 ```text
 Use case: stylized-concept.
@@ -110,7 +110,7 @@ Primary request: One open vintage leather wallet with three oversized blank bank
 
 ## Offline Mode
 
-Canonical file: `/Users/umutyesildal/orca/workspaces/createyouretf/createyouretf/app/public/images/baskets/offline-mode.png`
+Canonical file: `<repo>`
 
 ```text
 Use case: stylized-concept.
@@ -124,7 +124,7 @@ Primary request: One crumpled kraft grocery bag with a baguette and two round or
 
 ## Power Hungry
 
-Canonical file: `/Users/umutyesildal/orca/workspaces/createyouretf/createyouretf/app/public/images/baskets/power-hungry.png`
+Canonical file: `<repo>`
 
 ```text
 Use case: stylized-concept.
@@ -138,7 +138,7 @@ Primary request: One chunky vintage industrial electrical plug seen diagonally, 
 
 ## Main Character
 
-Canonical file: `/Users/umutyesildal/orca/workspaces/createyouretf/createyouretf/app/public/images/baskets/main-character.png`
+Canonical file: `<repo>`
 
 ```text
 Use case: stylized-concept.

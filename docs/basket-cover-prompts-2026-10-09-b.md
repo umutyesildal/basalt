@@ -11,7 +11,7 @@ Style reference inspected before generation: `app/public/images/baskets/chip-hap
 ### Paper Hands
 
 - Project file: `app/public/images/baskets/paper-hands.webp`
-- Generated original: `/Users/umutyesildal/.codex/generated_images/01a12272-0ff6-7ef0-b817-701206b59b81/exec-fe354a1a-94a7-48db-8e50-d3170a568990.png`
+- Generated original: `<repo>`
 - Tool: built-in `image_gen.imagegen`, `transparent_background: false`
 - Visual check: passed. Distinct subject and colored paper, no text or logo.
 
@@ -24,7 +24,7 @@ Use case: stylized-concept. Asset type: original square cover artwork for a Basa
 ### Diamond Hands
 
 - Project file: `app/public/images/baskets/diamond-hands.webp`
-- Generated original: `/Users/umutyesildal/.codex/generated_images/01a12272-0ff6-7ef0-b817-701206b59b81/exec-8ae5031a-5c64-4c51-9457-69abd15dbd5d.png`
+- Generated original: `<repo>`
 - Tool: built-in `image_gen.imagegen`, `transparent_background: false`
 - Visual check: passed. Distinct subject and colored paper, no text or logo.
 
@@ -37,7 +37,7 @@ Use case: stylized-concept. Asset type: original square cover artwork for a Basa
 ### Open Tab
 
 - Project file: `app/public/images/baskets/open-tab.webp`
-- Generated original: `/Users/umutyesildal/.codex/generated_images/01a12272-0ff6-7ef0-b817-701206b59b81/exec-ea2bc871-3435-4a3a-acba-06e580281243.png`
+- Generated original: `<repo>`
 - Tool: built-in `image_gen.imagegen`, `transparent_background: false`
 - Visual check: passed. Distinct subject and colored paper, no text or logo.
 
@@ -50,7 +50,7 @@ Use case: stylized-concept. Asset type: original square cover artwork for a Basa
 ### Full Charge
 
 - Project file: `app/public/images/baskets/full-charge.webp`
-- Generated original: `/Users/umutyesildal/.codex/generated_images/01a12272-0ff6-7ef0-b817-701206b59b81/exec-00f6dc5d-b6ae-46f6-9899-439f02b2b0b8.png`
+- Generated original: `<repo>`
 - Tool: built-in `image_gen.imagegen`, `transparent_background: false`
 - Visual check: passed. Distinct subject and colored paper, no text or logo.
 
@@ -63,7 +63,7 @@ Use case: stylized-concept. Asset type: original square cover artwork for a Basa
 ### Hard Assets
 
 - Project file: `app/public/images/baskets/hard-assets.webp`
-- Generated original: `/Users/umutyesildal/.codex/generated_images/01a12272-0ff6-7ef0-b817-701206b59b81/exec-288e7e71-5456-4968-85b6-bfb2a1216cb4.png`
+- Generated original: `<repo>`
 - Tool: built-in `image_gen.imagegen`, `transparent_background: false`
 - Visual check: passed. Distinct subject and colored paper, no text or logo.
 
@@ -76,7 +76,7 @@ Use case: stylized-concept. Asset type: original square cover artwork for a Basa
 ### Orbit
 
 - Project file: `app/public/images/baskets/orbit.webp`
-- Generated original: `/Users/umutyesildal/.codex/generated_images/01a12272-0ff6-7ef0-b817-701206b59b81/exec-804ee2c2-71eb-45db-a97a-5e68b442653a.png`
+- Generated original: `<repo>`
 - Tool: built-in `image_gen.imagegen`, `transparent_background: false`
 - Visual check: passed. Distinct subject and colored paper, no text or logo.
 
@@ -89,7 +89,7 @@ Use case: stylized-concept. Asset type: original square cover artwork for a Basa
 ### Home Team
 
 - Project file: `app/public/images/baskets/home-team.webp`
-- Generated original: `/Users/umutyesildal/.codex/generated_images/01a12272-0ff6-7ef0-b817-701206b59b81/exec-1d174213-541a-4571-b4c6-ca6a23ad3919.png`
+- Generated original: `<repo>`
 - Tool: built-in `image_gen.imagegen`, `transparent_background: false`
 - Visual check: passed. Distinct subject and colored paper, no text or logo.
 
@@ -102,7 +102,7 @@ Use case: stylized-concept. Asset type: original square cover artwork for a Basa
 ### Cold Storage
 
 - Project file: `app/public/images/baskets/cold-storage.webp`
-- Generated original: `/Users/umutyesildal/.codex/generated_images/01a12272-0ff6-7ef0-b817-701206b59b81/exec-6019a9cf-7294-4965-bc8a-44065d4cf592.png`
+- Generated original: `<repo>`
 - Tool: built-in `image_gen.imagegen`, `transparent_background: false`
 - Visual check: passed. Distinct subject and colored paper, no text or logo.
 
@@ -115,7 +115,7 @@ Use case: stylized-concept. Asset type: original square cover artwork for a Basa
 ### Side Quest
 
 - Project file: `app/public/images/baskets/side-quest.webp`
-- Generated original: `/Users/umutyesildal/.codex/generated_images/01a12272-0ff6-7ef0-b817-701206b59b81/exec-bd39ee82-3d50-4453-80e6-f2bd2859cf16.png`
+- Generated original: `<repo>`
 - Tool: built-in `image_gen.imagegen`, `transparent_background: false`
 - Visual check: passed. Distinct subject and colored paper, no text or logo.
 
@@ -128,7 +128,7 @@ Use case: stylized-concept. Asset type: original square cover artwork for a Basa
 ### Deep Focus
 
 - Project file: `app/public/images/baskets/deep-focus.webp`
-- Generated original: `/Users/umutyesildal/.codex/generated_images/01a12272-0ff6-7ef0-b817-701206b59b81/exec-912d882d-d7a0-4cee-9e26-d3f14513c365.png`
+- Generated original: `<repo>`
 - Tool: built-in `image_gen.imagegen`, `transparent_background: false`
 - Visual check: passed. Distinct subject and colored paper, no text or logo.
 
@@ -141,7 +141,7 @@ Use case: stylized-concept. Asset type: original square cover artwork for a Basa
 ### Signal Noise
 
 - Project file: `app/public/images/baskets/signal-noise.webp`
-- Generated original: `/Users/umutyesildal/.codex/generated_images/01a12272-0ff6-7ef0-b817-701206b59b81/exec-0c3b3d75-86d8-497f-afd0-acf8526644d9.png`
+- Generated original: `<repo>`
 - Tool: built-in `image_gen.imagegen`, `transparent_background: false`
 - Visual check: passed. Distinct subject and colored paper, no text or logo.
 
@@ -154,7 +154,7 @@ Use case: stylized-concept. Asset type: original square cover artwork for a Basa
 ### Fresh Start
 
 - Project file: `app/public/images/baskets/fresh-start.webp`
-- Generated original: `/Users/umutyesildal/.codex/generated_images/01a12272-0ff6-7ef0-b817-701206b59b81/exec-44142b7a-bba9-4966-b327-c643f173ecbe.png`
+- Generated original: `<repo>`
 - Tool: built-in `image_gen.imagegen`, `transparent_background: false`
 - Visual check: passed. Distinct subject and colored paper, no text or logo.
 

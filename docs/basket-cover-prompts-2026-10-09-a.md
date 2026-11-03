@@ -29,7 +29,7 @@ Photographic cutout collage in charcoal black and warm cream, analog halftone sc
 
 Final: `app/public/images/baskets/moon-shot.webp`
 
-Built-in original: `/Users/umutyesildal/.codex/generated_images/01a12271-d098-7022-92c5-595f56f9bb02/exec-325b8af3-1ec4-483f-83c0-938cec9a8623.png`
+Built-in original: `<repo>`
 
 ```text
 Use case: stylized-concept. Asset type: original square editorial cover for a Basalt stock basket. Make a premium 1024x1024 square photographic cutout collage printed with coarse analog halftone/screenprint in deep charcoal black and warm cream on tactile colored paper. Visible natural paper grain, ink wear and stippling throughout, handcrafted financial editorial zine quality. A single large distinctive central subject fills roughly 70% of the frame with generous clean margins; crisp recognizable silhouette and strong contrast at thumbnail size. Vintage found-photograph realism translated into a two-ink print, tasteful physical imperfections, simple flat background, no scene clutter. Avoid glossy 3D, gradients, vector icon style, UI panels, charts, numbers, letters, captions, brands, logos, watermarks, border, or text anywhere. Subject: a vintage tin toy rocket angled gently upward, bold fins and a single dark round window. Background paper color: dusty coral. The cover is called Moon Shot, but render NO TEXT.
@@ -39,7 +39,7 @@ Use case: stylized-concept. Asset type: original square editorial cover for a Ba
 
 Final: `app/public/images/baskets/deep-value.webp`
 
-Built-in original: `/Users/umutyesildal/.codex/generated_images/01a12271-d098-7022-92c5-595f56f9bb02/exec-07486b31-f5c6-406e-9e7b-ee751e4ceeb5.png`
+Built-in original: `<repo>`
 
 ```text
 Use case: stylized-concept. Asset type: original square editorial cover for a Basalt stock basket. Make a premium 1024x1024 square photographic cutout collage printed with coarse analog halftone/screenprint in deep charcoal black and warm cream on tactile colored paper. Visible natural paper grain, ink wear and stippling throughout, handcrafted financial editorial zine quality. A single large distinctive central subject fills roughly 70% of the frame with generous clean margins; crisp recognizable silhouette and strong contrast at thumbnail size. Vintage found-photograph realism translated into a two-ink print, tasteful physical imperfections, simple flat background, no scene clutter. Avoid glossy 3D, gradients, vector icon style, UI panels, charts, numbers, letters, captions, brands, logos, watermarks, border, or text anywhere. Subject: an antique brass deep-sea diving helmet with round portholes and metal collar. Background paper color: ochre. The cover is called Deep Value, but render NO TEXT.
@@ -49,7 +49,7 @@ Use case: stylized-concept. Asset type: original square editorial cover for a Ba
 
 Final: `app/public/images/baskets/long-game.webp`
 
-Built-in original: `/Users/umutyesildal/.codex/generated_images/01a12271-d098-7022-92c5-595f56f9bb02/exec-d1b79e4d-95dc-495c-b307-400f8b3decc1.png`
+Built-in original: `<repo>`
 
 ```text
 Use case: stylized-concept. Asset type: original square editorial cover for a Basalt stock basket. Make a premium 1024x1024 square photographic cutout collage printed with coarse analog halftone/screenprint in deep charcoal black and warm cream on tactile colored paper. Visible natural paper grain, ink wear and stippling throughout, handcrafted financial editorial zine quality. A single large distinctive central subject fills roughly 70% of the frame with generous clean margins; crisp recognizable silhouette and strong contrast at thumbnail size. Vintage found-photograph realism translated into a two-ink print, tasteful physical imperfections, simple flat background, no scene clutter. Avoid glossy 3D, gradients, vector icon style, UI panels, charts, numbers, letters, captions, brands, logos, watermarks, border, or text anywhere. Subject: one beautifully sculptural chess knight, worn carved dark wood with crisp horse silhouette. Background paper color: muted sage. The cover is called Long Game, but render NO TEXT.
@@ -59,7 +59,7 @@ Use case: stylized-concept. Asset type: original square editorial cover for a Ba
 
 Final: `app/public/images/baskets/gold-standard.webp`
 
-Built-in original: `/Users/umutyesildal/.codex/generated_images/01a12271-d098-7022-92c5-595f56f9bb02/exec-05637396-6cb8-4333-b095-33b9b5119817.png`
+Built-in original: `<repo>`
 
 ```text
 Use case: stylized-concept. Asset type: original square editorial cover for a Basalt stock basket. Make a premium 1024x1024 square photographic cutout collage printed with coarse analog halftone/screenprint in deep charcoal black and warm cream on tactile colored paper. Visible natural paper grain, ink wear and stippling throughout, handcrafted financial editorial zine quality. A single large distinctive central subject fills roughly 70% of the frame with generous clean margins; crisp recognizable silhouette and strong contrast at thumbnail size. Vintage found-photograph realism translated into a two-ink print, tasteful physical imperfections, simple flat background, no scene clutter. Avoid glossy 3D, gradients, vector icon style, UI panels, charts, numbers, letters, captions, brands, logos, watermarks, border, or text anywhere. Subject: a small stack of exactly three unmarked gold bars, elegantly staggered. Background paper color: dusty teal. The cover is called Gold Standard, but render NO TEXT.
@@ -69,7 +69,7 @@ Use case: stylized-concept. Asset type: original square editorial cover for a Ba
 
 Final: `app/public/images/baskets/cloud-nine.webp`
 
-Built-in original: `/Users/umutyesildal/.codex/generated_images/01a12271-d098-7022-92c5-595f56f9bb02/exec-2b85857d-d052-4550-95cd-11f8b40824e4.png`
+Built-in original: `<repo>`
 
 ```text
 Use case: stylized-concept. Asset type: original square editorial cover for a Basalt stock basket. Make a premium 1024x1024 square photographic cutout collage printed with coarse analog halftone/screenprint in deep charcoal black and warm cream on tactile colored paper. Visible natural paper grain, ink wear and stippling throughout, handcrafted financial editorial zine quality. A single large distinctive central subject fills roughly 70% of the frame with generous clean margins; crisp recognizable silhouette and strong contrast at thumbnail size. Vintage found-photograph realism translated into a two-ink print, tasteful physical imperfections, simple flat background, no scene clutter. Avoid glossy 3D, gradients, vector icon style, UI panels, charts, numbers, letters, captions, brands, logos, watermarks, border, or text anywhere. Subject: a small bank of vintage server towers beneath one fluffy compact cloud, read as one coherent cutout collage. Background paper color: sky blue. The cover is called Cloud Nine, but render NO TEXT.
@@ -79,7 +79,7 @@ Use case: stylized-concept. Asset type: original square editorial cover for a Ba
 
 Final: `app/public/images/baskets/robot-shift.webp`
 
-Built-in original: `/Users/umutyesildal/.codex/generated_images/01a12271-d098-7022-92c5-595f56f9bb02/exec-dd2446ff-501d-4826-b431-efd7719ad30e.png`
+Built-in original: `<repo>`
 
 ```text
 Use case: stylized-concept. Asset type: original square editorial cover for a Basalt stock basket. Make a premium 1024x1024 square photographic cutout collage printed with coarse analog halftone/screenprint in deep charcoal black and warm cream on tactile colored paper. Visible natural paper grain, ink wear and stippling throughout, handcrafted financial editorial zine quality. A single large distinctive central subject fills roughly 70% of the frame with generous clean margins; crisp recognizable silhouette and strong contrast at thumbnail size. Vintage found-photograph realism translated into a two-ink print, tasteful physical imperfections, simple flat background, no scene clutter. Avoid glossy 3D, gradients, vector icon style, UI panels, charts, numbers, letters, captions, brands, logos, watermarks, border, or text anywhere. Subject: one industrial robotic gripper holding a tiny metal cube, crop the mechanical arm elegantly. Background paper color: lavender. The cover is called Robot Shift, but render NO TEXT.
@@ -89,7 +89,7 @@ Use case: stylized-concept. Asset type: original square editorial cover for a Ba
 
 Final: `app/public/images/baskets/green-light.webp`
 
-Built-in original: `/Users/umutyesildal/.codex/generated_images/01a12271-d098-7022-92c5-595f56f9bb02/exec-e8d88d2b-e5c1-48bb-86fd-83ad7fa6f684.png`
+Built-in original: `<repo>`
 
 ```text
 Use case: stylized-concept. Asset type: original square editorial cover for a Basalt stock basket. Make a premium 1024x1024 square photographic cutout collage printed with coarse analog halftone/screenprint in deep charcoal black and warm cream on tactile colored paper. Visible natural paper grain, ink wear and stippling throughout, handcrafted financial editorial zine quality. A single large distinctive central subject fills roughly 70% of the frame with generous clean margins; crisp recognizable silhouette and strong contrast at thumbnail size. Vintage found-photograph realism translated into a two-ink print, tasteful physical imperfections, simple flat background, no scene clutter. Avoid glossy 3D, gradients, vector icon style, UI panels, charts, numbers, letters, captions, brands, logos, watermarks, border, or text anywhere. Subject: one vintage three-lamp traffic light with the bottom lamp glowing pale green, no surrounding street. Background paper color: muted mint. The cover is called Green Light, but render NO TEXT.
@@ -99,7 +99,7 @@ Use case: stylized-concept. Asset type: original square editorial cover for a Ba
 
 Final: `app/public/images/baskets/supply-chain.webp`
 
-Built-in original: `/Users/umutyesildal/.codex/generated_images/01a12271-d098-7022-92c5-595f56f9bb02/exec-425d9cf0-b92c-4a64-bdc0-acbc7422ee8c.png`
+Built-in original: `<repo>`
 
 ```text
 Use case: stylized-concept. Asset type: original square editorial cover for a Basalt stock basket. Make a premium 1024x1024 square photographic cutout collage printed with coarse analog halftone/screenprint in deep charcoal black and warm cream on tactile colored paper. Visible natural paper grain, ink wear and stippling throughout, handcrafted financial editorial zine quality. A single large distinctive central subject fills roughly 70% of the frame with generous clean margins; crisp recognizable silhouette and strong contrast at thumbnail size. Vintage found-photograph realism translated into a two-ink print, tasteful physical imperfections, simple flat background, no scene clutter. Avoid glossy 3D, gradients, vector icon style, UI panels, charts, numbers, letters, captions, brands, logos, watermarks, border, or text anywhere. Subject: a compact offset stack of three ribbed shipping containers with no markings. Background paper color: terracotta. The cover is called Supply Chain, but render NO TEXT.
@@ -109,7 +109,7 @@ Use case: stylized-concept. Asset type: original square editorial cover for a Ba
 
 Final: `app/public/images/baskets/world-tour.webp`
 
-Built-in original: `/Users/umutyesildal/.codex/generated_images/01a12271-d098-7022-92c5-595f56f9bb02/exec-1b217471-c115-4e54-9414-8b6104c823e4.png`
+Built-in original: `<repo>`
 
 ```text
 Use case: stylized-concept. Asset type: original square editorial cover for a Basalt stock basket. Make a premium 1024x1024 square photographic cutout collage printed with coarse analog halftone/screenprint in deep charcoal black and warm cream on tactile colored paper. Visible natural paper grain, ink wear and stippling throughout, handcrafted financial editorial zine quality. A single large distinctive central subject fills roughly 70% of the frame with generous clean margins; crisp recognizable silhouette and strong contrast at thumbnail size. Vintage found-photograph realism translated into a two-ink print, tasteful physical imperfections, simple flat background, no scene clutter. Avoid glossy 3D, gradients, vector icon style, UI panels, charts, numbers, letters, captions, brands, logos, watermarks, border, or text anywhere. Subject: one desktop globe on a tilted metal stand, map shapes with no legible place names. Background paper color: sky blue. The cover is called World Tour, but render NO TEXT.
@@ -119,7 +119,7 @@ Use case: stylized-concept. Asset type: original square editorial cover for a Ba
 
 Final: `app/public/images/baskets/bull-case.webp`
 
-Built-in original: `/Users/umutyesildal/.codex/generated_images/01a12271-d098-7022-92c5-595f56f9bb02/exec-fc6da2e0-c5e4-4c46-9132-90bae4b48d47.png`
+Built-in original: `<repo>`
 
 ```text
 Use case: stylized-concept. Asset type: original square editorial cover for a Basalt stock basket. Make a premium 1024x1024 square photographic cutout collage printed with coarse analog halftone/screenprint in deep charcoal black and warm cream on tactile colored paper. Visible natural paper grain, ink wear and stippling throughout, handcrafted financial editorial zine quality. A single large distinctive central subject fills roughly 70% of the frame with generous clean margins; crisp recognizable silhouette and strong contrast at thumbnail size. Vintage found-photograph realism translated into a two-ink print, tasteful physical imperfections, simple flat background, no scene clutter. Avoid glossy 3D, gradients, vector icon style, UI panels, charts, numbers, letters, captions, brands, logos, watermarks, border, or text anywhere. Subject: one strong sculptural bull standing firmly, head lowered slightly, worn matte dark bronze. Background paper color: electric yellow. The cover is called Bull Case, but render NO TEXT.
@@ -129,7 +129,7 @@ Use case: stylized-concept. Asset type: original square editorial cover for a Ba
 
 Final: `app/public/images/baskets/bear-with-me.webp`
 
-Built-in original: `/Users/umutyesildal/.codex/generated_images/01a12271-d098-7022-92c5-595f56f9bb02/exec-cd0c6302-7117-43d0-ab8b-9abed5e2369a.png`
+Built-in original: `<repo>`
 
 ```text
 Use case: stylized-concept. Asset type: original square editorial cover for a Basalt stock basket. Make a premium 1024x1024 square photographic cutout collage printed with coarse analog halftone/screenprint in deep charcoal black and warm cream on tactile colored paper. Visible natural paper grain, ink wear and stippling throughout, handcrafted financial editorial zine quality. A single large distinctive central subject fills roughly 70% of the frame with generous clean margins; crisp recognizable silhouette and strong contrast at thumbnail size. Vintage found-photograph realism translated into a two-ink print, tasteful physical imperfections, simple flat background, no scene clutter. Avoid glossy 3D, gradients, vector icon style, UI panels, charts, numbers, letters, captions, brands, logos, watermarks, border, or text anywhere. Subject: one sculptural walking bear in profile, worn matte dark bronze, clear strong silhouette. Background paper color: dusty rose. The cover is called Bear With Me, but render NO TEXT.
@@ -139,7 +139,7 @@ Use case: stylized-concept. Asset type: original square editorial cover for a Ba
 
 Final: `app/public/images/baskets/slow-burn.webp`
 
-Built-in original: `/Users/umutyesildal/.codex/generated_images/01a12271-d098-7022-92c5-595f56f9bb02/exec-2d4bca7f-8f7f-4a71-8231-615397ed9051.png`
+Built-in original: `<repo>`
 
 ```text
 Use case: stylized-concept. Asset type: original square editorial cover for a Basalt stock basket. Make a premium 1024x1024 square photographic cutout collage printed with coarse analog halftone/screenprint in deep charcoal black and warm cream on tactile colored paper. Visible natural paper grain, ink wear and stippling throughout, handcrafted financial editorial zine quality. A single large distinctive central subject fills roughly 70% of the frame with generous clean margins; crisp recognizable silhouette and strong contrast at thumbnail size. Vintage found-photograph realism translated into a two-ink print, tasteful physical imperfections, simple flat background, no scene clutter. Avoid glossy 3D, gradients, vector icon style, UI panels, charts, numbers, letters, captions, brands, logos, watermarks, border, or text anywhere. Subject: one lit match with a tiny flame and a minimal elegant curl of smoke. Background paper color: lilac. The cover is called Slow Burn, but render NO TEXT.

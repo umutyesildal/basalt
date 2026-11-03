@@ -50,7 +50,7 @@ See the [current audit](design-home-discovery-2026-10-02.md) for the full file m
 
 ## Earlier iteration record
 
-This records the landing redesign, copy cleanup, Colosseum setup and research, and verification completed in this conversation. It describes the canonical working tree at `/Users/umutyesildal/orca/workspaces/createyouretf/createyouretf`, branch `main`, based on commit `e18d6f429dbb657ef32b10bc8d83e27ae42b3c3b`. These changes remain uncommitted. The old `/Users/umutyesildal/orca/projects/createyouretf` directory is not the current product source.
+This records the landing redesign, copy cleanup, Colosseum setup and research, and verification completed in this conversation. It describes the canonical working tree at `<repo>`, branch `main`, based on commit `e18d6f429dbb657ef32b10bc8d83e27ae42b3c3b`. These changes remain uncommitted. The old `<repo>` directory is not the current product source.
 
 ## Earlier owner decisions, now superseded for layout
 
@@ -158,7 +158,7 @@ The working tree also contains pre-existing governance/deployment-verifier chang
 
 ## Earlier iteration entry points (superseded)
 
-Read [handoff](../handoff.md), [brand](../brand.md), the [landing design](design-home-chapters-2026-10-02.md), and the [documentation map](README.md). Use the [operational backlog](implementation-backlog.md) for unfinished release work. Preserve the existing working tree. Do not restore the superseded four-chapter design or a public onchain create route solely because an older note describes it.
+Read [handoff](journal/handoff-2026-10.md), [brand](../brand.md), the [landing design](design-home-chapters-2026-10-02.md), and the [documentation map](README.md). Use the [operational backlog](implementation-backlog.md) for unfinished release work. Preserve the existing working tree. Do not restore the superseded four-chapter design or a public onchain create route solely because an older note describes it.
 
 
 ## Documentation sync
