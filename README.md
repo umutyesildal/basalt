@@ -74,7 +74,7 @@ Program routing uses the shared [namespace registry](backend/src/config/programN
 
 ## Local development
 
-Use Node.js 20.17+ with npm 11.6.2. Rust and the Solana/Anchor toolchain are required for program work; PostgreSQL 15 is used for indexed data. Redis is optional.
+Use Node.js 20.19+ with npm 11.6.2. The test runner uses Vite 8, which requires 20.19 or newer. Rust and the Solana/Anchor toolchain are required for program work; PostgreSQL 15 is used for indexed data. Redis is optional.
 
 ```bash
 git clone https://github.com/umutyesildal/basalt.git

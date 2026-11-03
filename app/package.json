@@ -60,7 +60,7 @@
     "tailwindcss-animate": "^1.0.7",
     "tsx": "4.23.13",
     "typescript": "^5.4.0",
-    "vitest": "^1.4.0"
+    "vitest": "^4.1.12"
   },
   "overrides": {
     "lodash": "4.18.1",
